@@ -142,12 +142,12 @@ class AppRouter {
 ),
       
       //
-      //   // Client Dashboard
-      //   GoRoute(
-      //     path: RouteNames.clientDashboard,
-      //     builder: (context, state) =>
-      //     const ClientDashboardScreen(),
-      //   ),
+        // Client Dashboard
+        GoRoute(
+          path: RouteNames.clientDashboard,
+          builder: (context, state) =>
+          const ClientDashboardScreen(),
+        ),
       //
       //   // Lawyer Search
       //   GoRoute(
