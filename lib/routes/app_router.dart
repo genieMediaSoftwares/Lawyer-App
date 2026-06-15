@@ -133,12 +133,14 @@ class AppRouter {
           builder: (context, state) =>
           const LoginScreen(),
         ),
-      //   // OTP
-      //   GoRoute(
-      //     path: RouteNames.otpVerification,
-      //     builder: (context, state) =>
-      //     const OTPVerificationScreen(),
-      //   ),
+
+        // OTP
+        GoRoute(
+  path: RouteNames.otpVerification,
+  builder: (context, state) =>
+      const OTPVerificationScreen(),
+),
+      
       //
       //   // Client Dashboard
       //   GoRoute(
