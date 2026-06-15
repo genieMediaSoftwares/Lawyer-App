@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../routes/route_names.dart';
 
 /// ---------------------------
 /// MODEL
@@ -417,18 +419,18 @@ class LawyerCard
                 height: 14),
 
             SizedBox(
-              width:
-              double.infinity,
-              child:
-              ElevatedButton(
-                onPressed: () {
-                  // Navigate to lawyer profile
-                },
-                child: const Text(
-                  "View Profile",
-                ),
-              ),
-            ),
+  width: double.infinity,
+  child: ElevatedButton(
+    onPressed: () {
+      context.push(
+        RouteNames.lawyerProfile,
+      );
+    },
+    child: const Text(
+      "View Profile",
+    ),
+  ),
+),
           ],
         ),
       ),
