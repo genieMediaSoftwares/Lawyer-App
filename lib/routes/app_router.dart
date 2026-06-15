@@ -156,12 +156,12 @@ class AppRouter {
           const LawyerSearchScreen(),
         ),
       //
-      //   // Lawyer Profile
-      //   GoRoute(
-      //     path: RouteNames.lawyerProfile,
-      //     builder: (context, state) =>
-      //     const LawyerProfileScreen(),
-      //   ),
+        // Lawyer Profile
+        GoRoute(
+          path: RouteNames.lawyerProfile,
+          builder: (context, state) =>
+          const LawyerProfileScreen(),
+        ),
       //
       //   // Appointment Booking
       //   GoRoute(
