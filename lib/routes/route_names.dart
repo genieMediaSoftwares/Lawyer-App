@@ -1,17 +1,20 @@
 class RouteNames {
   RouteNames._();
 
-  // Splash
+  /// Splash
   static const String splash = '/';
 
-  // Onboarding
-  static const String onboarding = '/onboarding';
+  /// Onboarding
+  static const String onboarding =
+      '/onboarding';
 
-  // Authentication
+  /// Authentication
   static const String login = '/login';
-  static const String otpVerification = '/otp-verification';
 
-  // Client
+  static const String otpVerification =
+      '/otp-verification';
+
+  /// Client
   static const String clientDashboard =
       '/client-dashboard';
 
@@ -24,17 +27,14 @@ class RouteNames {
   static const String appointmentBooking =
       '/appointment-booking';
 
-  // Lawyer
+  /// Lawyer
   static const String lawyerDashboard =
       '/lawyer-dashboard';
 
-  // Shared
+  /// Chat
   static const String chat = '/chat';
-  static const String profile = '/profile';
 
-  static const String otpVerification =
-    '/otp-verification';
-
-static const String clientDashboard =
-    '/client-dashboard';
+  /// Profile
+  static const String profile =
+      '/profile';
 }
