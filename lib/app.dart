@@ -13,6 +13,7 @@
 //     );
 //   }
 // }
+import 'core/network/test_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,7 +29,7 @@ class MyApp extends ConsumerWidget {
       WidgetRef ref,
       ) {
     final router = AppRouter.router(ref);
-
+    TestApi.test();
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'LawConnect',
