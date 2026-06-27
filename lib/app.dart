@@ -28,7 +28,7 @@ class MyApp extends ConsumerWidget {
       BuildContext context,
       WidgetRef ref,
       ) {
-    final router = AppRouter.router(ref);
+    final router = ref.watch(routerProvider);
     TestApi.test();
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,

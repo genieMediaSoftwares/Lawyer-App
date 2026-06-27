@@ -53,7 +53,7 @@ class _OnboardingScreenState
         .read(authProvider.notifier)
         .completeOnboarding();
 
-    context.go(RouteNames.login);
+    context.go(RouteNames.signup);
   }
 
   void _nextPage() {

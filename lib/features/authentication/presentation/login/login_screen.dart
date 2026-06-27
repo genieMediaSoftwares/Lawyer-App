@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-
 import '../../../../routes/route_names.dart';
+import '../../../../providers/auth_provider.dart' as global_auth;
+import '../providers/auth_provider.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() =>
+  ConsumerState<LoginScreen> createState() =>
       _LoginScreenState();
 }
 
 class _LoginScreenState
-    extends State<LoginScreen> {
+    extends ConsumerState<LoginScreen> {
   final _formKey =
   GlobalKey<FormState>();
 
@@ -76,31 +78,64 @@ class _LoginScreenState
       _isLoading = true;
     });
 
-    /// TODO:
-    /// Call backend API
+    try {
+      final loginUseCase = ref.read(loginUseCaseProvider);
+      final response = await loginUseCase(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
 
-    await Future.delayed(
-      const Duration(seconds: 2),
-    );
+      final userRoleStr = response.user.role;
+      global_auth.UserRole appRole;
+      String dashboardRoute;
 
-    if (!mounted) return;
+      if (userRoleStr == 'lawyer') {
+        appRole = global_auth.UserRole.lawyer;
+        dashboardRoute = RouteNames.lawyerDashboard;
+      } else {
+        appRole = global_auth.UserRole.client;
+        dashboardRoute = RouteNames.clientDashboard;
+      }
 
-    setState(() {
-      _isLoading = false;
-    });
+      await ref
+          .read(global_auth.authProvider.notifier)
+          .login(
+            response.token,
+            appRole,
+            id: response.user.id,
+            name: response.user.fullName,
+            email: response.user.email,
+            mobile: response.user.mobile,
+          );
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      const SnackBar(
-        content:
-        Text("Login Success"),
-      ),
-    );
+      if (!mounted) return;
 
-    /// Example
-    context.go(
-      RouteNames.clientDashboard,
-    );
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Login Success"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      context.go(dashboardRoute);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -113,6 +148,17 @@ class _LoginScreenState
       appBar: AppBar(
         title:
         const Text("Login"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              context.go(RouteNames.signup);
+            },
+            child: const Text(
+              "Sign Up",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child:
@@ -350,7 +396,7 @@ class _LoginScreenState
                     TextButton(
                       onPressed:
                           () {
-                        context.push(
+                        context.go(
                           RouteNames
                               .signup,
                         );
