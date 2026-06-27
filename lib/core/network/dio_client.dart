@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 import '../config/env.dart';
+import 'api_interceptor.dart';
 
 class DioClient {
   DioClient._();
@@ -19,7 +20,8 @@ class DioClient {
       },
     ),
   )
-    ..interceptors.add(
+    ..interceptors.addAll([
+      ApiInterceptor(),
       PrettyDioLogger(
         requestBody: true,
         requestHeader: true,
@@ -27,5 +29,5 @@ class DioClient {
         responseHeader: false,
         error: true,
       ),
-    );
+    ]);
 }
