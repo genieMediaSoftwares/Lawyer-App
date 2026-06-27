@@ -27,8 +27,8 @@ import 'route_names.dart';
 // Screens
 import '../features/splash/presentation/screens/splash_screen.dart';
 import '../features/onboarding/presentation/screens/onboarding_screen.dart';
-import '../features/authentication/presentation/login/login_screen.dart';
-import '../features/authentication/presentation/otp_verification/otp_verification_screen.dart';
+import '../features/authentication/presentation/login/old_login_screen.dart';
+// import '../features/authentication/presentation/otp_verification/otp_verification_screen.dart';
 import '../features/client/dashboard/screens/client_dashboard_screen.dart';
 import '../features/client/lawyer_search/screens/lawyer_search_screen.dart';
 import 'package:law/features/client/lawyer_profile/screens/lawyer_profile_screen.dart';
@@ -36,6 +36,9 @@ import 'package:law/features/client/lawyer_profile/screens/lawyer_profile_screen
 // import '../features/lawyer/dashboard/screens/lawyer_dashboard_screen.dart';
 // import '../features/chat/screens/chat_screen.dart';
 // import '../features/profile/screens/profile_screen.dart';
+import '../features/authentication/presentation/signup/signup_screen.dart';
+import '../features/authentication/presentation/login/login_screen.dart';
+import '../features/authentication/presentation/forgot_password/forgot_password_screen.dart';
 
 class AppRouter {
   AppRouter._();
@@ -133,13 +136,23 @@ class AppRouter {
           builder: (context, state) =>
           const LoginScreen(),
         ),
-
-        // OTP
         GoRoute(
-  path: RouteNames.otpVerification,
-  builder: (context, state) =>
-      const OTPVerificationScreen(),
-),
+          path: RouteNames.signup,
+          builder: (context, state) => const SignupScreen(),
+        ),
+
+
+        GoRoute(
+          path: RouteNames.forgotPassword,
+          builder: (context, state) => const ForgotPasswordScreen(),
+        ),
+
+//         // OTP
+//         GoRoute(
+//   path: RouteNames.otpVerification,
+//   builder: (context, state) =>
+//       const OTPVerificationScreen(),
+// ),
       
       //
         // Client Dashboard

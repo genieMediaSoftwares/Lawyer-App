@@ -7,12 +7,15 @@ class RouteNames {
   /// Onboarding
   static const String onboarding =
       '/onboarding';
+  static const signup = '/signup';
 
   /// Authentication
   static const String login = '/login';
+  static const forgotPassword = '/forgot-password';
 
-  static const String otpVerification =
-      '/otp-verification';
+
+  // static const String otpVerification =
+  //     '/otp-verification';
 
   /// Client
   static const String clientDashboard =
