@@ -71,7 +71,8 @@ class AppRouter {
         // Authentication Guard
         final authRoutes = [
           RouteNames.login,
-          RouteNames.otpVerification,
+          RouteNames.signup,
+          RouteNames.forgotPassword,
         ];
 
         if (!isLoggedIn &&
