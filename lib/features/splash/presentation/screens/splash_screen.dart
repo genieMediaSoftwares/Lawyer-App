@@ -150,10 +150,12 @@ class _SplashScreenState
                       borderRadius:
                       BorderRadius.circular(24),
                     ),
-                    child: Icon(
-                      Icons.gavel_rounded,
-                      size: logoSize * 0.5,
-                      color: AppColors.navyBlue,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.asset(
+                        "assets/images/logo.jpg",
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),

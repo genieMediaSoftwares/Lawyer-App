@@ -6,6 +6,10 @@ const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
 const errorMiddleware = require("./middleware/errorMiddleware");
 const authRoutes = require("./routes/authRoutes");
+const caseRoutes = require("./routes/case.routes");
+const appointmentRoutes = require("./routes/appointment.routes");
+const chatRoutes = require("./routes/chat.routes");
+const lawyerRoutes = require("./routes/lawyer.routes");
 
 const app = express();
 
@@ -38,8 +42,20 @@ app.get("/", (req, res) => {
   });
 });
 
+// API Root Health Check
+app.get("/api", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "🚀 Lawyer Consultation API Running Successfully",
+  });
+});
+
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/cases", caseRoutes);
+app.use("/api/appointments", appointmentRoutes);
+app.use("/api/chats", chatRoutes);
+app.use("/api/lawyers", lawyerRoutes);
 
 // Global Error Handler
 app.use(errorMiddleware);
