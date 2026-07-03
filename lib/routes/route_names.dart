@@ -1,43 +1,30 @@
 class RouteNames {
   RouteNames._();
 
-  /// Splash
   static const String splash = '/';
-
-  /// Onboarding
-  static const String onboarding =
-      '/onboarding';
+  static const String onboarding = '/onboarding';
   static const signup = '/signup';
 
-  /// Authentication
   static const String login = '/login';
   static const forgotPassword = '/forgot-password';
 
+  /// Client — bottom nav tabs (live inside the shell)
+  static const String clientDashboard = '/client-dashboard';
+  static const String myCases = '/my-cases';
+  static const String messages = '/messages';
+  static const String profile = '/profile';
 
-  // static const String otpVerification =
-  //     '/otp-verification';
+  /// Client — pushed full-screen routes (sit above the shell)
+  static const String lawyerSearch = '/lawyer-search';
+  static const String lawyerProfile = '/lawyer-profile/:userId';
+  static const String postCase = '/post-case';
+  static const String lawyersResponded = '/lawyers-responded/:caseId';
+  static const String caseProgress = '/case-progress/:caseId';
+  static const String scheduleConsultation = '/schedule-consultation/:lawyerUserId';
+  static const String notifications = '/notifications';
+  static const String aiChat = '/ai-chat';
+  static const String chat = '/chat/:chatId/:lawyerName';
 
-  /// Client
-  static const String clientDashboard =
-      '/client-dashboard';
-
-  static const String lawyerSearch =
-      '/lawyer-search';
-
-  static const String lawyerProfile =
-      '/lawyer-profile';
-
-  static const String appointmentBooking =
-      '/appointment-booking';
-
-  /// Lawyer
-  static const String lawyerDashboard =
-      '/lawyer-dashboard';
-
-  /// Chat
-  static const String chat = '/chat';
-
-  /// Profile
-  static const String profile =
-      '/profile';
+  static const String lawyerDashboard = '/lawyer-dashboard';
+  static const String subscriptionPlans = '/subscription-plans';
 }

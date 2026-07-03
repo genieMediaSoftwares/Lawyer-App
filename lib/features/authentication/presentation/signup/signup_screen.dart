@@ -170,11 +170,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   height: size.height * 0.02,
                 ),
 
-                Icon(
-                  Icons.gavel_rounded,
-                  size: 90,
-                  color: theme
-                      .colorScheme.primary,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    "assets/images/logo.jpg",
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                  ),
                 ),
 
                 const SizedBox(

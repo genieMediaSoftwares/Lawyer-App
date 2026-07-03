@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class OnboardingPage extends StatelessWidget {
@@ -15,6 +16,9 @@ class OnboardingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final maxDim = math.min(size.width, size.height);
+    final containerSize = math.min(maxDim * 0.45, 180.0);
+    final iconSize = math.min(maxDim * 0.18, 72.0);
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -25,8 +29,8 @@ class OnboardingPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: size.width * 0.45,
-            height: size.width * 0.45,
+            width: containerSize,
+            height: containerSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Theme.of(context)
@@ -36,7 +40,7 @@ class OnboardingPage extends StatelessWidget {
             ),
             child: Icon(
               icon,
-              size: size.width * 0.18,
+              size: iconSize,
               color: Theme.of(context).colorScheme.primary,
             ),
           ),

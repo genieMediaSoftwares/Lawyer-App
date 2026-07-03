@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/storage/token_storage.dart';
+import '../core/network/dio_client.dart';
 
 enum UserRole {
   client,
@@ -14,6 +15,7 @@ class AuthState {
   final String? userEmail;
   final String? userMobile;
   final String? userId;
+  final String? userPhotoUrl;
 
   const AuthState({
     required this.isLoggedIn,
@@ -23,6 +25,7 @@ class AuthState {
     this.userEmail,
     this.userMobile,
     this.userId,
+    this.userPhotoUrl,
   });
 
   AuthState copyWith({
@@ -33,6 +36,7 @@ class AuthState {
     String? userEmail,
     String? userMobile,
     String? userId,
+    String? userPhotoUrl,
   }) {
     return AuthState(
       isLoggedIn: isLoggedIn ?? this.isLoggedIn,
@@ -42,6 +46,7 @@ class AuthState {
       userEmail: userEmail ?? this.userEmail,
       userMobile: userMobile ?? this.userMobile,
       userId: userId ?? this.userId,
+      userPhotoUrl: userPhotoUrl ?? this.userPhotoUrl,
     );
   }
 }
@@ -81,6 +86,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       userEmail: details['email'],
       userMobile: details['mobile'],
       userId: details['id'],
+      userPhotoUrl: details['photo'],
     );
   }
 
@@ -92,13 +98,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> login(
-    String token,
-    UserRole role, {
-    required String id,
-    required String name,
-    required String email,
-    required String mobile,
-  }) async {
+      String token,
+      UserRole role, {
+        required String id,
+        required String name,
+        required String email,
+        required String mobile,
+        String? photoUrl,
+      }) async {
     await _tokenStorage.saveToken(token);
     await _tokenStorage.saveRole(role.name);
     await _tokenStorage.saveUserDetails(
@@ -106,6 +113,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       name: name,
       email: email,
       mobile: mobile,
+      // photo: photoUrl,
     );
     state = state.copyWith(
       isLoggedIn: true,
@@ -114,6 +122,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       userEmail: email,
       userMobile: mobile,
       userId: id,
+      userPhotoUrl: photoUrl,
     );
   }
 
@@ -129,7 +138,35 @@ class AuthNotifier extends StateNotifier<AuthState> {
       userEmail: null,
       userMobile: null,
       userId: null,
+      userPhotoUrl: null,
     );
+  }
+
+  Future<bool> updateUserProfile({required String name, required String mobile}) async {
+    try {
+      final response = await DioClient.dio.put("/auth/profile", data: {
+        "fullName": name,
+        "mobile": mobile,
+      });
+
+      if (response.data != null && response.data['success'] == true) {
+        final userData = response.data['data'];
+        await _tokenStorage.saveUserDetails(
+          id: userData['id'] ?? state.userId ?? '',
+          name: userData['fullName'] ?? '',
+          email: userData['email'] ?? '',
+          mobile: userData['mobile'] ?? '',
+        );
+        state = state.copyWith(
+          userName: userData['fullName'],
+          userMobile: userData['mobile'],
+        );
+        return true;
+      }
+    } catch (e) {
+      // Handle error
+    }
+    return false;
   }
 
   Future<void> resetOnboarding() async {
