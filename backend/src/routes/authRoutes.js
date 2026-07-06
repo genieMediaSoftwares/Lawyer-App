@@ -48,4 +48,24 @@ router.post(
   authController.uploadProfileImage
 );
 
+router.post("/forgot-password", authController.forgotPassword);
+router.post("/reset-password", authController.resetPassword);
+router.post("/change-password", authMiddleware, authController.changePassword);
+
+router.post("/logout", authMiddleware, (req, res) => {
+  return res.status(200).json({ success: true, message: "Logged out successfully." });
+});
+
+router.post("/refresh-token", (req, res) => {
+  // Mock endpoint for refreshing JWT token
+  return res.status(200).json({ success: true, message: "Token refreshed." });
+});
+
+router.post(
+  "/profile/certificate",
+  authMiddleware,
+  upload.single("certificate"),
+  authController.uploadBarCertificate
+);
+
 module.exports = router;

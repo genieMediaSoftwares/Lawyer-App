@@ -78,11 +78,33 @@ class LawyerController {
   async updateLawyerProfile(req, res, next) {
     try {
       const userId = req.user._id;
-      const { specialization, experience, education, barCouncilNumber, consultationFee, bio } = req.body;
+      const {
+        specialization,
+        experience,
+        education,
+        barCouncilNumber,
+        consultationFee,
+        bio,
+        officeAddress,
+        upiId,
+        workingHours,
+        bankDetails,
+      } = req.body;
       
       let lawyer = await Lawyer.findOneAndUpdate(
         { user: userId },
-        { specialization, experience, education, barCouncilNumber, consultationFee, bio },
+        {
+          specialization,
+          experience,
+          education,
+          barCouncilNumber,
+          consultationFee,
+          bio,
+          officeAddress,
+          upiId,
+          workingHours,
+          bankDetails,
+        },
         { new: true, runValidators: true }
       ).populate("user", "fullName email mobile profileImage location");
 

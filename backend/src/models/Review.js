@@ -22,6 +22,21 @@ const reviewSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    reply: {
+      type: String,
+      default: "",
+    },
+    replyDate: {
+      type: Date,
+    },
+    isHidden: {
+      type: Boolean,
+      default: false,
+    },
+    isReported: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

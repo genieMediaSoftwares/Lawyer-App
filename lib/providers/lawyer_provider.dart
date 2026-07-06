@@ -32,6 +32,10 @@ class LawyerProfileUpdater {
     required String barCouncilNumber,
     required int consultationFee,
     required String bio,
+    required String officeAddress,
+    required String upiId,
+    required String workingHours,
+    required Map<String, dynamic> bankDetails,
   }) async {
     try {
       final response = await DioClient.dio.put("/lawyers/profile", data: {
@@ -41,6 +45,10 @@ class LawyerProfileUpdater {
         "barCouncilNumber": barCouncilNumber,
         "consultationFee": consultationFee,
         "bio": bio,
+        "officeAddress": officeAddress,
+        "upiId": upiId,
+        "workingHours": workingHours,
+        "bankDetails": bankDetails,
       });
 
       if (response.data != null && response.data['success'] == true) {
