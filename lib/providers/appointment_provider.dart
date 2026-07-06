@@ -29,6 +29,7 @@ class AppointmentNotifier extends StateNotifier<AsyncValue<List<AppointmentModel
 
   Future<bool> bookAppointment({
     required String lawyerId,
+    String? clientId,
     String? caseId,
     required DateTime date,
     required String timeSlot,
@@ -37,6 +38,7 @@ class AppointmentNotifier extends StateNotifier<AsyncValue<List<AppointmentModel
     try {
       final response = await DioClient.dio.post("/appointments", data: {
         "lawyer": lawyerId,
+        "client": clientId,
         "caseId": caseId,
         "date": date.toIso8601String(),
         "timeSlot": timeSlot,

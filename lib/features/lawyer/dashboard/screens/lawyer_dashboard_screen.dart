@@ -15,6 +15,7 @@ import '../../../../models/lawyer_model.dart';
 import '../../../../models/appointment_model.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/widgets/location_picker_sheet.dart';
+import '../../../client/appointment_booking/providers/calendar_provider.dart';
 
 class LawyerDashboardScreen extends ConsumerStatefulWidget {
   final int initialTab;
@@ -55,6 +56,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
   // Selected date in calendar tab
   DateTime _selectedCalendarDate = DateTime.now();
+  DateTime _focusedCalendarMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
   late ScrollController _calendarScrollController;
 
   @override
@@ -249,6 +251,23 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   _isEditingProfile = !_isEditingProfile;
                 });
               },
+            )
+          else if (_currentIndex == 4)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: InkWell(
+                onTap: () => _showAddAppointmentDialog(),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.navyBlue,
+                  ),
+                  child: const Icon(Icons.add, color: Colors.white, size: 20),
+                ),
+              ),
             )
           else
             Stack(
@@ -1312,119 +1331,304 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   Widget _buildCalendarTab(String userId) {
     final appointmentsState = ref.watch(appointmentsProvider);
 
-    return Column(
-      children: [
-        // Month header with dynamic date picker trigger
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                DateFormat('MMMM yyyy').format(_selectedCalendarDate),
+    final year = _focusedCalendarMonth.year;
+    final month = _focusedCalendarMonth.month;
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+    final firstWeekdayOffset = DateTime(year, month, 1).weekday % 7;
+    final totalSlots = firstWeekdayOffset + daysInMonth;
+    final totalRows = (totalSlots / 7).ceil();
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // Build grid rows
+    final List<TableRow> gridRows = [];
+
+    // Weekdays header
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    gridRows.add(
+      TableRow(
+        children: weekdays.map((label) {
+          return SizedBox(
+            height: 32,
+            child: Center(
+              child: Text(
+                label,
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.navyBlue,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF7E8797),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.calendar_month, color: AppColors.navyBlue),
-                onPressed: () async {
-                  final pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: _selectedCalendarDate,
-                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                  );
-                  if (pickedDate != null) {
-                    setState(() => _selectedCalendarDate = pickedDate);
-                    _scrollToSelectedDate();
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-        const Divider(height: 1),
+            ),
+          );
+        }).toList(),
+      ),
+    );
 
-        // Main calendar body: Row containing left vertical strip and right appointments list
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Left Column: Vertical date picker strip
-              Container(
-                width: 76,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  border: Border(right: BorderSide(color: AppColors.borderLight, width: 1)),
-                ),
-                child: _buildVerticalDateStrip(),
-              ),
+    // Get appointment days for events dot
+    final appointmentDays = <int>{};
+    appointmentsState.whenData((appointments) {
+      for (final appt in appointments) {
+        if (appt.lawyerId == userId &&
+            appt.date.month == month &&
+            appt.date.year == year &&
+            appt.status != 'cancelled') {
+          appointmentDays.add(appt.date.day);
+        }
+      }
+    });
 
-              // Right Column: Appointments list
-              Expanded(
-          child: appointmentsState.when(
-            data: (appointments) {
-              final dailyAppts = appointments.where((a) =>
-                a.lawyerId == userId &&
-                a.date.day == _selectedCalendarDate.day &&
-                a.date.month == _selectedCalendarDate.month &&
-                a.date.year == _selectedCalendarDate.year
-              ).toList();
+    for (int row = 0; row < totalRows; row++) {
+      final cells = <Widget>[];
+      for (int col = 0; col < 7; col++) {
+        final index = row * 7 + col;
+        if (index < firstWeekdayOffset || index >= totalSlots) {
+          cells.add(const SizedBox(height: 48));
+        } else {
+          final dayNum = index - firstWeekdayOffset + 1;
+          final cellDate = DateTime(year, month, dayNum);
 
-              if (dailyAppts.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.calendar_today_outlined, size: 48, color: AppColors.grey300),
-                      const SizedBox(height: 12),
-                      const Text(
-                        "No consultations scheduled for this day.",
-                        style: TextStyle(color: AppColors.grey400, fontSize: 13),
+          final isSelected = _selectedCalendarDate.day == dayNum &&
+              _selectedCalendarDate.month == month &&
+              _selectedCalendarDate.year == year;
+
+          final isToday = cellDate.isAtSameMomentAs(today);
+          final hasEvents = appointmentDays.contains(dayNum);
+
+          cells.add(
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedCalendarDate = cellDate;
+                });
+              },
+              behavior: HitTestBehavior.opaque,
+              child: SizedBox(
+                height: 48,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isSelected ? AppColors.navyBlue : Colors.transparent,
+                        border: isSelected
+                            ? Border.all(color: AppColors.gold, width: 2.5)
+                            : null,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '$dayNum',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected
+                              ? Colors.white
+                              : const Color(0xFF0F172A),
+                          height: 1.0,
+                        ),
+                      ),
+                    ),
+                    if (hasEvents) ...[
+                      const SizedBox(height: 2),
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.gold,
+                        ),
                       ),
                     ],
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+      }
+      gridRows.add(TableRow(children: cells));
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Calendar Grid Card
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x10000000),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ],
+              border: Border.all(color: AppColors.grey200),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Centered month navigator
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _focusedCalendarMonth = DateTime(
+                            _focusedCalendarMonth.year,
+                            _focusedCalendarMonth.month - 1,
+                            1,
+                          );
+                        });
+                      },
+                      behavior: HitTestBehavior.opaque,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Icon(Icons.chevron_left, color: AppColors.navyBlue, size: 24),
+                      ),
+                    ),
+                    Text(
+                      DateFormat('MMMM yyyy').format(_focusedCalendarMonth),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.navyBlue,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _focusedCalendarMonth = DateTime(
+                            _focusedCalendarMonth.year,
+                            _focusedCalendarMonth.month + 1,
+                            1,
+                          );
+                        });
+                      },
+                      behavior: HitTestBehavior.opaque,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Icon(Icons.chevron_right, color: AppColors.navyBlue, size: 24),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Table(
+                  defaultColumnWidth: const FlexColumnWidth(1),
+                  children: gridRows,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Title Section: Appointments
+          const Text(
+            'Appointments',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              color: AppColors.navyBlue,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Dynamic list container matching design
+          appointmentsState.when(
+            data: (appointments) {
+              final dailyAppts = appointments.where((appt) {
+                if (appt.lawyerId != userId) return false;
+                final apptDate = DateTime(appt.date.year, appt.date.month, appt.date.day);
+                return (apptDate.isAtSameMomentAs(_selectedCalendarDate) || apptDate.isAfter(_selectedCalendarDate)) &&
+                    appt.status != 'cancelled';
+              }).toList();
+
+              // Sort
+              dailyAppts.sort((a, b) {
+                final dateCompare = a.date.compareTo(b.date);
+                if (dateCompare != 0) return dateCompare;
+                return a.timeSlot.compareTo(b.timeSlot);
+              });
+
+              if (dailyAppts.isEmpty) {
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.grey200),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'No upcoming appointments scheduled.',
+                      style: TextStyle(color: AppColors.grey400, fontSize: 13),
+                    ),
                   ),
                 );
               }
 
-              return ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: dailyAppts.length,
-                separatorBuilder: (c, i) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final appt = dailyAppts[index];
-                  final isVideo = appt.mode.toLowerCase().contains("video");
-
-                  return Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: const BorderSide(color: AppColors.grey200),
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
+                  ],
+                  border: Border.all(color: AppColors.grey200),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: dailyAppts.length,
+                  separatorBuilder: (context, index) => const Divider(color: Color(0xFFF1F5F9), height: 20),
+                  itemBuilder: (context, index) {
+                    final appt = dailyAppts[index];
+
+                    String dateBadge = "";
+                    final todayVal = DateTime(now.year, now.month, now.day);
+                    final apptDayVal = DateTime(appt.date.year, appt.date.month, appt.date.day);
+
+                    if (apptDayVal.isAtSameMomentAs(todayVal)) {
+                      dateBadge = "Today";
+                    } else {
+                      dateBadge = DateFormat('d MMM').format(appt.date);
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: AppColors.navyBlue.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                          // Time
+                          SizedBox(
+                            width: 80,
                             child: Text(
-                              DateFormat('hh:mm\na').format(appt.date),
-                              textAlign: TextAlign.center,
+                              appt.timeSlot,
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
+                                fontSize: 14,
                                 color: AppColors.navyBlue,
-                                fontSize: 11,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 8),
+                          // Details
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1433,123 +1637,254 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                                   appt.clientName,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.navyBlue,
                                     fontSize: 14,
+                                    color: AppColors.navyBlue,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      isVideo ? Icons.video_call : Icons.phone,
-                                      size: 14,
-                                      color: AppColors.grey400,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      appt.caseTitle ?? appt.mode,
-                                      style: const TextStyle(color: AppColors.grey400, fontSize: 12),
-                                    ),
-                                  ],
+                                Text(
+                                  appt.caseTitle ?? (appt.mode.toLowerCase().contains("video") ? "Video Consultation" : "Voice Consultation"),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.grey400,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                          OutlinedButton(
-                            onPressed: () {
-                              context.push('/chat/chat_${appt.id}/${appt.clientName}');
-                            },
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.navyBlue),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              minimumSize: const Size(60, 36),
-                            ),
-                            child: const Text(
-                              "Chat",
-                              style: TextStyle(
-                                color: AppColors.navyBlue,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
+                          const SizedBox(width: 12),
+                          // Date Badge
+                          Text(
+                            dateBadge,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.grey400,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, stack) => Center(child: Text("Error: $err")),
           ),
-        ),
-      ],
-    ),
-  ),
-],
+        ],
+      ),
     );
   }
 
-  Widget _buildVerticalDateStrip() {
-    final year = _selectedCalendarDate.year;
-    final month = _selectedCalendarDate.month;
-    final daysInMonth = DateTime(year, month + 1, 0).day;
+  void _showAddAppointmentDialog() {
+    final currentUserId = ref.read(authProvider).userId ?? "";
+    final cases = ref.read(casesProvider).value ?? [];
+    final activeCases = cases.where((c) => c.assignedLawyerId == currentUserId).toList();
 
-    return ListView.builder(
-      controller: _calendarScrollController,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: daysInMonth,
-      itemBuilder: (context, index) {
-        final day = index + 1;
-        final date = DateTime(year, month, day);
-        final isToday = date.day == DateTime.now().day &&
-            date.month == DateTime.now().month &&
-            date.year == DateTime.now().year;
-        final isSelected = date.day == _selectedCalendarDate.day &&
-            date.month == _selectedCalendarDate.month &&
-            date.year == _selectedCalendarDate.year;
+    // Get unique active clients list
+    final List<Map<String, String>> clients = [];
+    final Set<String> seen = {};
+    for (final c in activeCases) {
+      if (c.clientId.isNotEmpty && !seen.contains(c.clientId)) {
+        seen.add(c.clientId);
+        clients.add({
+          "id": c.clientId,
+          "name": c.clientName,
+        });
+      }
+    }
 
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedCalendarDate = date;
-            });
-            _scrollToSelectedDate();
-          },
-          child: Container(
-            height: 60,
-            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.navyBlue : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-              border: isToday && !isSelected
-                  ? Border.all(color: AppColors.navyBlue.withOpacity(0.3))
-                  : null,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  DateFormat('E').format(date)[0],
-                  style: TextStyle(
-                    color: isSelected ? Colors.white70 : AppColors.grey400,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
+    String selectedClientId = clients.isNotEmpty ? clients.first['id']! : "64f15d2a900994f29a02256c";
+    final TextEditingController nameTextController = TextEditingController();
+    if (clients.isEmpty) {
+      nameTextController.text = "Rahul Sharma"; // Default seeded client name
+    }
+
+    DateTime selectedDate = _selectedCalendarDate;
+    String selectedTimeSlot = "11:00 AM";
+    String selectedMode = "Video Call";
+    bool isSaving = false;
+
+    final List<String> timeSlots = [
+      '09:00 AM',
+      '11:00 AM',
+      '01:00 PM',
+      '03:00 PM',
+      '05:00 PM',
+      '07:00 PM',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text(
+                "Add Appointment",
+                style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue, fontSize: 18),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Client selection
+                    if (clients.isNotEmpty) ...[
+                      const Text("Select Client", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.grey500)),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<String>(
+                        value: selectedClientId,
+                        dropdownColor: Colors.white,
+                        decoration: const InputDecoration(
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          border: OutlineInputBorder(),
+                        ),
+                        items: clients.map((c) {
+                          return DropdownMenuItem<String>(
+                            value: c['id'],
+                            child: Text(c['name']!, style: const TextStyle(fontSize: 13, color: AppColors.navyBlue)),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          setDialogState(() => selectedClientId = val!);
+                        },
+                      ),
+                    ] else ...[
+                      const Text("Client Name", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.grey500)),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: nameTextController,
+                        style: const TextStyle(color: AppColors.navyBlue, fontSize: 13),
+                        decoration: const InputDecoration(
+                          hintText: "Enter client name",
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+
+                    // Date Selection
+                    const Text("Appointment Date", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.grey500)),
+                    const SizedBox(height: 6),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (picked != null) {
+                          setDialogState(() => selectedDate = picked);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.grey300),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(DateFormat('dd MMM yyyy').format(selectedDate), style: const TextStyle(fontSize: 13, color: AppColors.navyBlue)),
+                            const Icon(Icons.calendar_today, size: 16, color: AppColors.navyBlue),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Time Slot Selection
+                    const Text("Select Time Slot", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.grey500)),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      value: selectedTimeSlot,
+                      dropdownColor: Colors.white,
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(),
+                      ),
+                      items: timeSlots.map((slot) {
+                        return DropdownMenuItem<String>(
+                          value: slot,
+                          child: Text(slot, style: const TextStyle(fontSize: 13, color: AppColors.navyBlue)),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setDialogState(() => selectedTimeSlot = val!);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Mode Selection
+                    const Text("Consultation Mode", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.grey500)),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      value: selectedMode,
+                      dropdownColor: Colors.white,
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: "Video Call", child: Text("Video Call", style: TextStyle(fontSize: 13, color: AppColors.navyBlue))),
+                        DropdownMenuItem(value: "Audio Call", child: Text("Audio Call", style: TextStyle(fontSize: 13, color: AppColors.navyBlue))),
+                      ],
+                      onChanged: (val) {
+                        setDialogState(() => selectedMode = val!);
+                      },
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  "$day",
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : AppColors.navyBlue,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cancel", style: TextStyle(color: AppColors.grey500)),
+                ),
+                ElevatedButton(
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          setDialogState(() => isSaving = true);
+                          final success = await ref.read(appointmentsProvider.notifier).bookAppointment(
+                                lawyerId: currentUserId,
+                                clientId: selectedClientId,
+                                date: selectedDate,
+                                timeSlot: selectedTimeSlot,
+                                mode: selectedMode,
+                              );
+                          setDialogState(() => isSaving = false);
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            if (success) {
+                              // Reload
+                              ref.invalidate(appointmentsProvider);
+                              ref.invalidate(calendarAppointmentsProvider);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Appointment added successfully!")),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Failed to save appointment. Please try again.")),
+                              );
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.navyBlue, foregroundColor: Colors.white),
+                  child: isSaving
+                      ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text("Add"),
                 ),
               ],
-            ),
-          ),
+            );
+          },
         );
       },
     );
