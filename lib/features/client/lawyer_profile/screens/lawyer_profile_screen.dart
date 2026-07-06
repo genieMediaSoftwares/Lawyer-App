@@ -192,6 +192,18 @@ class LawyerProfileScreen extends ConsumerWidget {
             lawyer.specialization,
             style: const TextStyle(color: AppColors.grey500, fontSize: 13),
           ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.location_on_outlined, size: 14, color: AppColors.grey500),
+              const SizedBox(width: 4),
+              Text(
+                lawyer.location.isNotEmpty ? lawyer.location : "Hyderabad, Telangana",
+                style: const TextStyle(color: AppColors.grey500, fontSize: 12),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -222,8 +234,8 @@ class LawyerProfileScreen extends ConsumerWidget {
 
   Widget _buildExpertiseChip(String label) {
     return Chip(
-      label: Text(label, style: const TextStyle(color: AppColors.navyBlue, fontSize: 12)),
-      backgroundColor: AppColors.navyBlue.withOpacity(0.05),
+      label: Text(label, style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12)),
+      backgroundColor: AppColors.navyBlue,
       elevation: 0,
       side: BorderSide.none,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

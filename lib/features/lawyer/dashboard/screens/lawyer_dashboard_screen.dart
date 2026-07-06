@@ -13,6 +13,7 @@ import '../../../../models/case_model.dart';
 import '../../../../models/lawyer_model.dart';
 import '../../../../models/appointment_model.dart';
 import '../../../../core/widgets/app_drawer.dart';
+import '../../../../core/widgets/location_picker_sheet.dart';
 
 class LawyerDashboardScreen extends ConsumerStatefulWidget {
   final int initialTab;
@@ -38,6 +39,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   late TextEditingController _bioController;
   late TextEditingController _barController;
   late TextEditingController _eduController;
+  late TextEditingController _locationController;
 
   // Selected sub-tabs
   int _selectedLeadsTab = 0; // 0: New Leads, 1: In Progress, 2: Interested
@@ -58,6 +60,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     _bioController = TextEditingController();
     _barController = TextEditingController();
     _eduController = TextEditingController();
+    _locationController = TextEditingController();
   }
 
   @override
@@ -109,6 +112,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     _bioController.dispose();
     _barController.dispose();
     _eduController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -121,17 +125,18 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     final bio = _bioController.text.trim();
     final bar = _barController.text.trim();
     final edu = _eduController.text.trim();
+    final location = _locationController.text.trim();
 
-    if (name.isEmpty || phone.isEmpty || spec.isEmpty || bar.isEmpty) {
+    if (name.isEmpty || phone.isEmpty || spec.isEmpty || bar.isEmpty || location.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Name, phone, specialization, and Bar ID cannot be empty.")),
+        const SnackBar(content: Text("Name, phone, location, specialization, and Bar ID cannot be empty.")),
       );
       return;
     }
 
     setState(() => _isSavingProfile = true);
 
-    final successAuth = await ref.read(authProvider.notifier).updateUserProfile(name: name, mobile: phone);
+    final successAuth = await ref.read(authProvider.notifier).updateUserProfile(name: name, mobile: phone, location: location);
     final successLawyer = await ref.read(lawyerProfileUpdaterProvider).updateProfile(
           specialization: spec,
           experience: exp,
@@ -1566,6 +1571,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           _bioController.text = lawyer.bio;
           _barController.text = lawyer.barCouncilNumber;
           _eduController.text = lawyer.education;
+          _locationController.text = authState.userLocation ?? "";
         }
 
         return SingleChildScrollView(
@@ -1627,7 +1633,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       const SizedBox(height: 4),
                       Text("${lawyer.specialization} • ${lawyer.experience}+ Years Exp", style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
                       const SizedBox(height: 4),
-                      const Text("Hyderabad, Telangana", style: TextStyle(color: AppColors.grey400, fontSize: 11)),
+                      Text(authState.userLocation != null && authState.userLocation!.isNotEmpty ? authState.userLocation! : "Hyderabad, Telangana", style: const TextStyle(color: AppColors.grey400, fontSize: 11)),
                       const SizedBox(height: 6),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -1640,46 +1646,243 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     ] else ...[
                       TextField(
                         controller: _nameController,
-                        decoration: const InputDecoration(labelText: "Full Name", prefixIcon: Icon(Icons.person), border: OutlineInputBorder()),
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "Full Name",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          prefixIcon: const Icon(Icons.person, color: Colors.white70, size: 20),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(labelText: "Phone Number", prefixIcon: Icon(Icons.phone), border: OutlineInputBorder()),
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "Phone Number",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          prefixIcon: const Icon(Icons.phone, color: Colors.white70, size: 20),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _specController,
-                        decoration: const InputDecoration(labelText: "Specialization", prefixIcon: Icon(Icons.gavel), border: OutlineInputBorder()),
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "Specialization",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          prefixIcon: const Icon(Icons.gavel, color: Colors.white70, size: 20),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _expController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: "Experience (Years)", prefixIcon: Icon(Icons.work), border: OutlineInputBorder()),
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "Experience (Years)",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          prefixIcon: const Icon(Icons.work, color: Colors.white70, size: 20),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _feeController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: "Consultation Fee (₹)", prefixIcon: Icon(Icons.payments), border: OutlineInputBorder()),
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "Consultation Fee (₹)",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          prefixIcon: const Icon(Icons.payments, color: Colors.white70, size: 20),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: () async {
+                          final selectedLoc = await LocationPickerSheet.show(context, initialLocation: _locationController.text);
+                          if (selectedLoc != null) {
+                            setState(() {
+                              _locationController.text = selectedLoc;
+                            });
+                          }
+                        },
+                        child: AbsorbPointer(
+                          child: TextField(
+                            controller: _locationController,
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                            decoration: InputDecoration(
+                              hintText: "Location",
+                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                              prefixIcon: const Icon(Icons.location_on, color: Colors.white70, size: 20),
+                              suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 20),
+                              filled: true,
+                              fillColor: AppColors.navyBlue,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              border: const OutlineInputBorder(
+                                borderRadius: BorderRadius.all(Radius.circular(12)),
+                                borderSide: BorderSide(color: AppColors.borderDark),
+                              ),
+                              enabledBorder: const OutlineInputBorder(
+                                borderRadius: BorderRadius.all(Radius.circular(12)),
+                                borderSide: BorderSide(color: AppColors.borderDark),
+                              ),
+                              focusedBorder: const OutlineInputBorder(
+                                borderRadius: BorderRadius.all(Radius.circular(12)),
+                                borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _barController,
-                        decoration: const InputDecoration(labelText: "Bar Council ID", prefixIcon: Icon(Icons.badge), border: OutlineInputBorder()),
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "Bar Council ID",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          prefixIcon: const Icon(Icons.badge, color: Colors.white70, size: 20),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _eduController,
-                        decoration: const InputDecoration(labelText: "Qualification (Education)", prefixIcon: Icon(Icons.school), border: OutlineInputBorder()),
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "Qualification (Education)",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          prefixIcon: const Icon(Icons.school, color: Colors.white70, size: 20),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _bioController,
                         maxLines: 3,
-                        decoration: const InputDecoration(labelText: "Bio / Profile Summary", border: OutlineInputBorder()),
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "Bio / Profile Summary",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
                       ),
                     ],
                   ],
@@ -1785,8 +1988,8 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
   Widget _buildExpertiseChip(String text) {
     return Chip(
-      label: Text(text, style: const TextStyle(fontSize: 11, color: AppColors.navyBlue)),
-      backgroundColor: AppColors.navyBlue.withOpacity(0.06),
+      label: Text(text, style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.9))),
+      backgroundColor: AppColors.navyBlue,
       side: BorderSide.none,
     );
   }

@@ -41,6 +41,7 @@ class AuthService {
         mobile: user.mobile,
         role: user.role,
         profileImage: user.profileImage,
+        location: user.location || "",
       },
     };
   }
@@ -73,6 +74,7 @@ class AuthService {
         mobile: user.mobile,
         role: user.role,
         profileImage: user.profileImage,
+        location: user.location || "",
       },
     };
   }
@@ -102,6 +104,7 @@ class AuthService {
       mobile: user.mobile,
       role: user.role,
       profileImage: user.profileImage,
+      location: user.location || "",
     };
   }
 }

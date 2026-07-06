@@ -17,6 +17,7 @@ class AuthState {
   final String? userMobile;
   final String? userId;
   final String? userPhotoUrl;
+  final String? userLocation;
 
   const AuthState({
     required this.isLoggedIn,
@@ -27,6 +28,7 @@ class AuthState {
     this.userMobile,
     this.userId,
     this.userPhotoUrl,
+    this.userLocation,
   });
 
   AuthState copyWith({
@@ -38,6 +40,7 @@ class AuthState {
     String? userMobile,
     String? userId,
     String? userPhotoUrl,
+    String? userLocation,
   }) {
     return AuthState(
       isLoggedIn: isLoggedIn ?? this.isLoggedIn,
@@ -48,6 +51,7 @@ class AuthState {
       userMobile: userMobile ?? this.userMobile,
       userId: userId ?? this.userId,
       userPhotoUrl: userPhotoUrl ?? this.userPhotoUrl,
+      userLocation: userLocation ?? this.userLocation,
     );
   }
 }
@@ -88,6 +92,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       userMobile: details['mobile'],
       userId: details['id'],
       userPhotoUrl: details['photo'],
+      userLocation: details['location'],
     );
   }
 
@@ -106,6 +111,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         required String email,
         required String mobile,
         String? photoUrl,
+        String? location,
       }) async {
     await _tokenStorage.saveToken(token);
     await _tokenStorage.saveRole(role.name);
@@ -115,6 +121,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       email: email,
       mobile: mobile,
       photo: photoUrl,
+      location: location,
     );
     state = state.copyWith(
       isLoggedIn: true,
@@ -124,6 +131,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       userMobile: mobile,
       userId: id,
       userPhotoUrl: photoUrl,
+      userLocation: location,
     );
   }
 
@@ -140,14 +148,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       userMobile: null,
       userId: null,
       userPhotoUrl: null,
+      userLocation: null,
     );
   }
 
-  Future<bool> updateUserProfile({required String name, required String mobile}) async {
+  Future<bool> updateUserProfile({
+    required String name,
+    required String mobile,
+    required String location,
+  }) async {
     try {
       final response = await DioClient.dio.put("/auth/profile", data: {
         "fullName": name,
         "mobile": mobile,
+        "location": location,
       });
 
       if (response.data != null && response.data['success'] == true) {
@@ -158,11 +172,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
           email: userData['email'] ?? '',
           mobile: userData['mobile'] ?? '',
           photo: userData['profileImage'] ?? state.userPhotoUrl ?? '',
+          location: userData['location'] ?? '',
         );
         state = state.copyWith(
           userName: userData['fullName'],
           userMobile: userData['mobile'],
           userPhotoUrl: userData['profileImage'] ?? state.userPhotoUrl,
+          userLocation: userData['location'],
         );
         return true;
       }
@@ -194,6 +210,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           email: userData['email'] ?? '',
           mobile: userData['mobile'] ?? '',
           photo: userData['profileImage'] ?? '',
+          location: userData['location'] ?? state.userLocation ?? '',
         );
         state = state.copyWith(
           userPhotoUrl: userData['profileImage'],

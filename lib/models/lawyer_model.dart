@@ -14,6 +14,7 @@ class LawyerModel {
   final int totalReviews;
   final List<String> languages;
   final String barCouncilNumber;
+  final String location;
 
   LawyerModel({
     required this.id,
@@ -31,6 +32,7 @@ class LawyerModel {
     required this.totalReviews,
     required this.languages,
     required this.barCouncilNumber,
+    required this.location,
   });
 
   factory LawyerModel.fromJson(Map<String, dynamic> json) {
@@ -54,6 +56,7 @@ class LawyerModel {
       totalReviews: json['totalReviews'] ?? 0,
       languages: List<String>.from(json['languages'] ?? []),
       barCouncilNumber: json['barCouncilNumber'] ?? '',
+      location: userData['location'] ?? '',
     );
   }
 }

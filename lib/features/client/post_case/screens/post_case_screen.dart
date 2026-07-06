@@ -7,6 +7,8 @@ import '../../../../providers/issue_provider.dart';
 import '../../../../providers/document_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../../core/widgets/app_drawer.dart';
+import '../../../../core/widgets/location_picker_sheet.dart';
+import '../../../../providers/auth_provider.dart';
 
 class PostCaseScreen extends ConsumerStatefulWidget {
   const PostCaseScreen({super.key});
@@ -46,6 +48,15 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     {"name": "Notice.pdf", "size": "1.8 MB"},
     {"name": "Property Papers.jpg", "size": "1.2 MB"},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    final userLocation = ref.read(authProvider).userLocation;
+    if (userLocation != null && userLocation.isNotEmpty) {
+      _cityController.text = userLocation;
+    }
+  }
 
   @override
   void dispose() {
@@ -306,13 +317,26 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         // City
         const Text("City / Location", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
         const SizedBox(height: 8),
-        TextField(
-          controller: _cityController,
-          decoration: InputDecoration(
-            hintText: "e.g. Hyderabad, Telangana",
-            fillColor: Colors.white,
-            filled: true,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        GestureDetector(
+          onTap: () async {
+            final selectedLoc = await LocationPickerSheet.show(context, initialLocation: _cityController.text);
+            if (selectedLoc != null) {
+              setState(() {
+                _cityController.text = selectedLoc;
+              });
+            }
+          },
+          child: AbsorbPointer(
+            child: TextField(
+              controller: _cityController,
+              decoration: InputDecoration(
+                hintText: "Select location",
+                suffixIcon: const Icon(Icons.arrow_drop_down),
+                fillColor: Colors.white,
+                filled: true,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 16),

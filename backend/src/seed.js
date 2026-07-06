@@ -43,7 +43,8 @@ const seedData = async () => {
       mobile: "9876543210",
       password: "password123",
       role: "client",
-      isVerified: true
+      isVerified: true,
+      location: "Hyderabad, Telangana"
     });
     console.log(`✅ Client created: ${clientUser.email}`);
 
@@ -58,7 +59,8 @@ const seedData = async () => {
       password: "password123",
       role: "lawyer",
       isVerified: true,
-      profileImage: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150"
+      profileImage: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150",
+      location: "Bangalore, Karnataka"
     });
     await Lawyer.create({
       user: sandeepUser._id,
@@ -80,7 +82,8 @@ const seedData = async () => {
       password: "password123",
       role: "lawyer",
       isVerified: true,
-      profileImage: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150"
+      profileImage: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150",
+      location: "Hyderabad, Telangana"
     });
     await Lawyer.create({
       user: priyaUser._id,
@@ -102,7 +105,8 @@ const seedData = async () => {
       password: "password123",
       role: "lawyer",
       isVerified: true,
-      profileImage: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150"
+      profileImage: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150",
+      location: "Delhi"
     });
     await Lawyer.create({
       user: karthikUser._id,
@@ -124,7 +128,8 @@ const seedData = async () => {
       password: "password123",
       role: "lawyer",
       isVerified: true,
-      profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"
+      profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+      location: "Pune, Maharashtra"
     });
     await Lawyer.create({
       user: rahulCivilUser._id,
@@ -146,7 +151,8 @@ const seedData = async () => {
       password: "password123",
       role: "lawyer",
       isVerified: true,
-      profileImage: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150"
+      profileImage: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150",
+      location: "Kolkata, West Bengal"
     });
     await Lawyer.create({
       user: snehaCyberUser._id,
@@ -168,7 +174,8 @@ const seedData = async () => {
       password: "password123",
       role: "lawyer",
       isVerified: true,
-      profileImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"
+      profileImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150",
+      location: "Mumbai, Maharashtra"
     });
     await Lawyer.create({
       user: anilTaxUser._id,
@@ -190,7 +197,8 @@ const seedData = async () => {
       password: "password123",
       role: "lawyer",
       isVerified: true,
-      profileImage: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150"
+      profileImage: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
+      location: "Chennai, Tamil Nadu"
     });
     await Lawyer.create({
       user: praveenLabourUser._id,

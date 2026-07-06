@@ -54,8 +54,8 @@ class AuthController {
 
   async updateProfile(req, res, next) {
     try {
-      const { fullName, mobile } = req.body;
-      const user = await authService.updateProfile(req.user._id, { fullName, mobile });
+      const { fullName, mobile, location } = req.body;
+      const user = await authService.updateProfile(req.user._id, { fullName, mobile, location });
 
       return ApiResponse.success(
         res,

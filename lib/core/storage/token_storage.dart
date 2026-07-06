@@ -14,6 +14,7 @@ class TokenStorage {
   static const String _emailKey = 'user_email';
   static const String _mobileKey = 'user_mobile';
   static const String _photoKey = 'user_photo';
+  static const String _locationKey = 'user_location';
 
   Future<void> saveToken(String token) async {
     try {
@@ -61,6 +62,7 @@ class TokenStorage {
     required String email,
     required String mobile,
     String? photo,
+    String? location,
   }) async {
     try {
       await _secureStorage.write(key: _idKey, value: id);
@@ -69,6 +71,9 @@ class TokenStorage {
       await _secureStorage.write(key: _mobileKey, value: mobile);
       if (photo != null) {
         await _secureStorage.write(key: _photoKey, value: photo);
+      }
+      if (location != null) {
+        await _secureStorage.write(key: _locationKey, value: location);
       }
     } catch (_) {}
   }
@@ -81,6 +86,7 @@ class TokenStorage {
         'email': await _secureStorage.read(key: _emailKey),
         'mobile': await _secureStorage.read(key: _mobileKey),
         'photo': await _secureStorage.read(key: _photoKey),
+        'location': await _secureStorage.read(key: _locationKey),
       };
     } catch (_) {
       return {
@@ -89,6 +95,7 @@ class TokenStorage {
         'email': null,
         'mobile': null,
         'photo': null,
+        'location': null,
       };
     }
   }
@@ -100,6 +107,7 @@ class TokenStorage {
       await _secureStorage.delete(key: _emailKey);
       await _secureStorage.delete(key: _mobileKey);
       await _secureStorage.delete(key: _photoKey);
+      await _secureStorage.delete(key: _locationKey);
     } catch (_) {}
   }
 

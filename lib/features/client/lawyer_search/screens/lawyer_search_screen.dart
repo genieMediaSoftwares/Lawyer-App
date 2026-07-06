@@ -174,6 +174,10 @@ class _LawyerSearchScreenState extends ConsumerState<LawyerSearchScreen> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
+                          const Icon(Icons.location_on_outlined, color: AppColors.grey400, size: 12),
+                          const SizedBox(width: 2),
+                          Text(lawyer.location.isNotEmpty ? lawyer.location : "Hyderabad, Telangana", style: const TextStyle(fontSize: 11, color: AppColors.grey500)),
+                          const SizedBox(width: 8),
                           const Icon(Icons.star, color: AppColors.gold, size: 14),
                           Text(" ${lawyer.rating} (${lawyer.totalReviews} reviews)", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                         ],
