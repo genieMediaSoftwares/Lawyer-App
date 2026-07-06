@@ -255,6 +255,10 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
                       const SizedBox(height: 6),
                       Row(
                         children: [
+                          const Icon(Icons.location_on_outlined, color: AppColors.grey400, size: 12),
+                          const SizedBox(width: 2),
+                          Text(lawyer.location.isNotEmpty ? lawyer.location : "Hyderabad, Telangana", style: const TextStyle(fontSize: 11, color: AppColors.grey500)),
+                          const SizedBox(width: 8),
                           const Icon(Icons.star, color: AppColors.gold, size: 16),
                           const SizedBox(width: 4),
                           Text("${lawyer.rating} (${lawyer.totalReviews} reviews)", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),

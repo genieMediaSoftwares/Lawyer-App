@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../core/widgets/app_drawer.dart';
+import '../../../../core/widgets/location_picker_sheet.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -19,6 +20,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
+  late TextEditingController _locationController;
 
   Future<void> _pickAndUploadImage() async {
     try {
@@ -58,22 +60,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final authState = ref.read(authProvider);
     _nameController = TextEditingController(text: authState.userName ?? "");
     _phoneController = TextEditingController(text: authState.userMobile ?? "");
+    _locationController = TextEditingController(text: authState.userLocation ?? "");
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
   Future<void> _saveChanges() async {
     final name = _nameController.text.trim();
     final phone = _phoneController.text.trim();
+    final location = _locationController.text.trim();
 
-    if (name.isEmpty || phone.isEmpty) {
+    if (name.isEmpty || phone.isEmpty || location.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Name and phone number cannot be empty.")),
+        const SnackBar(content: Text("Name, phone, and location cannot be empty.")),
       );
       return;
     }
@@ -83,6 +88,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final success = await ref.read(authProvider.notifier).updateUserProfile(
           name: name,
           mobile: phone,
+          location: location,
         );
 
     if (mounted) {
@@ -112,6 +118,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (!_isEditing) {
       _nameController.text = name;
       _phoneController.text = phone;
+      _locationController.text = authState.userLocation ?? "";
     }
 
     return Scaffold(
@@ -291,23 +298,102 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Text("+91 ${_phoneController.text}", style: const TextStyle(color: AppColors.grey500, fontSize: 13)),
               ],
             ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.location_on_outlined, size: 14, color: AppColors.grey500),
+                const SizedBox(width: 6),
+                Text(_locationController.text.isNotEmpty ? _locationController.text : "Hyderabad, Telangana", style: const TextStyle(color: AppColors.grey500, fontSize: 13)),
+              ],
+            ),
           ] else ...[
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: "Full Name",
-                prefixIcon: Icon(Icons.person),
-                border: OutlineInputBorder(),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: "Full Name",
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                prefixIcon: const Icon(Icons.person, color: Colors.white70, size: 20),
+                filled: true,
+                fillColor: AppColors.navyBlue,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                  borderSide: BorderSide(color: AppColors.borderDark),
+                ),
+                enabledBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                  borderSide: BorderSide(color: AppColors.borderDark),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                  borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                ),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: "Phone Number",
-                prefixIcon: Icon(Icons.phone),
-                border: OutlineInputBorder(),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: "Phone Number",
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                prefixIcon: const Icon(Icons.phone, color: Colors.white70, size: 20),
+                filled: true,
+                fillColor: AppColors.navyBlue,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                  borderSide: BorderSide(color: AppColors.borderDark),
+                ),
+                enabledBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                  borderSide: BorderSide(color: AppColors.borderDark),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                  borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () async {
+                final selectedLoc = await LocationPickerSheet.show(context, initialLocation: _locationController.text);
+                if (selectedLoc != null) {
+                  setState(() {
+                    _locationController.text = selectedLoc;
+                  });
+                }
+              },
+              child: AbsorbPointer(
+                child: TextField(
+                  controller: _locationController,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: "Location",
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                    prefixIcon: const Icon(Icons.location_on, color: Colors.white70, size: 20),
+                    suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 20),
+                    filled: true,
+                    fillColor: AppColors.navyBlue,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    border: const OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      borderSide: BorderSide(color: AppColors.borderDark),
+                    ),
+                    enabledBorder: const OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      borderSide: BorderSide(color: AppColors.borderDark),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],

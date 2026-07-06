@@ -22,7 +22,7 @@ class LawyerController {
 
       const lawyers = await Lawyer.find(lawyerQuery).populate(
         "user",
-        "fullName email mobile profileImage"
+        "fullName email mobile profileImage location"
       );
 
       return ApiResponse.success(res, "Lawyers fetched successfully.", lawyers);
@@ -36,13 +36,13 @@ class LawyerController {
       const { id } = req.params; // userId or lawyerId? Let's check both
       let lawyer = await Lawyer.findOne({ user: id }).populate(
         "user",
-        "fullName email mobile profileImage"
+        "fullName email mobile profileImage location"
       );
 
       if (!lawyer) {
         lawyer = await Lawyer.findById(id).populate(
           "user",
-          "fullName email mobile profileImage"
+          "fullName email mobile profileImage location"
         );
       }
 
@@ -60,7 +60,7 @@ class LawyerController {
           });
           lawyer = await Lawyer.findById(lawyer._id).populate(
             "user",
-            "fullName email mobile profileImage"
+            "fullName email mobile profileImage location"
           );
         }
       }
@@ -84,7 +84,7 @@ class LawyerController {
         { user: userId },
         { specialization, experience, education, barCouncilNumber, consultationFee, bio },
         { new: true, runValidators: true }
-      ).populate("user", "fullName email mobile profileImage");
+      ).populate("user", "fullName email mobile profileImage location");
 
       if (!lawyer) {
         return ApiResponse.error(res, "Lawyer profile not found.", 404);
@@ -122,7 +122,7 @@ class LawyerController {
 
       const lawyers = await Lawyer.find(lawyerQuery).populate(
         "user",
-        "fullName email mobile profileImage"
+        "fullName email mobile profileImage location"
       );
 
       return ApiResponse.success(res, "Matched lawyers fetched successfully.", lawyers);
