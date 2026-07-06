@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/app_drawer.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -160,6 +161,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: Row(
           children: const [
@@ -181,6 +183,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
         backgroundColor: AppColors.navyBlue,
         foregroundColor: Colors.white,
         elevation: 0,
+        
       ),
       body: SafeArea(
         child: Column(

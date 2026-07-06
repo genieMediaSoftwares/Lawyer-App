@@ -1,436 +1,221 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../providers/lawyer_provider.dart';
+import '../../../../models/lawyer_model.dart';
 import '../../../../routes/route_names.dart';
+import '../../../../core/widgets/app_drawer.dart';
 
-/// ---------------------------
-/// MODEL
-/// ---------------------------
-
-class Lawyer {
-  final String name;
-  final String specialization;
-  final int experience;
-  final double rating;
-  final int fee;
-  final String location;
-
-  Lawyer({
-    required this.name,
-    required this.specialization,
-    required this.experience,
-    required this.rating,
-    required this.fee,
-    required this.location,
-  });
-}
-
-/// ---------------------------
-/// PROVIDER
-/// ---------------------------
-
-final lawyerSearchProvider =
-StateNotifierProvider<
-    LawyerSearchNotifier,
-    List<Lawyer>>(
-      (ref) => LawyerSearchNotifier(),
-);
-
-class LawyerSearchNotifier
-    extends StateNotifier<List<Lawyer>> {
-  LawyerSearchNotifier() : super([]) {
-    loadMore();
-  }
-
-  int page = 1;
-
-  Future<void> loadMore() async {
-    await Future.delayed(
-      const Duration(seconds: 1),
-    );
-
-    final List<Lawyer> newLawyers =
-    List.generate(
-      10,
-          (index) => Lawyer(
-        name:
-        "Advocate ${(page - 1) * 10 + index + 1}",
-        specialization:
-        [
-          "Criminal",
-          "Family",
-          "Civil",
-          "Corporate",
-          "Property"
-        ][index % 5],
-        experience:
-        3 + (index * 2),
-        rating:
-        4.0 + (index % 5) * 0.2,
-        fee:
-        1000 + (index * 500),
-        location:
-        [
-          "Hyderabad",
-          "Vizag",
-          "Vijayawada",
-          "Delhi",
-          "Mumbai"
-        ][index % 5],
-      ),
-    );
-
-    state = [...state, ...newLawyers];
-    page++;
-  }
-}
-
-/// ---------------------------
-/// SCREEN
-/// ---------------------------
-
-class LawyerSearchScreen
-    extends ConsumerStatefulWidget {
-  const LawyerSearchScreen({
-    super.key,
-  });
+class LawyerSearchScreen extends ConsumerStatefulWidget {
+  const LawyerSearchScreen({super.key});
 
   @override
-  ConsumerState<LawyerSearchScreen>
-  createState() =>
-      _LawyerSearchScreenState();
+  ConsumerState<LawyerSearchScreen> createState() => _LawyerSearchScreenState();
 }
 
-class _LawyerSearchScreenState
-    extends ConsumerState<
-        LawyerSearchScreen> {
-  final ScrollController
-  _scrollController =
-  ScrollController();
+class _LawyerSearchScreenState extends ConsumerState<LawyerSearchScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedSpecialization = "All";
 
-  final TextEditingController
-  searchController =
-  TextEditingController();
-
-  String selectedPractice = "All";
-
-  @override
-  void initState() {
-    super.initState();
-
-    _scrollController.addListener(() {
-      if (_scrollController.position
-          .pixels >=
-          _scrollController
-              .position
-              .maxScrollExtent -
-              200) {
-        ref
-            .read(
-            lawyerSearchProvider
-                .notifier)
-            .loadMore();
-      }
-    });
-  }
+  final List<String> _specializations = [
+    "All",
+    "Criminal Law",
+    "Divorce & Family",
+    "Property Disputes",
+    "Civil Cases",
+    "Cyber Crime",
+    "GST & Taxation",
+    "Labour Law",
+  ];
 
   @override
   void dispose() {
-    _scrollController.dispose();
-    searchController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final lawyers =
-    ref.watch(
-        lawyerSearchProvider);
+    final lawyersState = ref.watch(lawyersProvider);
 
     return Scaffold(
+      backgroundColor: AppColors.lightBackground,
+      drawer: const AppDrawer(),
       appBar: AppBar(
-        title:
-        const Text("Find Lawyers"),
+        title: const Text("Find Advocates", style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.navyBlue,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        
       ),
       body: Column(
         children: [
-          /// SEARCH
-          Padding(
-            padding:
-            const EdgeInsets.all(
-                16),
-            child: TextField(
-              controller:
-              searchController,
-              decoration:
-              InputDecoration(
-                hintText:
-                "Search Lawyer",
-                prefixIcon:
-                const Icon(
-                  Icons.search,
-                ),
-                border:
-                OutlineInputBorder(
-                  borderRadius:
-                  BorderRadius
-                      .circular(
-                    12,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          /// FILTERS
-          SizedBox(
-            height: 50,
-            child: ListView(
-              padding:
-              const EdgeInsets
-                  .symmetric(
-                horizontal: 16,
-              ),
-              scrollDirection:
-              Axis.horizontal,
+          // Search & Filter Panel
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
-                filterChip(
-                    "Practice Area"),
-                filterChip(
-                    "Experience"),
-                filterChip("Fees"),
-                filterChip(
-                    "Rating"),
-                filterChip(
-                    "Location"),
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: "Search by lawyer name...",
+                    prefixIcon: const Icon(Icons.search, color: AppColors.grey400),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                  onChanged: (_) => setState(() {}), // Trigger local filtering
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 38,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _specializations.length,
+                    itemBuilder: (context, index) {
+                      final spec = _specializations[index];
+                      final isSelected = _selectedSpecialization == spec;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(spec),
+                          selected: isSelected,
+                          selectedColor: AppColors.navyBlue,
+                          labelStyle: TextStyle(color: isSelected ? Colors.white : AppColors.navyBlue),
+                          onSelected: (val) {
+                            if (val) {
+                              setState(() => _selectedSpecialization = spec);
+                            }
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                )
               ],
             ),
           ),
 
-          const SizedBox(
-              height: 10),
-
-          /// LAWYERS LIST
+          // Lawyers List
           Expanded(
-            child: ListView.builder(
-              controller:
-              _scrollController,
-              itemCount:
-              lawyers.length +
-                  1,
-              itemBuilder:
-                  (context, index) {
-                if (index ==
-                    lawyers.length) {
-                  return const Padding(
-                    padding:
-                    EdgeInsets.all(
-                        20),
-                    child: Center(
-                      child:
-                      CircularProgressIndicator(),
+            child: lawyersState.when(
+              data: (lawyers) {
+                // Filter locally
+                final filtered = lawyers.where((lawyer) {
+                  final matchesSearch = lawyer.fullName.toLowerCase().contains(_searchController.text.toLowerCase());
+                  final matchesSpec = _selectedSpecialization == "All" ||
+                      lawyer.specialization.toLowerCase() == _selectedSpecialization.toLowerCase();
+                  return matchesSearch && matchesSpec;
+                }).toList();
+
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.person_search_outlined, size: 64, color: AppColors.grey300),
+                          const SizedBox(height: 12),
+                          const Text("No Lawyers Found", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue)),
+                          const Text("Try search terms or category adjustments.", style: TextStyle(color: AppColors.grey400)),
+                        ],
+                      ),
                     ),
                   );
                 }
 
-                final lawyer =
-                lawyers[index];
-
-                return LawyerCard(
-                  lawyer:
-                  lawyer,
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final lawyer = filtered[index];
+                    return _buildLawyerCard(lawyer);
+                  },
                 );
               },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Center(child: Text("Error loading lawyers: $err")),
             ),
-          ),
+          )
         ],
       ),
     );
   }
 
-  Widget filterChip(
-      String title) {
-    return Padding(
-      padding:
-      const EdgeInsets.only(
-          right: 8),
-      child: FilterChip(
-        label: Text(title),
-        selected: false,
-        onSelected: (_) {},
-      ),
-    );
-  }
-}
-
-/// ---------------------------
-/// LAWYER CARD
-/// ---------------------------
-
-class LawyerCard
-    extends StatelessWidget {
-  final Lawyer lawyer;
-
-  const LawyerCard({
-    super.key,
-    required this.lawyer,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildLawyerCard(LawyerModel lawyer) {
     return Card(
-      margin:
-      const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 8,
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.grey200),
       ),
       child: Padding(
-        padding:
-        const EdgeInsets.all(
-            14),
+        padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment:
-          CrossAxisAlignment
-              .start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const CircleAvatar(
-                  radius: 30,
-                  child:
-                  Icon(Icons.person),
+                CircleAvatar(
+                  radius: 28,
+                  backgroundImage: lawyer.profileImage.isNotEmpty ? NetworkImage(lawyer.profileImage) : null,
+                  child: lawyer.profileImage.isEmpty ? const Icon(Icons.person) : null,
                 ),
-                const SizedBox(
-                    width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        lawyer.name,
-                        style:
-                        const TextStyle(
-                          fontSize:
-                          16,
-                          fontWeight:
-                          FontWeight
-                              .bold,
-                        ),
-                      ),
-                      Text(
-                        lawyer
-                            .specialization,
+                      Text(lawyer.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navyBlue)),
+                      Text(lawyer.specialization, style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: AppColors.gold, size: 14),
+                          Text(" ${lawyer.rating} (${lawyer.totalReviews} reviews)", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  padding:
-                  const EdgeInsets
-                      .symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+              ],
+            ),
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Consultation Fee", style: TextStyle(color: AppColors.grey400, fontSize: 11)),
+                    const SizedBox(height: 2),
+                    Text("₹${lawyer.consultationFee}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navyBlue)),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Experience", style: TextStyle(color: AppColors.grey400, fontSize: 11)),
+                    const SizedBox(height: 2),
+                    Text("${lawyer.experience} Years+", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ],
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    context.push('/lawyer-profile/${lawyer.userId}');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.navyBlue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  decoration:
-                  BoxDecoration(
-                    color: Colors
-                        .green
-                        .withOpacity(
-                        0.15),
-                    borderRadius:
-                    BorderRadius
-                        .circular(
-                        8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.star,
-                        size: 16,
-                        color: Colors
-                            .orange,
-                      ),
-                      const SizedBox(
-                          width: 4),
-                      Text(
-                        lawyer.rating
-                            .toString(),
-                      ),
-                    ],
-                  ),
+                  child: const Text("View Profile", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 )
               ],
-            ),
-
-            const SizedBox(
-                height: 12),
-
-            Row(
-              children: [
-                const Icon(
-                  Icons.work,
-                  size: 18,
-                ),
-                const SizedBox(
-                    width: 6),
-                Text(
-                  "${lawyer.experience} Years",
-                ),
-              ],
-            ),
-
-            const SizedBox(
-                height: 8),
-
-            Row(
-              children: [
-                const Icon(
-                  Icons.location_on,
-                  size: 18,
-                ),
-                const SizedBox(
-                    width: 6),
-                Text(
-                  lawyer.location,
-                ),
-              ],
-            ),
-
-            const SizedBox(
-                height: 8),
-
-            Row(
-              children: [
-                const Icon(
-                  Icons.currency_rupee,
-                  size: 18,
-                ),
-                const SizedBox(
-                    width: 6),
-                Text(
-                  "${lawyer.fee}/Consultation",
-                ),
-              ],
-            ),
-
-            const SizedBox(
-                height: 14),
-
-            SizedBox(
-  width: double.infinity,
-  child: ElevatedButton(
-    onPressed: () {
-      context.push(
-        RouteNames.lawyerProfile,
-      );
-    },
-    child: const Text(
-      "View Profile",
-    ),
-  ),
-),
+            )
           ],
         ),
       ),

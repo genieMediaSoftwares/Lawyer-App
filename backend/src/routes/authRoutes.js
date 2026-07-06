@@ -33,10 +33,19 @@ router.get(
   authController.profile
 );
 
+const upload = require("../middleware/upload.middleware");
+
 router.put(
   "/profile",
   authMiddleware,
   authController.updateProfile
+);
+
+router.post(
+  "/profile/image",
+  authMiddleware,
+  upload.single("image"),
+  authController.uploadProfileImage
 );
 
 module.exports = router;

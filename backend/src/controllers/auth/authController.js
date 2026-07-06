@@ -1,4 +1,5 @@
 const authService = require("../../services/auth/authService");
+const storageService = require("../../services/storageService");
 const ApiResponse = require("../../config/ApiResponse");
 class AuthController {
   async signup(req, res, next) {
@@ -59,6 +60,24 @@ class AuthController {
       return ApiResponse.success(
         res,
         "Profile updated successfully.",
+        user
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async uploadProfileImage(req, res, next) {
+    try {
+      if (!req.file) {
+        return ApiResponse.error(res, "No image file uploaded.", 400);
+      }
+      const metadata = await storageService.uploadFile(req.file, "profile");
+      const user = await authService.updateProfile(req.user._id, { profileImage: metadata.url });
+
+      return ApiResponse.success(
+        res,
+        "Profile image uploaded successfully.",
         user
       );
     } catch (error) {

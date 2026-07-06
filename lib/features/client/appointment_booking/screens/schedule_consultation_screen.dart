@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../providers/appointment_provider.dart';
 import '../../../../providers/case_provider.dart';
+import '../../../../core/widgets/app_drawer.dart';
 
 class ScheduleConsultationScreen extends ConsumerStatefulWidget {
   final String lawyerUserId;
@@ -38,11 +39,13 @@ class _ScheduleConsultationScreenState extends ConsumerState<ScheduleConsultatio
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Schedule Consultation"),
         backgroundColor: AppColors.navyBlue,
         foregroundColor: Colors.white,
         elevation: 0,
+        
       ),
       body: SafeArea(
         child: Column(

@@ -24,6 +24,20 @@ class ChatModel {
           : DateTime.now(),
     );
   }
+
+  ChatModel copyWith({
+    String? id,
+    List<ChatParticipantModel>? participants,
+    String? lastMessage,
+    DateTime? lastMessageAt,
+  }) {
+    return ChatModel(
+      id: id ?? this.id,
+      participants: participants ?? this.participants,
+      lastMessage: lastMessage ?? this.lastMessage,
+      lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+    );
+  }
 }
 
 class ChatParticipantModel {

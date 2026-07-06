@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../providers/auth_provider.dart';
+import '../../../../core/widgets/app_drawer.dart';
 
 class MessagesScreen extends ConsumerWidget {
   const MessagesScreen({super.key});
@@ -17,11 +18,18 @@ class MessagesScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Messages", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.navyBlue,
         foregroundColor: Colors.white,
         elevation: 0,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white, size: 24),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
       ),
       body: chatsState.when(
         data: (chats) {
@@ -40,6 +48,7 @@ class MessagesScreen extends ConsumerWidget {
                 orElse: () => chat.participants.first,
               );
 
+              final typingUser = ref.watch(chatTypingProvider(chat.id));
               final formattedTime = DateFormat('hh:mm a').format(chat.lastMessageAt);
 
               return Card(
@@ -67,10 +76,17 @@ class MessagesScreen extends ConsumerWidget {
                   subtitle: Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      chat.lastMessage.isNotEmpty ? chat.lastMessage : "No messages yet.",
+                      typingUser != null
+                          ? "typing..."
+                          : (chat.lastMessage.isNotEmpty ? chat.lastMessage : "No messages yet."),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: AppColors.grey500, fontSize: 13),
+                      style: TextStyle(
+                        color: typingUser != null ? Colors.green : AppColors.grey500,
+                        fontStyle: typingUser != null ? FontStyle.italic : FontStyle.normal,
+                        fontWeight: typingUser != null ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                   trailing: Text(

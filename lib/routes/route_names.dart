@@ -25,6 +25,16 @@ class RouteNames {
   static const String aiChat = '/ai-chat';
   static const String chat = '/chat/:chatId/:lawyerName';
 
+  static const String getMatched = '/get-matched';
+  static const String consult = '/consult';
+  static const String resolve = '/resolve';
+  static const String categoryDetail = '/category-detail/:categoryName';
+  static const String myDocuments = '/my-documents';
+  static const String settings = '/settings';
+  static const String favorites = '/favorites';
+  static const String articles = '/articles';
+  static const String faq = '/faq';
+
   static const String lawyerDashboard = '/lawyer-dashboard';
   static const String subscriptionPlans = '/subscription-plans';
 }

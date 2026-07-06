@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../models/case_model.dart';
 import '../../../../routes/route_names.dart';
+import '../../../../core/widgets/app_drawer.dart';
 
 class MyCasesScreen extends ConsumerStatefulWidget {
   const MyCasesScreen({super.key});
@@ -36,11 +37,18 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("My Cases", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.navyBlue,
         foregroundColor: Colors.white,
         elevation: 0,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white, size: 24),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.gold,

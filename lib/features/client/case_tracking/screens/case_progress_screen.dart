@@ -7,6 +7,7 @@ import '../../../../providers/case_provider.dart';
 import '../../../../providers/appointment_provider.dart';
 import '../../../../models/case_model.dart';
 import '../../../../routes/route_names.dart';
+import '../../../../core/widgets/app_drawer.dart';
 
 class CaseProgressScreen extends ConsumerWidget {
   final String caseId;
@@ -20,11 +21,13 @@ class CaseProgressScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Case Details"),
         backgroundColor: AppColors.navyBlue,
         foregroundColor: Colors.white,
         elevation: 0,
+        
       ),
       body: casesState.when(
         data: (cases) {

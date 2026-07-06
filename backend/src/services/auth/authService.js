@@ -40,6 +40,7 @@ class AuthService {
         email: user.email,
         mobile: user.mobile,
         role: user.role,
+        profileImage: user.profileImage,
       },
     };
   }
@@ -71,6 +72,7 @@ class AuthService {
         email: user.email,
         mobile: user.mobile,
         role: user.role,
+        profileImage: user.profileImage,
       },
     };
   }
@@ -99,6 +101,7 @@ class AuthService {
       email: user.email,
       mobile: user.mobile,
       role: user.role,
+      profileImage: user.profileImage,
     };
   }
 }

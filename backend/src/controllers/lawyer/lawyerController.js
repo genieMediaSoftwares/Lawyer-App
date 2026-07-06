@@ -95,6 +95,41 @@ class LawyerController {
       next(error);
     }
   }
+  async match(req, res, next) {
+    try {
+      const { specialization, experience, maxFee, rating, language } = req.query;
+      let userQuery = { role: "lawyer" };
+      const matchingUsers = await User.find(userQuery).select("_id");
+      const userIds = matchingUsers.map((u) => u._id);
+
+      let lawyerQuery = { user: { $in: userIds } };
+      
+      if (specialization && specialization !== "All") {
+        lawyerQuery.specialization = { $regex: specialization, $options: "i" };
+      }
+      if (experience) {
+        lawyerQuery.experience = { $gte: parseInt(experience) };
+      }
+      if (maxFee) {
+        lawyerQuery.consultationFee = { $lte: parseInt(maxFee) };
+      }
+      if (rating) {
+        lawyerQuery.rating = { $gte: parseFloat(rating) };
+      }
+      if (language) {
+        lawyerQuery.languages = { $regex: language, $options: "i" };
+      }
+
+      const lawyers = await Lawyer.find(lawyerQuery).populate(
+        "user",
+        "fullName email mobile profileImage"
+      );
+
+      return ApiResponse.success(res, "Matched lawyers fetched successfully.", lawyers);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new LawyerController();

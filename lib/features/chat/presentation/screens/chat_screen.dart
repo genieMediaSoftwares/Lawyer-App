@@ -6,6 +6,9 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../models/message_model.dart';
 import '../../../../providers/auth_provider.dart';
+import '../../../../core/widgets/app_drawer.dart';
+
+import 'dart:async';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String chatId;
@@ -24,12 +27,32 @@ class ChatScreen extends ConsumerStatefulWidget {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+  Timer? _typingTimer;
+  bool _isCurrentlyTyping = false;
 
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _typingTimer?.cancel();
     super.dispose();
+  }
+
+  void _onTextChanged(String text) {
+    if (!_isCurrentlyTyping && text.isNotEmpty) {
+      _isCurrentlyTyping = true;
+      final userName = ref.read(authProvider).userName ?? "Client";
+      ref.read(chatMessagesProvider(widget.chatId).notifier).emitTyping(userName, true);
+    }
+
+    _typingTimer?.cancel();
+    _typingTimer = Timer(const Duration(seconds: 2), () {
+      if (_isCurrentlyTyping) {
+        _isCurrentlyTyping = false;
+        final userName = ref.read(authProvider).userName ?? "Client";
+        ref.read(chatMessagesProvider(widget.chatId).notifier).emitTyping(userName, false);
+      }
+    });
   }
 
   void _scrollToBottom() {
@@ -45,6 +68,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
+
+    // Stop typing state immediately when sending
+    _typingTimer?.cancel();
+    if (_isCurrentlyTyping) {
+      _isCurrentlyTyping = false;
+      final userName = ref.read(authProvider).userName ?? "Client";
+      ref.read(chatMessagesProvider(widget.chatId).notifier).emitTyping(userName, false);
+    }
 
     final chatNotifier = ref.read(chatMessagesProvider(widget.chatId).notifier);
     final success = await chatNotifier.sendMessage(text);
@@ -70,19 +101,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
+      drawer: const AppDrawer(),
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.lawyerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const Row(
+        title: Consumer(
+          builder: (context, ref, child) {
+            final typingUser = ref.watch(chatTypingProvider(widget.chatId));
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(radius: 4, backgroundColor: Colors.green),
-                SizedBox(width: 4),
-                Text("Online", style: TextStyle(fontSize: 11, color: Colors.white70)),
+                Text(widget.lawyerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                if (typingUser != null)
+                  const Text(
+                    "typing...",
+                    style: TextStyle(fontSize: 11, color: Colors.white70, fontStyle: FontStyle.italic),
+                  )
+                else
+                  const Row(
+                    children: [
+                      CircleAvatar(radius: 4, backgroundColor: Colors.green),
+                      SizedBox(width: 4),
+                      Text("Online", style: TextStyle(fontSize: 11, color: Colors.white70)),
+                    ],
+                  )
               ],
-            )
-          ],
+            );
+          }
         ),
         backgroundColor: AppColors.navyBlue,
         foregroundColor: Colors.white,
@@ -171,6 +214,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           Expanded(
             child: TextField(
               controller: _messageController,
+              onChanged: _onTextChanged,
               decoration: InputDecoration(
                 hintText: "Type a message...",
                 fillColor: AppColors.grey100,

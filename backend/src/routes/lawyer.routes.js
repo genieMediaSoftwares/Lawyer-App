@@ -7,6 +7,7 @@ const router = express.Router();
 router.use(authMiddleware);
 
 router.get("/", lawyerController.getAllLawyers);
+router.get("/match", lawyerController.match);
 router.put("/profile", lawyerController.updateLawyerProfile);
 router.get("/:id", lawyerController.getLawyerById);
 

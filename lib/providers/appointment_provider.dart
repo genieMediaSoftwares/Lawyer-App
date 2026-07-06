@@ -52,4 +52,17 @@ class AppointmentNotifier extends StateNotifier<AsyncValue<List<AppointmentModel
     }
     return false;
   }
+
+  Future<bool> cancelAppointment(String appointmentId) async {
+    try {
+      final response = await DioClient.dio.delete("/appointments/$appointmentId");
+      if (response.data != null && response.data['success'] == true) {
+        await fetchAppointments();
+        return true;
+      }
+    } catch (e) {
+      // Handle error
+    }
+    return false;
+  }
 }

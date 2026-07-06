@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/storage/token_storage.dart';
 import '../core/network/dio_client.dart';
@@ -113,7 +114,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       name: name,
       email: email,
       mobile: mobile,
-      // photo: photoUrl,
+      photo: photoUrl,
     );
     state = state.copyWith(
       isLoggedIn: true,
@@ -156,10 +157,46 @@ class AuthNotifier extends StateNotifier<AuthState> {
           name: userData['fullName'] ?? '',
           email: userData['email'] ?? '',
           mobile: userData['mobile'] ?? '',
+          photo: userData['profileImage'] ?? state.userPhotoUrl ?? '',
         );
         state = state.copyWith(
           userName: userData['fullName'],
           userMobile: userData['mobile'],
+          userPhotoUrl: userData['profileImage'] ?? state.userPhotoUrl,
+        );
+        return true;
+      }
+    } catch (e) {
+      // Handle error
+    }
+    return false;
+  }
+
+  Future<bool> updateProfileImage(List<int> bytes, String fileName) async {
+    try {
+      final formData = FormData.fromMap({
+        "image": MultipartFile.fromBytes(
+          bytes,
+          filename: fileName,
+        ),
+      });
+
+      final response = await DioClient.dio.post(
+        "/auth/profile/image",
+        data: formData,
+      );
+
+      if (response.data != null && response.data['success'] == true) {
+        final userData = response.data['data'];
+        await _tokenStorage.saveUserDetails(
+          id: userData['id'] ?? state.userId ?? '',
+          name: userData['fullName'] ?? '',
+          email: userData['email'] ?? '',
+          mobile: userData['mobile'] ?? '',
+          photo: userData['profileImage'] ?? '',
+        );
+        state = state.copyWith(
+          userPhotoUrl: userData['profileImage'],
         );
         return true;
       }
