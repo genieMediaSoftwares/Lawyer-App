@@ -20,7 +20,7 @@ class CalendarHeader extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Left chevron
           GestureDetector(
@@ -33,8 +33,8 @@ class CalendarHeader extends ConsumerWidget {
             },
             behavior: HitTestBehavior.opaque,
             child: const Padding(
-              padding: EdgeInsets.all(8),
-              child: Icon(Icons.chevron_left, color: _navy, size: 26),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Icon(Icons.chevron_left, color: _navy, size: 24),
             ),
           ),
           // Month Year title
@@ -58,8 +58,8 @@ class CalendarHeader extends ConsumerWidget {
             },
             behavior: HitTestBehavior.opaque,
             child: const Padding(
-              padding: EdgeInsets.all(8),
-              child: Icon(Icons.chevron_right, color: _navy, size: 26),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Icon(Icons.chevron_right, color: _navy, size: 24),
             ),
           ),
         ],

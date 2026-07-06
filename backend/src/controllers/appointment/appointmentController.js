@@ -5,12 +5,19 @@ const ApiResponse = require("../../config/ApiResponse");
 class AppointmentController {
   async createAppointment(req, res, next) {
     try {
-      const { lawyer, caseId, date, timeSlot, mode } = req.body;
-      const client = req.user._id;
+      const { lawyer, client: bodyClient, caseId, date, timeSlot, mode } = req.body;
+      
+      let client = req.user._id;
+      let lawyerId = lawyer;
+
+      if (req.user.role === "lawyer") {
+        client = bodyClient;
+        lawyerId = req.user._id;
+      }
 
       const appointment = await Appointment.create({
         client,
-        lawyer,
+        lawyer: lawyerId,
         case: caseId || null,
         date,
         timeSlot,
