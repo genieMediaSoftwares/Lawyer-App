@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/app_drawer.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -26,11 +27,13 @@ class NotificationsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Notifications"),
         backgroundColor: AppColors.navyBlue,
         foregroundColor: Colors.white,
         elevation: 0,
+        
       ),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),

@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/appointment_provider.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
+import '../../../../providers/chat_provider.dart';
 import '../../../../models/case_model.dart';
 import '../../../../models/lawyer_model.dart';
+import '../../../../models/appointment_model.dart';
+import '../../../../core/widgets/app_drawer.dart';
 
 class LawyerDashboardScreen extends ConsumerStatefulWidget {
-  const LawyerDashboardScreen({super.key});
+  final int initialTab;
+  const LawyerDashboardScreen({super.key, this.initialTab = 0});
 
   @override
   ConsumerState<LawyerDashboardScreen> createState() => _LawyerDashboardScreenState();
@@ -44,6 +49,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialTab;
     _nameController = TextEditingController();
     _phoneController = TextEditingController();
     _specController = TextEditingController();
@@ -52,6 +58,45 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     _bioController = TextEditingController();
     _barController = TextEditingController();
     _eduController = TextEditingController();
+  }
+
+  @override
+  void didUpdateWidget(covariant LawyerDashboardScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialTab != oldWidget.initialTab) {
+      setState(() {
+        _currentIndex = widget.initialTab;
+      });
+    }
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (image == null) return;
+
+      final bytes = await image.readAsBytes();
+      
+      setState(() => _isSavingProfile = true);
+
+      final success = await ref.read(authProvider.notifier).updateProfileImage(bytes, image.name);
+
+      setState(() {
+        _isSavingProfile = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? "Profile image updated successfully!" : "Failed to upload profile image."),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error selecting image: $e")),
+      );
+    }
   }
 
   @override
@@ -128,14 +173,17 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: Text(screenTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.navyBlue)),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.navyBlue,
         elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: AppColors.navyBlue),
-          onPressed: () {},
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: AppColors.navyBlue),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
         ),
         actions: [
           if (_currentIndex == 5)
@@ -153,7 +201,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.notifications_none_outlined, color: AppColors.navyBlue),
-                  onPressed: () {},
+                  onPressed: () => _showNotificationsBottomSheet(context),
                 ),
                 Positioned(
                   right: 12,
@@ -437,6 +485,9 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   Widget _buildHomeTab(String lawyerName, String userId) {
     final casesState = ref.watch(casesProvider);
     final lawyerState = ref.watch(lawyerDetailsProvider(userId));
+    final authState = ref.watch(authProvider);
+    final appointmentsState = ref.watch(appointmentsProvider);
+    final chatsState = ref.watch(chatsProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -447,10 +498,15 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           lawyerState.when(
             data: (lawyer) => Row(
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 28,
                   backgroundColor: AppColors.navyBlue,
-                  child: Icon(Icons.person, color: Colors.white, size: 28),
+                  backgroundImage: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
+                      ? NetworkImage(authState.userPhotoUrl!)
+                      : null,
+                  child: (authState.userPhotoUrl == null || authState.userPhotoUrl!.isEmpty)
+                      ? const Icon(Icons.person, color: Colors.white, size: 28)
+                      : null,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -485,7 +541,16 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, stack) => Row(
               children: [
-                const CircleAvatar(radius: 28, backgroundColor: AppColors.navyBlue, child: Icon(Icons.person, color: Colors.white)),
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: AppColors.navyBlue,
+                  backgroundImage: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
+                      ? NetworkImage(authState.userPhotoUrl!)
+                      : null,
+                  child: (authState.userPhotoUrl == null || authState.userPhotoUrl!.isEmpty)
+                      ? const Icon(Icons.person, color: Colors.white, size: 28)
+                      : null,
+                ),
                 const SizedBox(width: 14),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -542,14 +607,40 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           const SizedBox(height: 20),
 
           // Stat Capsules (Navy style)
-          Row(
-            children: [
-              Expanded(child: _buildHomeStatCard("Leads", "128", AppColors.navyBlue)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildHomeStatCard("Consults", "42", AppColors.navyBlue)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildHomeStatCard("Earnings", "₹45,600", AppColors.navyBlue)),
-            ],
+          casesState.maybeWhen(
+            data: (cases) => appointmentsState.maybeWhen(
+              data: (appointments) {
+                final totalBids = cases.where((c) => 
+                  c.proposals.any((p) => p.lawyerId == userId)
+                ).length;
+
+                final totalConsults = appointments.where((a) => 
+                  a.lawyerId == userId
+                ).length;
+
+                final completedConsults = appointments.where((a) => 
+                  a.lawyerId == userId && a.status == 'completed'
+                ).length;
+
+                final fee = lawyerState.maybeWhen(
+                  data: (lawyer) => lawyer.consultationFee,
+                  orElse: () => 1500,
+                );
+                final totalEarnings = completedConsults * fee;
+
+                return Row(
+                  children: [
+                    Expanded(child: _buildHomeStatCard("Leads Bid", "$totalBids", AppColors.navyBlue)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildHomeStatCard("Consults", "$totalConsults", AppColors.navyBlue)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildHomeStatCard("Earnings", "₹$totalEarnings", AppColors.navyBlue)),
+                  ],
+                );
+              },
+              orElse: () => const SizedBox(),
+            ),
+            orElse: () => const SizedBox(),
           ),
           const SizedBox(height: 24),
 
@@ -565,17 +656,42 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             ),
             child: casesState.when(
               data: (cases) {
-                final activeLeadsCount = cases.where((c) => c.status == 'active' && !_dismissedLeads.contains(c.id)).length;
-                return Column(
-                  children: [
-                    _buildOverviewItem(Icons.gavel_outlined, "New Leads", "$activeLeadsCount"),
-                    const Divider(height: 1, indent: 50),
-                    _buildOverviewItem(Icons.mail_outline_rounded, "Unread Messages", "5"),
-                    const Divider(height: 1, indent: 50),
-                    _buildOverviewItem(Icons.phone_in_talk_outlined, "Consultation Requests", "3"),
-                    const Divider(height: 1, indent: 50),
-                    _buildOverviewItem(Icons.calendar_today_outlined, "Upcoming Appointments", "2"),
-                  ],
+                return appointmentsState.when(
+                  data: (appointments) {
+                    final activeLeadsCount = cases.where((c) => 
+                      c.status == 'active' && 
+                      c.assignedLawyerId == null && 
+                      !c.proposals.any((p) => p.lawyerId == userId) &&
+                      !_dismissedLeads.contains(c.id)
+                    ).length;
+
+                    final pendingAppts = appointments.where((a) => 
+                      a.lawyerId == userId && a.status == 'pending'
+                    ).length;
+
+                    final upcomingAppts = appointments.where((a) => 
+                      a.lawyerId == userId && a.date.isAfter(DateTime.now().subtract(const Duration(hours: 2)))
+                    ).length;
+
+                    final chatCount = chatsState.maybeWhen(
+                      data: (chats) => chats.length,
+                      orElse: () => 0,
+                    );
+
+                    return Column(
+                      children: [
+                        _buildOverviewItem(Icons.gavel_outlined, "New Leads", "$activeLeadsCount"),
+                        const Divider(height: 1, indent: 50),
+                        _buildOverviewItem(Icons.mail_outline_rounded, "Unread Messages", "$chatCount"),
+                        const Divider(height: 1, indent: 50),
+                        _buildOverviewItem(Icons.phone_in_talk_outlined, "Consultation Requests", "$pendingAppts"),
+                        const Divider(height: 1, indent: 50),
+                        _buildOverviewItem(Icons.calendar_today_outlined, "Upcoming Appointments", "$upcomingAppts"),
+                      ],
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (err, s) => const Center(child: Text("Failed to load appointments")),
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -656,47 +772,86 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   // ═══════════════════════════════════════════════════════════
   Widget _buildLeadsTab() {
     final casesState = ref.watch(casesProvider);
+    final currentUserId = ref.watch(authProvider).userId ?? "";
 
-    return Column(
-      children: [
-        // Sub-tabs row
-        Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildLeadsSubTab(0, "New Leads", "12"),
-              _buildLeadsSubTab(1, "In Progress", "8"),
-              _buildLeadsSubTab(2, "Interested", "5"),
-            ],
-          ),
-        ),
-        const Divider(height: 1),
+    return casesState.when(
+      data: (cases) {
+        final newLeadsCount = cases.where((c) => 
+          c.status == 'active' && 
+          c.assignedLawyerId == null && 
+          !c.proposals.any((p) => p.lawyerId == currentUserId) &&
+          !_dismissedLeads.contains(c.id)
+        ).length;
+        
+        final inProgressCount = cases.where((c) => 
+          c.assignedLawyerId == null && 
+          c.proposals.any((p) => p.lawyerId == currentUserId)
+        ).length;
+        
+        final interestedCount = cases.where((c) => 
+          c.assignedLawyerId == currentUserId
+        ).length;
 
-        // List View
-        Expanded(
-          child: casesState.when(
-            data: (cases) {
-              final activeLeads = cases.where((c) => c.status == 'active' && !_dismissedLeads.contains(c.id)).toList();
-              if (activeLeads.isEmpty) {
-                return const Center(child: Text("No new case leads. Check back later!"));
-              }
-              return ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: activeLeads.length,
-                separatorBuilder: (c, i) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final lead = activeLeads[index];
-                  return _buildFigmaLeadCard(lead);
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(child: Text("Error: $err")),
-          ),
-        ),
-      ],
+        List<CaseModel> filteredLeads = [];
+        if (_selectedLeadsTab == 0) {
+          filteredLeads = cases.where((c) => 
+            c.status == 'active' && 
+            c.assignedLawyerId == null && 
+            !c.proposals.any((p) => p.lawyerId == currentUserId) &&
+            !_dismissedLeads.contains(c.id)
+          ).toList();
+        } else if (_selectedLeadsTab == 1) {
+          filteredLeads = cases.where((c) => 
+            c.assignedLawyerId == null && 
+            c.proposals.any((p) => p.lawyerId == currentUserId)
+          ).toList();
+        } else {
+          filteredLeads = cases.where((c) => 
+            c.assignedLawyerId == currentUserId
+          ).toList();
+        }
+
+        return Column(
+          children: [
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildLeadsSubTab(0, "New Leads", "$newLeadsCount"),
+                  _buildLeadsSubTab(1, "In Progress", "$inProgressCount"),
+                  _buildLeadsSubTab(2, "Interested", "$interestedCount"),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: filteredLeads.isEmpty
+                  ? Center(
+                      child: Text(
+                        _selectedLeadsTab == 0
+                            ? "No new case leads. Check back later!"
+                            : _selectedLeadsTab == 1
+                                ? "No proposals submitted yet."
+                                : "No won or interested cases yet.",
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filteredLeads.length,
+                      separatorBuilder: (c, i) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final lead = filteredLeads[index];
+                        return _buildFigmaLeadCard(lead);
+                      },
+                    ),
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text("Error: $err")),
     );
   }
 
@@ -835,87 +990,220 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   // ═══════════════════════════════════════════════════════════
   Widget _buildClientsTab() {
     final appointmentsState = ref.watch(appointmentsProvider);
+    final casesState = ref.watch(casesProvider);
     final currentUserId = ref.watch(authProvider).userId ?? "";
 
-    return Column(
-      children: [
-        // Sub-tabs row
-        Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildClientsSubTab(0, "Active", "18"),
-              _buildClientsSubTab(1, "Consultations", "24"),
-              _buildClientsSubTab(2, "Completed", "32"),
-            ],
-          ),
-        ),
-        const Divider(height: 1),
+    return casesState.when(
+      data: (cases) {
+        return appointmentsState.when(
+          data: (appointments) {
+            final activeClientsCases = cases.where((c) => 
+              c.assignedLawyerId == currentUserId && c.status != 'resolved'
+            ).toList();
 
-        Expanded(
-          child: appointmentsState.when(
-            data: (appointments) {
-              final lawyerAppts = appointments.where((a) => a.lawyerId == currentUserId).toList();
-              if (lawyerAppts.isEmpty) {
-                return const Center(child: Text("No clients recorded dynamically yet. Book an appointment first!"));
-              }
-              return ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: lawyerAppts.length,
-                separatorBuilder: (c, i) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final appt = lawyerAppts[index];
-                  return Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: const BorderSide(color: AppColors.grey200),
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(16),
-                      leading: const CircleAvatar(
-                        radius: 24,
-                        backgroundColor: AppColors.navyBlue,
-                        child: Icon(Icons.person, color: Colors.white),
-                      ),
-                      title: Text(appt.clientName, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue, fontSize: 15)),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          Text(appt.caseTitle ?? appt.mode, style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
-                          const SizedBox(height: 6),
-                          Text(
-                            "Next Appointment: ${DateFormat('dd MMM yyyy, hh:mm a').format(appt.date)}",
-                            style: const TextStyle(color: AppColors.grey400, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                      trailing: OutlinedButton(
-                        onPressed: () {
-                          // Navigate to Chat Screen
-                          context.push('/chat/chat_${appt.id}/${appt.clientName}');
-                        },
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.navyBlue),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          minimumSize: const Size(60, 36),
-                        ),
-                        child: const Text("Chat", style: TextStyle(color: AppColors.navyBlue, fontWeight: FontWeight.bold, fontSize: 11)),
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(child: Text("Error loading clients: $err")),
-          ),
-        ),
-      ],
+            final completedCases = cases.where((c) => 
+              c.assignedLawyerId == currentUserId && c.status == 'resolved'
+            ).toList();
+
+            final consultations = appointments.where((a) => 
+              a.lawyerId == currentUserId
+            ).toList();
+
+            final activeCount = activeClientsCases.length;
+            final consultationsCount = consultations.length;
+            final completedCount = completedCases.length;
+
+            return Column(
+              children: [
+                // Sub-tabs row
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildClientsSubTab(0, "Active", "$activeCount"),
+                      _buildClientsSubTab(1, "Consultations", "$consultationsCount"),
+                      _buildClientsSubTab(2, "Completed", "$completedCount"),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+
+                Expanded(
+                  child: _buildClientsTabContent(
+                    activeClientsCases,
+                    consultations,
+                    completedCases,
+                  ),
+                ),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(child: Text("Error: $err")),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text("Error: $err")),
     );
+  }
+
+  Widget _buildClientsTabContent(
+    List<CaseModel> activeCases,
+    List<AppointmentModel> consultations,
+    List<CaseModel> completedCases,
+  ) {
+    if (_selectedClientsTab == 0) {
+      if (activeCases.isEmpty) {
+        return const Center(child: Text("No active case clients yet. Accept proposals to get started."));
+      }
+      return ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: activeCases.length,
+        separatorBuilder: (c, i) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final clientCase = activeCases[index];
+          return Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: AppColors.grey200),
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(16),
+              leading: CircleAvatar(
+                radius: 24,
+                backgroundColor: AppColors.navyBlue,
+                backgroundImage: clientCase.clientImage.isNotEmpty
+                    ? NetworkImage(clientCase.clientImage)
+                    : null,
+                child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.white) : null,
+              ),
+              title: Text(clientCase.clientName, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue, fontSize: 15)),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 4),
+                  Text("Case: ${clientCase.title}", style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Budget: ${clientCase.budgetRange} • Urgency: ${clientCase.urgency}",
+                    style: const TextStyle(color: AppColors.grey400, fontSize: 11),
+                  ),
+                ],
+              ),
+              trailing: OutlinedButton(
+                onPressed: () {
+                  context.push('/chat/chat_${clientCase.id}/${clientCase.clientName}');
+                },
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.navyBlue),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  minimumSize: const Size(60, 36),
+                ),
+                child: const Text("Chat", style: TextStyle(color: AppColors.navyBlue, fontWeight: FontWeight.bold, fontSize: 11)),
+              ),
+            ),
+          );
+        },
+      );
+    } else if (_selectedClientsTab == 1) {
+      if (consultations.isEmpty) {
+        return const Center(child: Text("No booked consultations yet."));
+      }
+      return ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: consultations.length,
+        separatorBuilder: (c, i) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final appt = consultations[index];
+          return Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: AppColors.grey200),
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(16),
+              leading: CircleAvatar(
+                radius: 24,
+                backgroundColor: AppColors.navyBlue,
+                backgroundImage: appt.clientImage.isNotEmpty
+                    ? NetworkImage(appt.clientImage)
+                    : null,
+                child: appt.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.white) : null,
+              ),
+              title: Text(appt.clientName, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue, fontSize: 15)),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 4),
+                  Text(appt.caseTitle ?? appt.mode, style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Scheduled: ${DateFormat('dd MMM yyyy, hh:mm a').format(appt.date)} (${appt.timeSlot})",
+                    style: const TextStyle(color: AppColors.grey400, fontSize: 11),
+                  ),
+                ],
+              ),
+              trailing: OutlinedButton(
+                onPressed: () {
+                  context.push('/chat/chat_${appt.id}/${appt.clientName}');
+                },
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.navyBlue),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  minimumSize: const Size(60, 36),
+                ),
+                child: const Text("Chat", style: TextStyle(color: AppColors.navyBlue, fontWeight: FontWeight.bold, fontSize: 11)),
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      if (completedCases.isEmpty) {
+        return const Center(child: Text("No completed cases recorded."));
+      }
+      return ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: completedCases.length,
+        separatorBuilder: (c, i) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final clientCase = completedCases[index];
+          return Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: AppColors.grey200),
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(16),
+              leading: CircleAvatar(
+                radius: 24,
+                backgroundColor: AppColors.grey100,
+                backgroundImage: clientCase.clientImage.isNotEmpty
+                    ? NetworkImage(clientCase.clientImage)
+                    : null,
+                child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
+              ),
+              title: Text(clientCase.clientName, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue, fontSize: 15)),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 4),
+                  Text("Case: ${clientCase.title}", style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  const Text("Status: Completed/Resolved", style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              trailing: const Icon(Icons.verified, color: Colors.green),
+            ),
+          );
+        },
+      );
+    }
   }
 
   Widget _buildClientsSubTab(int index, String label, String count) {
@@ -971,15 +1259,54 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
     return Column(
       children: [
-        // Small horizontal calendar strip
+        // Month header with dynamic date picker trigger
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                DateFormat('MMMM yyyy').format(_selectedCalendarDate),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.navyBlue,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.calendar_month, color: AppColors.navyBlue),
+                onPressed: () async {
+                  final pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedCalendarDate,
+                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (pickedDate != null) {
+                    setState(() => _selectedCalendarDate = pickedDate);
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+
+        // Horizontal calendar strip centered on selection
         Container(
           color: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(7, (index) {
-              final date = DateTime.now().add(Duration(days: index - 3));
-              final isSelected = date.day == _selectedCalendarDate.day && date.month == _selectedCalendarDate.month;
+              final date = _selectedCalendarDate.add(Duration(days: index - 3));
+              final isToday = date.day == DateTime.now().day &&
+                  date.month == DateTime.now().month &&
+                  date.year == DateTime.now().year;
+              final isSelected = date.day == _selectedCalendarDate.day &&
+                  date.month == _selectedCalendarDate.month &&
+                  date.year == _selectedCalendarDate.year;
+
               return GestureDetector(
                 onTap: () => setState(() => _selectedCalendarDate = date),
                 child: Container(
@@ -987,17 +1314,28 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   decoration: BoxDecoration(
                     color: isSelected ? AppColors.navyBlue : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
+                    border: isToday && !isSelected
+                        ? Border.all(color: AppColors.navyBlue.withOpacity(0.3))
+                        : null,
                   ),
                   child: Column(
                     children: [
                       Text(
                         DateFormat('E').format(date)[0],
-                        style: TextStyle(color: isSelected ? Colors.white70 : AppColors.grey400, fontSize: 11, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: isSelected ? Colors.white70 : AppColors.grey400,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         "${date.day}",
-                        style: TextStyle(color: isSelected ? Colors.white : AppColors.navyBlue, fontSize: 14, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : AppColors.navyBlue,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -1012,16 +1350,37 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         Expanded(
           child: appointmentsState.when(
             data: (appointments) {
-              final lawyerAppts = appointments.where((a) => a.lawyerId == userId).toList();
-              if (lawyerAppts.isEmpty) {
-                return const Center(child: Text("No appointments scheduled."));
+              final dailyAppts = appointments.where((a) =>
+                a.lawyerId == userId &&
+                a.date.day == _selectedCalendarDate.day &&
+                a.date.month == _selectedCalendarDate.month &&
+                a.date.year == _selectedCalendarDate.year
+              ).toList();
+
+              if (dailyAppts.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.calendar_today_outlined, size: 48, color: AppColors.grey300),
+                      const SizedBox(height: 12),
+                      const Text(
+                        "No consultations scheduled for this day.",
+                        style: TextStyle(color: AppColors.grey400, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                );
               }
+
               return ListView.separated(
                 padding: const EdgeInsets.all(16),
-                itemCount: lawyerAppts.length,
+                itemCount: dailyAppts.length,
                 separatorBuilder: (c, i) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
-                  final appt = lawyerAppts[index];
+                  final appt = dailyAppts[index];
+                  final isVideo = appt.mode.toLowerCase().contains("video");
+
                   return Card(
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -1034,11 +1393,18 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                            decoration: BoxDecoration(
+                              color: AppColors.navyBlue.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             child: Text(
                               DateFormat('hh:mm\na').format(appt.date),
                               textAlign: TextAlign.center,
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue, fontSize: 11),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.navyBlue,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -1046,12 +1412,50 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(appt.clientName, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue, fontSize: 14)),
+                                Text(
+                                  appt.clientName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.navyBlue,
+                                    fontSize: 14,
+                                  ),
+                                ),
                                 const SizedBox(height: 4),
-                                Text(appt.caseTitle ?? appt.mode, style: const TextStyle(color: AppColors.grey400, fontSize: 12)),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      isVideo ? Icons.video_call : Icons.phone,
+                                      size: 14,
+                                      color: AppColors.grey400,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      appt.caseTitle ?? appt.mode,
+                                      style: const TextStyle(color: AppColors.grey400, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
-                          )
+                          ),
+                          OutlinedButton(
+                            onPressed: () {
+                              context.push('/chat/chat_${appt.id}/${appt.clientName}');
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppColors.navyBlue),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              minimumSize: const Size(60, 36),
+                            ),
+                            child: const Text(
+                              "Chat",
+                              style: TextStyle(
+                                color: AppColors.navyBlue,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1064,6 +1468,83 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showNotificationsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Notifications",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.navyBlue),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: AppColors.navyBlue),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildNotificationTile(
+                  Icons.gavel,
+                  "New Case Lead Posted",
+                  "A client matches your criminal law profile in Hyderabad.",
+                  "Just now",
+                ),
+                const Divider(),
+                _buildNotificationTile(
+                  Icons.calendar_today,
+                  "Appointment Confirmed",
+                  "Video consultation with client test is scheduled.",
+                  "2 hours ago",
+                ),
+                const Divider(),
+                _buildNotificationTile(
+                  Icons.mail,
+                  "Unread Message",
+                  "You have unread messages in your active chat threads.",
+                  "1 day ago",
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNotificationTile(IconData icon, String title, String subtitle, String time) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(
+        backgroundColor: AppColors.navyBlue.withOpacity(0.08),
+        child: Icon(icon, color: AppColors.navyBlue, size: 20),
+      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navyBlue)),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 4),
+          Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.grey500)),
+          const SizedBox(height: 4),
+          Text(time, style: const TextStyle(fontSize: 10, color: AppColors.grey400)),
+        ],
+      ),
     );
   }
 
@@ -1103,10 +1584,32 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 ),
                 child: Column(
                   children: [
-                    const CircleAvatar(
-                      radius: 35,
-                      backgroundColor: AppColors.navyBlue,
-                      child: Icon(Icons.person, color: Colors.white, size: 35),
+                    Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 35,
+                          backgroundColor: AppColors.navyBlue,
+                          backgroundImage: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
+                              ? NetworkImage(authState.userPhotoUrl!)
+                              : null,
+                          child: (authState.userPhotoUrl == null || authState.userPhotoUrl!.isEmpty)
+                              ? const Icon(Icons.person, color: Colors.white, size: 35)
+                              : null,
+                        ),
+                        if (_isEditingProfile)
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _pickAndUploadImage,
+                              child: const CircleAvatar(
+                                radius: 12,
+                                backgroundColor: AppColors.gold,
+                                child: Icon(Icons.camera_alt, size: 12, color: AppColors.navyBlue),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     if (!_isEditingProfile) ...[

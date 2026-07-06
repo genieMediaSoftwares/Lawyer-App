@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../models/document_model.dart';
-import '../../../../providers/case_provider.dart';
+import '../../../../providers/issue_provider.dart';
+import '../../../../providers/document_provider.dart';
+import 'package:file_picker/file_picker.dart';
+import '../../../../core/widgets/app_drawer.dart';
 
 class PostCaseScreen extends ConsumerStatefulWidget {
   const PostCaseScreen({super.key});
@@ -52,20 +55,29 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     super.dispose();
   }
 
-  void _simulateUpload() {
-    if (_uploadedDocs.length < _predefinedFiles.length) {
-      final fileData = _predefinedFiles[_uploadedDocs.length];
-      setState(() {
-        _uploadedDocs.add(DocumentModel(
-          name: fileData["name"]!,
-          url: "https://example.com/files/${fileData["name"]}",
-          size: fileData["size"]!,
-        ));
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("All sample documents uploaded!")),
-      );
+  Future<void> _simulateUpload() async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+    );
+
+    if (result != null && result.files.single.path != null) {
+      final filePath = result.files.single.path!;
+      final fileName = result.files.single.name;
+      
+      final doc = await ref.read(documentsProvider.notifier).uploadDocument(filePath, fileName);
+      if (doc != null) {
+        setState(() {
+          _uploadedDocs.add(DocumentModel(
+            name: doc.originalName,
+            url: "http://localhost:5000/${doc.filePath}",
+            size: "${(doc.fileSize / 1024).toStringAsFixed(1)} KB",
+          ));
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Document uploaded and attached successfully!")),
+        );
+      }
     }
   }
 
@@ -80,24 +92,25 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       return;
     }
 
-    final newCase = await ref.read(casesProvider.notifier).createCase(
-          title: _selectedCategory!, // Use category as title for simplicity
+    final newIssue = await ref.read(issuesProvider.notifier).createIssue(
+          title: _selectedCategory!, 
           description: _descriptionController.text,
           category: _selectedCategory!,
-          location: _cityController.text,
-          budgetRange: _selectedBudget ?? "Not Specified",
           urgency: _selectedUrgency ?? "Flexible",
+          preferredLanguage: "English",
+          location: _cityController.text,
+          preferredMode: "Video",
           documents: _uploadedDocs,
         );
 
-    if (newCase != null) {
+    if (newIssue != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Case posted successfully!")),
+        const SnackBar(content: Text("Issue posted successfully!")),
       );
       context.pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to post case. Please try again.")),
+        const SnackBar(content: Text("Failed to post issue. Please try again.")),
       );
     }
   }
@@ -106,6 +119,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Post Your Case"),
         backgroundColor: AppColors.navyBlue,
@@ -121,6 +135,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             }
           },
         ),
+        
       ),
       body: SafeArea(
         child: Column(

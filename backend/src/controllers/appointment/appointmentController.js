@@ -75,6 +75,39 @@ class AppointmentController {
       next(error);
     }
   }
+
+  async updateAppointment(req, res, next) {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+
+      const appointment = await Appointment.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+      if (!appointment) {
+        return ApiResponse.error(res, "Appointment not found.", 404);
+      }
+
+      return ApiResponse.success(res, "Appointment updated successfully.", appointment);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteAppointment(req, res, next) {
+    try {
+      const { id } = req.params;
+      const appointment = await Appointment.findById(id);
+      if (!appointment) {
+        return ApiResponse.error(res, "Appointment not found.", 404);
+      }
+      
+      appointment.status = "cancelled";
+      await appointment.save();
+
+      return ApiResponse.success(res, "Appointment cancelled successfully.", appointment);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new AppointmentController();

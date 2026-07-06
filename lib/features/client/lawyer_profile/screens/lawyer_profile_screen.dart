@@ -6,6 +6,9 @@ import '../../../../providers/lawyer_provider.dart';
 import '../../../../models/lawyer_model.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../routes/route_names.dart';
+import '../../../../core/widgets/app_drawer.dart';
+
+import '../../../../providers/favorite_provider.dart';
 
 class LawyerProfileScreen extends ConsumerWidget {
   final String userId;
@@ -24,11 +27,26 @@ class LawyerProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Lawyer Profile"),
         backgroundColor: AppColors.navyBlue,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          ref.watch(favoritesProvider).maybeWhen(
+            data: (favs) {
+              final isFav = favs.any((f) => f.lawyerUserId == userId);
+              return IconButton(
+                icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: isFav ? Colors.red : Colors.white),
+                onPressed: () async {
+                  await ref.read(favoritesProvider.notifier).toggleFavorite(userId);
+                },
+              );
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
+        ],
       ),
       body: lawyerState.when(
         data: (lawyer) {

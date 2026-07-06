@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../providers/auth_provider.dart';
+import '../../../../core/widgets/app_drawer.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -16,6 +19,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
+
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (image == null) return;
+
+      final bytes = await image.readAsBytes();
+      
+      if (mounted) {
+        setState(() => _isSaving = true);
+      }
+
+      final success = await ref.read(authProvider.notifier).updateProfileImage(bytes, image.name);
+
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success ? "Profile image updated successfully!" : "Failed to upload profile image."),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error selecting image: $e")),
+        );
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -81,11 +116,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Profile", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.navyBlue,
         foregroundColor: Colors.white,
         elevation: 0,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white, size: 24),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         actions: [
           IconButton(
             icon: Icon(_isEditing ? Icons.close : Icons.edit),
@@ -107,33 +149,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         child: Column(
           children: [
             // Profile Card Header
-            _buildProfileHeaderCard(email),
+            _buildProfileHeaderCard(email, authState.userPhotoUrl),
             const SizedBox(height: 24),
 
             // Settings options (hidden in edit mode to focus on form)
             if (!_isEditing) ...[
               _buildOptionTile(
-                icon: Icons.notifications_outlined,
-                title: "Notifications Settings",
-                onTap: () {},
+                icon: Icons.folder_open_outlined,
+                title: "My Documents",
+                onTap: () => context.push('/my-documents'),
               ),
               const SizedBox(height: 12),
               _buildOptionTile(
-                icon: Icons.payment_outlined,
-                title: "Payment Methods",
-                onTap: () {},
+                icon: Icons.favorite_border,
+                title: "Favorite Lawyers",
+                onTap: () => context.push('/favorites'),
               ),
               const SizedBox(height: 12),
               _buildOptionTile(
-                icon: Icons.security_outlined,
-                title: "Change Password",
-                onTap: () {},
+                icon: Icons.article_outlined,
+                title: "Legal Articles",
+                onTap: () => context.push('/articles'),
               ),
               const SizedBox(height: 12),
               _buildOptionTile(
-                icon: Icons.info_outline,
-                title: "Terms & Privacy Policy",
-                onTap: () {},
+                icon: Icons.question_answer_outlined,
+                title: "FAQ Accordion",
+                onTap: () => context.push('/faq'),
+              ),
+              const SizedBox(height: 12),
+              _buildOptionTile(
+                icon: Icons.settings_outlined,
+                title: "App Settings",
+                onTap: () => context.push('/settings'),
               ),
               const SizedBox(height: 24),
 
@@ -181,7 +229,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeaderCard(String email) {
+   Widget _buildProfileHeaderCard(String email, String? photoUrl) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -192,10 +240,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          const CircleAvatar(
-            radius: 40,
-            backgroundColor: AppColors.navyBlue,
-            child: Icon(Icons.person, size: 40, color: Colors.white),
+          Stack(
+            children: [
+              CircleAvatar(
+                radius: 44,
+                backgroundColor: AppColors.navyBlue,
+                backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                    ? NetworkImage(photoUrl)
+                    : null,
+                child: (photoUrl == null || photoUrl.isEmpty)
+                    ? const Icon(Icons.person, size: 44, color: Colors.white)
+                    : null,
+              ),
+              if (_isEditing)
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: _pickAndUploadImage,
+                    child: const CircleAvatar(
+                      radius: 14,
+                      backgroundColor: AppColors.gold,
+                      child: Icon(Icons.camera_alt, size: 14, color: AppColors.navyBlue),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 20),
           if (!_isEditing) ...[

@@ -1,0 +1,60 @@
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+
+// Define storage configuration
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    let folder = "documents";
+    
+    // Choose subfolder based on request endpoint or header hint
+    const url = req.originalUrl || "";
+    if (url.includes("/auth") || url.includes("/profile")) {
+      folder = "profile";
+    } else if (url.includes("/issues")) {
+      folder = "issues";
+    } else if (url.includes("/chats") || url.includes("/messages")) {
+      folder = "chat";
+    } else if (url.includes("/certificates")) {
+      folder = "lawyer-certificates";
+    }
+
+    const uploadPath = path.join(__dirname, "../../uploads", folder);
+    
+    // Ensure directory exists
+    fs.mkdirSync(uploadPath, { recursive: true });
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+// File filter validation
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "image/jpeg",
+    "image/jpg",
+    "image/png"
+  ];
+  
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Invalid file type. Only PDF, DOC, DOCX, JPG, JPEG, and PNG are allowed."));
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
+
+module.exports = upload;

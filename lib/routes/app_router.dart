@@ -26,6 +26,15 @@ import '../features/lawyer/subscription/screens/subscription_plans_screen.dart';
 import '../features/authentication/presentation/signup/signup_screen.dart';
 import '../features/authentication/presentation/login/login_screen.dart';
 import '../features/authentication/presentation/forgot_password/forgot_password_screen.dart';
+import '../features/client/lawyer_search/screens/get_matched_screen.dart';
+import '../features/client/consultation_history/screens/consult_screen.dart';
+import '../features/client/case_tracking/screens/resolve_screen.dart';
+import '../features/client/lawyer_search/screens/category_detail_screen.dart';
+import '../features/client/documents/screens/my_documents_screen.dart';
+import '../features/client/profile/screens/settings_screen.dart';
+import '../features/client/profile/screens/favorite_lawyers_screen.dart';
+import '../features/client/profile/screens/articles_screen.dart';
+import '../features/client/profile/screens/faq_screen.dart';
 
 final routerListenableProvider = Provider((ref) {
   final listenable = RouterListenable();
@@ -94,6 +103,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         RouteNames.notifications,
         RouteNames.aiChat,
         RouteNames.chat,
+        RouteNames.getMatched,
+        RouteNames.consult,
+        RouteNames.resolve,
+        RouteNames.categoryDetail,
+        RouteNames.myDocuments,
+        RouteNames.settings,
+        RouteNames.favorites,
+        RouteNames.articles,
+        RouteNames.faq,
       ];
 
       if (clientRoutes.contains(path) && role == UserRole.lawyer) {
@@ -187,8 +205,62 @@ final routerProvider = Provider<GoRouter>((ref) {
           lawyerName: s.pathParameters['lawyerName']!,
         ),
       ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.getMatched,
+        builder: (c, s) => const GetMatchedScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.consult,
+        builder: (c, s) => const ConsultScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.resolve,
+        builder: (c, s) => const ResolveScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.categoryDetail,
+        builder: (c, s) => CategoryDetailScreen(
+          categoryName: s.pathParameters['categoryName']!,
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.myDocuments,
+        builder: (c, s) => const MyDocumentsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.settings,
+        builder: (c, s) => const SettingsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.favorites,
+        builder: (c, s) => const FavoriteLawyersScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.articles,
+        builder: (c, s) => const ArticlesScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.faq,
+        builder: (c, s) => const FaqScreen(),
+      ),
 
-      GoRoute(path: RouteNames.lawyerDashboard, builder: (c, s) => const LawyerDashboardScreen()),
+      GoRoute(
+        path: RouteNames.lawyerDashboard,
+        builder: (c, s) {
+          final tabIndexStr = s.uri.queryParameters['tab'];
+          final initialTab = int.tryParse(tabIndexStr ?? '') ?? 0;
+          return LawyerDashboardScreen(initialTab: initialTab);
+        },
+      ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: RouteNames.subscriptionPlans,

@@ -10,6 +10,12 @@ const caseRoutes = require("./routes/case.routes");
 const appointmentRoutes = require("./routes/appointment.routes");
 const chatRoutes = require("./routes/chat.routes");
 const lawyerRoutes = require("./routes/lawyer.routes");
+const issueRoutes = require("./routes/issues.routes");
+const documentRoutes = require("./routes/document.routes");
+const notificationRoutes = require("./routes/notification.routes");
+const favoriteRoutes = require("./routes/favorite.routes");
+const articleRoutes = require("./routes/article.routes");
+const faqRoutes = require("./routes/faq.routes");
 
 const app = express();
 
@@ -50,12 +56,21 @@ app.get("/api", (req, res) => {
   });
 });
 
+// Serve local uploads folder statically
+app.use("/uploads", express.static("uploads"));
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/cases", caseRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/lawyers", lawyerRoutes);
+app.use("/api/issues", issueRoutes);
+app.use("/api/documents", documentRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/favorites", favoriteRoutes);
+app.use("/api/articles", articleRoutes);
+app.use("/api/faqs", faqRoutes);
 
 // Global Error Handler
 app.use(errorMiddleware);

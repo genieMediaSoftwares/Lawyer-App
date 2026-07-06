@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../routes/route_names.dart';
+import '../../../../core/widgets/app_drawer.dart';
 
 class SubscriptionPlansScreen extends StatefulWidget {
   const SubscriptionPlansScreen({super.key});
@@ -44,11 +45,13 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Subscription Plans"),
         backgroundColor: AppColors.navyBlue,
         foregroundColor: Colors.white,
         elevation: 0,
+        
       ),
       body: SafeArea(
         child: Column(

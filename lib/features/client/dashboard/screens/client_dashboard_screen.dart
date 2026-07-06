@@ -184,11 +184,11 @@ class ClientDashboardScreen extends ConsumerWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: legalCategories.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 4,
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 10,
-                  childAspectRatio: 0.76,
+                  childAspectRatio: MediaQuery.of(context).size.width < 360 ? 0.63 : 0.76,
                 ),
                 itemBuilder: (context, index) {
                   final category = legalCategories[index];
@@ -197,7 +197,14 @@ class ClientDashboardScreen extends ConsumerWidget {
                     icon: category.icon,
                     color: category.backgroundColor,
                     iconColor: category.iconColor,
-                    onTap: () => context.push(category.route),
+                    onTap: () {
+                      if (category.title.contains("More")) {
+                        context.push(RouteNames.lawyerSearch);
+                      } else {
+                        final cleaned = category.title.replaceAll('\n', ' ');
+                        context.push('/category-detail/$cleaned');
+                      }
+                    },
                   );
                 },
               ),
@@ -294,11 +301,23 @@ class ClientDashboardScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  _StepCard(label: "Post Issue", icon: Icons.description_outlined),
-                  _StepCard(label: "Get Matched", icon: Icons.people_outline),
-                  _StepCard(label: "Consult", icon: Icons.chat_bubble_outline_rounded),
-                  _StepCard(label: "Resolve", icon: Icons.verified_user_outlined),
+                children: [
+                  GestureDetector(
+                    onTap: () => context.push(RouteNames.postCase),
+                    child: const _StepCard(label: "Post Issue", icon: Icons.description_outlined),
+                  ),
+                  GestureDetector(
+                    onTap: () => context.push(RouteNames.getMatched),
+                    child: const _StepCard(label: "Get Matched", icon: Icons.people_outline),
+                  ),
+                  GestureDetector(
+                    onTap: () => context.push(RouteNames.consult),
+                    child: const _StepCard(label: "Consult", icon: Icons.chat_bubble_outline_rounded),
+                  ),
+                  GestureDetector(
+                    onTap: () => context.push(RouteNames.resolve),
+                    child: const _StepCard(label: "Resolve", icon: Icons.verified_user_outlined),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -338,12 +357,15 @@ class _StepCard extends StatelessWidget {
           child: Icon(icon, color: AppColors.navyBlue, size: 22),
         ),
         const SizedBox(height: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1E293B), // Darker text for high legibility
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B), // Darker text for high legibility
+            ),
           ),
         ),
       ],
@@ -385,14 +407,17 @@ class CategoryCard extends StatelessWidget {
             child: Icon(icon, color: iconColor, size: 26),
           ),
           const SizedBox(height: 8),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B), // Darker text for legibility
-              height: 1.2,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B), // Darker text for legibility
+                height: 1.2,
+              ),
             ),
           ),
         ],
