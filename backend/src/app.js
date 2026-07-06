@@ -16,6 +16,10 @@ const notificationRoutes = require("./routes/notification.routes");
 const favoriteRoutes = require("./routes/favorite.routes");
 const articleRoutes = require("./routes/article.routes");
 const faqRoutes = require("./routes/faq.routes");
+const clientRoutes = require("./routes/client.routes");
+const reviewRoutes = require("./routes/review.routes");
+const paymentRoutes = require("./routes/payment.routes");
+const subscriptionRoutes = require("./routes/subscription.routes");
 
 const app = express();
 
@@ -71,6 +75,10 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/articles", articleRoutes);
 app.use("/api/faqs", faqRoutes);
+app.use("/api/clients", clientRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
 
 // Global Error Handler
 app.use(errorMiddleware);

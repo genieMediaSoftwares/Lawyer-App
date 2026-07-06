@@ -10,13 +10,11 @@ const storage = multer.diskStorage({
     // Choose subfolder based on request endpoint or header hint
     const url = req.originalUrl || "";
     if (url.includes("/auth") || url.includes("/profile")) {
-      folder = "profile";
-    } else if (url.includes("/issues")) {
-      folder = "issues";
-    } else if (url.includes("/chats") || url.includes("/messages")) {
-      folder = "chat";
+      folder = "profiles";
+    } else if (url.includes("/issues") || url.includes("/cases")) {
+      folder = "cases";
     } else if (url.includes("/certificates")) {
-      folder = "lawyer-certificates";
+      folder = "certificates";
     }
 
     const uploadPath = path.join(__dirname, "../../uploads", folder);

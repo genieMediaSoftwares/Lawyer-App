@@ -15,6 +15,10 @@ class LawyerModel {
   final List<String> languages;
   final String barCouncilNumber;
   final String location;
+  final String officeAddress;
+  final String upiId;
+  final String workingHours;
+  final Map<String, dynamic> bankDetails;
 
   LawyerModel({
     required this.id,
@@ -33,6 +37,10 @@ class LawyerModel {
     required this.languages,
     required this.barCouncilNumber,
     required this.location,
+    required this.officeAddress,
+    required this.upiId,
+    required this.workingHours,
+    required this.bankDetails,
   });
 
   factory LawyerModel.fromJson(Map<String, dynamic> json) {
@@ -57,6 +65,10 @@ class LawyerModel {
       languages: List<String>.from(json['languages'] ?? []),
       barCouncilNumber: json['barCouncilNumber'] ?? '',
       location: userData['location'] ?? '',
+      officeAddress: json['officeAddress'] ?? '',
+      upiId: json['upiId'] ?? '',
+      workingHours: json['workingHours'] ?? '9:00 AM - 6:00 PM',
+      bankDetails: Map<String, dynamic>.from(json['bankDetails'] ?? {}),
     );
   }
 }

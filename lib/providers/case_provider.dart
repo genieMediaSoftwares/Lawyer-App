@@ -101,11 +101,9 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     required double fee,
   }) async {
     try {
-      final response = await DioClient.dio.post("/cases/$caseId/proposal", data: {
-        "lawyerId": lawyerId,
+      final response = await DioClient.dio.post("/cases/$caseId/proposals", data: {
+        "feeProposal": fee.toInt(),
         "message": message,
-        "fee": fee,
-        "duration": "1 week",
       });
 
       if (response.data != null && response.data['success'] == true) {

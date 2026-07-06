@@ -67,6 +67,34 @@ const lawyerSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    upiId: {
+      type: String,
+      default: "",
+    },
+    bankDetails: {
+      accountHolderName: { type: String, default: "" },
+      accountNumber: { type: String, default: "" },
+      ifscCode: { type: String, default: "" },
+      bankName: { type: String, default: "" },
+    },
+    barCertificate: {
+      type: String,
+      default: "",
+    },
+    verificationStatus: {
+      type: String,
+      enum: ["pending", "verified", "rejected"],
+      default: "pending",
+    },
+    subscriptionPlan: {
+      type: String,
+      enum: ["Free", "Basic", "Premium", "Pro Hub"],
+      default: "Free",
+    },
+    workingHours: {
+      type: String,
+      default: "9:00 AM - 6:00 PM",
+    },
   },
   {
     timestamps: true,

@@ -9,6 +9,7 @@ import '../../../../providers/appointment_provider.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../providers/chat_provider.dart';
+import '../../../../providers/notification_provider.dart';
 import '../../../../models/case_model.dart';
 import '../../../../models/lawyer_model.dart';
 import '../../../../models/appointment_model.dart';
@@ -40,6 +41,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   late TextEditingController _barController;
   late TextEditingController _eduController;
   late TextEditingController _locationController;
+  late TextEditingController _officeAddressController;
+  late TextEditingController _upiIdController;
+  late TextEditingController _workingHoursController;
+  late TextEditingController _bankNameController;
+  late TextEditingController _bankAccountNoController;
+  late TextEditingController _bankIFSCController;
+  late TextEditingController _bankHolderController;
 
   // Selected sub-tabs
   int _selectedLeadsTab = 0; // 0: New Leads, 1: In Progress, 2: Interested
@@ -47,11 +55,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
   // Selected date in calendar tab
   DateTime _selectedCalendarDate = DateTime.now();
+  late ScrollController _calendarScrollController;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialTab;
+    _calendarScrollController = ScrollController();
     _nameController = TextEditingController();
     _phoneController = TextEditingController();
     _specController = TextEditingController();
@@ -61,6 +71,14 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     _barController = TextEditingController();
     _eduController = TextEditingController();
     _locationController = TextEditingController();
+    _officeAddressController = TextEditingController();
+    _upiIdController = TextEditingController();
+    _workingHoursController = TextEditingController();
+    _bankNameController = TextEditingController();
+    _bankAccountNoController = TextEditingController();
+    _bankIFSCController = TextEditingController();
+    _bankHolderController = TextEditingController();
+    _scrollToSelectedDate();
   }
 
   @override
@@ -113,6 +131,14 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     _barController.dispose();
     _eduController.dispose();
     _locationController.dispose();
+    _officeAddressController.dispose();
+    _upiIdController.dispose();
+    _workingHoursController.dispose();
+    _bankNameController.dispose();
+    _bankAccountNoController.dispose();
+    _bankIFSCController.dispose();
+    _bankHolderController.dispose();
+    _calendarScrollController.dispose();
     super.dispose();
   }
 
@@ -144,6 +170,15 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           barCouncilNumber: bar,
           consultationFee: fee,
           bio: bio,
+          officeAddress: _officeAddressController.text.trim(),
+          upiId: _upiIdController.text.trim(),
+          workingHours: _workingHoursController.text.trim(),
+          bankDetails: {
+            "bankName": _bankNameController.text.trim(),
+            "accountNumber": _bankAccountNoController.text.trim(),
+            "ifscCode": _bankIFSCController.text.trim(),
+            "accountHolderName": _bankHolderController.text.trim(),
+          },
         );
 
     if (mounted) {
@@ -161,6 +196,21 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         ),
       );
     }
+  }
+
+  void _scrollToSelectedDate() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_calendarScrollController.hasClients) {
+        final dayIndex = _selectedCalendarDate.day - 1;
+        // Each item in the vertical date strip has height 68.0
+        final targetOffset = (dayIndex * 68.0) - 150.0;
+        _calendarScrollController.animateTo(
+          targetOffset.clamp(0.0, _calendarScrollController.position.maxScrollExtent),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   @override
@@ -1289,6 +1339,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   );
                   if (pickedDate != null) {
                     setState(() => _selectedCalendarDate = pickedDate);
+                    _scrollToSelectedDate();
                   }
                 },
               ),
@@ -1297,62 +1348,23 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         ),
         const Divider(height: 1),
 
-        // Horizontal calendar strip centered on selection
-        Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(7, (index) {
-              final date = _selectedCalendarDate.add(Duration(days: index - 3));
-              final isToday = date.day == DateTime.now().day &&
-                  date.month == DateTime.now().month &&
-                  date.year == DateTime.now().year;
-              final isSelected = date.day == _selectedCalendarDate.day &&
-                  date.month == _selectedCalendarDate.month &&
-                  date.year == _selectedCalendarDate.year;
-
-              return GestureDetector(
-                onTap: () => setState(() => _selectedCalendarDate = date),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.navyBlue : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                    border: isToday && !isSelected
-                        ? Border.all(color: AppColors.navyBlue.withOpacity(0.3))
-                        : null,
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        DateFormat('E').format(date)[0],
-                        style: TextStyle(
-                          color: isSelected ? Colors.white70 : AppColors.grey400,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        "${date.day}",
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.navyBlue,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
-        const Divider(height: 1),
-
-        // List of appointments for selected date
+        // Main calendar body: Row containing left vertical strip and right appointments list
         Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left Column: Vertical date picker strip
+              Container(
+                width: 76,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(right: BorderSide(color: AppColors.borderLight, width: 1)),
+                ),
+                child: _buildVerticalDateStrip(),
+              ),
+
+              // Right Column: Appointments list
+              Expanded(
           child: appointmentsState.when(
             data: (appointments) {
               final dailyAppts = appointments.where((a) =>
@@ -1473,6 +1485,73 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           ),
         ),
       ],
+    ),
+  ),
+],
+    );
+  }
+
+  Widget _buildVerticalDateStrip() {
+    final year = _selectedCalendarDate.year;
+    final month = _selectedCalendarDate.month;
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+
+    return ListView.builder(
+      controller: _calendarScrollController,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: daysInMonth,
+      itemBuilder: (context, index) {
+        final day = index + 1;
+        final date = DateTime(year, month, day);
+        final isToday = date.day == DateTime.now().day &&
+            date.month == DateTime.now().month &&
+            date.year == DateTime.now().year;
+        final isSelected = date.day == _selectedCalendarDate.day &&
+            date.month == _selectedCalendarDate.month &&
+            date.year == _selectedCalendarDate.year;
+
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedCalendarDate = date;
+            });
+            _scrollToSelectedDate();
+          },
+          child: Container(
+            height: 60,
+            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.navyBlue : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: isToday && !isSelected
+                  ? Border.all(color: AppColors.navyBlue.withOpacity(0.3))
+                  : null,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  DateFormat('E').format(date)[0],
+                  style: TextStyle(
+                    color: isSelected ? Colors.white70 : AppColors.grey400,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "$day",
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppColors.navyBlue,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1505,25 +1584,69 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildNotificationTile(
-                  Icons.gavel,
-                  "New Case Lead Posted",
-                  "A client matches your criminal law profile in Hyderabad.",
-                  "Just now",
-                ),
-                const Divider(),
-                _buildNotificationTile(
-                  Icons.calendar_today,
-                  "Appointment Confirmed",
-                  "Video consultation with client test is scheduled.",
-                  "2 hours ago",
-                ),
-                const Divider(),
-                _buildNotificationTile(
-                  Icons.mail,
-                  "Unread Message",
-                  "You have unread messages in your active chat threads.",
-                  "1 day ago",
+                Expanded(
+                  child: Consumer(
+                    builder: (context, ref, child) {
+                      final notificationsState = ref.watch(notificationsProvider);
+                      return notificationsState.when(
+                        data: (notifications) {
+                          if (notifications.isEmpty) {
+                            return const Center(
+                              child: Text(
+                                "No notifications yet.",
+                                style: TextStyle(color: AppColors.grey500, fontSize: 13),
+                              ),
+                            );
+                          }
+                          return ListView.separated(
+                            itemCount: notifications.length,
+                            separatorBuilder: (context, index) => const Divider(),
+                            itemBuilder: (context, index) {
+                              final notif = notifications[index];
+                              IconData icon = Icons.notifications_none_outlined;
+                              if (notif.type == "Appointment") icon = Icons.calendar_today_outlined;
+                              if (notif.type == "Messages") icon = Icons.mail_outline_rounded;
+                              if (notif.type == "Offers") icon = Icons.gavel_outlined;
+
+                              final timeStr = DateFormat('dd MMM, hh:mm a').format(notif.createdAt);
+                              return Dismissible(
+                                key: Key(notif.id),
+                                onDismissed: (_) {
+                                  ref.read(notificationsProvider.notifier).markAsRead(notif.id);
+                                },
+                                child: ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: CircleAvatar(
+                                    backgroundColor: AppColors.navyBlue.withOpacity(0.08),
+                                    child: Icon(icon, color: AppColors.navyBlue, size: 20),
+                                  ),
+                                  title: Text(
+                                    notif.title,
+                                    style: TextStyle(
+                                      fontWeight: notif.read ? FontWeight.normal : FontWeight.bold,
+                                      fontSize: 14,
+                                      color: AppColors.navyBlue,
+                                    ),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 4),
+                                      Text(notif.message, style: const TextStyle(fontSize: 12, color: AppColors.grey500)),
+                                      const SizedBox(height: 4),
+                                      Text(timeStr, style: const TextStyle(fontSize: 10, color: AppColors.grey400)),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (err, stack) => Center(child: Text("Error loading notifications: $err")),
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
@@ -1572,6 +1695,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           _barController.text = lawyer.barCouncilNumber;
           _eduController.text = lawyer.education;
           _locationController.text = authState.userLocation ?? "";
+          _officeAddressController.text = lawyer.officeAddress;
+          _upiIdController.text = lawyer.upiId;
+          _workingHoursController.text = lawyer.workingHours;
+          _bankNameController.text = lawyer.bankDetails['bankName'] ?? "";
+          _bankAccountNoController.text = lawyer.bankDetails['accountNumber'] ?? "";
+          _bankIFSCController.text = lawyer.bankDetails['ifscCode'] ?? "";
+          _bankHolderController.text = lawyer.bankDetails['accountHolderName'] ?? "";
         }
 
         return SingleChildScrollView(
@@ -1884,6 +2014,179 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _officeAddressController,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "Office Address",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          prefixIcon: const Icon(Icons.location_city, color: Colors.white70, size: 20),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _workingHoursController,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "Working Hours",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          prefixIcon: const Icon(Icons.timer, color: Colors.white70, size: 20),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _upiIdController,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "UPI ID",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          prefixIcon: const Icon(Icons.payment, color: Colors.white70, size: 20),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text("Bank Account Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _bankHolderController,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "Account Holder Name",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _bankNameController,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "Bank Name",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _bankAccountNoController,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "Account Number",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _bankIFSCController,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: "IFSC Code",
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          filled: true,
+                          fillColor: AppColors.navyBlue,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.borderDark),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderSide: BorderSide(color: AppColors.gold, width: 1.5),
+                          ),
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -1898,6 +2201,40 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   lawyer.bio.isNotEmpty ? lawyer.bio : "Provide a summary bio in edit mode.",
                   style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight, height: 1.4),
                 ),
+                const SizedBox(height: 20),
+
+                // Office Info Section
+                const Text("Office Address", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navyBlue)),
+                const SizedBox(height: 8),
+                Text(
+                  lawyer.officeAddress.isNotEmpty ? lawyer.officeAddress : "Not provided.",
+                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight, height: 1.4),
+                ),
+                const SizedBox(height: 20),
+
+                // Working Hours
+                const Text("Working Hours", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navyBlue)),
+                const SizedBox(height: 8),
+                Text(
+                  lawyer.workingHours.isNotEmpty ? lawyer.workingHours : "9:00 AM - 6:00 PM",
+                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight, height: 1.4),
+                ),
+                const SizedBox(height: 20),
+
+                // Payment Info
+                const Text("UPI / Settlement Details", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navyBlue)),
+                const SizedBox(height: 8),
+                Text(
+                  lawyer.upiId.isNotEmpty ? "UPI: ${lawyer.upiId}" : "UPI: Not set.",
+                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight),
+                ),
+                if (lawyer.bankDetails['bankName'] != null && lawyer.bankDetails['bankName'].toString().isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    "Bank: ${lawyer.bankDetails['bankName']} (A/c: ${lawyer.bankDetails['accountNumber']})",
+                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight),
+                  ),
+                ],
                 const SizedBox(height: 20),
 
                 // Expertise Chips
@@ -2124,36 +2461,72 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text("Earnings Details", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Total Earnings", style: TextStyle(fontSize: 12, color: AppColors.grey500)),
-              const SizedBox(height: 4),
-              const Text("₹45,600", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.navyBlue)),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text("Consultations", style: TextStyle(fontSize: 13)),
-                  Text("₹32,000", style: TextStyle(fontWeight: FontWeight.bold)),
+        return Consumer(
+          builder: (context, ref, child) {
+            final appointmentsState = ref.watch(appointmentsProvider);
+            final currentUserId = ref.watch(authProvider).userId ?? "";
+            final lawyerState = ref.watch(lawyerDetailsProvider(currentUserId));
+
+            return appointmentsState.when(
+              data: (appointments) {
+                final completedConsults = appointments.where((a) =>
+                  a.lawyerId == currentUserId && a.status == 'completed'
+                ).toList();
+
+                final fee = lawyerState.maybeWhen(
+                  data: (lawyer) => lawyer.consultationFee,
+                  orElse: () => 1500,
+                );
+
+                final consultEarnings = completedConsults.length * fee;
+                final totalEarnings = consultEarnings;
+
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: const Text("Earnings Details", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue)),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text("Total Earnings", style: TextStyle(fontSize: 12, color: AppColors.grey500)),
+                      const SizedBox(height: 4),
+                      Text("₹$totalEarnings", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.navyBlue)),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Consultations", style: TextStyle(fontSize: 13)),
+                          Text("₹$consultEarnings", style: const TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
+                          Text("Other Earnings", style: TextStyle(fontSize: 13)),
+                          Text("₹0", style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close")),
+                  ],
+                );
+              },
+              loading: () => const AlertDialog(
+                content: SizedBox(
+                  height: 80,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+              error: (err, stack) => AlertDialog(
+                content: Text("Error: $err"),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close")),
                 ],
               ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text("Other Earnings", style: TextStyle(fontSize: 13)),
-                  Text("₹13,600", style: TextStyle(fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close")),
-          ],
+            );
+          },
         );
       },
     );

@@ -107,6 +107,59 @@ class AuthService {
       location: user.location || "",
     };
   }
+
+  async forgotPassword(email) {
+    const User = require("../../models/User");
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new AppError("User with this email does not exist.", 404);
+    }
+
+    const resetToken = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpire = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    return { resetToken };
+  }
+
+  async resetPassword(email, token, newPassword) {
+    const User = require("../../models/User");
+    const user = await User.findOne({
+      email,
+      resetPasswordToken: token,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      throw new AppError("Invalid or expired reset token.", 400);
+    }
+
+    user.password = newPassword;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpire = null;
+    await user.save();
+
+    return true;
+  }
+
+  async changePassword(userId, oldPassword, newPassword) {
+    const User = require("../../models/User");
+    const user = await User.findById(userId).select("+password");
+    if (!user) {
+      throw new AppError("User not found.", 404);
+    }
+
+    const isMatch = await user.comparePassword(oldPassword);
+    if (!isMatch) {
+      throw new AppError("Incorrect old password.", 400);
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return true;
+  }
 }
 
 module.exports = new AuthService();

@@ -20,6 +20,7 @@ import '../features/client/post_case/screens/post_case_screen.dart';
 import '../features/client/case_tracking/screens/lawyers_responded_screen.dart';
 import '../features/client/case_tracking/screens/case_progress_screen.dart';
 import '../features/client/appointment_booking/screens/schedule_consultation_screen.dart';
+import '../features/client/appointment_booking/screens/calendar_screen.dart';
 import '../features/chat/presentation/screens/chat_screen.dart';
 import '../features/lawyer/dashboard/screens/lawyer_dashboard_screen.dart';
 import '../features/lawyer/subscription/screens/subscription_plans_screen.dart';
@@ -186,6 +187,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           lawyerUserId: s.pathParameters['lawyerUserId']!,
           caseId: s.uri.queryParameters['caseId'],
         ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/calendar-view',
+        builder: (c, s) => const CalendarScreen(),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
