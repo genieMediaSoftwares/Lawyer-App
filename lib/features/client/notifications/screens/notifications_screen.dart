@@ -25,8 +25,12 @@ class NotificationsScreen extends StatelessWidget {
       }
     ];
 
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
+    final secondaryTextColor = isDarkMode ? AppColors.grey300 : AppColors.textSecondaryLight;
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Notifications"),
@@ -45,7 +49,7 @@ class NotificationsScreen extends StatelessWidget {
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: AppColors.grey200),
+              side: BorderSide(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -55,12 +59,12 @@ class NotificationsScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(item["title"]!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navyBlue)),
+                      Text(item["title"]!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primaryTextColor)),
                       Text(item["time"]!, style: const TextStyle(color: AppColors.grey400, fontSize: 11)),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text(item["description"]!, style: const TextStyle(color: AppColors.textSecondaryLight, fontSize: 13, height: 1.4)),
+                  Text(item["description"]!, style: TextStyle(color: secondaryTextColor, fontSize: 13, height: 1.4)),
                 ],
               ),
             ),

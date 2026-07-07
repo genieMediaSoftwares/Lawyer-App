@@ -1739,6 +1739,15 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       DropdownButtonFormField<String>(
                         value: selectedClientId,
                         dropdownColor: Colors.white,
+                        iconEnabledColor: Colors.white,
+                        selectedItemBuilder: (BuildContext context) {
+                          return clients.map((c) {
+                            return Text(
+                              c['name']!,
+                              style: const TextStyle(color: Colors.white, fontSize: 13),
+                            );
+                          }).toList();
+                        },
                         decoration: const InputDecoration(
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           border: OutlineInputBorder(),
@@ -1758,9 +1767,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       const SizedBox(height: 6),
                       TextFormField(
                         controller: nameTextController,
-                        style: const TextStyle(color: AppColors.navyBlue, fontSize: 13),
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
                         decoration: const InputDecoration(
                           hintText: "Enter client name",
+                          hintStyle: TextStyle(color: Colors.white70, fontSize: 13),
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           border: OutlineInputBorder(),
                         ),
@@ -1788,6 +1798,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         decoration: BoxDecoration(
                           border: Border.all(color: AppColors.grey300),
                           borderRadius: BorderRadius.circular(4),
+                          color: Colors.white,
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1806,6 +1817,15 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     DropdownButtonFormField<String>(
                       value: selectedTimeSlot,
                       dropdownColor: Colors.white,
+                      iconEnabledColor: Colors.white,
+                      selectedItemBuilder: (BuildContext context) {
+                        return timeSlots.map((String slot) {
+                          return Text(
+                            slot,
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                          );
+                        }).toList();
+                      },
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(),
@@ -1828,6 +1848,15 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     DropdownButtonFormField<String>(
                       value: selectedMode,
                       dropdownColor: Colors.white,
+                      iconEnabledColor: Colors.white,
+                      selectedItemBuilder: (BuildContext context) {
+                        return ["Video Call", "Audio Call"].map((String mode) {
+                          return Text(
+                            mode,
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                          );
+                        }).toList();
+                      },
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(),
