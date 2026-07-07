@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/network/dio_client.dart';
 import '../models/lawyer_model.dart';
 
-final lawyersProvider = FutureProvider.autoDispose<List<LawyerModel>>((ref) async {
+final lawyersProvider = FutureProvider<List<LawyerModel>>((ref) async {
   final response = await DioClient.dio.get("/lawyers");
   if (response.data != null && response.data['success'] == true) {
     final list = response.data['data'] as List;
