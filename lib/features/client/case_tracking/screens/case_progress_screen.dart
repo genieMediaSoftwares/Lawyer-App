@@ -24,6 +24,10 @@ class CaseProgressScreen extends ConsumerWidget {
       backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         title: const Text("Case Details"),
       ),
       body: casesState.when(

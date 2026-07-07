@@ -47,6 +47,10 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         title: const Text("Subscription Plans"),
       ),
       body: SafeArea(

@@ -49,6 +49,10 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text("Legal Articles", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Column(
