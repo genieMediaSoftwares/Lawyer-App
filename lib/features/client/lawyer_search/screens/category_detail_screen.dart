@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../providers/faq_provider.dart';
-import '../../../../providers/article_provider.dart';
 import '../../../../routes/route_names.dart';
 import '../../../../core/widgets/app_drawer.dart';
 
@@ -77,10 +76,13 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
     final catData = _getCategoryData();
     final lawyersState = ref.watch(lawyersProvider);
     final faqsState = ref.watch(faqsProvider);
-    final articlesState = ref.watch(articlesProvider);
+
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
+    final secondaryTextColor = isDarkMode ? AppColors.grey300 : AppColors.grey500;
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: Text(widget.categoryName, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -91,9 +93,10 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(RouteNames.getMatched),
-        backgroundColor: AppColors.navyBlue,
-        icon: const Icon(Icons.psychology, color: Colors.white),
-        label: const Text("Match Me With Lawyer", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: isDarkMode ? AppColors.gold : AppColors.navyBlue,
+        foregroundColor: isDarkMode ? AppColors.navyBlue : Colors.white,
+        icon: Icon(Icons.psychology, color: isDarkMode ? AppColors.navyBlue : Colors.white),
+        label: Text("Match Me With Lawyer", style: TextStyle(color: isDarkMode ? AppColors.navyBlue : Colors.white, fontWeight: FontWeight.bold)),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -135,16 +138,16 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Popular Services", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue)),
+                  Text("Popular Services", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
                     children: (catData['services'] as List<String>).map((srv) {
                       return Chip(
-                        label: Text(srv),
-                        backgroundColor: Colors.white,
-                        side: const BorderSide(color: AppColors.grey200),
+                        label: Text(srv, style: TextStyle(color: isDarkMode ? Colors.white : AppColors.navyBlue)),
+                        backgroundColor: isDarkMode ? AppColors.darkCard : Colors.white,
+                        side: BorderSide(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       );
                     }).toList(),
@@ -160,13 +163,13 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Top Specialization Lawyers", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue)),
+                  Text("Top Specialization Lawyers", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
                   const SizedBox(height: 12),
                   lawyersState.when(
                     data: (lawyers) {
                       final filtered = lawyers.where((l) => l.specialization.toLowerCase() == widget.categoryName.toLowerCase()).toList();
                       if (filtered.isEmpty) {
-                        return const Text("No lawyers currently listed for this practice area.");
+                        return Text("No lawyers currently listed for this practice area.", style: TextStyle(color: secondaryTextColor));
                       }
                       return SizedBox(
                         height: 150,
@@ -177,7 +180,10 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
                             final lawyer = filtered[index];
                             return Card(
                               margin: const EdgeInsets.only(right: 12, bottom: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: AppColors.grey200)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16), 
+                                side: BorderSide(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
+                              ),
                               child: Container(
                                 width: 260,
                                 padding: const EdgeInsets.all(12),
@@ -194,19 +200,19 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Text(lawyer.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navyBlue)),
-                                          Text("${lawyer.experience} yrs exp", style: const TextStyle(color: AppColors.grey500, fontSize: 11)),
+                                          Text(lawyer.fullName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primaryTextColor)),
+                                          Text("${lawyer.experience} yrs exp", style: TextStyle(color: secondaryTextColor, fontSize: 11)),
                                           const SizedBox(height: 4),
                                           Row(
                                             children: [
                                               const Icon(Icons.star, color: AppColors.gold, size: 14),
-                                              Text(" ${lawyer.rating}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                              Text(" ${lawyer.rating}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: primaryTextColor)),
                                             ],
                                           ),
                                           const SizedBox(height: 6),
                                           GestureDetector(
                                             onTap: () => context.push('/lawyer-profile/${lawyer.userId}'),
-                                            child: const Text("View Profile", style: TextStyle(color: AppColors.navyBlue, fontWeight: FontWeight.bold, fontSize: 11, decoration: TextDecoration.underline)),
+                                            child: Text("View Profile", style: TextStyle(color: isDarkMode ? AppColors.gold : AppColors.navyBlue, fontWeight: FontWeight.bold, fontSize: 11, decoration: TextDecoration.underline)),
                                           )
                                         ],
                                       ),
@@ -220,7 +226,7 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
                       );
                     },
                     loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (err, stack) => Text("Error: $err"),
+                    error: (err, stack) => Text("Error: $err", style: TextStyle(color: primaryTextColor)),
                   )
                 ],
               ),
@@ -233,13 +239,13 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Frequently Asked Questions", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue)),
+                  Text("Frequently Asked Questions", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
                   const SizedBox(height: 12),
                   faqsState.when(
                     data: (faqs) {
                       final filteredFaqs = faqs.where((f) => f.category.toLowerCase() == widget.categoryName.toLowerCase()).toList();
                       if (filteredFaqs.isEmpty) {
-                        return const Text("No FAQs available for this category yet.");
+                        return Text("No FAQs available for this category yet.", style: TextStyle(color: secondaryTextColor));
                       }
                       return ListView.builder(
                         shrinkWrap: true,
@@ -250,13 +256,18 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
                           return Card(
                             margin: const EdgeInsets.only(bottom: 10),
                             elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppColors.grey200)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12), 
+                              side: BorderSide(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
+                            ),
                             child: ExpansionTile(
-                              title: Text(faq.question, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navyBlue)),
+                              collapsedIconColor: isDarkMode ? Colors.white70 : AppColors.navyBlue,
+                              iconColor: isDarkMode ? AppColors.gold : AppColors.navyBlue,
+                              title: Text(faq.question, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryTextColor)),
                               children: [
                                 Padding(
                                   padding: const EdgeInsets.all(16),
-                                  child: Text(faq.answer, style: const TextStyle(fontSize: 12, height: 1.4, color: AppColors.grey500)),
+                                  child: Text(faq.answer, style: TextStyle(fontSize: 12, height: 1.4, color: secondaryTextColor)),
                                 )
                               ],
                             ),
@@ -265,7 +276,7 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
                       );
                     },
                     loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (err, stack) => Text("Error: $err"),
+                    error: (err, stack) => Text("Error: $err", style: TextStyle(color: primaryTextColor)),
                   )
                 ],
               ),

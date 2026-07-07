@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
-import '../../../../providers/auth_provider.dart';
 import '../../../../routes/route_names.dart';
 import 'package:law/models/category_item.dart';
 
@@ -14,36 +13,34 @@ class ClientDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final authState = ref.watch(authProvider);
-    final userName = authState.userName ?? "User";
-    final unreadCount = ref.watch(unreadNotificationsCountProvider);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDarkMode ? AppColors.darkBackground : Colors.white,
         elevation: 0.5,
         leading: Builder(
           builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: AppColors.navyBlue, size: 24),
+            icon: Icon(Icons.menu, color: primaryTextColor, size: 24),
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
         title: RichText(
-          text: const TextSpan(
+          text: TextSpan(
             children: [
               TextSpan(
                 text: "Genie",
                 style: TextStyle(
-                  color: AppColors.navyBlue,
+                  color: primaryTextColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 22,
                   fontFamily: 'Outfit',
                 ),
               ),
-              TextSpan(
+              const TextSpan(
                 text: "Law",
                 style: TextStyle(
                   color: AppColors.gold,
@@ -62,7 +59,7 @@ class ClientDashboardScreen extends ConsumerWidget {
             children: [
               IconButton(
                 onPressed: () => context.push(RouteNames.notifications),
-                icon: const Icon(Icons.notifications_none_outlined, color: AppColors.navyBlue, size: 26),
+                icon: Icon(Icons.notifications_none_outlined, color: primaryTextColor, size: 26),
               ),
               Positioned(
                 right: 12,
@@ -156,20 +153,20 @@ class ClientDashboardScreen extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     "Categories",
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 17,
-                      color: AppColors.navyBlue,
+                      color: primaryTextColor,
                     ),
                   ),
                   GestureDetector(
                     onTap: () => context.push(RouteNames.lawyerSearch),
-                    child: const Text(
+                    child: Text(
                       "View All",
                       style: TextStyle(
-                        color: AppColors.navyBlue,
+                        color: primaryTextColor,
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),
@@ -294,9 +291,9 @@ class ClientDashboardScreen extends ConsumerWidget {
               const SizedBox(height: 32),
 
               // 4. How It Works? Section
-              const Text(
+              Text(
                 "How It Works?",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor),
               ),
               const SizedBox(height: 16),
               Row(
@@ -337,15 +334,16 @@ class _StepCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         Container(
           width: 54,
           height: 54,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDarkMode ? AppColors.darkCard : Colors.white,
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.grey200),
+            border: Border.all(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.03),
@@ -354,17 +352,17 @@ class _StepCard extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(icon, color: AppColors.navyBlue, size: 22),
+          child: Icon(icon, color: isDarkMode ? AppColors.gold : AppColors.navyBlue, size: 22),
         ),
         const SizedBox(height: 8),
         FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B), // Darker text for high legibility
+              color: isDarkMode ? Colors.white : const Color(0xFF1E293B),
             ),
           ),
         ),
@@ -391,6 +389,7 @@ class CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -412,10 +411,10 @@ class CategoryCard extends StatelessWidget {
             child: Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1E293B), // Darker text for legibility
+                color: isDarkMode ? Colors.white : const Color(0xFF1E293B),
                 height: 1.2,
               ),
             ),

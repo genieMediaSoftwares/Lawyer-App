@@ -16,6 +16,9 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final activeColor = isDarkMode ? AppColors.gold : AppColors.navyBlue;
+    final inactiveColor = isDarkMode ? AppColors.grey400 : const Color(0xFF64748B);
     return Scaffold(
       body: navigationShell,
       floatingActionButton: Container(
@@ -40,8 +43,8 @@ class AppShell extends StatelessWidget {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
-        color: Colors.white,
-        surfaceTintColor: Colors.white,
+        color: isDarkMode ? AppColors.darkSurface : Colors.white,
+        surfaceTintColor: isDarkMode ? AppColors.darkSurface : Colors.white,
         elevation: 16,
         notchMargin: 8,
         clipBehavior: Clip.antiAlias,
@@ -49,9 +52,9 @@ class AppShell extends StatelessWidget {
         padding: EdgeInsets.zero,
         height: 68,
         child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
+          decoration: BoxDecoration(
+            color: isDarkMode ? AppColors.darkSurface : Colors.white,
+            border: Border(top: BorderSide(color: isDarkMode ? AppColors.borderDark : const Color(0xFFE2E8F0), width: 1)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -61,12 +64,16 @@ class AppShell extends StatelessWidget {
                 label: "Home",
                 isActive: navigationShell.currentIndex == 0,
                 onTap: () => _onTap(0),
+                activeColor: activeColor,
+                inactiveColor: inactiveColor,
               ),
               _NavItem(
                 icon: Icons.assignment_outlined,
                 label: "My Cases",
                 isActive: navigationShell.currentIndex == 1,
                 onTap: () => _onTap(1),
+                activeColor: activeColor,
+                inactiveColor: inactiveColor,
               ),
               const SizedBox(width: 48), // FAB notch space
               _NavItem(
@@ -74,12 +81,16 @@ class AppShell extends StatelessWidget {
                 label: "Messages",
                 isActive: navigationShell.currentIndex == 2,
                 onTap: () => _onTap(2),
+                activeColor: activeColor,
+                inactiveColor: inactiveColor,
               ),
               _NavItem(
                 icon: Icons.person_outline_rounded,
                 label: "Profile",
                 isActive: navigationShell.currentIndex == 3,
                 onTap: () => _onTap(3),
+                activeColor: activeColor,
+                inactiveColor: inactiveColor,
               ),
             ],
           ),
@@ -94,18 +105,21 @@ class _NavItem extends StatelessWidget {
   final String label;
   final bool isActive;
   final VoidCallback onTap;
+  final Color activeColor;
+  final Color inactiveColor;
 
   const _NavItem({
     required this.icon,
     required this.label,
     required this.isActive,
     required this.onTap,
+    required this.activeColor,
+    required this.inactiveColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Force highly visible, high-contrast dark text and active colors
-    final color = isActive ? AppColors.navyBlue : const Color(0xFF64748B); // Sharp slate gray for inactive items
+    final color = isActive ? activeColor : inactiveColor;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),

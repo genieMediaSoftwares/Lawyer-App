@@ -129,7 +129,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Post Your Case"),
@@ -168,8 +168,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   }
 
   Widget _buildStepperHeader() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      color: Colors.white,
+      color: isDarkMode ? AppColors.darkSurface : Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -187,6 +188,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   }
 
   Widget _buildStepIndicator(int stepNum, String title, bool isActive) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         Container(
@@ -194,13 +196,17 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           height: 32,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isActive ? AppColors.navyBlue : AppColors.grey200,
+            color: isActive
+                ? (isDarkMode ? AppColors.gold : AppColors.navyBlue)
+                : (isDarkMode ? AppColors.navyBlueLight : AppColors.grey200),
           ),
           alignment: Alignment.center,
           child: Text(
             "$stepNum",
             style: TextStyle(
-              color: isActive ? Colors.white : AppColors.grey500,
+              color: isActive
+                  ? (isDarkMode ? AppColors.navyBlue : Colors.white)
+                  : (isDarkMode ? Colors.white30 : AppColors.grey500),
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),
@@ -210,7 +216,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         Text(
           title,
           style: TextStyle(
-            color: isActive ? AppColors.navyBlue : AppColors.grey400,
+            color: isActive
+                ? (isDarkMode ? Colors.white : AppColors.navyBlue)
+                : (isDarkMode ? Colors.white38 : AppColors.grey400),
             fontSize: 10,
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
           ),
@@ -220,10 +228,13 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   }
 
   Widget _buildStepDivider(bool isActive) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Expanded(
       child: Container(
         height: 2,
-        color: isActive ? AppColors.navyBlue : AppColors.grey200,
+        color: isActive
+            ? (isDarkMode ? AppColors.gold : AppColors.navyBlue)
+            : (isDarkMode ? AppColors.navyBlueLight : AppColors.grey200),
         margin: const EdgeInsets.only(bottom: 16),
       ),
     );
@@ -245,12 +256,14 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   }
 
   Widget _buildStep1Category() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           "Select Category",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.navyBlue),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
         ),
         const SizedBox(height: 16),
         ListView.separated(
@@ -263,10 +276,14 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             final isSelected = _selectedCategory == cat;
             return Container(
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.navyBlue.withOpacity(0.05) : Colors.white,
+                color: isSelected
+                    ? (isDarkMode ? AppColors.gold.withOpacity(0.15) : AppColors.navyBlue.withOpacity(0.05))
+                    : (isDarkMode ? AppColors.darkCard : Colors.white),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected ? AppColors.navyBlue : AppColors.grey200,
+                  color: isSelected
+                      ? (isDarkMode ? AppColors.gold : AppColors.navyBlue)
+                      : (isDarkMode ? AppColors.borderDark : AppColors.grey200),
                   width: isSelected ? 2 : 1,
                 ),
               ),
@@ -278,7 +295,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   cat,
                   style: TextStyle(
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: AppColors.navyBlue,
+                    color: isSelected
+                        ? (isDarkMode ? AppColors.gold : AppColors.navyBlue)
+                        : primaryTextColor,
                   ),
                 ),
                 trailing: const Icon(Icons.chevron_right, color: AppColors.grey400),
@@ -291,31 +310,35 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   }
 
   Widget _buildStep2Details() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
+    final secondaryTextColor = isDarkMode ? AppColors.grey300 : AppColors.grey500;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           "Case Details",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.navyBlue),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
         ),
         const SizedBox(height: 16),
         // Description
-        const Text("Brief Description of Your Case", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        Text("Brief Description of Your Case", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryTextColor)),
         const SizedBox(height: 8),
         TextField(
           controller: _descriptionController,
           maxLines: 4,
+          style: TextStyle(color: primaryTextColor),
           decoration: InputDecoration(
             hintText: "Explain your legal issue briefly...",
-            fillColor: Colors.white,
-            filled: true,
+            hintStyle: TextStyle(color: secondaryTextColor),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         const SizedBox(height: 16),
 
         // City
-        const Text("City / Location", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        Text("City / Location", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryTextColor)),
         const SizedBox(height: 8),
         GestureDetector(
           onTap: () async {
@@ -329,11 +352,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           child: AbsorbPointer(
             child: TextField(
               controller: _cityController,
+              style: TextStyle(color: primaryTextColor),
               decoration: InputDecoration(
                 hintText: "Select location",
+                hintStyle: TextStyle(color: secondaryTextColor),
                 suffixIcon: const Icon(Icons.arrow_drop_down),
-                fillColor: Colors.white,
-                filled: true,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
@@ -342,52 +365,52 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         const SizedBox(height: 16),
 
         // Preferred Court
-        const Text("Preferred Court Location (Optional)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        Text("Preferred Court Location (Optional)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryTextColor)),
         const SizedBox(height: 8),
         TextField(
           controller: _courtController,
+          style: TextStyle(color: primaryTextColor),
           decoration: InputDecoration(
             hintText: "Select court location",
-            fillColor: Colors.white,
-            filled: true,
+            hintStyle: TextStyle(color: secondaryTextColor),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         const SizedBox(height: 16),
 
         // Budget Range
-        const Text("Budget Range (Optional)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        Text("Budget Range (Optional)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryTextColor)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _selectedBudget,
+          style: TextStyle(color: primaryTextColor),
+          dropdownColor: isDarkMode ? AppColors.darkCard : Colors.white,
           decoration: InputDecoration(
-            fillColor: Colors.white,
-            filled: true,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
           items: ["₹5,000 - ₹10,000", "₹10,000 - ₹20,000", "₹20,000 - ₹50,000", "Above ₹50,000"]
-              .map((val) => DropdownMenuItem(value: val, child: Text(val)))
+              .map((val) => DropdownMenuItem(value: val, child: Text(val, style: TextStyle(color: primaryTextColor))))
               .toList(),
           onChanged: (val) => setState(() => _selectedBudget = val),
-          hint: const Text("Select budget range"),
+          hint: Text("Select budget range", style: TextStyle(color: secondaryTextColor)),
         ),
         const SizedBox(height: 16),
 
         // Urgency
-        const Text("When do you need help?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        Text("When do you need help?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryTextColor)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _selectedUrgency,
+          style: TextStyle(color: primaryTextColor),
+          dropdownColor: isDarkMode ? AppColors.darkCard : Colors.white,
           decoration: InputDecoration(
-            fillColor: Colors.white,
-            filled: true,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
           items: ["Urgent", "Within a Week", "Within a Month", "Flexible"]
-              .map((val) => DropdownMenuItem(value: val, child: Text(val)))
+              .map((val) => DropdownMenuItem(value: val, child: Text(val, style: TextStyle(color: primaryTextColor))))
               .toList(),
           onChanged: (val) => setState(() => _selectedUrgency = val),
-          hint: const Text("Select urgency"),
+          hint: Text("Select urgency", style: TextStyle(color: secondaryTextColor)),
         ),
         const SizedBox(height: 24),
 
@@ -399,12 +422,12 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               value: _agreedToTerms,
               onChanged: (val) => setState(() => _agreedToTerms = val ?? false),
             ),
-            const Expanded(
+            Expanded(
               child: Padding(
-                padding: EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.only(top: 10),
                 child: Text(
                   "I agree to the Terms & Conditions and Privacy Policy",
-                  style: TextStyle(fontSize: 12),
+                  style: TextStyle(fontSize: 12, color: primaryTextColor),
                 ),
               ),
             ),
@@ -415,17 +438,20 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   }
 
   Widget _buildStep3Documents() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
+    final secondaryTextColor = isDarkMode ? AppColors.grey300 : AppColors.grey500;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           "Upload Documents (Optional)",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.navyBlue),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           "Upload any documents related to your case.",
-          style: TextStyle(color: AppColors.grey500, fontSize: 13),
+          style: TextStyle(color: secondaryTextColor, fontSize: 13),
         ),
         const SizedBox(height: 20),
         // File Drag & Drop Simulation Box
@@ -436,19 +462,19 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDarkMode ? AppColors.darkCard : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.grey300, style: BorderStyle.solid),
+              border: Border.all(color: isDarkMode ? AppColors.borderDark : AppColors.grey300, style: BorderStyle.solid),
             ),
             child: Column(
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: AppColors.navyBlue.withOpacity(0.05), shape: BoxShape.circle),
-                  child: const Icon(Icons.cloud_upload_outlined, size: 36, color: AppColors.navyBlue),
+                  decoration: BoxDecoration(color: isDarkMode ? AppColors.gold.withOpacity(0.15) : AppColors.navyBlue.withOpacity(0.05), shape: BoxShape.circle),
+                  child: Icon(Icons.cloud_upload_outlined, size: 36, color: isDarkMode ? AppColors.gold : AppColors.navyBlue),
                 ),
                 const SizedBox(height: 16),
-                const Text("Upload Documents", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navyBlue)),
+                Text("Upload Documents", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: primaryTextColor)),
                 const SizedBox(height: 6),
                 const Text("PDF, JPG, PNG (Max 10MB each)", style: TextStyle(color: AppColors.grey400, fontSize: 12)),
               ],
@@ -457,7 +483,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         ),
         const SizedBox(height: 24),
         if (_uploadedDocs.isNotEmpty) ...[
-          const Text("Uploaded Documents", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navyBlue)),
+          Text("Uploaded Documents", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primaryTextColor)),
           const SizedBox(height: 12),
           ListView.separated(
             shrinkWrap: true,
@@ -469,9 +495,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               return Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDarkMode ? AppColors.darkCard : Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.grey200),
+                  border: Border.all(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
                 ),
                 child: Row(
                   children: [
@@ -485,7 +511,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(doc.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navyBlue)),
+                          Text(doc.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryTextColor)),
                           const SizedBox(height: 2),
                           Text(doc.size, style: const TextStyle(color: AppColors.grey400, fontSize: 11)),
                         ],
@@ -508,17 +534,23 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   }
 
   Widget _buildStep4Review() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           "Review Your Case",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.navyBlue),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
         ),
         const SizedBox(height: 16),
         Container(
           width: double.infinity,
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.grey200)),
+          decoration: BoxDecoration(
+            color: isDarkMode ? AppColors.darkCard : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
+          ),
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -542,14 +574,17 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   }
 
   Widget _buildReviewRow(String label, String value, {bool isMultiline = false}) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
+    final secondaryTextColor = isDarkMode ? AppColors.grey300 : AppColors.grey500;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.grey500, fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(fontSize: 14, color: AppColors.navyBlue, height: 1.4),
+          style: TextStyle(fontSize: 14, color: primaryTextColor, height: 1.4),
         ),
       ],
     );
@@ -557,9 +592,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
   Widget _buildBottomActionBar() {
     final bool isLast = _currentStep == 3;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      color: Colors.white,
+      color: isDarkMode ? AppColors.darkSurface : Colors.white,
       child: Row(
         children: [
           if (_currentStep > 0) ...[
@@ -570,10 +606,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                 },
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 52),
-                  side: const BorderSide(color: AppColors.navyBlue),
+                  side: BorderSide(color: isDarkMode ? AppColors.gold : AppColors.navyBlue),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text("Back", style: TextStyle(color: AppColors.navyBlue, fontWeight: FontWeight.bold)),
+                child: Text("Back", style: TextStyle(color: isDarkMode ? AppColors.gold : AppColors.navyBlue, fontWeight: FontWeight.bold)),
               ),
             ),
             const SizedBox(width: 16),
@@ -600,8 +636,8 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.navyBlue,
-                foregroundColor: Colors.white,
+                backgroundColor: isDarkMode ? AppColors.gold : AppColors.navyBlue,
+                foregroundColor: isDarkMode ? AppColors.navyBlue : Colors.white,
                 minimumSize: const Size(double.infinity, 52),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),

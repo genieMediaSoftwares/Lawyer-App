@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../providers/faq_provider.dart';
-import '../../../../models/faq_model.dart';
 import '../../../../core/widgets/app_drawer.dart';
 
 class FaqScreen extends ConsumerStatefulWidget {
@@ -40,9 +39,11 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
   @override
   Widget build(BuildContext context) {
     final faqsState = ref.watch(faqsProvider);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("FAQ Accordion", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -55,7 +56,7 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
         children: [
           // Search and Category Selector
           Container(
-            color: Colors.white,
+            color: isDarkMode ? AppColors.darkSurface : Colors.white,
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
@@ -83,8 +84,14 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
                         child: ChoiceChip(
                           label: Text(cat),
                           selected: isSelected,
-                          selectedColor: AppColors.navyBlue,
-                          labelStyle: TextStyle(color: isSelected ? Colors.white : AppColors.navyBlue),
+                          selectedColor: isDarkMode ? AppColors.gold : AppColors.navyBlue,
+                          backgroundColor: isDarkMode ? AppColors.darkCard : AppColors.grey100,
+                          labelStyle: TextStyle(
+                            color: isSelected
+                                ? (isDarkMode ? AppColors.navyBlue : Colors.white)
+                                : (isDarkMode ? Colors.white70 : AppColors.navyBlue),
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
                           onSelected: (val) {
                             if (val) {
                               setState(() => _selectedCategory = cat);
@@ -113,7 +120,7 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
                         children: [
                           Icon(Icons.question_answer_outlined, size: 64, color: AppColors.grey300),
                           const SizedBox(height: 12),
-                          const Text("No FAQs Found", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue)),
+                          Text("No FAQs Found", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
                           const Text("Try updating your search query or categories.", style: TextStyle(color: AppColors.grey400), textAlign: TextAlign.center),
                         ],
                       ),
@@ -129,13 +136,18 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
                     return Card(
                       margin: const EdgeInsets.only(bottom: 10),
                       elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppColors.grey200)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
+                      ),
                       child: ExpansionTile(
-                        title: Text(faq.question, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navyBlue)),
+                        collapsedIconColor: isDarkMode ? Colors.white70 : AppColors.navyBlue,
+                        iconColor: isDarkMode ? AppColors.gold : AppColors.navyBlue,
+                        title: Text(faq.question, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryTextColor)),
                         children: [
                           Padding(
                             padding: const EdgeInsets.all(16),
-                            child: Text(faq.answer, style: const TextStyle(fontSize: 12, height: 1.5, color: AppColors.grey500)),
+                            child: Text(faq.answer, style: TextStyle(fontSize: 12, height: 1.5, color: isDarkMode ? AppColors.grey300 : AppColors.grey500)),
                           )
                         ],
                       ),
