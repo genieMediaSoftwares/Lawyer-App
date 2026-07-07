@@ -13,6 +13,7 @@ import '../../../../providers/notification_provider.dart';
 import '../../../../models/case_model.dart';
 import '../../../../models/lawyer_model.dart';
 import '../../../../models/appointment_model.dart';
+import '../../../../models/chat_model.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/widgets/location_picker_sheet.dart';
 import '../../../client/appointment_booking/providers/calendar_provider.dart';
@@ -219,6 +220,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final lawyerName = authState.userName ?? "Rahul Sharma";
+    final userId = authState.userId ?? "";
+
+    // Watch all providers at the top level to avoid conditional watcher assertion violations
+    final casesState = ref.watch(casesProvider);
+    final appointmentsState = ref.watch(appointmentsProvider);
+    final chatsState = ref.watch(chatsProvider);
+    final lawyerState = ref.watch(lawyerDetailsProvider(userId));
 
     // Set page title dynamically
     String screenTitle = "Workspace Hub";
@@ -229,23 +237,23 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     if (_currentIndex == 5) screenTitle = "My Profile";
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
-        title: Text(screenTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.navyBlue)),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.navyBlue,
+        title: Text(screenTitle, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Theme.of(context).colorScheme.onSurface)),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         elevation: 0.5,
         leading: Builder(
           builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: AppColors.navyBlue),
+            icon: Icon(Icons.menu, color: Theme.of(context).colorScheme.onSurface),
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
         actions: [
           if (_currentIndex == 5)
             IconButton(
-              icon: Icon(_isEditingProfile ? Icons.close : Icons.edit, color: AppColors.navyBlue),
+              icon: Icon(_isEditingProfile ? Icons.close : Icons.edit, color: Theme.of(context).colorScheme.onSurface),
               onPressed: () {
                 setState(() {
                   _isEditingProfile = !_isEditingProfile;
@@ -261,11 +269,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 child: Container(
                   width: 36,
                   height: 36,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.navyBlue,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
-                  child: const Icon(Icons.add, color: Colors.white, size: 20),
+                  child: const Icon(Icons.add, color: Colors.black, size: 20),
                 ),
               ),
             )
@@ -274,7 +282,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               alignment: Alignment.center,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.notifications_none_outlined, color: AppColors.navyBlue),
+                  icon: Icon(Icons.notifications_none_outlined, color: Theme.of(context).colorScheme.onSurface),
                   onPressed: () => _showNotificationsBottomSheet(context),
                 ),
                 Positioned(
@@ -291,11 +299,18 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         ],
       ),
       body: SafeArea(
-        child: _buildBody(lawyerName, authState.userId ?? ""),
+        child: _buildBody(
+          lawyerName,
+          userId,
+          casesState,
+          appointmentsState,
+          chatsState,
+          lawyerState,
+        ),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, -2))],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, -2))],
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
@@ -304,9 +319,9 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             _isEditingProfile = false; // Reset edit profile on tab switch
           }),
           type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: AppColors.navyBlue,
-          unselectedItemColor: AppColors.grey400,
+          backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
+          selectedItemColor: Theme.of(context).bottomNavigationBarTheme.selectedItemColor,
+          unselectedItemColor: Theme.of(context).bottomNavigationBarTheme.unselectedItemColor,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
           unselectedLabelStyle: const TextStyle(fontSize: 10),
           items: const [
@@ -322,31 +337,41 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     );
   }
 
-  Widget _buildBody(String lawyerName, String userId) {
+  Widget _buildBody(
+    String lawyerName,
+    String userId,
+    AsyncValue<List<CaseModel>> casesState,
+    AsyncValue<List<AppointmentModel>> appointmentsState,
+    AsyncValue<List<ChatModel>> chatsState,
+    AsyncValue<LawyerModel> lawyerState,
+  ) {
     switch (_currentIndex) {
       case 0:
-        return _buildWorkspaceTab(lawyerName, userId);
+        return _buildWorkspaceTab(lawyerName, userId, casesState, appointmentsState);
       case 1:
-        return _buildHomeTab(lawyerName, userId);
+        return _buildHomeTab(lawyerName, userId, casesState, appointmentsState, chatsState, lawyerState);
       case 2:
-        return _buildLeadsTab();
+        return _buildLeadsTab(casesState, userId);
       case 3:
-        return _buildClientsTab();
+        return _buildClientsTab(casesState, appointmentsState, userId);
       case 4:
-        return _buildCalendarTab(userId);
+        return _buildCalendarTab(userId, appointmentsState);
       case 5:
-        return _buildProfileTab(lawyerName, userId);
+        return _buildProfileTab(lawyerName, userId, lawyerState);
       default:
-        return _buildWorkspaceTab(lawyerName, userId);
+        return _buildWorkspaceTab(lawyerName, userId, casesState, appointmentsState);
     }
   }
 
   // ═══════════════════════════════════════════════════════════
   // 0. LANDED WORKSPACE HERO SCREEN (NEW)
   // ═══════════════════════════════════════════════════════════
-  Widget _buildWorkspaceTab(String lawyerName, String userId) {
-    final casesState = ref.watch(casesProvider);
-    final appointmentsState = ref.watch(appointmentsProvider);
+  Widget _buildWorkspaceTab(
+    String lawyerName,
+    String userId,
+    AsyncValue<List<CaseModel>> casesState,
+    AsyncValue<List<AppointmentModel>> appointmentsState,
+  ) {
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -359,13 +384,14 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [AppColors.navyBlue, Color(0xFF1E3A8A)],
+                colors: AppColors.darkGradient,
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.gold.withOpacity(0.2)),
               boxShadow: [
-                BoxShadow(color: AppColors.navyBlue.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))
+                BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))
               ],
             ),
             child: Column(
@@ -378,7 +404,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white24,
+                        color: Colors.white12,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Row(
@@ -407,9 +433,9 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           const SizedBox(height: 24),
 
           // Workspace Tools Title
-          const Text(
+          Text(
             "Workspace Tools",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onBackground),
           ),
           const SizedBox(height: 12),
 
@@ -466,12 +492,12 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             decoration: BoxDecoration(
               color: AppColors.gold.withOpacity(0.08),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.gold.withOpacity(0.3)),
+              border: Border.all(color: AppColors.gold.withOpacity(0.2)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.lightbulb_outline, color: AppColors.navyBlue, size: 24),
+                const Icon(Icons.lightbulb_outline, color: AppColors.gold, size: 24),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -479,12 +505,12 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     children: const [
                       Text(
                         "Practice Growth Tip",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navyBlue),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
                       ),
                       SizedBox(height: 4),
                       Text(
                         "Providing a clear estimate and reference of previous similar cases in your proposal bid increases conversion rate by 80%.",
-                        style: TextStyle(fontSize: 11, color: AppColors.textSecondaryLight, height: 1.4),
+                        style: TextStyle(fontSize: 11, color: AppColors.textSecondaryDark, height: 1.4),
                       ),
                     ],
                   ),
@@ -509,11 +535,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.grey200),
+          border: Border.all(color: Theme.of(context).colorScheme.outline),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6, offset: const Offset(0, 2))
+            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 6, offset: const Offset(0, 2))
           ],
         ),
         child: Column(
@@ -525,8 +551,8 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor: AppColors.navyBlue.withOpacity(0.06),
-                  child: Icon(icon, color: AppColors.navyBlue, size: 18),
+                  backgroundColor: AppColors.gold.withOpacity(0.1),
+                  child: Icon(icon, color: AppColors.gold, size: 18),
                 ),
                 if (badgeCount != null && badgeCount != "0")
                   Container(
@@ -542,9 +568,9 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navyBlue)),
+                Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
                 const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(fontSize: 10, color: AppColors.grey500)),
+                Text(subtitle, style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryDark)),
               ],
             )
           ],
@@ -556,12 +582,15 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   // ═══════════════════════════════════════════════════════════
   // 1. HOME / STATS TAB (Figma Screen 1)
   // ═══════════════════════════════════════════════════════════
-  Widget _buildHomeTab(String lawyerName, String userId) {
-    final casesState = ref.watch(casesProvider);
-    final lawyerState = ref.watch(lawyerDetailsProvider(userId));
-    final authState = ref.watch(authProvider);
-    final appointmentsState = ref.watch(appointmentsProvider);
-    final chatsState = ref.watch(chatsProvider);
+  Widget _buildHomeTab(
+    String lawyerName,
+    String userId,
+    AsyncValue<List<CaseModel>> casesState,
+    AsyncValue<List<AppointmentModel>> appointmentsState,
+    AsyncValue<List<ChatModel>> chatsState,
+    AsyncValue<LawyerModel> lawyerState,
+  ) {
+    final authState = ref.read(authProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -572,15 +601,21 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           lawyerState.when(
             data: (lawyer) => Row(
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: AppColors.navyBlue,
-                  backgroundImage: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
-                      ? NetworkImage(authState.userPhotoUrl!)
-                      : null,
-                  child: (authState.userPhotoUrl == null || authState.userPhotoUrl!.isEmpty)
-                      ? const Icon(Icons.person, color: Colors.white, size: 28)
-                      : null,
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.gold, width: 2),
+                  ),
+                  child: CircleAvatar(
+                    radius: 28,
+                    backgroundColor: AppColors.navyBlueLight,
+                    backgroundImage: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
+                        ? NetworkImage(authState.userPhotoUrl!)
+                        : null,
+                    child: (authState.userPhotoUrl == null || authState.userPhotoUrl!.isEmpty)
+                        ? const Icon(Icons.person, color: Colors.white, size: 28)
+                        : null,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -591,20 +626,20 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         children: [
                           Text(
                             "Adv. $lawyerName",
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onBackground),
                           ),
                           const SizedBox(width: 4),
-                          const Icon(Icons.verified, color: Colors.blue, size: 16),
+                          const Icon(Icons.verified, color: AppColors.gold, size: 16),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(lawyer.specialization, style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
+                      Text(lawyer.specialization, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.star, color: Colors.amber, size: 14),
+                          const Icon(Icons.star, color: AppColors.gold, size: 14),
                           const SizedBox(width: 2),
-                          Text("${lawyer.rating} (${lawyer.totalReviews} Reviews)", style: const TextStyle(color: AppColors.grey400, fontSize: 11)),
+                          Text("${lawyer.rating} (${lawyer.totalReviews} Reviews)", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
                         ],
                       ),
                     ],
@@ -615,22 +650,28 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, stack) => Row(
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: AppColors.navyBlue,
-                  backgroundImage: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
-                      ? NetworkImage(authState.userPhotoUrl!)
-                      : null,
-                  child: (authState.userPhotoUrl == null || authState.userPhotoUrl!.isEmpty)
-                      ? const Icon(Icons.person, color: Colors.white, size: 28)
-                      : null,
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.gold, width: 2),
+                  ),
+                  child: CircleAvatar(
+                    radius: 28,
+                    backgroundColor: AppColors.navyBlueLight,
+                    backgroundImage: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
+                        ? NetworkImage(authState.userPhotoUrl!)
+                        : null,
+                    child: (authState.userPhotoUrl == null || authState.userPhotoUrl!.isEmpty)
+                        ? const Icon(Icons.person, color: Colors.white, size: 28)
+                        : null,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Adv. $lawyerName", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue)),
-                    const Text("Legal Practitioner", style: TextStyle(color: AppColors.grey500, fontSize: 12)),
+                    Text("Adv. $lawyerName", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onBackground)),
+                    const Text("Legal Practitioner", style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
                   ],
                 )
               ],
@@ -643,11 +684,12 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [AppColors.navyBlue, Color(0xFF1E293B)],
+                colors: AppColors.darkGradient,
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.gold.withOpacity(0.2)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -657,7 +699,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   children: const [
                     Text(
                       "Premium Plan",
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                     SizedBox(height: 6),
                     Text(
@@ -669,9 +711,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 OutlinedButton(
                   onPressed: () => context.push('/subscription-plans'),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.white30),
-                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: AppColors.gold),
+                    foregroundColor: AppColors.gold,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    minimumSize: const Size(100, 36),
                   ),
                   child: const Text("View Plan", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
@@ -680,7 +723,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Stat Capsules (Navy style)
+          // Stat Capsules (Gold style)
           casesState.maybeWhen(
             data: (cases) => appointmentsState.maybeWhen(
               data: (appointments) {
@@ -704,11 +747,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
                 return Row(
                   children: [
-                    Expanded(child: _buildHomeStatCard("Leads Bid", "$totalBids", AppColors.navyBlue)),
+                    Expanded(child: _buildHomeStatCard("Leads Bid", "$totalBids", Theme.of(context).cardColor)),
                     const SizedBox(width: 8),
-                    Expanded(child: _buildHomeStatCard("Consults", "$totalConsults", AppColors.navyBlue)),
+                    Expanded(child: _buildHomeStatCard("Consults", "$totalConsults", Theme.of(context).cardColor)),
                     const SizedBox(width: 8),
-                    Expanded(child: _buildHomeStatCard("Earnings", "₹$totalEarnings", AppColors.navyBlue)),
+                    Expanded(child: _buildHomeStatCard("Earnings", "₹$totalEarnings", Theme.of(context).cardColor)),
                   ],
                 );
               },
@@ -719,14 +762,17 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           const SizedBox(height: 24),
 
           // Today's Overview
-          const Text("Today's Overview", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navyBlue)),
+          Text(
+            "Today's Overview",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).colorScheme.onBackground),
+          ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.grey200),
+              border: Border.all(color: Theme.of(context).colorScheme.outline),
             ),
             child: casesState.when(
               data: (cases) {
@@ -775,7 +821,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           const SizedBox(height: 24),
 
           // Quick Actions Grid
-          const Text("Quick Actions", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navyBlue)),
+          Text(
+            "Quick Actions",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).colorScheme.onBackground),
+          ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -797,12 +846,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
       ),
       child: Column(
         children: [
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+          Text(label, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
           const SizedBox(height: 6),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(value, style: const TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 16)),
         ],
       ),
     );
@@ -812,14 +862,14 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     return ListTile(
       leading: CircleAvatar(
         radius: 16,
-        backgroundColor: AppColors.navyBlue.withOpacity(0.06),
-        child: Icon(icon, color: AppColors.navyBlue, size: 16),
+        backgroundColor: AppColors.gold.withOpacity(0.1),
+        child: Icon(icon, color: AppColors.gold, size: 16),
       ),
-      title: Text(title, style: const TextStyle(fontSize: 13, color: AppColors.navyBlue)),
+      title: Text(title, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(12)),
-        child: Text(count, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.navyBlue)),
+        decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(12)),
+        child: Text(count, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.gold)),
       ),
     );
   }
@@ -831,11 +881,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         children: [
           CircleAvatar(
             radius: 26,
-            backgroundColor: AppColors.navyBlue.withOpacity(0.08),
-            child: Icon(icon, color: AppColors.navyBlue, size: 22),
+            backgroundColor: AppColors.gold.withOpacity(0.1),
+            child: Icon(icon, color: AppColors.gold, size: 22),
           ),
           const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 11, color: AppColors.navyBlue)),
+          Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onBackground)),
         ],
       ),
     );
@@ -844,9 +894,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   // ═══════════════════════════════════════════════════════════
   // 2. LEADS TAB (Figma Screen 2)
   // ═══════════════════════════════════════════════════════════
-  Widget _buildLeadsTab() {
-    final casesState = ref.watch(casesProvider);
-    final currentUserId = ref.watch(authProvider).userId ?? "";
+  Widget _buildLeadsTab(
+    AsyncValue<List<CaseModel>> casesState,
+    String currentUserId,
+  ) {
 
     return casesState.when(
       data: (cases) {
@@ -888,7 +939,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         return Column(
           children: [
             Container(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -909,6 +960,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                             : _selectedLeadsTab == 1
                                 ? "No proposals submitted yet."
                                 : "No won or interested cases yet.",
+                        style: const TextStyle(color: AppColors.textSecondaryDark),
                       ),
                     )
                   : ListView.separated(
@@ -925,7 +977,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text("Error: $err")),
+      error: (err, stack) => Center(child: Text("Error: $err", style: const TextStyle(color: Colors.red))),
     );
   }
 
@@ -941,7 +993,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 label,
                 style: TextStyle(
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? AppColors.navyBlue : AppColors.grey500,
+                  color: isSelected ? AppColors.gold : AppColors.textSecondaryDark,
                   fontSize: 13,
                 ),
               ),
@@ -949,7 +1001,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.navyBlue.withOpacity(0.1) : AppColors.grey100,
+                  color: isSelected ? AppColors.gold.withOpacity(0.15) : Theme.of(context).scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -957,7 +1009,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: isSelected ? AppColors.navyBlue : AppColors.grey500,
+                    color: isSelected ? AppColors.gold : AppColors.textSecondaryDark,
                   ),
                 ),
               )
@@ -967,7 +1019,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           Container(
             height: 2,
             width: 70,
-            color: isSelected ? AppColors.navyBlue : Colors.transparent,
+            color: isSelected ? AppColors.gold : Colors.transparent,
           ),
         ],
       ),
@@ -977,9 +1029,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   Widget _buildFigmaLeadCard(CaseModel lead) {
     return Card(
       elevation: 0,
+      color: Theme.of(context).cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.grey200),
+        side: BorderSide(color: Theme.of(context).colorScheme.outline),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -991,38 +1044,38 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(6)),
-                  child: Text(lead.category, style: TextStyle(color: Colors.green.shade700, fontSize: 10, fontWeight: FontWeight.bold)),
+                  decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                  child: Text(lead.category, style: const TextStyle(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.bold)),
                 ),
                 // Match percentage badge
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.navyBlue.withOpacity(0.05),
+                    color: AppColors.gold.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text("95% Match", style: TextStyle(color: AppColors.navyBlue, fontSize: 10, fontWeight: FontWeight.bold)),
+                  child: const Text("95% Match", style: TextStyle(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(lead.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navyBlue)),
+            Text(lead.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).colorScheme.onBackground)),
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.location_on_outlined, size: 14, color: AppColors.grey400),
+                const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondaryDark),
                 const SizedBox(width: 4),
-                Text(lead.location, style: const TextStyle(color: AppColors.grey400, fontSize: 12)),
+                Text(lead.location, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
                 const SizedBox(width: 16),
-                const Icon(Icons.currency_rupee, size: 14, color: AppColors.grey400),
+                const Icon(Icons.currency_rupee, size: 14, color: AppColors.textSecondaryDark),
                 const SizedBox(width: 2),
-                Text(lead.budgetRange, style: const TextStyle(color: AppColors.grey400, fontSize: 12)),
+                Text(lead.budgetRange, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
               ],
             ),
             const SizedBox(height: 12),
             Text(
               "Posted on: ${DateFormat('dd MMM yyyy').format(lead.createdAt)}",
-              style: const TextStyle(color: AppColors.grey400, fontSize: 11),
+              style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11),
             ),
             const SizedBox(height: 16),
             Row(
@@ -1032,10 +1085,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     onPressed: () => _showLeadDetailsDialog(lead),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 40),
-                      side: const BorderSide(color: AppColors.navyBlue),
+                      side: const BorderSide(color: AppColors.gold),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text("View Details", style: TextStyle(color: AppColors.navyBlue, fontWeight: FontWeight.bold, fontSize: 12)),
+                    child: const Text("View Details", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1043,8 +1096,8 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   child: ElevatedButton(
                     onPressed: () => _showProposalDialog(lead.id),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.navyBlue,
-                      foregroundColor: Colors.white,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.black,
                       minimumSize: const Size(double.infinity, 40),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
@@ -1062,10 +1115,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   // ═══════════════════════════════════════════════════════════
   // 3. CLIENTS TAB (Figma Screen 7)
   // ═══════════════════════════════════════════════════════════
-  Widget _buildClientsTab() {
-    final appointmentsState = ref.watch(appointmentsProvider);
-    final casesState = ref.watch(casesProvider);
-    final currentUserId = ref.watch(authProvider).userId ?? "";
+  Widget _buildClientsTab(
+    AsyncValue<List<CaseModel>> casesState,
+    AsyncValue<List<AppointmentModel>> appointmentsState,
+    String currentUserId,
+  ) {
 
     return casesState.when(
       data: (cases) {
@@ -1091,7 +1145,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               children: [
                 // Sub-tabs row
                 Container(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -1115,11 +1169,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(child: Text("Error: $err")),
+          error: (err, stack) => Center(child: Text("Error: $err", style: const TextStyle(color: Colors.red))),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text("Error: $err")),
+      error: (err, stack) => Center(child: Text("Error: $err", style: const TextStyle(color: Colors.red))),
     );
   }
 
@@ -1130,7 +1184,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   ) {
     if (_selectedClientsTab == 0) {
       if (activeCases.isEmpty) {
-        return const Center(child: Text("No active case clients yet. Accept proposals to get started."));
+        return const Center(child: Text("No active case clients yet. Accept proposals to get started.", style: TextStyle(color: AppColors.textSecondaryDark)));
       }
       return ListView.separated(
         padding: const EdgeInsets.all(16),
@@ -1140,30 +1194,31 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           final clientCase = activeCases[index];
           return Card(
             elevation: 0,
+            color: Theme.of(context).cardColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: AppColors.grey200),
+              side: BorderSide(color: Theme.of(context).colorScheme.outline),
             ),
             child: ListTile(
               contentPadding: const EdgeInsets.all(16),
               leading: CircleAvatar(
                 radius: 24,
-                backgroundColor: AppColors.navyBlue,
+                backgroundColor: AppColors.navyBlueLight,
                 backgroundImage: clientCase.clientImage.isNotEmpty
                     ? NetworkImage(clientCase.clientImage)
                     : null,
                 child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.white) : null,
               ),
-              title: Text(clientCase.clientName, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue, fontSize: 15)),
+              title: Text(clientCase.clientName, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground, fontSize: 15)),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 4),
-                  Text("Case: ${clientCase.title}", style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
+                  Text("Case: ${clientCase.title}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
                   const SizedBox(height: 6),
                   Text(
                     "Budget: ${clientCase.budgetRange} • Urgency: ${clientCase.urgency}",
-                    style: const TextStyle(color: AppColors.grey400, fontSize: 11),
+                    style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11),
                   ),
                 ],
               ),
@@ -1172,11 +1227,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   context.push('/chat/chat_${clientCase.id}/${clientCase.clientName}');
                 },
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.navyBlue),
+                  side: const BorderSide(color: AppColors.gold),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   minimumSize: const Size(60, 36),
                 ),
-                child: const Text("Chat", style: TextStyle(color: AppColors.navyBlue, fontWeight: FontWeight.bold, fontSize: 11)),
+                child: const Text("Chat", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
               ),
             ),
           );
@@ -1184,7 +1239,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
       );
     } else if (_selectedClientsTab == 1) {
       if (consultations.isEmpty) {
-        return const Center(child: Text("No booked consultations yet."));
+        return const Center(child: Text("No booked consultations yet.", style: TextStyle(color: AppColors.textSecondaryDark)));
       }
       return ListView.separated(
         padding: const EdgeInsets.all(16),
@@ -1194,30 +1249,31 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           final appt = consultations[index];
           return Card(
             elevation: 0,
+            color: Theme.of(context).cardColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: AppColors.grey200),
+              side: BorderSide(color: Theme.of(context).colorScheme.outline),
             ),
             child: ListTile(
               contentPadding: const EdgeInsets.all(16),
               leading: CircleAvatar(
                 radius: 24,
-                backgroundColor: AppColors.navyBlue,
+                backgroundColor: AppColors.navyBlueLight,
                 backgroundImage: appt.clientImage.isNotEmpty
                     ? NetworkImage(appt.clientImage)
                     : null,
                 child: appt.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.white) : null,
               ),
-              title: Text(appt.clientName, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue, fontSize: 15)),
+              title: Text(appt.clientName, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground, fontSize: 15)),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 4),
-                  Text(appt.caseTitle ?? appt.mode, style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
+                  Text(appt.caseTitle ?? appt.mode, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
                   const SizedBox(height: 6),
                   Text(
                     "Scheduled: ${DateFormat('dd MMM yyyy, hh:mm a').format(appt.date)} (${appt.timeSlot})",
-                    style: const TextStyle(color: AppColors.grey400, fontSize: 11),
+                    style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11),
                   ),
                 ],
               ),
@@ -1226,11 +1282,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   context.push('/chat/chat_${appt.id}/${appt.clientName}');
                 },
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.navyBlue),
+                  side: const BorderSide(color: AppColors.gold),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   minimumSize: const Size(60, 36),
                 ),
-                child: const Text("Chat", style: TextStyle(color: AppColors.navyBlue, fontWeight: FontWeight.bold, fontSize: 11)),
+                child: const Text("Chat", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
               ),
             ),
           );
@@ -1238,7 +1294,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
       );
     } else {
       if (completedCases.isEmpty) {
-        return const Center(child: Text("No completed cases recorded."));
+        return const Center(child: Text("No completed cases recorded.", style: TextStyle(color: AppColors.textSecondaryDark)));
       }
       return ListView.separated(
         padding: const EdgeInsets.all(16),
@@ -1248,31 +1304,32 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           final clientCase = completedCases[index];
           return Card(
             elevation: 0,
+            color: Theme.of(context).cardColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: AppColors.grey200),
+              side: BorderSide(color: Theme.of(context).colorScheme.outline),
             ),
             child: ListTile(
               contentPadding: const EdgeInsets.all(16),
               leading: CircleAvatar(
                 radius: 24,
-                backgroundColor: AppColors.grey100,
+                backgroundColor: AppColors.navyBlueLight,
                 backgroundImage: clientCase.clientImage.isNotEmpty
                     ? NetworkImage(clientCase.clientImage)
                     : null,
-                child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
+                child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.white70) : null,
               ),
-              title: Text(clientCase.clientName, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue, fontSize: 15)),
+              title: Text(clientCase.clientName, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground, fontSize: 15)),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 4),
-                  Text("Case: ${clientCase.title}", style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
+                  Text("Case: ${clientCase.title}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
                   const SizedBox(height: 6),
                   const Text("Status: Completed/Resolved", style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold)),
                 ],
               ),
-              trailing: const Icon(Icons.verified, color: Colors.green),
+              trailing: const Icon(Icons.verified, color: AppColors.gold),
             ),
           );
         },
@@ -1292,7 +1349,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 label,
                 style: TextStyle(
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? AppColors.navyBlue : AppColors.grey500,
+                  color: isSelected ? AppColors.gold : AppColors.textSecondaryDark,
                   fontSize: 13,
                 ),
               ),
@@ -1300,7 +1357,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.navyBlue.withOpacity(0.1) : AppColors.grey100,
+                  color: isSelected ? AppColors.gold.withOpacity(0.15) : Theme.of(context).scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -1308,7 +1365,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: isSelected ? AppColors.navyBlue : AppColors.grey500,
+                    color: isSelected ? AppColors.gold : AppColors.textSecondaryDark,
                   ),
                 ),
               )
@@ -1318,7 +1375,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           Container(
             height: 2,
             width: 70,
-            color: isSelected ? AppColors.navyBlue : Colors.transparent,
+            color: isSelected ? AppColors.gold : Colors.transparent,
           ),
         ],
       ),
@@ -1328,8 +1385,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   // ═══════════════════════════════════════════════════════════
   // 4. CALENDAR TAB (Figma Screen 8)
   // ═══════════════════════════════════════════════════════════
-  Widget _buildCalendarTab(String userId) {
-    final appointmentsState = ref.watch(appointmentsProvider);
+  Widget _buildCalendarTab(
+    String userId,
+    AsyncValue<List<AppointmentModel>> appointmentsState,
+  ) {
 
     final year = _focusedCalendarMonth.year;
     final month = _focusedCalendarMonth.month;
@@ -1357,7 +1416,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF7E8797),
+                  color: AppColors.textSecondaryDark,
                 ),
               ),
             ),
@@ -1414,10 +1473,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       height: 36,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isSelected ? AppColors.navyBlue : Colors.transparent,
+                        color: isSelected ? AppColors.gold : Colors.transparent,
                         border: isSelected
                             ? Border.all(color: AppColors.gold, width: 2.5)
-                            : null,
+                            : (isToday ? Border.all(color: AppColors.gold.withOpacity(0.5), width: 1.5) : null),
                       ),
                       alignment: Alignment.center,
                       child: Text(
@@ -1426,8 +1485,8 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           fontSize: 14,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           color: isSelected
-                              ? Colors.white
-                              : const Color(0xFF0F172A),
+                              ? Colors.black
+                              : Theme.of(context).colorScheme.onBackground,
                           height: 1.0,
                         ),
                       ),
@@ -1461,16 +1520,16 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           // Calendar Grid Card
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                  color: Color(0x10000000),
+                  color: Colors.black.withOpacity(0.2),
                   blurRadius: 12,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
-              border: Border.all(color: AppColors.grey200),
+              border: Border.all(color: Theme.of(context).colorScheme.outline),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Column(
@@ -1491,17 +1550,17 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         });
                       },
                       behavior: HitTestBehavior.opaque,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Icon(Icons.chevron_left, color: AppColors.navyBlue, size: 24),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Icon(Icons.chevron_left, color: Theme.of(context).colorScheme.onBackground, size: 24),
                       ),
                     ),
                     Text(
                       DateFormat('MMMM yyyy').format(_focusedCalendarMonth),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.navyBlue,
+                        color: Theme.of(context).colorScheme.onBackground,
                       ),
                     ),
                     GestureDetector(
@@ -1515,9 +1574,9 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         });
                       },
                       behavior: HitTestBehavior.opaque,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Icon(Icons.chevron_right, color: AppColors.navyBlue, size: 24),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onBackground, size: 24),
                       ),
                     ),
                   ],
@@ -1533,12 +1592,12 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           const SizedBox(height: 24),
 
           // Title Section: Appointments
-          const Text(
+          Text(
             'Appointments',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 16,
-              color: AppColors.navyBlue,
+              color: Theme.of(context).colorScheme.onBackground,
             ),
           ),
           const SizedBox(height: 12),
@@ -1565,14 +1624,14 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.grey200),
+                    border: Border.all(color: Theme.of(context).colorScheme.outline),
                   ),
                   child: const Center(
                     child: Text(
                       'No upcoming appointments scheduled.',
-                      style: TextStyle(color: AppColors.grey400, fontSize: 13),
+                      style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
                     ),
                   ),
                 );
@@ -1580,23 +1639,23 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
               return Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withOpacity(0.2),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
                   ],
-                  border: Border.all(color: AppColors.grey200),
+                  border: Border.all(color: Theme.of(context).colorScheme.outline),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: dailyAppts.length,
-                  separatorBuilder: (context, index) => const Divider(color: Color(0xFFF1F5F9), height: 20),
+                  separatorBuilder: (context, index) => Divider(color: Theme.of(context).dividerColor, height: 20),
                   itemBuilder: (context, index) {
                     final appt = dailyAppts[index];
 
@@ -1620,10 +1679,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                             width: 80,
                             child: Text(
                               appt.timeSlot,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
-                                color: AppColors.navyBlue,
+                                color: Theme.of(context).colorScheme.onBackground,
                               ),
                             ),
                           ),
@@ -1635,10 +1694,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                               children: [
                                 Text(
                                   appt.clientName,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
-                                    color: AppColors.navyBlue,
+                                    color: Theme.of(context).colorScheme.onBackground,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -1646,7 +1705,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                                   appt.caseTitle ?? (appt.mode.toLowerCase().contains("video") ? "Video Consultation" : "Voice Consultation"),
                                   style: const TextStyle(
                                     fontSize: 12,
-                                    color: AppColors.grey400,
+                                    color: AppColors.textSecondaryDark,
                                   ),
                                 ),
                               ],
@@ -1658,7 +1717,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                             dateBadge,
                             style: const TextStyle(
                               fontSize: 12,
-                              color: AppColors.grey400,
+                              color: AppColors.textSecondaryDark,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -1721,11 +1780,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              backgroundColor: Colors.white,
+              backgroundColor: Theme.of(context).cardColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text(
+              title: Text(
                 "Add Appointment",
-                style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue, fontSize: 18),
+                style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground, fontSize: 18),
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -1734,17 +1793,17 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   children: [
                     // Client selection
                     if (clients.isNotEmpty) ...[
-                      const Text("Select Client", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.grey500)),
+                      const Text("Select Client", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textSecondaryDark)),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
                         value: selectedClientId,
-                        dropdownColor: Colors.white,
-                        iconEnabledColor: Colors.white,
+                        dropdownColor: Theme.of(context).cardColor,
+                        iconEnabledColor: AppColors.gold,
                         selectedItemBuilder: (BuildContext context) {
                           return clients.map((c) {
                             return Text(
                               c['name']!,
-                              style: const TextStyle(color: Colors.white, fontSize: 13),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onBackground, fontSize: 13),
                             );
                           }).toList();
                         },
@@ -1755,7 +1814,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         items: clients.map((c) {
                           return DropdownMenuItem<String>(
                             value: c['id'],
-                            child: Text(c['name']!, style: const TextStyle(fontSize: 13, color: AppColors.navyBlue)),
+                            child: Text(c['name']!, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
                           );
                         }).toList(),
                         onChanged: (val) {
@@ -1763,23 +1822,23 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         },
                       ),
                     ] else ...[
-                      const Text("Client Name", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.grey500)),
+                      const Text("Client Name", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textSecondaryDark)),
                       const SizedBox(height: 6),
                       TextFormField(
                         controller: nameTextController,
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: const InputDecoration(
+                        style: TextStyle(color: Theme.of(context).colorScheme.onBackground, fontSize: 13),
+                        decoration: InputDecoration(
                           hintText: "Enter client name",
-                          hintStyle: TextStyle(color: Colors.white70, fontSize: 13),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          border: OutlineInputBorder(),
+                          hintStyle: TextStyle(color: AppColors.textSecondaryDark.withOpacity(0.5), fontSize: 13),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                     ],
                     const SizedBox(height: 12),
 
                     // Date Selection
-                    const Text("Appointment Date", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.grey500)),
+                    const Text("Appointment Date", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textSecondaryDark)),
                     const SizedBox(height: 6),
                     InkWell(
                       onTap: () async {
@@ -1796,15 +1855,15 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                         decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.grey300),
+                          border: Border.all(color: Theme.of(context).colorScheme.outline),
                           borderRadius: BorderRadius.circular(4),
-                          color: Colors.white,
+                          color: Theme.of(context).scaffoldBackgroundColor,
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(DateFormat('dd MMM yyyy').format(selectedDate), style: const TextStyle(fontSize: 13, color: AppColors.navyBlue)),
-                            const Icon(Icons.calendar_today, size: 16, color: AppColors.navyBlue),
+                            Text(DateFormat('dd MMM yyyy').format(selectedDate), style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
+                            const Icon(Icons.calendar_today, size: 16, color: AppColors.gold),
                           ],
                         ),
                       ),
@@ -1812,17 +1871,17 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     const SizedBox(height: 12),
 
                     // Time Slot Selection
-                    const Text("Select Time Slot", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.grey500)),
+                    const Text("Select Time Slot", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textSecondaryDark)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       value: selectedTimeSlot,
-                      dropdownColor: Colors.white,
-                      iconEnabledColor: Colors.white,
+                      dropdownColor: Theme.of(context).cardColor,
+                      iconEnabledColor: AppColors.gold,
                       selectedItemBuilder: (BuildContext context) {
                         return timeSlots.map((String slot) {
                           return Text(
                             slot,
-                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onBackground, fontSize: 13),
                           );
                         }).toList();
                       },
@@ -1833,7 +1892,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       items: timeSlots.map((slot) {
                         return DropdownMenuItem<String>(
                           value: slot,
-                          child: Text(slot, style: const TextStyle(fontSize: 13, color: AppColors.navyBlue)),
+                          child: Text(slot, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
                         );
                       }).toList(),
                       onChanged: (val) {
@@ -1843,17 +1902,17 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     const SizedBox(height: 12),
 
                     // Mode Selection
-                    const Text("Consultation Mode", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.grey500)),
+                    const Text("Consultation Mode", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textSecondaryDark)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       value: selectedMode,
-                      dropdownColor: Colors.white,
-                      iconEnabledColor: Colors.white,
+                      dropdownColor: Theme.of(context).cardColor,
+                      iconEnabledColor: AppColors.gold,
                       selectedItemBuilder: (BuildContext context) {
                         return ["Video Call", "Audio Call"].map((String mode) {
                           return Text(
                             mode,
-                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onBackground, fontSize: 13),
                           );
                         }).toList();
                       },
@@ -1861,9 +1920,9 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(),
                       ),
-                      items: const [
-                        DropdownMenuItem(value: "Video Call", child: Text("Video Call", style: TextStyle(fontSize: 13, color: AppColors.navyBlue))),
-                        DropdownMenuItem(value: "Audio Call", child: Text("Audio Call", style: TextStyle(fontSize: 13, color: AppColors.navyBlue))),
+                      items: [
+                        DropdownMenuItem(value: "Video Call", child: Text("Video Call", style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground))),
+                        DropdownMenuItem(value: "Audio Call", child: Text("Audio Call", style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground))),
                       ],
                       onChanged: (val) {
                         setDialogState(() => selectedMode = val!);
@@ -1875,7 +1934,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancel", style: TextStyle(color: AppColors.grey500)),
+                  child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondaryDark)),
                 ),
                 ElevatedButton(
                   onPressed: isSaving
@@ -1893,7 +1952,6 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           if (context.mounted) {
                             Navigator.pop(context);
                             if (success) {
-                              // Reload
                               ref.invalidate(appointmentsProvider);
                               ref.invalidate(calendarAppointmentsProvider);
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -1906,9 +1964,12 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                             }
                           }
                         },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.navyBlue, foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.black,
+                  ),
                   child: isSaving
-                      ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
                       : const Text("Add"),
                 ),
               ],
@@ -1922,7 +1983,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   void _showNotificationsBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1937,12 +1998,12 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       "Notifications",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.navyBlue),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: AppColors.navyBlue),
+                      icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onBackground),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -1958,13 +2019,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                             return const Center(
                               child: Text(
                                 "No notifications yet.",
-                                style: TextStyle(color: AppColors.grey500, fontSize: 13),
+                                style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
                               ),
                             );
                           }
                           return ListView.separated(
                             itemCount: notifications.length,
-                            separatorBuilder: (context, index) => const Divider(),
+                            separatorBuilder: (context, index) => Divider(color: Theme.of(context).dividerColor),
                             itemBuilder: (context, index) {
                               final notif = notifications[index];
                               IconData icon = Icons.notifications_none_outlined;
@@ -1981,24 +2042,24 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                                 child: ListTile(
                                   contentPadding: EdgeInsets.zero,
                                   leading: CircleAvatar(
-                                    backgroundColor: AppColors.navyBlue.withOpacity(0.08),
-                                    child: Icon(icon, color: AppColors.navyBlue, size: 20),
+                                    backgroundColor: AppColors.gold.withOpacity(0.1),
+                                    child: Icon(icon, color: AppColors.gold, size: 20),
                                   ),
                                   title: Text(
                                     notif.title,
                                     style: TextStyle(
                                       fontWeight: notif.read ? FontWeight.normal : FontWeight.bold,
                                       fontSize: 14,
-                                      color: AppColors.navyBlue,
+                                      color: Theme.of(context).colorScheme.onBackground,
                                     ),
                                   ),
                                   subtitle: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       const SizedBox(height: 4),
-                                      Text(notif.message, style: const TextStyle(fontSize: 12, color: AppColors.grey500)),
+                                      Text(notif.message, style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryDark)),
                                       const SizedBox(height: 4),
-                                      Text(timeStr, style: const TextStyle(fontSize: 10, color: AppColors.grey400)),
+                                      Text(timeStr, style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryDark)),
                                     ],
                                   ),
                                 ),
@@ -2007,7 +2068,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           );
                         },
                         loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (err, stack) => Center(child: Text("Error loading notifications: $err")),
+                        error: (err, stack) => Center(child: Text("Error loading notifications: $err", style: const TextStyle(color: Colors.red))),
                       );
                     },
                   ),
@@ -2043,9 +2104,12 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   // ═══════════════════════════════════════════════════════════
   // 5. PROFILE TAB (Figma Screen 6)
   // ═══════════════════════════════════════════════════════════
-  Widget _buildProfileTab(String lawyerName, String userId) {
-    final authState = ref.watch(authProvider);
-    final lawyerState = ref.watch(lawyerDetailsProvider(userId));
+  Widget _buildProfileTab(
+    String lawyerName,
+    String userId,
+    AsyncValue<LawyerModel> lawyerState,
+  ) {
+    final authState = ref.read(authProvider);
 
     return lawyerState.when(
       data: (lawyer) {
@@ -2703,8 +2767,9 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: Theme.of(context).cardColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(lead.title, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue)),
+          title: Text(lead.title, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)),
           content: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2712,21 +2777,21 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 14, color: AppColors.grey500),
+                    const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondaryDark),
                     const SizedBox(width: 4),
-                    Text(lead.location, style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
+                    Text(lead.location, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.currency_rupee, size: 14, color: AppColors.grey500),
+                    const Icon(Icons.currency_rupee, size: 14, color: AppColors.textSecondaryDark),
                     const SizedBox(width: 4),
-                    Text(lead.budgetRange, style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
+                    Text(lead.budgetRange, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Text("Client Requirements:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navyBlue)),
+                Text("Client Requirements:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
                 const SizedBox(height: 6),
                 Text(lead.description, style: const TextStyle(fontSize: 13, height: 1.4)),
               ],
@@ -2735,14 +2800,17 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("Close"),
+              child: const Text("Close", style: TextStyle(color: AppColors.textSecondaryDark)),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
                 _showProposalDialog(lead.id);
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.navyBlue, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.black,
+              ),
               child: const Text("Send Proposal"),
             )
           ],
@@ -2759,14 +2827,16 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: Theme.of(context).cardColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text("Send Proposal", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue)),
+          title: Text("Send Proposal", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: feeController,
                 keyboardType: TextInputType.number,
+                style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
                 decoration: const InputDecoration(
                   labelText: "Consultation Fee Bid (₹)",
                   border: OutlineInputBorder(),
@@ -2776,6 +2846,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               TextField(
                 controller: messageController,
                 maxLines: 3,
+                style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
                 decoration: const InputDecoration(
                   labelText: "Your Message/Introduction",
                   border: OutlineInputBorder(),
@@ -2786,7 +2857,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
+              child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondaryDark)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -2812,7 +2883,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   }
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.navyBlue, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.black,
+              ),
               child: const Text("Submit Quote"),
             ),
           ],
@@ -2846,20 +2920,21 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 final totalEarnings = consultEarnings;
 
                 return AlertDialog(
+                  backgroundColor: Theme.of(context).cardColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  title: const Text("Earnings Details", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue)),
+                  title: Text("Earnings Details", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text("Total Earnings", style: TextStyle(fontSize: 12, color: AppColors.grey500)),
+                      const Text("Total Earnings", style: TextStyle(fontSize: 12, color: AppColors.textSecondaryDark)),
                       const SizedBox(height: 4),
-                      Text("₹$totalEarnings", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.navyBlue)),
+                      Text("₹$totalEarnings", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.gold)),
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text("Consultations", style: TextStyle(fontSize: 13)),
-                          Text("₹$consultEarnings", style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text("₹$consultEarnings", style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.gold)),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -2873,18 +2948,23 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     ],
                   ),
                   actions: [
-                    TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close")),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Close", style: TextStyle(color: AppColors.textSecondaryDark)),
+                    ),
                   ],
                 );
               },
-              loading: () => const AlertDialog(
-                content: SizedBox(
+              loading: () => AlertDialog(
+                backgroundColor: Theme.of(context).cardColor,
+                content: const SizedBox(
                   height: 80,
                   child: Center(child: CircularProgressIndicator()),
                 ),
               ),
               error: (err, stack) => AlertDialog(
-                content: Text("Error: $err"),
+                backgroundColor: Theme.of(context).cardColor,
+                content: Text("Error: $err", style: const TextStyle(color: Colors.red)),
                 actions: [
                   TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close")),
                 ],
