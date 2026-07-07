@@ -24,6 +24,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         title: const Text("Settings", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: ListView(

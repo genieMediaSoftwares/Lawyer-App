@@ -48,6 +48,10 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text("FAQ Accordion", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Column(

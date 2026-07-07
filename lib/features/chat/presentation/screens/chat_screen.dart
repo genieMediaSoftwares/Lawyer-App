@@ -105,6 +105,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         title: Consumer(
           builder: (context, ref, child) {
             final typingUser = ref.watch(chatTypingProvider(widget.chatId));

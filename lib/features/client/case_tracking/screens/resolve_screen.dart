@@ -82,6 +82,10 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         title: const Text("Resolve / Tracking", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: issuesState.when(
