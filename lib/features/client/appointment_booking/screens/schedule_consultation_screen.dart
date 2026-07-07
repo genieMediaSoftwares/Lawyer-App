@@ -6,15 +6,6 @@ import '../../../../providers/case_provider.dart';
 import '../widgets/calendar_widget.dart';
 import '../providers/calendar_provider.dart';
 
-// ─────────────────────────────────────────────────────────────
-// Colors — extracted from the Figma reference image
-// ─────────────────────────────────────────────────────────────
-const _navy = Color(0xFF0B1F4D);
-const _gold = Color(0xFFD4A537);
-const _bg = Color(0xFFF9FAFC);
-const _border = Color(0xFFE2E8F0);
-const _textDark = Color(0xFF0F172A);
-
 class ScheduleConsultationScreen extends ConsumerStatefulWidget {
   final String lawyerUserId;
   final String? caseId;
@@ -47,24 +38,21 @@ class _ScheduleConsultationScreenState
   // ───────────────────────── BUILD ─────────────────────────
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: _navy, size: 24),
+          icon: Icon(Icons.arrow_back, color: theme.appBarTheme.iconTheme?.color, size: 24),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           'Schedule Consultation',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: _navy,
+            color: theme.appBarTheme.titleTextStyle?.color,
           ),
         ),
       ),
@@ -78,12 +66,12 @@ class _ScheduleConsultationScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ──── Select Date heading ────
-                  const Text(
+                  Text(
                     'Select Date',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: _navy,
+                      color: theme.textTheme.titleMedium?.color,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -96,12 +84,12 @@ class _ScheduleConsultationScreenState
                   const SizedBox(height: 28),
 
                   // ──── Select Time heading ────
-                  const Text(
+                  Text(
                     'Select Time',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: _navy,
+                      color: theme.textTheme.titleMedium?.color,
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -111,12 +99,12 @@ class _ScheduleConsultationScreenState
                   const SizedBox(height: 28),
 
                   // ──── Consultation Mode heading ────
-                  const Text(
+                  Text(
                     'Consultation Mode',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: _navy,
+                      color: theme.textTheme.titleMedium?.color,
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -137,7 +125,7 @@ class _ScheduleConsultationScreenState
 
   // ───────────────── TIME SLOT GRID ─────────────────
   Widget _buildTimeSlotGrid() {
-    // 3 columns, 2 rows — reference shows equal-width rounded pill buttons
+    final theme = Theme.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         const crossAxisCount = 3;
@@ -158,10 +146,10 @@ class _ScheduleConsultationScreenState
                 width: itemWidth,
                 height: itemHeight,
                 decoration: BoxDecoration(
-                  color: isSelected ? _navy : Colors.white,
+                  color: isSelected ? theme.colorScheme.primary : theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isSelected ? _navy : _border,
+                    color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline,
                     width: 1,
                   ),
                 ),
@@ -171,7 +159,7 @@ class _ScheduleConsultationScreenState
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? Colors.white : _textDark,
+                    color: isSelected ? Colors.black : theme.textTheme.bodyMedium?.color,
                   ),
                 ),
               ),
@@ -194,6 +182,7 @@ class _ScheduleConsultationScreenState
   }
 
   Widget _buildModeCard(String label) {
+    final theme = Theme.of(context);
     final isSelected = _selectedMode == label;
 
     return GestureDetector(
@@ -201,10 +190,10 @@ class _ScheduleConsultationScreenState
       child: Container(
         height: 52,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? _navy : _border,
+            color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -218,16 +207,16 @@ class _ScheduleConsultationScreenState
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? _navy : const Color(0xFFCBD5E1),
+                  color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline,
                   width: 2,
                 ),
               ),
               padding: const EdgeInsets.all(3),
               child: isSelected
                   ? Container(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: _gold,
+                        color: theme.colorScheme.primary,
                       ),
                     )
                   : null,
@@ -238,7 +227,7 @@ class _ScheduleConsultationScreenState
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: _textDark,
+                color: theme.textTheme.bodyMedium?.color,
               ),
             ),
           ],
@@ -249,24 +238,15 @@ class _ScheduleConsultationScreenState
 
   // ───────────────── CONFIRM BUTTON ─────────────────
   Widget _buildConfirmButton() {
+    final theme = Theme.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-      color: _bg,
+      color: theme.scaffoldBackgroundColor,
       child: SizedBox(
         height: 54,
         child: ElevatedButton(
           onPressed: _selectedTimeSlot == null ? null : _confirmBooking,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _navy,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: _navy.withOpacity(0.5),
-            disabledForegroundColor: Colors.white70,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
           child: const Text(
             'Confirm Appointment',
             style: TextStyle(

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../routes/route_names.dart';
@@ -115,11 +114,12 @@ class _SplashScreenState
   @override
   Widget build(BuildContext context) {
     final screen = MediaQuery.sizeOf(context);
+    final theme = Theme.of(context);
 
     final logoSize = screen.width * 0.28;
 
     return Scaffold(
-      backgroundColor: AppColors.navyBlue,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -146,7 +146,7 @@ class _SplashScreenState
                     width: logoSize,
                     height: logoSize,
                     decoration: BoxDecoration(
-                      color: AppColors.gold,
+                      color: theme.colorScheme.primary,
                       borderRadius:
                       BorderRadius.circular(24),
                     ),
@@ -166,11 +166,8 @@ class _SplashScreenState
                 Text(
                   AppStrings.appName,
                   textAlign: TextAlign.center,
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineMedium
-                      ?.copyWith(
-                    color: Colors.white,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    color: theme.textTheme.headlineMedium?.color,
                     fontWeight:
                     FontWeight.bold,
                   ),
@@ -182,11 +179,8 @@ class _SplashScreenState
                 Text(
                   AppStrings.appTagline,
                   textAlign: TextAlign.center,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyLarge
-                      ?.copyWith(
-                    color: Colors.white70,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.textTheme.bodyLarge?.color,
                   ),
                 ),
 
@@ -200,7 +194,7 @@ class _SplashScreenState
                     strokeWidth: 3,
                     valueColor:
                     AlwaysStoppedAnimation(
-                      AppColors.gold,
+                      theme.colorScheme.primary,
                     ),
                   ),
                 ),
@@ -209,11 +203,8 @@ class _SplashScreenState
 
                 Text(
                   "Loading...",
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(
-                    color: Colors.white70,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.textTheme.bodyMedium?.color,
                   ),
                 ),
               ],

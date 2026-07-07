@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/appointment_provider.dart';
 import '../../../../models/case_model.dart';
@@ -18,16 +18,13 @@ class CaseProgressScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final casesState = ref.watch(casesProvider);
     final appointmentsState = ref.watch(appointmentsProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Case Details"),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        
       ),
       body: casesState.when(
         data: (cases) {
@@ -48,18 +45,18 @@ class CaseProgressScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header details
-                _buildHeaderCard(caseItem),
+                _buildHeaderCard(context, caseItem),
                 const SizedBox(height: 20),
 
                 // Case Progress
-                const Text("Case Progress", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue)),
+                Text("Case Progress", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color)),
                 const SizedBox(height: 12),
-                _buildProgressTimeline(caseItem),
+                _buildProgressTimeline(context, caseItem),
                 const SizedBox(height: 24),
 
                 // Next Consultation Card
                 if (caseItem.assignedLawyerId != null) ...[
-                  const Text("Next Consultation", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue)),
+                  Text("Next Consultation", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color)),
                   const SizedBox(height: 12),
                   _buildNextConsultationCard(context, caseItem, nextAppointment),
                 ],
@@ -73,13 +70,14 @@ class CaseProgressScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeaderCard(CaseModel caseItem) {
+  Widget _buildHeaderCard(BuildContext context, CaseModel caseItem) {
     final formattedDate = DateFormat('dd MMM yyyy').format(caseItem.createdAt);
+    final theme = Theme.of(context);
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.grey200),
+        side: BorderSide(color: theme.colorScheme.outline),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -91,17 +89,17 @@ class CaseProgressScreen extends ConsumerWidget {
               children: [
                 Text(
                   caseItem.title,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.navyBlue),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.info.withOpacity(0.1),
+                    color: theme.colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
+                  child: Text(
                     "In Progress",
-                    style: TextStyle(color: AppColors.info, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: theme.colorScheme.primary, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -109,12 +107,12 @@ class CaseProgressScreen extends ConsumerWidget {
             const SizedBox(height: 6),
             Text(
               "Case ID: ${caseItem.id.substring(Math.max(0, caseItem.id.length - 8)).toUpperCase()}",
-              style: const TextStyle(color: AppColors.grey400, fontSize: 12),
+              style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12),
             ),
             const SizedBox(height: 4),
             Text(
               "Posted on $formattedDate",
-              style: const TextStyle(color: AppColors.grey400, fontSize: 12),
+              style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12),
             ),
           ],
         ),
@@ -122,12 +120,13 @@ class CaseProgressScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProgressTimeline(CaseModel caseItem) {
+  Widget _buildProgressTimeline(BuildContext context, CaseModel caseItem) {
+    final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.grey200),
+        border: Border.all(color: theme.colorScheme.outline),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -146,9 +145,9 @@ class CaseProgressScreen extends ConsumerWidget {
                       height: 24,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: milestone.isCompleted ? AppColors.success : Colors.white,
+                        color: milestone.isCompleted ? AppColors.success : theme.colorScheme.surface,
                         border: Border.all(
-                          color: milestone.isCompleted ? AppColors.success : AppColors.grey300,
+                          color: milestone.isCompleted ? AppColors.success : theme.colorScheme.outline,
                           width: 2,
                         ),
                       ),
@@ -160,7 +159,7 @@ class CaseProgressScreen extends ConsumerWidget {
                       Expanded(
                         child: Container(
                           width: 2,
-                          color: milestone.isCompleted ? AppColors.success : AppColors.grey300,
+                          color: milestone.isCompleted ? AppColors.success : theme.colorScheme.outline,
                         ),
                       ),
                   ],
@@ -177,7 +176,7 @@ class CaseProgressScreen extends ConsumerWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: milestone.isCompleted ? AppColors.navyBlue : AppColors.grey400,
+                            color: milestone.isCompleted ? theme.colorScheme.onSurface : theme.textTheme.bodySmall?.color,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -185,7 +184,7 @@ class CaseProgressScreen extends ConsumerWidget {
                           milestone.isCompleted ? "Completed" : "Pending",
                           style: TextStyle(
                             fontSize: 12,
-                            color: milestone.isCompleted ? AppColors.success : AppColors.grey400,
+                            color: milestone.isCompleted ? AppColors.success : theme.textTheme.bodySmall?.color,
                           ),
                         ),
                       ],
@@ -201,6 +200,7 @@ class CaseProgressScreen extends ConsumerWidget {
   }
 
   Widget _buildNextConsultationCard(BuildContext context, CaseModel caseItem, dynamic appointment) {
+    final theme = Theme.of(context);
     final hasAppointment = appointment != null;
     final formattedDate = hasAppointment ? DateFormat('dd MMM yyyy').format(appointment.date) : "20 May 2025";
     final timeSlot = hasAppointment ? appointment.timeSlot : "06:00 PM";
@@ -210,7 +210,7 @@ class CaseProgressScreen extends ConsumerWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.grey200),
+        side: BorderSide(color: theme.colorScheme.outline),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -232,12 +232,12 @@ class CaseProgressScreen extends ConsumerWidget {
                 children: [
                   Text(
                     caseItem.assignedLawyerName ?? "Assigned Lawyer",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navyBlue),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.titleMedium?.color),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "$formattedDate, $timeSlot",
-                    style: const TextStyle(color: AppColors.grey500, fontSize: 12),
+                    style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12),
                   ),
                 ],
               ),
@@ -245,12 +245,12 @@ class CaseProgressScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.navyBlue.withOpacity(0.05),
+                color: theme.colorScheme.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 mode == "Audio Call" ? Icons.phone : Icons.videocam,
-                color: AppColors.navyBlue,
+                color: theme.colorScheme.primary,
                 size: 20,
               ),
             ),

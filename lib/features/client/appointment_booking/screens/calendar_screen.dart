@@ -5,7 +5,7 @@ import '../widgets/calendar_widget.dart';
 import '../providers/calendar_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../providers/appointment_provider.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../models/appointment_model.dart';
 import '../../../../models/lawyer_model.dart';
 
@@ -50,7 +50,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       '03:00 PM',
       '05:00 PM',
       '07:00 PM',
+      '09:00 PM',
     ];
+
+    final theme = Theme.of(context);
 
     showDialog(
       context: context,
@@ -58,11 +61,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: const Text(
                 "Book Consultation",
-                style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue, fontSize: 18),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -71,11 +73,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   children: [
                     // Lawyer dropdown (if not already locked to a lawyer)
                     if (widget.lawyerUserId == null) ...[
-                      const Text("Select Lawyer", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.grey500)),
+                      Text("Select Lawyer", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: theme.textTheme.bodySmall?.color)),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
                         value: selectedLawyerId,
-                        dropdownColor: Colors.white,
+                        dropdownColor: theme.colorScheme.surface,
                         decoration: const InputDecoration(
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           border: OutlineInputBorder(),
@@ -83,7 +85,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         items: lawyers.map((lawyer) {
                           return DropdownMenuItem<String>(
                             value: lawyer.userId,
-                            child: Text(lawyer.fullName, style: const TextStyle(fontSize: 13, color: AppColors.navyBlue)),
+                            child: Text(lawyer.fullName, style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color)),
                           );
                         }).toList(),
                         onChanged: (val) {
@@ -94,7 +96,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     ],
 
                     // Date Picker Display
-                    const Text("Consultation Date", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.grey500)),
+                    Text("Consultation Date", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: theme.textTheme.bodySmall?.color)),
                     const SizedBox(height: 6),
                     InkWell(
                       onTap: () async {
@@ -111,14 +113,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                         decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.grey300),
+                          border: Border.all(color: theme.colorScheme.outline),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(DateFormat('dd MMM yyyy').format(selectedDate), style: const TextStyle(fontSize: 13, color: AppColors.navyBlue)),
-                            const Icon(Icons.calendar_today, size: 16, color: AppColors.navyBlue),
+                            Text(DateFormat('dd MMM yyyy').format(selectedDate), style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color)),
+                            Icon(Icons.calendar_today, size: 16, color: theme.colorScheme.primary),
                           ],
                         ),
                       ),
@@ -126,11 +128,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     const SizedBox(height: 12),
 
                     // Time slot dropdown
-                    const Text("Select Time Slot", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.grey500)),
+                    Text("Select Time Slot", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: theme.textTheme.bodySmall?.color)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       value: selectedTimeSlot,
-                      dropdownColor: Colors.white,
+                      dropdownColor: theme.colorScheme.surface,
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(),
@@ -138,7 +140,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       items: timeSlots.map((slot) {
                         return DropdownMenuItem<String>(
                           value: slot,
-                          child: Text(slot, style: const TextStyle(fontSize: 13, color: AppColors.navyBlue)),
+                          child: Text(slot, style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color)),
                         );
                       }).toList(),
                       onChanged: (val) {
@@ -148,18 +150,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     const SizedBox(height: 12),
 
                     // Mode dropdown
-                    const Text("Consultation Mode", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.grey500)),
+                    Text("Consultation Mode", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: theme.textTheme.bodySmall?.color)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       value: selectedMode,
-                      dropdownColor: Colors.white,
+                      dropdownColor: theme.colorScheme.surface,
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(),
                       ),
-                      items: const [
-                        DropdownMenuItem(value: "Video Call", child: Text("Video Call", style: TextStyle(fontSize: 13, color: AppColors.navyBlue))),
-                        DropdownMenuItem(value: "Audio Call", child: Text("Audio Call", style: TextStyle(fontSize: 13, color: AppColors.navyBlue))),
+                      items: [
+                        DropdownMenuItem(value: "Video Call", child: Text("Video Call", style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color))),
+                        DropdownMenuItem(value: "Audio Call", child: Text("Audio Call", style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color))),
                       ],
                       onChanged: (val) {
                         setDialogState(() => selectedMode = val!);
@@ -171,7 +173,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancel", style: TextStyle(color: AppColors.grey500)),
+                  child: Text("Cancel", style: TextStyle(color: theme.textTheme.bodySmall?.color)),
                 ),
                 ElevatedButton(
                   onPressed: _isBooking
@@ -199,9 +201,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                             }
                           }
                         },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.navyBlue, foregroundColor: Colors.white),
                   child: _isBooking
-                      ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Text("Book"),
                 ),
               ],
@@ -216,24 +217,23 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   Widget build(BuildContext context) {
     final selectedDate = ref.watch(selectedDateProvider);
     final appointmentsState = ref.watch(calendarAppointmentsProvider);
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        elevation: 0.5,
-        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.navyBlue, size: 24),
+          icon: Icon(Icons.arrow_back, color: theme.appBarTheme.iconTheme?.color, size: 24),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Calendar',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppColors.navyBlue,
+            color: theme.appBarTheme.titleTextStyle?.color,
           ),
         ),
         actions: [
@@ -245,11 +245,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               child: Container(
                 width: 36,
                 height: 36,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.navyBlue,
+                  color: colorScheme.primary,
                 ),
-                child: const Icon(Icons.add, color: Colors.white, size: 20),
+                child: const Icon(Icons.add, color: Colors.black, size: 20),
               ),
             ),
           ),
@@ -269,12 +269,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               const SizedBox(height: 24),
 
               // Title Section: Appointments
-              const Text(
+              Text(
                 'Appointments',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
-                  color: AppColors.navyBlue,
+                  color: textTheme.titleLarge?.color,
                 ),
               ),
               const SizedBox(height: 12),
@@ -303,14 +303,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.grey200),
+                        border: Border.all(color: colorScheme.outline),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Text(
                           'No upcoming appointments scheduled.',
-                          style: TextStyle(color: AppColors.grey400, fontSize: 13),
+                          style: TextStyle(color: textTheme.bodySmall?.color, fontSize: 13),
                         ),
                       ),
                     );
@@ -318,23 +318,23 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
                   return Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
+                          color: Colors.black.withOpacity(0.2),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
                       ],
-                      border: Border.all(color: AppColors.grey200),
+                      border: Border.all(color: colorScheme.outline),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: dailyAppts.length,
-                      separatorBuilder: (context, index) => const Divider(color: Color(0xFFF1F5F9), height: 20),
+                      separatorBuilder: (context, index) => Divider(color: theme.dividerTheme.color, height: 20),
                       itemBuilder: (context, index) {
                         final appt = dailyAppts[index];
 
@@ -359,10 +359,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                 width: 80,
                                 child: Text(
                                   appt.timeSlot,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
-                                    color: AppColors.navyBlue,
+                                    color: colorScheme.primary,
                                   ),
                                 ),
                               ),
@@ -374,18 +374,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                   children: [
                                     Text(
                                       appt.lawyerName.isNotEmpty ? appt.lawyerName : appt.clientName,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14,
-                                        color: AppColors.navyBlue,
+                                        color: textTheme.titleMedium?.color,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       appt.caseTitle ?? (appt.mode.toLowerCase().contains("video") ? "Video Consultation" : "Voice Consultation"),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: AppColors.grey400,
+                                        color: textTheme.bodySmall?.color,
                                       ),
                                     ),
                                   ],
@@ -395,9 +395,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                               // Relative Date badge
                               Text(
                                 dateBadge,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.grey400,
+                                  color: textTheme.bodySmall?.color,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),

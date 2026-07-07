@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/faq_provider.dart';
 import '../../../../core/widgets/app_drawer.dart';
 
@@ -39,24 +39,22 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
   @override
   Widget build(BuildContext context) {
     final faqsState = ref.watch(faqsProvider);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
+    final theme = Theme.of(context);
+
+    final primaryTextColor = theme.textTheme.titleMedium?.color;
+    final secondaryTextColor = theme.textTheme.bodySmall?.color;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("FAQ Accordion", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        
       ),
       body: Column(
         children: [
           // Search and Category Selector
           Container(
-            color: isDarkMode ? AppColors.darkSurface : Colors.white,
+            color: theme.colorScheme.surface,
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
@@ -64,7 +62,7 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: "Search FAQs...",
-                    prefixIcon: const Icon(Icons.search, color: AppColors.grey400),
+                    prefixIcon: Icon(Icons.search, color: theme.colorScheme.primary),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
@@ -84,12 +82,12 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
                         child: ChoiceChip(
                           label: Text(cat),
                           selected: isSelected,
-                          selectedColor: isDarkMode ? AppColors.gold : AppColors.navyBlue,
-                          backgroundColor: isDarkMode ? AppColors.darkCard : AppColors.grey100,
+                          selectedColor: theme.colorScheme.primary,
+                          backgroundColor: theme.colorScheme.surface,
                           labelStyle: TextStyle(
                             color: isSelected
-                                ? (isDarkMode ? AppColors.navyBlue : Colors.white)
-                                : (isDarkMode ? Colors.white70 : AppColors.navyBlue),
+                                ? Colors.black
+                                : theme.textTheme.bodySmall?.color,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           ),
                           onSelected: (val) {
@@ -118,10 +116,10 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.question_answer_outlined, size: 64, color: AppColors.grey300),
+                          Icon(Icons.question_answer_outlined, size: 64, color: theme.colorScheme.outline),
                           const SizedBox(height: 12),
                           Text("No FAQs Found", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
-                          const Text("Try updating your search query or categories.", style: TextStyle(color: AppColors.grey400), textAlign: TextAlign.center),
+                          Text("Try updating your search query or categories.", style: TextStyle(color: secondaryTextColor), textAlign: TextAlign.center),
                         ],
                       ),
                     ),
@@ -138,16 +136,16 @@ class _FaqScreenState extends ConsumerState<FaqScreen> {
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
+                        side: BorderSide(color: theme.colorScheme.outline),
                       ),
                       child: ExpansionTile(
-                        collapsedIconColor: isDarkMode ? Colors.white70 : AppColors.navyBlue,
-                        iconColor: isDarkMode ? AppColors.gold : AppColors.navyBlue,
+                        collapsedIconColor: theme.textTheme.bodySmall?.color,
+                        iconColor: theme.colorScheme.primary,
                         title: Text(faq.question, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryTextColor)),
                         children: [
                           Padding(
                             padding: const EdgeInsets.all(16),
-                            child: Text(faq.answer, style: TextStyle(fontSize: 12, height: 1.5, color: isDarkMode ? AppColors.grey300 : AppColors.grey500)),
+                            child: Text(faq.answer, style: TextStyle(fontSize: 12, height: 1.5, color: theme.textTheme.bodyMedium?.color)),
                           )
                         ],
                       ),

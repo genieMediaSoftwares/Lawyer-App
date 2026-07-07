@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../models/lawyer_model.dart';
 import '../../../../routes/route_names.dart';
@@ -78,15 +78,12 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Lawyer Matchmaker", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        
       ),
       body: Column(
         children: [
@@ -117,15 +114,16 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
   }
 
   Widget _buildFilterPanel() {
+    final theme = Theme.of(context);
     return Container(
-      color: Colors.white,
+      color: theme.colorScheme.surface,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: ExpansionTile(
         title: Row(
-          children: const [
-            Icon(Icons.tune, color: AppColors.navyBlue, size: 20),
-            SizedBox(width: 8),
-            Text("Refine Match Criteria", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navyBlue)),
+          children: [
+            Icon(Icons.tune, color: theme.colorScheme.primary, size: 20),
+            const SizedBox(width: 8),
+            Text("Refine Match Criteria", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.colorScheme.primary)),
           ],
         ),
         children: [
@@ -163,7 +161,7 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
                   min: 0,
                   max: 20,
                   divisions: 20,
-                  activeColor: AppColors.navyBlue,
+                  activeColor: theme.colorScheme.primary,
                   label: "$_minExperience Years",
                   onChanged: (val) {
                     setState(() => _minExperience = val.toInt());
@@ -183,7 +181,7 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
                   min: 500,
                   max: 5000,
                   divisions: 9,
-                  activeColor: AppColors.navyBlue,
+                  activeColor: theme.colorScheme.primary,
                   label: "₹$_maxFee",
                   onChanged: (val) {
                     setState(() => _maxFee = val.toInt());
@@ -216,12 +214,13 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
   }
 
   Widget _buildLawyerCard(LawyerModel lawyer) {
+    final theme = Theme.of(context);
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.grey200),
+        side: BorderSide(color: theme.colorScheme.outline),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -244,22 +243,22 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
                         children: [
                           Text(
                             lawyer.fullName,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color),
                           ),
                           const SizedBox(width: 6),
-                          const Icon(Icons.verified, color: Colors.blue, size: 18),
+                          Icon(Icons.verified, color: theme.colorScheme.primary, size: 18),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(lawyer.specialization, style: const TextStyle(color: AppColors.grey500, fontSize: 13)),
+                      Text(lawyer.specialization, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          const Icon(Icons.location_on_outlined, color: AppColors.grey400, size: 12),
+                          Icon(Icons.location_on_outlined, color: theme.colorScheme.primary, size: 12),
                           const SizedBox(width: 2),
-                          Text(lawyer.location.isNotEmpty ? lawyer.location : "Hyderabad, Telangana", style: const TextStyle(fontSize: 11, color: AppColors.grey500)),
+                          Text(lawyer.location.isNotEmpty ? lawyer.location : "Hyderabad, Telangana", style: TextStyle(fontSize: 11, color: theme.textTheme.bodySmall?.color)),
                           const SizedBox(width: 8),
-                          const Icon(Icons.star, color: AppColors.gold, size: 16),
+                          Icon(Icons.star, color: theme.colorScheme.primary, size: 16),
                           const SizedBox(width: 4),
                           Text("${lawyer.rating} (${lawyer.totalReviews} reviews)", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                         ],
@@ -276,15 +275,15 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Consultation Fee", style: TextStyle(color: AppColors.grey400, fontSize: 11)),
+                    Text("Consultation Fee", style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 11)),
                     const SizedBox(height: 2),
-                    Text("₹${lawyer.consultationFee}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue)),
+                    Text("₹${lawyer.consultationFee}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.colorScheme.primary)),
                   ],
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Experience", style: TextStyle(color: AppColors.grey400, fontSize: 11)),
+                    Text("Experience", style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 11)),
                     const SizedBox(height: 2),
                     Text("${lawyer.experience} Years+", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   ],
@@ -293,13 +292,7 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
                   onPressed: () {
                     context.push('/lawyer-profile/${lawyer.userId}');
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.navyBlue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  ),
-                  child: const Text("Book Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  child: const Text("Book Now"),
                 ),
               ],
             ),
@@ -310,17 +303,18 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
   }
 
   Widget _buildEmptyState() {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.people_outline, size: 72, color: AppColors.grey300),
+            Icon(Icons.people_outline, size: 72, color: theme.colorScheme.outline),
             const SizedBox(height: 16),
-            const Text("No Matched Lawyers Found", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.navyBlue)),
+            Text("No Matched Lawyers Found", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color)),
             const SizedBox(height: 8),
-            const Text("Try relaxing your filters to view more matching legal professionals.", textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey400)),
+            Text("Try relaxing your filters to view more matching legal professionals.", textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodySmall?.color)),
           ],
         ),
       ),

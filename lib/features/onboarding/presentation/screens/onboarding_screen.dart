@@ -76,6 +76,7 @@ class _OnboardingScreenState
 
   Widget buildIndicator(int index) {
     final isActive = currentPage == index;
+    final theme = Theme.of(context);
 
     return AnimatedContainer(
       duration:
@@ -86,10 +87,8 @@ class _OnboardingScreenState
       height: 8,
       decoration: BoxDecoration(
         color: isActive
-            ? Theme.of(context)
-            .colorScheme
-            .primary
-            : Colors.grey.shade400,
+            ? theme.colorScheme.primary
+            : theme.colorScheme.outline,
         borderRadius:
         BorderRadius.circular(20),
       ),

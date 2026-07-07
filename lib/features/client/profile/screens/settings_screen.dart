@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -19,15 +19,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Settings", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -36,12 +33,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _buildSectionHeader("Notifications"),
           Card(
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppColors.grey200)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: theme.colorScheme.outline)),
             child: Column(
               children: [
                 SwitchListTile(
                   value: _pushNotifications,
-                  activeColor: AppColors.navyBlue,
+                  activeColor: theme.colorScheme.primary,
                   title: const Text("Push Notifications", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   subtitle: const Text("Receive alerts about consultations, alerts and updates", style: TextStyle(fontSize: 11)),
                   onChanged: (val) => setState(() => _pushNotifications = val),
@@ -49,7 +46,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const Divider(height: 1),
                 SwitchListTile(
                   value: _emailAlerts,
-                  activeColor: AppColors.navyBlue,
+                  activeColor: theme.colorScheme.primary,
                   title: const Text("Email Notifications", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   subtitle: const Text("Receive updates regarding reports and files directly", style: TextStyle(fontSize: 11)),
                   onChanged: (val) => setState(() => _emailAlerts = val),
@@ -63,12 +60,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _buildSectionHeader("Preferences"),
           Card(
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppColors.grey200)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: theme.colorScheme.outline)),
             child: Column(
               children: [
                 SwitchListTile(
                   value: _darkMode,
-                  activeColor: AppColors.navyBlue,
+                  activeColor: theme.colorScheme.primary,
                   title: const Text("Dark Theme Mode", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   subtitle: const Text("Switch to dark color schemes (Simulated)", style: TextStyle(fontSize: 11)),
                   onChanged: (val) => setState(() => _darkMode = val),
@@ -89,27 +86,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _buildSectionHeader("Account & Support"),
           Card(
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppColors.grey200)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: theme.colorScheme.outline)),
             child: Column(
               children: [
                 ListTile(
                   title: const Text("Privacy Guidelines", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  leading: const Icon(Icons.security, color: AppColors.navyBlue),
+                  leading: Icon(Icons.security, color: theme.colorScheme.primary),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 14),
                   onTap: () {},
                 ),
                 const Divider(height: 1),
                 ListTile(
                   title: const Text("Customer Help Support", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  leading: const Icon(Icons.help_outline, color: AppColors.navyBlue),
+                  leading: Icon(Icons.help_outline, color: theme.colorScheme.primary),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 14),
                   onTap: () {},
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  title: const Text("Delete Account Permanently", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.red)),
-                  leading: const Icon(Icons.delete_forever, color: Colors.red),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.red),
+                  title: const Text("Delete Account Permanently", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.error)),
+                  leading: const Icon(Icons.delete_forever, color: AppColors.error),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.error),
                   onTap: _confirmDeleteAccount,
                 ),
               ],
@@ -121,16 +118,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildSectionHeader(String label) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         label,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navyBlue),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: theme.colorScheme.primary),
       ),
     );
   }
 
   void _showLanguageSelector() {
+    final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -139,7 +138,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           children: ["English", "Hindi", "Telugu", "Kannada"].map((lang) {
             return ListTile(
               title: Text(lang),
-              trailing: _selectedLanguage == lang ? const Icon(Icons.check, color: AppColors.navyBlue) : null,
+              trailing: _selectedLanguage == lang ? Icon(Icons.check, color: theme.colorScheme.primary) : null,
               onTap: () {
                 setState(() => _selectedLanguage = lang);
                 Navigator.pop(context);
@@ -155,11 +154,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Delete Account", style: TextStyle(color: Colors.red)),
+        title: const Text("Delete Account", style: TextStyle(color: AppColors.error)),
         content: const Text("Deleting your account is permanent. All case progress, consultation history, and uploaded documents will be erased. Proceed?"),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Delete Account", style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Delete Account", style: TextStyle(color: AppColors.error))),
         ],
       ),
     );

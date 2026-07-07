@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/document_provider.dart';
 import '../../../../core/widgets/app_drawer.dart';
 
@@ -46,24 +46,21 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
   @override
   Widget build(BuildContext context) {
     final documentsState = ref.watch(documentsProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("My Documents", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _isUploading ? null : _pickAndUploadFile,
-        backgroundColor: AppColors.navyBlue,
+        backgroundColor: theme.colorScheme.primary,
         icon: _isUploading
-            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            : const Icon(Icons.cloud_upload, color: Colors.white),
-        label: Text(_isUploading ? "Uploading..." : "Upload Document", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+            : const Icon(Icons.cloud_upload, color: Colors.black),
+        label: Text(_isUploading ? "Uploading..." : "Upload Document", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
       ),
       body: documentsState.when(
         data: (documents) {
@@ -74,11 +71,11 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.folder_open_outlined, size: 72, color: AppColors.grey300),
+                    Icon(Icons.folder_open_outlined, size: 72, color: theme.colorScheme.outline),
                     const SizedBox(height: 16),
-                    const Text("No Documents Found", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.navyBlue)),
+                    Text("No Documents Found", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color)),
                     const SizedBox(height: 8),
-                    const Text("Upload case files, legal letters, or identity credentials for quick access.", textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey400)),
+                    Text("Upload case files, legal letters, or identity credentials for quick access.", textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodySmall?.color)),
                   ],
                 ),
               ),
@@ -97,18 +94,18 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: AppColors.grey200),
+                  side: BorderSide(color: theme.colorScheme.outline),
                 ),
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   leading: CircleAvatar(
-                    backgroundColor: AppColors.navyBlue.withOpacity(0.05),
-                    child: Icon(_getFileIcon(doc.mimeType), color: AppColors.navyBlue),
+                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    child: Icon(_getFileIcon(doc.mimeType), color: theme.colorScheme.primary),
                   ),
-                  title: Text(doc.originalName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navyBlue)),
-                  subtitle: Text("$sizeInKb KB | Uploaded: ${_formatDate(doc.uploadedAt)}", style: const TextStyle(color: AppColors.grey500, fontSize: 11)),
+                  title: Text(doc.originalName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.titleMedium?.color)),
+                  subtitle: Text("$sizeInKb KB | Uploaded: ${_formatDate(doc.uploadedAt)}", style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 11)),
                   trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    icon: const Icon(Icons.delete_outline, color: AppColors.error),
                     onPressed: () => _deleteDocument(doc.id),
                   ),
                 ),
@@ -143,7 +140,7 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
         content: const Text("Are you sure you want to permanently delete this document?"),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Delete", style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Delete", style: TextStyle(color: AppColors.error))),
         ],
       ),
     );

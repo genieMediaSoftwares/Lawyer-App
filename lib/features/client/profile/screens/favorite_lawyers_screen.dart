@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/favorite_provider.dart';
 import '../../../../routes/route_names.dart';
 import '../../../../core/widgets/app_drawer.dart';
@@ -19,15 +19,13 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
   @override
   Widget build(BuildContext context) {
     final favoritesState = ref.watch(favoritesProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Favorite Lawyers", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
         actions: [
           IconButton(
             icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view),
@@ -44,11 +42,11 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.favorite_border, size: 72, color: AppColors.grey300),
+                    Icon(Icons.favorite_border, size: 72, color: theme.colorScheme.outline),
                     const SizedBox(height: 16),
-                    const Text("No Favorites Added Yet", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.navyBlue)),
+                    Text("No Favorites Added Yet", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color)),
                     const SizedBox(height: 8),
-                    const Text("Select the heart icon on any lawyer's profile page to save them here.", textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey400)),
+                    Text("Select the heart icon on any lawyer's profile page to save them here.", textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodySmall?.color)),
                   ],
                 ),
               ),
@@ -64,6 +62,7 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
   }
 
   Widget _buildList(List<FavoriteItem> items) {
+    final theme = Theme.of(context);
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: items.length,
@@ -72,7 +71,7 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
         return Card(
           elevation: 0,
           margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppColors.grey200)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: theme.colorScheme.outline)),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -87,12 +86,12 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(fav.lawyerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navyBlue)),
-                      Text(fav.specialization, style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
+                      Text(fav.lawyerName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.titleMedium?.color)),
+                      Text(fav.specialization, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12)),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.star, color: AppColors.gold, size: 14),
+                          Icon(Icons.star, color: theme.colorScheme.primary, size: 14),
                           Text(" ${fav.rating}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                         ],
                       ),
@@ -102,13 +101,12 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                 Column(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.favorite, color: Colors.red, size: 20),
+                      icon: const Icon(Icons.favorite, color: AppColors.error, size: 20),
                       onPressed: () => _removeFavorite(fav.id),
                     ),
                     ElevatedButton(
                       onPressed: () => context.push('/lawyer-profile/${fav.lawyerUserId}'),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.navyBlue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 10), minimumSize: const Size(60, 30)),
-                      child: const Text("Book", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      child: const Text("Book"),
                     )
                   ],
                 )
@@ -121,6 +119,7 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
   }
 
   Widget _buildGrid(List<FavoriteItem> items) {
+    final theme = Theme.of(context);
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -134,7 +133,7 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
         final fav = items[index];
         return Card(
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppColors.grey200)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: theme.colorScheme.outline)),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -152,28 +151,27 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                       right: -10,
                       top: -10,
                       child: IconButton(
-                        icon: const Icon(Icons.favorite, color: Colors.red, size: 18),
+                        icon: const Icon(Icons.favorite, color: AppColors.error, size: 18),
                         onPressed: () => _removeFavorite(fav.id),
                       ),
                     )
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(fav.lawyerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navyBlue), textAlign: TextAlign.center, maxLines: 1),
-                Text(fav.specialization, style: const TextStyle(color: AppColors.grey500, fontSize: 11), textAlign: TextAlign.center, maxLines: 1),
+                Text(fav.lawyerName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: theme.textTheme.titleMedium?.color), textAlign: TextAlign.center, maxLines: 1),
+                Text(fav.specialization, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 11), textAlign: TextAlign.center, maxLines: 1),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.star, color: AppColors.gold, size: 14),
+                    Icon(Icons.star, color: theme.colorScheme.primary, size: 14),
                     Text(" ${fav.rating}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                   ],
                 ),
                 const SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: () => context.push('/lawyer-profile/${fav.lawyerUserId}'),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.navyBlue, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 32)),
-                  child: const Text("Book Now", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  child: const Text("Book Now"),
                 )
               ],
             ),

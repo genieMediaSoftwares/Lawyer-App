@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/article_provider.dart';
 import '../../../../models/article_model.dart';
 import '../../../../core/widgets/app_drawer.dart';
@@ -40,24 +40,22 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
   @override
   Widget build(BuildContext context) {
     final articlesState = ref.watch(articlesProvider);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
+    final theme = Theme.of(context);
+
+    final primaryTextColor = theme.textTheme.titleMedium?.color;
+    final secondaryTextColor = theme.textTheme.bodySmall?.color;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Legal Articles", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        
       ),
       body: Column(
         children: [
           // Search & Filter Panel
           Container(
-            color: isDarkMode ? AppColors.darkSurface : Colors.white,
+            color: theme.colorScheme.surface,
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
@@ -65,7 +63,7 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: "Search legal articles...",
-                    prefixIcon: const Icon(Icons.search, color: AppColors.grey400),
+                    prefixIcon: Icon(Icons.search, color: theme.colorScheme.primary),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
@@ -85,12 +83,12 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                         child: ChoiceChip(
                           label: Text(cat),
                           selected: isSelected,
-                          selectedColor: isDarkMode ? AppColors.gold : AppColors.navyBlue,
-                          backgroundColor: isDarkMode ? AppColors.darkCard : AppColors.grey100,
+                          selectedColor: theme.colorScheme.primary,
+                          backgroundColor: theme.colorScheme.surface,
                           labelStyle: TextStyle(
                             color: isSelected
-                                ? (isDarkMode ? AppColors.navyBlue : Colors.white)
-                                : (isDarkMode ? Colors.white70 : AppColors.navyBlue),
+                                ? Colors.black
+                                : theme.textTheme.bodySmall?.color,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           ),
                           onSelected: (val) {
@@ -119,10 +117,10 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.article_outlined, size: 64, color: AppColors.grey300),
+                          Icon(Icons.article_outlined, size: 64, color: theme.colorScheme.outline),
                           const SizedBox(height: 12),
                           Text("No Articles Found", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
-                          const Text("Try updating your search query or categories.", style: TextStyle(color: AppColors.grey400), textAlign: TextAlign.center),
+                          Text("Try updating your search query or categories.", style: TextStyle(color: secondaryTextColor), textAlign: TextAlign.center),
                         ],
                       ),
                     ),
@@ -148,16 +146,16 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
   }
 
   Widget _buildArticleCard(ArticleModel article) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
-    final secondaryTextColor = isDarkMode ? AppColors.grey300 : AppColors.grey500;
+    final theme = Theme.of(context);
+    final primaryTextColor = theme.textTheme.titleMedium?.color;
+    final secondaryTextColor = theme.textTheme.bodySmall?.color;
 
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
+        side: BorderSide(color: theme.colorScheme.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,7 +168,7 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                 height: 150,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (c, e, s) => Container(height: 150, color: AppColors.grey200, child: const Icon(Icons.image)),
+                errorBuilder: (c, e, s) => Container(height: 150, color: theme.colorScheme.surface, child: const Icon(Icons.image)),
               ),
             ),
           Padding(
@@ -184,13 +182,13 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: isDarkMode ? AppColors.gold.withOpacity(0.15) : AppColors.navyBlue.withOpacity(0.08),
+                        color: theme.colorScheme.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         article.category,
                         style: TextStyle(
-                          color: isDarkMode ? AppColors.gold : AppColors.navyBlue,
+                          color: theme.colorScheme.primary,
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
@@ -198,9 +196,9 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                     ),
                     Row(
                       children: [
-                        const Icon(Icons.timer_outlined, size: 14, color: AppColors.grey400),
+                        Icon(Icons.timer_outlined, size: 14, color: theme.colorScheme.primary),
                         const SizedBox(width: 4),
-                        Text(article.readTime, style: const TextStyle(color: AppColors.grey400, fontSize: 11)),
+                        Text(article.readTime, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 11)),
                       ],
                     )
                   ],
@@ -221,12 +219,12 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                     TextButton(
                       onPressed: () => _showArticleDetails(article),
                       style: TextButton.styleFrom(
-                        foregroundColor: isDarkMode ? AppColors.gold : AppColors.navyBlue,
+                        foregroundColor: theme.colorScheme.primary,
                       ),
                       child: const Text("Read Full Article", style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                     IconButton(
-                      icon: Icon(Icons.bookmark_border, color: isDarkMode ? AppColors.gold : AppColors.navyBlue),
+                      icon: Icon(Icons.bookmark_border, color: theme.colorScheme.primary),
                       onPressed: () => ref.read(articlesProvider.notifier).toggleBookmark(article.id),
                     )
                   ],
@@ -240,11 +238,11 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
   }
 
   void _showArticleDetails(ArticleModel article) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDarkMode ? AppColors.darkBackground : Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => DraggableScrollableSheet(
         initialChildSize: 0.8,
@@ -255,23 +253,23 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
           controller: scrollController,
           padding: const EdgeInsets.all(24),
           children: [
-            Container(height: 4, width: 40, decoration: BoxDecoration(color: isDarkMode ? AppColors.borderDark : AppColors.grey300, borderRadius: BorderRadius.circular(2)), margin: const EdgeInsets.symmetric(horizontal: 140, vertical: 8)),
+            Container(height: 4, width: 40, decoration: BoxDecoration(color: theme.colorScheme.outline, borderRadius: BorderRadius.circular(2)), margin: const EdgeInsets.symmetric(horizontal: 140, vertical: 8)),
             const SizedBox(height: 16),
-            Text(article.category.toUpperCase(), style: const TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
+            Text(article.category.toUpperCase(), style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 11)),
             const SizedBox(height: 6),
-            Text(article.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: isDarkMode ? Colors.white : AppColors.navyBlue)),
+            Text(article.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: theme.textTheme.titleLarge?.color)),
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.timer_outlined, size: 14, color: AppColors.grey400),
+                Icon(Icons.timer_outlined, size: 14, color: theme.colorScheme.primary),
                 const SizedBox(width: 4),
-                Text(article.readTime, style: const TextStyle(color: AppColors.grey400, fontSize: 12)),
+                Text(article.readTime, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12)),
               ],
             ),
             const Divider(height: 32),
             Text(
               "${article.content}\n\n${_getLongContentPlaceholder()}",
-              style: TextStyle(fontSize: 14, height: 1.6, color: isDarkMode ? AppColors.textSecondaryDark : const Color(0xFF1E293B)),
+              style: TextStyle(fontSize: 14, height: 1.6, color: theme.textTheme.bodyMedium?.color),
             ),
           ],
         ),

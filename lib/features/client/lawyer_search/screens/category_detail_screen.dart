@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../providers/faq_provider.dart';
 import '../../../../routes/route_names.dart';
@@ -76,27 +76,23 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
     final catData = _getCategoryData();
     final lawyersState = ref.watch(lawyersProvider);
     final faqsState = ref.watch(faqsProvider);
+    final theme = Theme.of(context);
 
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
-    final secondaryTextColor = isDarkMode ? AppColors.grey300 : AppColors.grey500;
+    final primaryTextColor = theme.textTheme.titleMedium?.color;
+    final secondaryTextColor = theme.textTheme.bodySmall?.color;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: Text(widget.categoryName, style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(RouteNames.getMatched),
-        backgroundColor: isDarkMode ? AppColors.gold : AppColors.navyBlue,
-        foregroundColor: isDarkMode ? AppColors.navyBlue : Colors.white,
-        icon: Icon(Icons.psychology, color: isDarkMode ? AppColors.navyBlue : Colors.white),
-        label: Text("Match Me With Lawyer", style: TextStyle(color: isDarkMode ? AppColors.navyBlue : Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: Colors.black,
+        icon: const Icon(Icons.psychology, color: Colors.black),
+        label: const Text("Match Me With Lawyer", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -145,9 +141,9 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
                     runSpacing: 10,
                     children: (catData['services'] as List<String>).map((srv) {
                       return Chip(
-                        label: Text(srv, style: TextStyle(color: isDarkMode ? Colors.white : AppColors.navyBlue)),
-                        backgroundColor: isDarkMode ? AppColors.darkCard : Colors.white,
-                        side: BorderSide(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
+                        label: Text(srv, style: TextStyle(color: theme.colorScheme.primary)),
+                        backgroundColor: theme.colorScheme.surface,
+                        side: BorderSide(color: theme.colorScheme.outline),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       );
                     }).toList(),
@@ -182,7 +178,7 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
                               margin: const EdgeInsets.only(right: 12, bottom: 8),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16), 
-                                side: BorderSide(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
+                                side: BorderSide(color: theme.colorScheme.outline),
                               ),
                               child: Container(
                                 width: 260,
@@ -205,14 +201,14 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
                                           const SizedBox(height: 4),
                                           Row(
                                             children: [
-                                              const Icon(Icons.star, color: AppColors.gold, size: 14),
+                                              Icon(Icons.star, color: theme.colorScheme.primary, size: 14),
                                               Text(" ${lawyer.rating}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: primaryTextColor)),
                                             ],
                                           ),
                                           const SizedBox(height: 6),
                                           GestureDetector(
                                             onTap: () => context.push('/lawyer-profile/${lawyer.userId}'),
-                                            child: Text("View Profile", style: TextStyle(color: isDarkMode ? AppColors.gold : AppColors.navyBlue, fontWeight: FontWeight.bold, fontSize: 11, decoration: TextDecoration.underline)),
+                                            child: Text("View Profile", style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 11, decoration: TextDecoration.underline)),
                                           )
                                         ],
                                       ),
@@ -258,11 +254,11 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12), 
-                              side: BorderSide(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
+                              side: BorderSide(color: theme.colorScheme.outline),
                             ),
                             child: ExpansionTile(
-                              collapsedIconColor: isDarkMode ? Colors.white70 : AppColors.navyBlue,
-                              iconColor: isDarkMode ? AppColors.gold : AppColors.navyBlue,
+                              collapsedIconColor: theme.textTheme.bodySmall?.color,
+                              iconColor: theme.colorScheme.primary,
                               title: Text(faq.question, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryTextColor)),
                               children: [
                                 Padding(

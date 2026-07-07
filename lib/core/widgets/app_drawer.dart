@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../constants/app_colors.dart';
+import '../theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../routes/route_names.dart';
 
@@ -12,16 +12,16 @@ class AppDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
     final isLawyer = auth.role == UserRole.lawyer;
+    final theme = Theme.of(context);
 
     return Drawer(
-      backgroundColor: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Banner Container
           Container(
             width: double.infinity,
-            color: AppColors.navyBlue,
+            color: theme.colorScheme.surface,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
             child: SafeArea(
               bottom: false,
@@ -30,12 +30,12 @@ class AppDrawer extends ConsumerWidget {
                 children: [
                   CircleAvatar(
                     radius: 28,
-                    backgroundColor: Colors.white24,
+                    backgroundColor: theme.colorScheme.onSurface.withOpacity(0.12),
                     backgroundImage: auth.userPhotoUrl != null && auth.userPhotoUrl!.isNotEmpty
                         ? NetworkImage(auth.userPhotoUrl!)
                         : null,
                     child: (auth.userPhotoUrl == null || auth.userPhotoUrl!.isEmpty)
-                        ? const Icon(Icons.person, color: Colors.white, size: 28)
+                        ? Icon(Icons.person, color: theme.colorScheme.onSurface, size: 28)
                         : null,
                   ),
                   const SizedBox(height: 12),
@@ -43,17 +43,24 @@ class AppDrawer extends ConsumerWidget {
                     children: [
                       Text(
                         auth.userName ?? "Guest User",
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       if (isLawyer) ...[
                         const SizedBox(width: 6),
-                        const Icon(Icons.verified, color: AppColors.gold, size: 16),
+                        Icon(Icons.verified, color: theme.colorScheme.primary, size: 16),
                       ]
                     ],
                   ),
                   Text(
                     auth.userEmail ?? "",
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    style: TextStyle(
+                      color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
@@ -235,9 +242,17 @@ class _DrawerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return ListTile(
-      leading: Icon(icon, color: AppColors.navyBlue, size: 22),
-      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.navyBlue)),
+      leading: Icon(icon, color: theme.colorScheme.primary, size: 22),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+          color: theme.textTheme.bodyMedium?.color,
+        ),
+      ),
       onTap: onTap,
       dense: true,
     );

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/appointment_provider.dart';
 import '../../../../models/appointment_model.dart';
 import '../../../../routes/route_names.dart';
@@ -33,20 +33,18 @@ class _ConsultScreenState extends ConsumerState<ConsultScreen> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final appointmentsState = ref.watch(appointmentsProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("My Consultations", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white60,
-          indicatorColor: AppColors.gold,
+          labelColor: theme.colorScheme.primary,
+          unselectedLabelColor: theme.textTheme.bodySmall?.color,
+          indicatorColor: theme.colorScheme.primary,
           indicatorWeight: 3,
           tabs: const [
             Tab(text: "Upcoming"),
@@ -54,7 +52,6 @@ class _ConsultScreenState extends ConsumerState<ConsultScreen> with SingleTicker
             Tab(text: "Cancelled"),
           ],
         ),
-        
       ),
       body: appointmentsState.when(
         data: (appointments) {
@@ -78,6 +75,7 @@ class _ConsultScreenState extends ConsumerState<ConsultScreen> with SingleTicker
   }
 
   Widget _buildAppointmentsList(List<AppointmentModel> items, {bool isUpcoming = false}) {
+    final theme = Theme.of(context);
     if (items.isEmpty) {
       return Center(
         child: Padding(
@@ -85,11 +83,11 @@ class _ConsultScreenState extends ConsumerState<ConsultScreen> with SingleTicker
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.event_busy, size: 64, color: AppColors.grey300),
+              Icon(Icons.event_busy, size: 64, color: theme.colorScheme.outline),
               const SizedBox(height: 16),
-              const Text("No Consultations Found", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue)),
+              Text("No Consultations Found", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color)),
               const SizedBox(height: 8),
-              const Text("Your booked consultations will appear here.", textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey400)),
+              Text("Your booked consultations will appear here.", textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodySmall?.color)),
             ],
           ),
         ),
@@ -108,13 +106,14 @@ class _ConsultScreenState extends ConsumerState<ConsultScreen> with SingleTicker
 
   Widget _buildAppointmentCard(AppointmentModel appointment, bool isUpcoming) {
     final formattedDate = DateFormat('dd MMM yyyy').format(appointment.date);
-    
+    final theme = Theme.of(context);
+
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.grey200),
+        side: BorderSide(color: theme.colorScheme.outline),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -133,12 +132,12 @@ class _ConsultScreenState extends ConsumerState<ConsultScreen> with SingleTicker
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(appointment.lawyerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navyBlue)),
+                      Text(appointment.lawyerName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.titleMedium?.color)),
                       const SizedBox(height: 4),
-                      Text("Mode: ${appointment.mode}", style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
+                      Text("Mode: ${appointment.mode}", style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12)),
                       const SizedBox(height: 4),
                       if (appointment.caseTitle != null)
-                        Text("Case: ${appointment.caseTitle}", style: const TextStyle(color: AppColors.navyBlue, fontWeight: FontWeight.w600, fontSize: 12)),
+                        Text("Case: ${appointment.caseTitle}", style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w600, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -158,13 +157,13 @@ class _ConsultScreenState extends ConsumerState<ConsultScreen> with SingleTicker
             const Divider(height: 24),
             Row(
               children: [
-                const Icon(Icons.calendar_today, size: 16, color: AppColors.grey500),
+                Icon(Icons.calendar_today, size: 16, color: theme.colorScheme.primary),
                 const SizedBox(width: 6),
-                Text(formattedDate, style: const TextStyle(fontSize: 13, color: AppColors.navyBlue)),
+                Text(formattedDate, style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color)),
                 const SizedBox(width: 20),
-                const Icon(Icons.access_time, size: 16, color: AppColors.grey500),
+                Icon(Icons.access_time, size: 16, color: theme.colorScheme.primary),
                 const SizedBox(width: 6),
-                Text(appointment.timeSlot, style: const TextStyle(fontSize: 13, color: AppColors.navyBlue)),
+                Text(appointment.timeSlot, style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color)),
               ],
             ),
             if (isUpcoming) ...[
@@ -175,8 +174,8 @@ class _ConsultScreenState extends ConsumerState<ConsultScreen> with SingleTicker
                   OutlinedButton(
                     onPressed: () => _cancelAppointment(appointment.id),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     child: const Text("Cancel", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -187,11 +186,6 @@ class _ConsultScreenState extends ConsumerState<ConsultScreen> with SingleTicker
                       // Navigate to chat
                       context.push('/chat/${appointment.id}/${appointment.lawyerName}');
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.navyBlue,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
                     child: const Text("Open Chat", style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
@@ -204,17 +198,18 @@ class _ConsultScreenState extends ConsumerState<ConsultScreen> with SingleTicker
   }
 
   Color _getStatusColor(String status) {
+    final theme = Theme.of(context);
     switch (status) {
       case 'confirmed':
-        return Colors.green;
+        return AppColors.success;
       case 'pending':
-        return Colors.orange;
+        return AppColors.warning;
       case 'completed':
-        return AppColors.navyBlue;
+        return theme.colorScheme.primary;
       case 'cancelled':
-        return Colors.red;
+        return AppColors.error;
       default:
-        return AppColors.grey500;
+        return theme.disabledColor;
     }
   }
 
@@ -226,7 +221,7 @@ class _ConsultScreenState extends ConsumerState<ConsultScreen> with SingleTicker
         content: const Text("Are you sure you want to cancel this booked appointment?"),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("No")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Yes, Cancel", style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Yes, Cancel", style: TextStyle(color: AppColors.error))),
         ],
       ),
     );
