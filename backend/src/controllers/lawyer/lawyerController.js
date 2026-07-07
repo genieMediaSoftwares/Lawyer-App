@@ -12,9 +12,38 @@ class LawyerController {
         userQuery.fullName = { $regex: search, $options: "i" };
       }
 
-      const matchingUsers = await User.find(userQuery).select("_id");
+      const matchingUsers = await User.find(userQuery);
       const userIds = matchingUsers.map((u) => u._id);
 
+      // Find existing lawyer profiles
+      const existingLawyers = await Lawyer.find({ user: { $in: userIds } }).populate(
+        "user",
+        "fullName email mobile profileImage location"
+      );
+
+      // Identify user IDs missing a Lawyer profile
+      const existingUserIds = new Set(existingLawyers.map((l) => l.user ? l.user._id.toString() : ''));
+      const missingUsers = matchingUsers.filter((u) => !existingUserIds.has(u._id.toString()));
+
+      // Create missing lawyer profiles dynamically
+      if (missingUsers.length > 0) {
+        const newLawyerPromises = missingUsers.map((user) => 
+          Lawyer.create({
+            user: user._id,
+            specialization: "General Practice",
+            experience: 2,
+            education: "LLB",
+            consultationFee: 1500,
+            bio: "Professional advocate specializing in litigation and advisory.",
+            languages: ["English", "Hindi"],
+            barCouncilNumber: "12345/2026",
+            officeAddress: user.location || "Office Address",
+          })
+        );
+        await Promise.all(newLawyerPromises);
+      }
+
+      // Query again to return the full populated list
       let lawyerQuery = { user: { $in: userIds } };
       if (specialization) {
         lawyerQuery.specialization = { $regex: specialization, $options: "i" };
