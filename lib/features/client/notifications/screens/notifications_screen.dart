@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
 
 class NotificationsScreen extends StatelessWidget {
@@ -25,19 +25,15 @@ class NotificationsScreen extends StatelessWidget {
       }
     ];
 
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
-    final secondaryTextColor = isDarkMode ? AppColors.grey300 : AppColors.textSecondaryLight;
+    final theme = Theme.of(context);
+    final primaryTextColor = theme.textTheme.titleMedium?.color;
+    final secondaryTextColor = theme.textTheme.bodyMedium?.color;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Notifications"),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        
       ),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
@@ -49,7 +45,7 @@ class NotificationsScreen extends StatelessWidget {
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
+              side: BorderSide(color: theme.colorScheme.outline),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -60,7 +56,7 @@ class NotificationsScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(item["title"]!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primaryTextColor)),
-                      Text(item["time"]!, style: const TextStyle(color: AppColors.grey400, fontSize: 11)),
+                      Text(item["time"]!, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 11)),
                     ],
                   ),
                   const SizedBox(height: 6),

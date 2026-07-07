@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/issue_provider.dart';
 import '../../../../models/issue_model.dart';
 import '../../../../core/widgets/app_drawer.dart';
@@ -76,16 +76,13 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
   @override
   Widget build(BuildContext context) {
     final issuesState = ref.watch(issuesProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Resolve / Tracking", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        
       ),
       body: issuesState.when(
         data: (issues) {
@@ -96,15 +93,14 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.track_changes, size: 72, color: AppColors.grey300),
+                    Icon(Icons.track_changes, size: 72, color: theme.colorScheme.outline),
                     const SizedBox(height: 16),
-                    const Text("No Issues for Tracking", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.navyBlue)),
+                    Text("No Issues for Tracking", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color)),
                     const SizedBox(height: 8),
-                    const Text("Post a new legal issue to track its resolution timeline in real-time.", textAlign: TextAlign.center, style: TextStyle(color: AppColors.grey400)),
+                    Text("Post a new legal issue to track its resolution timeline in real-time.", textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodySmall?.color)),
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: () => context.push('/post-case'),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.navyBlue, foregroundColor: Colors.white),
                       child: const Text("Post Issue Now"),
                     )
                   ],
@@ -128,9 +124,9 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.grey200),
+                    border: Border.all(color: theme.colorScheme.outline),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -139,23 +135,23 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(activeIssue.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.navyBlue)),
+                            Text(activeIssue.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color)),
                             const SizedBox(height: 4),
-                            Text("Category: ${activeIssue.category}", style: const TextStyle(color: AppColors.grey500, fontSize: 13)),
+                            Text("Category: ${activeIssue.category}", style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 13)),
                             const SizedBox(height: 2),
-                            Text("Posted on ${DateFormat('dd MMM yyyy').format(activeIssue.createdAt)}", style: const TextStyle(color: AppColors.grey400, fontSize: 11)),
+                            Text("Posted on ${DateFormat('dd MMM yyyy').format(activeIssue.createdAt)}", style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 11)),
                           ],
                         ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppColors.navyBlue.withOpacity(0.08),
+                          color: theme.colorScheme.primary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           activeIssue.status,
-                          style: const TextStyle(color: AppColors.navyBlue, fontWeight: FontWeight.bold, fontSize: 12),
+                          style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       )
                     ],
@@ -164,28 +160,28 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                 const SizedBox(height: 24),
 
                 // Progress Bar
-                const Text("Resolution Progress", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navyBlue)),
+                Text("Resolution Progress", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.titleMedium?.color)),
                 const SizedBox(height: 10),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: LinearProgressIndicator(
                     value: progressPercent,
                     minHeight: 12,
-                    backgroundColor: AppColors.grey200,
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.navyBlue),
+                    backgroundColor: theme.colorScheme.surface,
+                    valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
                   ),
                 ),
                 const SizedBox(height: 24),
 
                 // Vertical Timeline
-                const Text("Resolution Milestone Tracking", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navyBlue)),
+                Text("Resolution Milestone Tracking", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.titleMedium?.color)),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.grey200),
+                    border: Border.all(color: theme.colorScheme.outline),
                   ),
                   child: Column(
                     children: List.generate(_timelineSteps.length, (index) {
@@ -204,8 +200,8 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                                   height: 24,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: isCompleted ? Colors.green : Colors.white,
-                                    border: Border.all(color: isCompleted ? Colors.green : AppColors.grey300, width: 2),
+                                    color: isCompleted ? AppColors.success : theme.colorScheme.surface,
+                                    border: Border.all(color: isCompleted ? AppColors.success : theme.colorScheme.outline, width: 2),
                                   ),
                                   child: isCompleted ? const Icon(Icons.check, color: Colors.white, size: 14) : null,
                                 ),
@@ -213,7 +209,7 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                                   Expanded(
                                     child: Container(
                                       width: 2,
-                                      color: isCompleted ? Colors.green : AppColors.grey300,
+                                      color: isCompleted ? AppColors.success : theme.colorScheme.outline,
                                     ),
                                   ),
                               ],
@@ -225,7 +221,7 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                                 stepTitle,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: isCompleted ? AppColors.navyBlue : AppColors.grey400,
+                                  color: isCompleted ? theme.colorScheme.onSurface : theme.textTheme.bodySmall?.color,
                                   fontSize: 14,
                                 ),
                               ),
@@ -239,14 +235,14 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                 const SizedBox(height: 24),
 
                 // Feedback Form (Only show if issue status is closed/resolved, or show for general rating)
-                const Text("Submit Case Feedback", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navyBlue)),
+                Text("Submit Case Feedback", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.titleMedium?.color)),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.grey200),
+                    border: Border.all(color: theme.colorScheme.outline),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,7 +254,7 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                           return IconButton(
                             icon: Icon(
                               index < _rating ? Icons.star : Icons.star_border,
-                              color: AppColors.gold,
+                              color: theme.colorScheme.primary,
                               size: 32,
                             ),
                             onPressed: () {
@@ -279,15 +275,9 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _isSubmittingFeedback ? null : () => _submitFeedback("sandeep@genielaw.com"), // default mock lawyer user
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.navyBlue,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(double.infinity, 50),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
                         child: _isSubmittingFeedback
-                            ? const CircularProgressIndicator(color: Colors.white)
-                            : const Text("Submit Review", style: TextStyle(fontWeight: FontWeight.bold)),
+                            ? const CircularProgressIndicator()
+                            : const Text("Submit Review"),
                       )
                     ],
                   ),

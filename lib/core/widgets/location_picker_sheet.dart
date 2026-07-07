@@ -189,11 +189,14 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final hasQuery = _searchController.text.trim().isNotEmpty;
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Column(
@@ -206,7 +209,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.grey300,
+                color: theme.dividerTheme.color ?? colorScheme.outline,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -215,16 +218,16 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 "Select Location",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
-                  color: AppColors.navyBlue,
+                  color: textTheme.titleLarge?.color,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, color: AppColors.grey500),
+                icon: Icon(Icons.close, color: textTheme.bodySmall?.color),
                 onPressed: () => Navigator.pop(context),
               )
             ],
@@ -235,19 +238,19 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
           TextField(
             controller: _searchController,
             autofocus: true,
-            style: const TextStyle(color: AppColors.navyBlue),
+            style: TextStyle(color: textTheme.bodyLarge?.color),
             decoration: InputDecoration(
               hintText: "Search city, district, or pincode...",
-              hintStyle: const TextStyle(color: AppColors.grey400),
-              prefixIcon: const Icon(Icons.search, color: AppColors.grey400),
+              hintStyle: TextStyle(color: textTheme.bodySmall?.color),
+              prefixIcon: Icon(Icons.search, color: textTheme.bodySmall?.color),
               suffixIcon: hasQuery
                   ? IconButton(
-                      icon: const Icon(Icons.clear, color: AppColors.grey400),
+                      icon: Icon(Icons.clear, color: textTheme.bodySmall?.color),
                       onPressed: () => _searchController.clear(),
                     )
                   : null,
               filled: true,
-              fillColor: AppColors.grey100,
+              fillColor: theme.inputDecorationTheme.fillColor,
               contentPadding: const EdgeInsets.symmetric(vertical: 12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -255,7 +258,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: AppColors.navyBlue, width: 1.5),
+                borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
               ),
             ),
           ),
@@ -272,12 +275,12 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                 children: [
                   if (!hasQuery) ...[
                     // Popular Grid
-                    const Text(
+                    Text(
                       "Popular Cities",
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: AppColors.grey500,
+                        color: textTheme.bodySmall?.color,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -292,10 +295,10 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isSelected ? AppColors.navyBlue : Colors.white,
+                              color: isSelected ? colorScheme.primary : colorScheme.surface,
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: isSelected ? AppColors.navyBlue : AppColors.grey300,
+                                color: isSelected ? colorScheme.primary : colorScheme.outline,
                               ),
                             ),
                             child: Row(
@@ -304,7 +307,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                                 Icon(
                                   Icons.location_on_outlined,
                                   size: 14,
-                                  color: isSelected ? Colors.white : AppColors.navyBlue,
+                                  color: isSelected ? Colors.black : colorScheme.primary,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
@@ -312,7 +315,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                    color: isSelected ? Colors.white : AppColors.navyBlue,
+                                    color: isSelected ? Colors.black : textTheme.bodyMedium?.color,
                                   ),
                                 ),
                               ],
@@ -327,19 +330,19 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           "Search Results",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
-                            color: AppColors.grey500,
+                            color: textTheme.bodySmall?.color,
                           ),
                         ),
                         if (_isLoading)
-                          const SizedBox(
+                          SizedBox(
                             width: 14,
                             height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.navyBlue),
+                            child: CircularProgressIndicator(strokeWidth: 1.5, color: colorScheme.primary),
                           ),
                       ],
                     ),
@@ -352,13 +355,13 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                         decoration: BoxDecoration(
-                          color: AppColors.navyBlue.withOpacity(0.03),
+                          color: colorScheme.primary.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.navyBlue.withOpacity(0.1)),
+                          border: Border.all(color: colorScheme.primary.withOpacity(0.15)),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.location_searching, color: AppColors.gold, size: 18),
+                            Icon(Icons.location_searching, color: colorScheme.primary, size: 18),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -366,20 +369,20 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                                 children: [
                                   Text(
                                     "Use typed value: \"${_searchController.text.trim()}\"",
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13,
-                                      color: AppColors.navyBlue,
+                                      color: textTheme.titleSmall?.color,
                                     ),
                                   ),
-                                  const Text(
+                                  Text(
                                     "Select this if your exact area isn't listed below.",
-                                    style: TextStyle(color: AppColors.grey500, fontSize: 11),
+                                    style: TextStyle(color: textTheme.bodySmall?.color, fontSize: 11),
                                   ),
                                 ],
                               ),
                             ),
-                            const Icon(Icons.chevron_right, color: AppColors.grey400, size: 18),
+                            Icon(Icons.chevron_right, color: textTheme.bodySmall?.color, size: 18),
                           ],
                         ),
                       ),
@@ -391,7 +394,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: _searchResults.length,
-                        separatorBuilder: (context, index) => const Divider(height: 1, color: AppColors.grey200),
+                        separatorBuilder: (context, index) => Divider(height: 1, color: theme.dividerTheme.color),
                         itemBuilder: (context, index) {
                           final loc = _searchResults[index];
                           final formattedStr = _formatLocationString(loc);
@@ -403,12 +406,12 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                             leading: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.grey100,
+                                color: colorScheme.surface,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.location_on,
-                                color: AppColors.navyBlue,
+                                color: isSelected ? colorScheme.primary : textTheme.bodySmall?.color,
                                 size: 18,
                               ),
                             ),
@@ -416,20 +419,20 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                               loc['city'] ?? '',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: isSelected ? AppColors.gold : AppColors.navyBlue,
+                                color: isSelected ? colorScheme.primary : textTheme.titleMedium?.color,
                                 fontSize: 14,
                               ),
                             ),
                             subtitle: Text(
                               "${loc['district']}, ${loc['state']} - ${loc['pincode']}",
-                              style: const TextStyle(
-                                color: AppColors.grey500,
+                              style: TextStyle(
+                                color: textTheme.bodySmall?.color,
                                 fontSize: 12,
                               ),
                             ),
                             trailing: isSelected
-                                ? const Icon(Icons.check_circle, color: AppColors.navyBlue, size: 20)
-                                : const Icon(Icons.chevron_right, color: AppColors.grey300, size: 20),
+                                ? Icon(Icons.check_circle, color: colorScheme.primary, size: 20)
+                                : Icon(Icons.chevron_right, color: textTheme.bodySmall?.color, size: 20),
                           );
                         },
                       )
@@ -439,17 +442,17 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                           padding: const EdgeInsets.symmetric(vertical: 36),
                           child: Column(
                             children: [
-                              const Icon(Icons.search_off_outlined, size: 48, color: AppColors.grey300),
+                              Icon(Icons.search_off_outlined, size: 48, color: textTheme.bodySmall?.color),
                               const SizedBox(height: 12),
-                              const Text(
+                              Text(
                                 "No matches found on live directory",
-                                style: TextStyle(color: AppColors.grey500, fontWeight: FontWeight.bold, fontSize: 14),
+                                style: TextStyle(color: textTheme.bodySmall?.color, fontWeight: FontWeight.bold, fontSize: 14),
                               ),
                               const SizedBox(height: 4),
-                              const Text(
+                              Text(
                                 "Please verify spelling or try typing a pincode.",
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: AppColors.grey400, fontSize: 11),
+                                style: TextStyle(color: textTheme.bodySmall?.color?.withOpacity(0.7), fontSize: 11),
                               ),
                             ],
                           ),

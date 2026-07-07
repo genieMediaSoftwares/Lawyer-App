@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../routes/route_names.dart';
 import 'package:law/models/category_item.dart';
@@ -13,15 +13,13 @@ class ClientDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
+    final theme = Theme.of(context);
+    final primaryTextColor = theme.textTheme.titleLarge?.color;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
-        backgroundColor: isDarkMode ? AppColors.darkBackground : Colors.white,
-        elevation: 0.5,
         leading: Builder(
           builder: (context) => IconButton(
             icon: Icon(Icons.menu, color: primaryTextColor, size: 24),
@@ -40,10 +38,10 @@ class ClientDashboardScreen extends ConsumerWidget {
                   fontFamily: 'Outfit',
                 ),
               ),
-              const TextSpan(
+              TextSpan(
                 text: "Law",
                 style: TextStyle(
-                  color: AppColors.gold,
+                  color: theme.colorScheme.primary,
                   fontWeight: FontWeight.bold,
                   fontSize: 22,
                   fontFamily: 'Outfit',
@@ -68,7 +66,7 @@ class ClientDashboardScreen extends ConsumerWidget {
                   width: 8,
                   height: 8,
                   decoration: const BoxDecoration(
-                    color: Colors.red,
+                    color: AppColors.error,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -84,41 +82,31 @@ class ClientDashboardScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Curved Navy Blue Banner Container
+              // 1. Curved Premium Banner Container
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF031A38), AppColors.navyBlue],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.navyBlue.withOpacity(0.12),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
+                  border: Border.all(color: theme.colorScheme.outline),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       "Hi, Welcome!",
                       style: TextStyle(
-                        color: Colors.white,
+                        color: primaryTextColor,
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       "How can we help you today?",
                       style: TextStyle(
-                        color: Colors.white70,
+                        color: theme.textTheme.bodySmall?.color,
                         fontSize: 13,
                       ),
                     ),
@@ -129,17 +117,18 @@ class ClientDashboardScreen extends ConsumerWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: theme.inputDecorationTheme.fillColor,
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: theme.colorScheme.outline),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: const [
+                          children: [
                             Text(
                               "Search legal issue or lawyer...",
-                              style: TextStyle(color: AppColors.grey400, fontSize: 13),
+                              style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13),
                             ),
-                            Icon(Icons.search, color: AppColors.navyBlue, size: 20),
+                            Icon(Icons.search, color: theme.colorScheme.primary, size: 20),
                           ],
                         ),
                       ),
@@ -166,7 +155,7 @@ class ClientDashboardScreen extends ConsumerWidget {
                     child: Text(
                       "View All",
                       style: TextStyle(
-                        color: primaryTextColor,
+                        color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),
@@ -192,8 +181,6 @@ class ClientDashboardScreen extends ConsumerWidget {
                   return CategoryCard(
                     title: category.title,
                     icon: category.icon,
-                    color: category.backgroundColor,
-                    iconColor: category.iconColor,
                     onTap: () {
                       if (category.title.contains("More")) {
                         context.push(RouteNames.lawyerSearch);
@@ -211,19 +198,9 @@ class ClientDashboardScreen extends ConsumerWidget {
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF031A38), AppColors.navyBlue],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.navyBlue.withOpacity(0.12),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
+                  border: Border.all(color: theme.colorScheme.outline),
                 ),
                 padding: const EdgeInsets.all(20),
                 child: Row(
@@ -232,26 +209,19 @@ class ClientDashboardScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             "AI Legal Assistant",
-                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: primaryTextColor, fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 6),
-                          const Text(
+                          Text(
                             "Get instant answers to\nyour legal questions",
-                            style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                            style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12, height: 1.4),
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton(
                             onPressed: () => context.push(RouteNames.aiChat),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.gold,
-                              foregroundColor: AppColors.navyBlue,
-                              minimumSize: const Size(100, 36),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                            ),
-                            child: const Text("Ask Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                            child: const Text("Ask Now"),
                           ),
                         ],
                       ),
@@ -265,22 +235,22 @@ class ClientDashboardScreen extends ConsumerWidget {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.08),
+                            color: theme.colorScheme.surface,
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white12, width: 1.5),
+                            border: Border.all(color: theme.colorScheme.outline, width: 1.5),
                           ),
-                          child: const Icon(Icons.smart_toy_outlined, size: 48, color: Colors.white),
+                          child: Icon(Icons.smart_toy_outlined, size: 48, color: theme.colorScheme.primary),
                         ),
                         Positioned(
                           right: 2,
                           bottom: 2,
                           child: Container(
                             padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: AppColors.gold,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.balance, size: 12, color: AppColors.navyBlue),
+                            child: const Icon(Icons.balance, size: 12, color: Colors.black),
                           ),
                         )
                       ],
@@ -334,25 +304,25 @@ class _StepCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
     return Column(
       children: [
         Container(
           width: 54,
           height: 54,
           decoration: BoxDecoration(
-            color: isDarkMode ? AppColors.darkCard : Colors.white,
+            color: theme.colorScheme.surface,
             shape: BoxShape.circle,
-            border: Border.all(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
+            border: Border.all(color: theme.colorScheme.outline),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
+                color: Colors.black.withOpacity(0.2),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
             ],
           ),
-          child: Icon(icon, color: isDarkMode ? AppColors.gold : AppColors.navyBlue, size: 22),
+          child: Icon(icon, color: theme.colorScheme.primary, size: 22),
         ),
         const SizedBox(height: 8),
         FittedBox(
@@ -362,7 +332,7 @@ class _StepCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: isDarkMode ? Colors.white : const Color(0xFF1E293B),
+              color: theme.textTheme.bodyMedium?.color,
             ),
           ),
         ),
@@ -374,22 +344,18 @@ class _StepCard extends StatelessWidget {
 class CategoryCard extends StatelessWidget {
   final String title;
   final IconData icon;
-  final Color color;
-  final Color iconColor;
   final VoidCallback? onTap;
 
   const CategoryCard({
     super.key,
     required this.title,
     required this.icon,
-    required this.color,
-    required this.iconColor,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -400,10 +366,11 @@ class CategoryCard extends StatelessWidget {
             width: 58,
             height: 58,
             decoration: BoxDecoration(
-              color: color,
+              color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: theme.colorScheme.outline),
             ),
-            child: Icon(icon, color: iconColor, size: 26),
+            child: Icon(icon, color: theme.colorScheme.primary, size: 26),
           ),
           const SizedBox(height: 8),
           FittedBox(
@@ -414,7 +381,7 @@ class CategoryCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: isDarkMode ? Colors.white : const Color(0xFF1E293B),
+                color: theme.textTheme.bodyMedium?.color,
                 height: 1.2,
               ),
             ),

@@ -16,9 +16,9 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final activeColor = isDarkMode ? AppColors.gold : AppColors.navyBlue;
-    final inactiveColor = isDarkMode ? AppColors.grey400 : const Color(0xFF64748B);
+    final theme = Theme.of(context);
+    final activeColor = theme.colorScheme.primary;
+    final inactiveColor = Colors.grey;
     return Scaffold(
       body: navigationShell,
       floatingActionButton: Container(
@@ -26,7 +26,7 @@ class AppShell extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: AppColors.navyBlue.withOpacity(0.2),
+              color: Colors.black.withOpacity(0.4),
               blurRadius: 8,
               offset: const Offset(0, 4),
             )
@@ -36,15 +36,15 @@ class AppShell extends StatelessWidget {
           onPressed: () {
             context.push('/post-case');
           },
-          backgroundColor: AppColors.navyBlue,
+          backgroundColor: theme.colorScheme.primary,
           shape: const CircleBorder(),
-          child: const Icon(Icons.add, color: Colors.white, size: 28),
+          child: const Icon(Icons.add, color: Colors.black, size: 28),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
-        color: isDarkMode ? AppColors.darkSurface : Colors.white,
-        surfaceTintColor: isDarkMode ? AppColors.darkSurface : Colors.white,
+        color: Colors.black,
+        surfaceTintColor: Colors.black,
         elevation: 16,
         notchMargin: 8,
         clipBehavior: Clip.antiAlias,
@@ -53,8 +53,8 @@ class AppShell extends StatelessWidget {
         height: 68,
         child: Container(
           decoration: BoxDecoration(
-            color: isDarkMode ? AppColors.darkSurface : Colors.white,
-            border: Border(top: BorderSide(color: isDarkMode ? AppColors.borderDark : const Color(0xFFE2E8F0), width: 1)),
+            color: Colors.black,
+            border: Border(top: BorderSide(color: theme.dividerColor, width: 1)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,

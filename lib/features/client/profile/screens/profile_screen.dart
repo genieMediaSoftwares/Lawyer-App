@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/widgets/location_picker_sheet.dart';
@@ -41,7 +41,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(success ? "Profile image updated successfully!" : "Failed to upload profile image."),
-            backgroundColor: success ? Colors.green : Colors.red,
+            backgroundColor: success ? AppColors.success : AppColors.error,
           ),
         );
       }
@@ -100,7 +100,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(success ? "Profile updated successfully!" : "Failed to update profile. Please try again."),
-          backgroundColor: success ? Colors.green : Colors.red,
+          backgroundColor: success ? AppColors.success : AppColors.error,
         ),
       );
     }
@@ -109,6 +109,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final theme = Theme.of(context);
 
     final name = authState.userName ?? "Client User";
     final email = authState.userEmail ?? "client@genielaw.com";
@@ -122,16 +123,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Profile", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
         leading: Builder(
           builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white, size: 24),
+            icon: const Icon(Icons.menu, size: 24),
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
@@ -197,10 +195,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 onPressed: () {
                   ref.read(authProvider.notifier).logout();
                 },
-                icon: const Icon(Icons.logout, color: Colors.white),
-                label: const Text("Log Out", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                icon: const Icon(Icons.logout),
+                label: const Text("Log Out", style: TextStyle(fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade600,
+                  backgroundColor: AppColors.error,
                   minimumSize: const Size(double.infinity, 52),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -209,25 +207,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               // Action Form Buttons in edit mode
               ElevatedButton(
                 onPressed: _isSaving ? null : _saveChanges,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.gold,
-                  foregroundColor: AppColors.navyBlue,
-                  minimumSize: const Size(double.infinity, 52),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
                 child: _isSaving
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: AppColors.navyBlue, strokeWidth: 2))
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Text("Save Changes", style: TextStyle(fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: () => setState(() => _isEditing = false),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 52),
-                  side: const BorderSide(color: AppColors.navyBlue),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text("Cancel", style: TextStyle(color: AppColors.navyBlue, fontWeight: FontWeight.bold)),
+                child: const Text("Cancel"),
               ),
             ],
           ],
@@ -237,12 +224,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
    Widget _buildProfileHeaderCard(String email, String? photoUrl) {
+    final theme = Theme.of(context);
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.grey200),
+        border: Border.all(color: theme.colorScheme.outline),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -251,12 +239,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             children: [
               CircleAvatar(
                 radius: 44,
-                backgroundColor: AppColors.navyBlue,
+                backgroundColor: theme.colorScheme.surface,
                 backgroundImage: photoUrl != null && photoUrl.isNotEmpty
                     ? NetworkImage(photoUrl)
                     : null,
                 child: (photoUrl == null || photoUrl.isEmpty)
-                    ? const Icon(Icons.person, size: 44, color: Colors.white)
+                    ? Icon(Icons.person, size: 44, color: theme.textTheme.bodySmall?.color)
                     : null,
               ),
               if (_isEditing)
@@ -265,10 +253,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   right: 0,
                   child: GestureDetector(
                     onTap: _pickAndUploadImage,
-                    child: const CircleAvatar(
+                    child: CircleAvatar(
                       radius: 14,
-                      backgroundColor: AppColors.gold,
-                      child: Icon(Icons.camera_alt, size: 14, color: AppColors.navyBlue),
+                      backgroundColor: theme.colorScheme.primary,
+                      child: const Icon(Icons.camera_alt, size: 14, color: Colors.black),
                     ),
                   ),
                 ),
@@ -278,84 +266,50 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           if (!_isEditing) ...[
             Text(
               _nameController.text,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.navyBlue),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleLarge?.color),
             ),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.email_outlined, size: 14, color: AppColors.grey500),
+                Icon(Icons.email_outlined, size: 14, color: theme.colorScheme.primary),
                 const SizedBox(width: 6),
-                Text(email, style: const TextStyle(color: AppColors.grey500, fontSize: 13)),
+                Text(email, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
               ],
             ),
             const SizedBox(height: 6),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.phone_outlined, size: 14, color: AppColors.grey500),
+                Icon(Icons.phone_outlined, size: 14, color: theme.colorScheme.primary),
                 const SizedBox(width: 6),
-                Text("+91 ${_phoneController.text}", style: const TextStyle(color: AppColors.grey500, fontSize: 13)),
+                Text("+91 ${_phoneController.text}", style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
               ],
             ),
             const SizedBox(height: 6),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.location_on_outlined, size: 14, color: AppColors.grey500),
+                Icon(Icons.location_on_outlined, size: 14, color: theme.colorScheme.primary),
                 const SizedBox(width: 6),
-                Text(_locationController.text.isNotEmpty ? _locationController.text : "Hyderabad, Telangana", style: const TextStyle(color: AppColors.grey500, fontSize: 13)),
+                Text(_locationController.text.isNotEmpty ? _locationController.text : "Hyderabad, Telangana", style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
               ],
             ),
           ] else ...[
             TextField(
               controller: _nameController,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
                 hintText: "Full Name",
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
-                prefixIcon: const Icon(Icons.person, color: Colors.white70, size: 20),
-                filled: true,
-                fillColor: AppColors.navyBlue,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                border: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                  borderSide: BorderSide(color: AppColors.borderDark),
-                ),
-                enabledBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                  borderSide: BorderSide(color: AppColors.borderDark),
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                  borderSide: BorderSide(color: AppColors.gold, width: 1.5),
-                ),
+                prefixIcon: const Icon(Icons.person),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
                 hintText: "Phone Number",
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
-                prefixIcon: const Icon(Icons.phone, color: Colors.white70, size: 20),
-                filled: true,
-                fillColor: AppColors.navyBlue,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                border: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                  borderSide: BorderSide(color: AppColors.borderDark),
-                ),
-                enabledBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                  borderSide: BorderSide(color: AppColors.borderDark),
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                  borderSide: BorderSide(color: AppColors.gold, width: 1.5),
-                ),
+                prefixIcon: const Icon(Icons.phone),
               ),
             ),
             const SizedBox(height: 16),
@@ -371,27 +325,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: AbsorbPointer(
                 child: TextField(
                   controller: _locationController,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
                   decoration: InputDecoration(
                     hintText: "Location",
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
-                    prefixIcon: const Icon(Icons.location_on, color: Colors.white70, size: 20),
-                    suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 20),
-                    filled: true,
-                    fillColor: AppColors.navyBlue,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    border: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                      borderSide: BorderSide(color: AppColors.borderDark),
-                    ),
-                    enabledBorder: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                      borderSide: BorderSide(color: AppColors.borderDark),
-                    ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                      borderSide: BorderSide(color: AppColors.gold, width: 1.5),
-                    ),
+                    prefixIcon: const Icon(Icons.location_on),
+                    suffixIcon: const Icon(Icons.arrow_drop_down),
                   ),
                 ),
               ),
@@ -407,17 +344,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required String title,
     required VoidCallback onTap,
   }) {
+    final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.grey200),
+        border: Border.all(color: theme.colorScheme.outline),
       ),
       child: ListTile(
         onTap: onTap,
-        leading: Icon(icon, color: AppColors.navyBlue),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navyBlue)),
-        trailing: const Icon(Icons.chevron_right, color: AppColors.grey400),
+        leading: Icon(icon, color: theme.colorScheme.primary),
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.bodyMedium?.color)),
+        trailing: Icon(Icons.chevron_right, color: theme.textTheme.bodySmall?.color),
       ),
     );
   }

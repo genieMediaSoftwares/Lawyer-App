@@ -24,11 +24,11 @@ class CalendarDayCell extends StatelessWidget {
     required this.onTap,
   });
 
-  static const _navy = Color(0xFF0B1F4D);
-  static const _gold = Color(0xFFD4A537);
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: isDisabled ? null : onTap,
       behavior: HitTestBehavior.opaque,
@@ -42,9 +42,9 @@ class CalendarDayCell extends StatelessWidget {
               height: 36,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isSelected ? _navy : Colors.transparent,
+                color: isSelected ? theme.colorScheme.primary : Colors.transparent,
                 border: isSelected
-                    ? Border.all(color: _gold, width: 2.5)
+                    ? Border.all(color: Colors.black12, width: 1.5)
                     : null,
               ),
               alignment: Alignment.center,
@@ -54,10 +54,10 @@ class CalendarDayCell extends StatelessWidget {
                   fontSize: 14,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                   color: isSelected
-                      ? Colors.white
+                      ? Colors.black
                       : isDisabled
-                          ? const Color(0xFFCBD5E1)
-                          : const Color(0xFF0F172A),
+                          ? theme.disabledColor
+                          : theme.textTheme.bodyMedium?.color,
                   height: 1.0,
                 ),
               ),
@@ -68,9 +68,9 @@ class CalendarDayCell extends StatelessWidget {
               Container(
                 width: 4,
                 height: 4,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _gold,
+                  color: theme.colorScheme.primary,
                 ),
               ),
             ],

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../routes/route_names.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
 
 class SubscriptionPlansScreen extends StatefulWidget {
@@ -43,15 +42,12 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Subscription Plans"),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        
       ),
       body: SafeArea(
         child: Column(
@@ -62,11 +58,11 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       "Choose the plan that's right for your practice",
                       style: TextStyle(
                         fontSize: 16,
-                        color: AppColors.textSecondaryLight,
+                        color: theme.textTheme.bodySmall?.color,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -86,24 +82,25 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   Widget _buildPlanCard(Map<String, dynamic> plan) {
     final isSelected = _selectedPlan == plan["name"];
     final isPopular = plan["popular"] == true;
+    final theme = Theme.of(context);
 
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = plan["name"]),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
-                ? AppColors.gold
+                ? theme.colorScheme.primary
                 : isPopular
-                    ? AppColors.gold.withOpacity(0.5)
-                    : AppColors.grey200,
+                    ? theme.colorScheme.primary.withOpacity(0.5)
+                    : theme.colorScheme.outline,
             width: isSelected ? 2.5 : 1,
           ),
           boxShadow: isSelected
-              ? [BoxShadow(color: AppColors.gold.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 4))]
+              ? [BoxShadow(color: theme.colorScheme.primary.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 4))]
               : null,
         ),
         child: Stack(
@@ -118,11 +115,11 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                     children: [
                       Text(
                         plan["name"],
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.navyBlue),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color),
                       ),
                       Text(
                         plan["price"],
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color),
                       ),
                     ],
                   ),
@@ -133,11 +130,11 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
                         children: [
-                          const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                          const Icon(Icons.check_circle, color: AppColors.success, size: 16),
                           const SizedBox(width: 8),
                           Text(
                             plan["features"][index],
-                            style: const TextStyle(color: AppColors.textSecondaryLight, fontSize: 13),
+                            style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13),
                           ),
                         ],
                       ),
@@ -152,16 +149,16 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                 right: 20,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: const BoxDecoration(
-                    color: AppColors.gold,
-                    borderRadius: BorderRadius.only(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(8),
                       bottomRight: Radius.circular(8),
                     ),
                   ),
                   child: const Text(
                     "Most Popular",
-                    style: TextStyle(color: AppColors.navyBlue, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -172,20 +169,15 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   }
 
   Widget _buildContinueButton() {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
-      color: Colors.white,
+      color: theme.scaffoldBackgroundColor,
       child: ElevatedButton(
         onPressed: () {
           // Proceed to lawyer dashboard
           context.go('/lawyer-dashboard');
         },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.navyBlue,
-          foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 52),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
         child: const Text("Continue", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );

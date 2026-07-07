@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../core/widgets/app_drawer.dart';
@@ -15,18 +15,16 @@ class MessagesScreen extends ConsumerWidget {
     final chatsState = ref.watch(chatsProvider);
     final authState = ref.watch(authProvider);
     final currentUserId = authState.userId ?? "";
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Messages", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
         leading: Builder(
           builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white, size: 24),
+            icon: Icon(Icons.menu, color: theme.appBarTheme.iconTheme?.color, size: 24),
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
@@ -55,7 +53,7 @@ class MessagesScreen extends ConsumerWidget {
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: AppColors.grey200),
+                  side: BorderSide(color: theme.colorScheme.outline),
                 ),
                 child: ListTile(
                   onTap: () {
@@ -71,7 +69,7 @@ class MessagesScreen extends ConsumerWidget {
                   ),
                   title: Text(
                     otherParticipant.fullName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navyBlue),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.titleMedium?.color),
                   ),
                   subtitle: Padding(
                     padding: const EdgeInsets.only(top: 4),
@@ -82,7 +80,7 @@ class MessagesScreen extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: typingUser != null ? Colors.green : AppColors.grey500,
+                        color: typingUser != null ? AppColors.success : theme.textTheme.bodySmall?.color,
                         fontStyle: typingUser != null ? FontStyle.italic : FontStyle.normal,
                         fontWeight: typingUser != null ? FontWeight.bold : FontWeight.normal,
                         fontSize: 13,
@@ -91,7 +89,7 @@ class MessagesScreen extends ConsumerWidget {
                   ),
                   trailing: Text(
                     formattedTime,
-                    style: const TextStyle(color: AppColors.grey400, fontSize: 11),
+                    style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 11),
                   ),
                 ),
               );

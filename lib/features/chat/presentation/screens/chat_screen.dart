@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../models/message_model.dart';
 import '../../../../providers/auth_provider.dart';
@@ -99,8 +99,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       });
     });
 
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: Consumer(
@@ -111,25 +113,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               children: [
                 Text(widget.lawyerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 if (typingUser != null)
-                  const Text(
+                  Text(
                     "typing...",
-                    style: TextStyle(fontSize: 11, color: Colors.white70, fontStyle: FontStyle.italic),
+                    style: TextStyle(fontSize: 11, color: theme.textTheme.bodySmall?.color, fontStyle: FontStyle.italic),
                   )
                 else
-                  const Row(
+                  Row(
                     children: [
-                      CircleAvatar(radius: 4, backgroundColor: Colors.green),
-                      SizedBox(width: 4),
-                      Text("Online", style: TextStyle(fontSize: 11, color: Colors.white70)),
+                      const CircleAvatar(radius: 4, backgroundColor: AppColors.success),
+                      const SizedBox(width: 4),
+                      Text("Online", style: TextStyle(fontSize: 11, color: theme.textTheme.bodySmall?.color)),
                     ],
                   )
               ],
             );
           }
         ),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: SafeArea(
         child: Column(
@@ -164,6 +163,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Widget _buildMessageBubble(MessageModel message, bool isMe) {
     final formattedTime = DateFormat('hh:mm a').format(message.createdAt);
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -173,24 +173,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
             decoration: BoxDecoration(
-              color: isMe ? AppColors.navyBlue : Colors.white,
+              color: isMe ? theme.colorScheme.primary : theme.colorScheme.surface,
               borderRadius: BorderRadius.only(
                 topLeft: const Radius.circular(16),
                 topRight: const Radius.circular(16),
                 bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(0),
                 bottomRight: isMe ? const Radius.circular(0) : const Radius.circular(16),
               ),
-              border: isMe ? null : Border.all(color: AppColors.grey200),
+              border: isMe ? null : Border.all(color: theme.colorScheme.outline),
             ),
             child: Text(
               message.content,
-              style: TextStyle(color: isMe ? Colors.white : AppColors.navyBlue, fontSize: 14, height: 1.4),
+              style: TextStyle(color: isMe ? Colors.black : theme.colorScheme.onSurface, fontSize: 14, height: 1.4),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             formattedTime,
-            style: const TextStyle(color: AppColors.grey400, fontSize: 10),
+            style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 10),
           )
         ],
       ),
@@ -198,17 +198,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Widget _buildInputBar() {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      color: Colors.white,
+      color: theme.colorScheme.surface,
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.add, color: AppColors.navyBlue),
+            icon: Icon(Icons.add, color: theme.colorScheme.primary),
             onPressed: () {},
           ),
           IconButton(
-            icon: const Icon(Icons.mic_none, color: AppColors.navyBlue),
+            icon: Icon(Icons.mic_none, color: theme.colorScheme.primary),
             onPressed: () {},
           ),
           Expanded(
@@ -217,7 +218,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               onChanged: _onTextChanged,
               decoration: InputDecoration(
                 hintText: "Type a message...",
-                fillColor: AppColors.grey100,
+                fillColor: theme.inputDecorationTheme.fillColor,
                 filled: true,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
@@ -230,12 +231,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
           const SizedBox(width: 8),
           Container(
-            decoration: const BoxDecoration(
-              color: AppColors.navyBlue,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary,
               shape: BoxShape.circle,
             ),
             child: IconButton(
-              icon: const Icon(Icons.send, color: Colors.white, size: 18),
+              icon: const Icon(Icons.send, color: Colors.black, size: 18),
               onPressed: _sendMessage,
             ),
           ),

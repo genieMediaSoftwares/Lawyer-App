@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../models/case_model.dart';
 import '../../../../routes/route_names.dart';
@@ -34,26 +34,24 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   @override
   Widget build(BuildContext context) {
     final casesState = ref.watch(casesProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("My Cases", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
         leading: Builder(
           builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white, size: 24),
+            icon: Icon(Icons.menu, color: theme.appBarTheme.iconTheme?.color, size: 24),
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppColors.gold,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: AppColors.gold,
+          labelColor: theme.colorScheme.primary,
+          unselectedLabelColor: theme.textTheme.bodySmall?.color,
+          indicatorColor: theme.colorScheme.primary,
           tabs: const [
             Tab(text: "All Cases"),
             Tab(text: "Active"),
@@ -100,15 +98,16 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   }
 
   Widget _buildCaseCard(CaseModel caseItem) {
+    final theme = Theme.of(context);
     final formattedDate = DateFormat('dd MMM yyyy').format(caseItem.createdAt);
-    final statusColor = _getStatusColor(caseItem.status);
+    final statusColor = _getStatusColor(context, caseItem.status);
     final statusLabel = _getStatusLabel(caseItem.status);
 
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.grey200),
+        side: BorderSide(color: theme.colorScheme.outline),
       ),
       child: InkWell(
         onTap: () {
@@ -130,7 +129,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                   Expanded(
                     child: Text(
                       caseItem.title,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navyBlue),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color),
                     ),
                   ),
                   Container(
@@ -149,18 +148,18 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
               const SizedBox(height: 6),
               Text(
                 "Case ID: ${caseItem.id.substring(Math.max(0, caseItem.id.length - 8)).toUpperCase()}",
-                style: const TextStyle(color: AppColors.grey400, fontSize: 12),
+                style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12),
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Icon(Icons.location_on_outlined, size: 16, color: AppColors.grey400),
+                  Icon(Icons.location_on_outlined, size: 16, color: theme.textTheme.bodySmall?.color),
                   const SizedBox(width: 4),
-                  Text(caseItem.location, style: const TextStyle(color: AppColors.grey500, fontSize: 13)),
+                  Text(caseItem.location, style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 13)),
                   const Spacer(),
-                  const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.grey400),
+                  Icon(Icons.calendar_today_outlined, size: 16, color: theme.textTheme.bodySmall?.color),
                   const SizedBox(width: 4),
-                  Text("Posted on $formattedDate", style: const TextStyle(color: AppColors.grey500, fontSize: 13)),
+                  Text("Posted on $formattedDate", style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 13)),
                 ],
               ),
               const Divider(height: 24),
@@ -170,9 +169,9 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                   if (caseItem.status == 'active') ...[
                     Text(
                       "${caseItem.proposals.length} Proposals Received",
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyBlue, fontSize: 13),
+                      style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary, fontSize: 13),
                     ),
-                    const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.grey400),
+                    Icon(Icons.arrow_forward_ios, size: 14, color: theme.textTheme.bodySmall?.color),
                   ] else if (caseItem.status == 'in_progress') ...[
                     Row(
                       children: [
@@ -188,13 +187,13 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                         const SizedBox(width: 8),
                         Text(
                           caseItem.assignedLawyerName ?? "Assigned Lawyer",
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navyBlue),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: theme.textTheme.titleMedium?.color),
                         ),
                       ],
                     ),
-                    const Text("Track Progress", style: TextStyle(color: AppColors.info, fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text("Track Progress", style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 13)),
                   ] else ...[
-                    const Text("Case Closed", style: TextStyle(color: AppColors.grey500, fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text("Case Closed", style: TextStyle(color: theme.textTheme.bodySmall?.color, fontWeight: FontWeight.bold, fontSize: 13)),
                     const Text("Completed", style: TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 13)),
                   ],
                 ],
@@ -206,16 +205,17 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
     );
   }
 
-  Color _getStatusColor(String status) {
+  Color _getStatusColor(BuildContext context, String status) {
+    final theme = Theme.of(context);
     switch (status) {
       case 'active':
         return AppColors.warning;
       case 'in_progress':
-        return AppColors.info;
+        return theme.colorScheme.primary;
       case 'closed':
         return AppColors.success;
       default:
-        return AppColors.grey500;
+        return theme.textTheme.bodySmall?.color ?? AppColors.mutedText;
     }
   }
 

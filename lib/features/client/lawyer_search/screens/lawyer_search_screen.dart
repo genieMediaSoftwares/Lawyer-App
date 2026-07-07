@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../models/lawyer_model.dart';
 import '../../../../core/widgets/app_drawer.dart';
@@ -37,25 +37,22 @@ class _LawyerSearchScreenState extends ConsumerState<LawyerSearchScreen> {
   @override
   Widget build(BuildContext context) {
     final lawyersState = ref.watch(lawyersProvider);
+    final theme = Theme.of(context);
 
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
+    final primaryTextColor = theme.textTheme.titleMedium?.color;
+    final secondaryTextColor = theme.textTheme.bodySmall?.color;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Find Advocates", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        
       ),
       body: Column(
         children: [
           // Search & Filter Panel
           Container(
-            color: isDarkMode ? AppColors.darkSurface : Colors.white,
+            color: theme.colorScheme.surface,
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
@@ -63,7 +60,7 @@ class _LawyerSearchScreenState extends ConsumerState<LawyerSearchScreen> {
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: "Search by lawyer name...",
-                    prefixIcon: const Icon(Icons.search, color: AppColors.grey400),
+                    prefixIcon: Icon(Icons.search, color: theme.colorScheme.primary),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
@@ -83,12 +80,12 @@ class _LawyerSearchScreenState extends ConsumerState<LawyerSearchScreen> {
                         child: ChoiceChip(
                           label: Text(spec),
                           selected: isSelected,
-                          selectedColor: isDarkMode ? AppColors.gold : AppColors.navyBlue,
-                          backgroundColor: isDarkMode ? AppColors.darkCard : AppColors.grey100,
+                          selectedColor: theme.colorScheme.primary,
+                          backgroundColor: theme.colorScheme.surface,
                           labelStyle: TextStyle(
                             color: isSelected
-                                ? (isDarkMode ? AppColors.navyBlue : Colors.white)
-                                : (isDarkMode ? Colors.white70 : AppColors.navyBlue),
+                                ? Colors.black
+                                : theme.textTheme.bodySmall?.color,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           ),
                           onSelected: (val) {
@@ -124,10 +121,10 @@ class _LawyerSearchScreenState extends ConsumerState<LawyerSearchScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.person_search_outlined, size: 64, color: AppColors.grey300),
+                          Icon(Icons.person_search_outlined, size: 64, color: theme.colorScheme.outline),
                           const SizedBox(height: 12),
                           Text("No Lawyers Found", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
-                          const Text("Try search terms or category adjustments.", style: TextStyle(color: AppColors.grey400)),
+                          Text("Try search terms or category adjustments.", style: TextStyle(color: secondaryTextColor)),
                         ],
                       ),
                     ),
@@ -153,16 +150,16 @@ class _LawyerSearchScreenState extends ConsumerState<LawyerSearchScreen> {
   }
 
   Widget _buildLawyerCard(LawyerModel lawyer) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = isDarkMode ? Colors.white : AppColors.navyBlue;
-    final secondaryTextColor = isDarkMode ? AppColors.grey300 : AppColors.grey500;
+    final theme = Theme.of(context);
+    final primaryTextColor = theme.textTheme.titleMedium?.color;
+    final secondaryTextColor = theme.textTheme.bodySmall?.color;
 
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: isDarkMode ? AppColors.borderDark : AppColors.grey200),
+        side: BorderSide(color: theme.colorScheme.outline),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -186,11 +183,11 @@ class _LawyerSearchScreenState extends ConsumerState<LawyerSearchScreen> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.location_on_outlined, color: AppColors.grey400, size: 12),
+                          Icon(Icons.location_on_outlined, color: theme.colorScheme.primary, size: 12),
                           const SizedBox(width: 2),
                           Text(lawyer.location.isNotEmpty ? lawyer.location : "Hyderabad, Telangana", style: TextStyle(fontSize: 11, color: secondaryTextColor)),
                           const SizedBox(width: 8),
-                          const Icon(Icons.star, color: AppColors.gold, size: 14),
+                          Icon(Icons.star, color: theme.colorScheme.primary, size: 14),
                           Text(" ${lawyer.rating} (${lawyer.totalReviews} reviews)", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryTextColor)),
                         ],
                       ),
@@ -206,15 +203,15 @@ class _LawyerSearchScreenState extends ConsumerState<LawyerSearchScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Consultation Fee", style: TextStyle(color: AppColors.grey400, fontSize: 11)),
+                    Text("Consultation Fee", style: TextStyle(color: secondaryTextColor, fontSize: 11)),
                     const SizedBox(height: 2),
-                    Text("₹${lawyer.consultationFee}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primaryTextColor)),
+                    Text("₹${lawyer.consultationFee}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.colorScheme.primary)),
                   ],
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Experience", style: TextStyle(color: AppColors.grey400, fontSize: 11)),
+                    Text("Experience", style: TextStyle(color: secondaryTextColor, fontSize: 11)),
                     const SizedBox(height: 2),
                     Text("${lawyer.experience} Years+", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryTextColor)),
                   ],
@@ -223,12 +220,7 @@ class _LawyerSearchScreenState extends ConsumerState<LawyerSearchScreen> {
                   onPressed: () {
                     context.push('/lawyer-profile/${lawyer.userId}');
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDarkMode ? AppColors.gold : AppColors.navyBlue,
-                    foregroundColor: isDarkMode ? AppColors.navyBlue : Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: const Text("View Profile", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  child: const Text("View Profile"),
                 )
               ],
             )

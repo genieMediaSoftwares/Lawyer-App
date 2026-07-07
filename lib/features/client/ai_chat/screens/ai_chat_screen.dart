@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
 
 class AiChatScreen extends StatefulWidget {
@@ -160,30 +159,26 @@ Please let me know if you would like me to draft outlines for agreements or expl
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: Row(
-          children: const [
+          children: [
             CircleAvatar(
-              backgroundColor: AppColors.gold,
+              backgroundColor: theme.colorScheme.primary,
               radius: 18,
-              child: Icon(Icons.smart_toy_outlined, color: AppColors.navyBlue, size: 20),
+              child: const Icon(Icons.smart_toy_outlined, color: Colors.black, size: 20),
             ),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("AI Legal Assistant", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                Text("Online Legal Advisor", style: TextStyle(fontSize: 10, color: Colors.white70)),
+                const Text("AI Legal Assistant", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                Text("Online Legal Advisor", style: TextStyle(fontSize: 10, color: theme.textTheme.bodySmall?.color)),
               ],
             )
           ],
         ),
-        backgroundColor: AppColors.navyBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        
       ),
       body: SafeArea(
         child: Column(
@@ -217,6 +212,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
   }
 
   Widget _buildChatBubble(String text, bool isMe) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Align(
@@ -225,7 +221,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
           decoration: BoxDecoration(
-            color: isMe ? AppColors.navyBlue : Colors.white,
+            color: isMe ? theme.colorScheme.primary : theme.colorScheme.surface,
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(16),
               topRight: const Radius.circular(16),
@@ -233,9 +229,9 @@ Please let me know if you would like me to draft outlines for agreements or expl
               bottomRight: isMe ? const Radius.circular(0) : const Radius.circular(16),
             ),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))
+              BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 6, offset: const Offset(0, 2))
             ],
-            border: isMe ? null : Border.all(color: AppColors.grey200),
+            border: isMe ? null : Border.all(color: theme.colorScheme.outline),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,7 +247,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
   Widget _parseMarkdownText(String text, bool isMe) {
     final theme = Theme.of(context);
     final textStyle = TextStyle(
-      color: isMe ? Colors.white : AppColors.navyBlue,
+      color: isMe ? Colors.black : theme.colorScheme.onSurface,
       fontSize: 13.5,
       height: 1.5,
     );
@@ -273,7 +269,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
           child: Text(
             line.replaceAll('###', '').trim(),
             style: TextStyle(
-              color: isMe ? AppColors.gold : AppColors.navyBlue,
+              color: isMe ? Colors.black : theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
@@ -285,8 +281,8 @@ Please let me know if you would like me to draft outlines for agreements or expl
           margin: const EdgeInsets.symmetric(vertical: 6),
           padding: const EdgeInsets.only(left: 10, top: 6, bottom: 6, right: 6),
           decoration: BoxDecoration(
-            border: Border(left: BorderSide(color: isMe ? AppColors.gold : AppColors.navyBlue, width: 3)),
-            color: (isMe ? Colors.white12 : AppColors.navyBlue.withOpacity(0.03)),
+            border: Border(left: BorderSide(color: isMe ? Colors.black : theme.colorScheme.primary, width: 3)),
+            color: (isMe ? Colors.black.withOpacity(0.12) : theme.colorScheme.primary.withOpacity(0.08)),
           ),
           child: Text(
             line.replaceAll('>', '').trim(),
@@ -320,6 +316,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
   }
 
   Widget _buildThinkingShimmer() {
+    final theme = Theme.of(context);
     return FadeTransition(
       opacity: _thinkingAnimController,
       child: Container(
@@ -328,18 +325,18 @@ Please let me know if you would like me to draft outlines for agreements or expl
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.grey200),
+            border: Border.all(color: theme.colorScheme.outline),
           ),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.smart_toy_outlined, color: AppColors.navyBlue, size: 16),
-              SizedBox(width: 8),
+              Icon(Icons.smart_toy_outlined, color: theme.colorScheme.primary, size: 16),
+              const SizedBox(width: 8),
               Text(
                 "Legal assistant is thinking...",
-                style: TextStyle(color: AppColors.grey500, fontSize: 12),
+                style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12),
               ),
             ],
           ),
@@ -349,6 +346,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
   }
 
   Widget _buildSuggestions() {
+    final theme = Theme.of(context);
     return Container(
       height: 48,
       margin: const EdgeInsets.only(bottom: 8),
@@ -360,10 +358,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
         itemBuilder: (context, index) {
           final sug = _suggestions[index];
           return ActionChip(
-            label: Text(sug, style: const TextStyle(color: AppColors.navyBlue, fontSize: 12, fontWeight: FontWeight.w600)),
-            backgroundColor: Colors.white,
-            side: const BorderSide(color: AppColors.grey200),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            label: Text(sug),
             onPressed: () => _sendQuery(sug),
           );
         },
@@ -372,9 +367,10 @@ Please let me know if you would like me to draft outlines for agreements or expl
   }
 
   Widget _buildInputBar() {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(12),
-      color: Colors.white,
+      color: theme.colorScheme.surface,
       child: Row(
         children: [
           Expanded(
@@ -382,7 +378,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
               controller: _messageController,
               decoration: InputDecoration(
                 hintText: "Ask me a legal question...",
-                fillColor: AppColors.grey100,
+                fillColor: theme.inputDecorationTheme.fillColor,
                 filled: true,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -392,9 +388,9 @@ Please let me know if you would like me to draft outlines for agreements or expl
           ),
           const SizedBox(width: 8),
           CircleAvatar(
-            backgroundColor: AppColors.navyBlue,
+            backgroundColor: theme.colorScheme.primary,
             child: IconButton(
-              icon: const Icon(Icons.send, color: Colors.white, size: 18),
+              icon: const Icon(Icons.send, color: Colors.black, size: 18),
               onPressed: () => _sendQuery(_messageController.text),
             ),
           ),
