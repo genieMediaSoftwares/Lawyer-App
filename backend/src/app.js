@@ -26,8 +26,14 @@ const app = express();
 // Security
 app.use(helmet());
 
-// CORS
-app.use(cors());
+// CORS – allow all origins for local development
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // Compression
 app.use(compression());
