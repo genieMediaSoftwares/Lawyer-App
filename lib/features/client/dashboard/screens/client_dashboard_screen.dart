@@ -336,4 +336,3 @@ class _StepCard extends StatelessWidget {
     );
   }
 }
-
