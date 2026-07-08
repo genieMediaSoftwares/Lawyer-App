@@ -6,6 +6,7 @@ import '../../../../core/widgets/app_drawer.dart';
 import '../../../../routes/route_names.dart';
 import 'package:law/models/category_item.dart';
 import '../widgets/category_card.dart';
+import '../widgets/hero_carousel_widget.dart';
 
 final unreadNotificationsCountProvider = StateProvider<int>((ref) => 1); // Mock 1 notification matching Figma red dot
 
@@ -83,59 +84,13 @@ class ClientDashboardScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Curved Premium Banner Container
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: theme.colorScheme.outline),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Hi, Welcome!",
-                      style: TextStyle(
-                        color: primaryTextColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      "How can we help you today?",
-                      style: TextStyle(
-                        color: theme.textTheme.bodySmall?.color,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    // Clickable Search Field
-                    GestureDetector(
-                      onTap: () => context.go(RouteNames.advocates),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: theme.inputDecorationTheme.fillColor,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: theme.colorScheme.outline),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "Search legal issue or lawyer...",
-                              style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13),
-                            ),
-                            Icon(Icons.search, color: theme.colorScheme.primary, size: 20),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              // 1. Hero Image Carousel
+              const HeroCarouselWidget(
+                assetPaths: [
+                  "assets/images/banner1.png",
+                  "assets/images/banner2.png",
+                  "assets/images/banner3.png",
+                ],
               ),
               const SizedBox(height: 24),
 
