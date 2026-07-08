@@ -10,9 +10,9 @@ import '../features/splash/presentation/screens/splash_screen.dart';
 import '../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../features/client/dashboard/screens/client_dashboard_screen.dart';
 import '../features/client/case_tracking/screens/my_cases_screen.dart';
+import '../features/chat/presentation/screens/advocates_screen.dart';
 import '../features/chat/presentation/screens/messages_screen.dart';
 import '../features/client/profile/screens/profile_screen.dart';
-import '../features/client/lawyer_search/screens/lawyer_search_screen.dart';
 import 'package:law/features/client/lawyer_profile/screens/lawyer_profile_screen.dart';
 import '../features/client/notifications/screens/notifications_screen.dart';
 import '../features/client/ai_chat/screens/ai_chat_screen.dart';
@@ -93,9 +93,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       final clientRoutes = [
         RouteNames.clientDashboard,
         RouteNames.myCases,
-        RouteNames.messages,
+        RouteNames.advocates,
         RouteNames.profile,
-        RouteNames.lawyerSearch,
+        RouteNames.messages,
         RouteNames.lawyerProfile,
         RouteNames.postCase,
         RouteNames.lawyersResponded,
@@ -139,7 +139,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             GoRoute(path: RouteNames.myCases, builder: (c, s) => const MyCasesScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: RouteNames.messages, builder: (c, s) => const MessagesScreen()),
+            GoRoute(path: RouteNames.advocates, builder: (c, s) => const AdvocatesScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: RouteNames.profile, builder: (c, s) => const ProfileScreen()),
@@ -150,8 +150,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Pushed full-screen routes — parentNavigatorKey makes them cover the bottom nav
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
-        path: RouteNames.lawyerSearch,
-        builder: (c, s) => const LawyerSearchScreen(),
+        path: RouteNames.messages,
+        builder: (c, s) => const MessagesScreen(),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
