@@ -114,7 +114,7 @@ class ClientDashboardScreen extends ConsumerWidget {
                     const SizedBox(height: 20),
                     // Clickable Search Field
                     GestureDetector(
-                      onTap: () => context.push(RouteNames.lawyerSearch),
+                      onTap: () => context.go(RouteNames.advocates),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
