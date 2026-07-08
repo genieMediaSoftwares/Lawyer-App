@@ -5,11 +5,33 @@ const ApiResponse = require("../../config/ApiResponse");
 class LawyerController {
   async getAllLawyers(req, res, next) {
     try {
-      const { search, specialization } = req.query;
+      const {
+        search,
+        specialization,
+        location,
+        experience,
+        minFee,
+        maxFee,
+        rating,
+        language,
+        verifiedOnly,
+        availableNow,
+        sortBy
+      } = req.query;
+
       let userQuery = { role: "lawyer" };
 
       if (search) {
         userQuery.fullName = { $regex: search, $options: "i" };
+      }
+      if (location && location !== "All" && location !== "All Locations") {
+        userQuery.location = { $regex: location, $options: "i" };
+      }
+      if (verifiedOnly === "true") {
+        userQuery.isVerified = true;
+      }
+      if (availableNow === "true") {
+        userQuery.isActive = true;
       }
 
       const matchingUsers = await User.find(userQuery);
@@ -18,7 +40,7 @@ class LawyerController {
       // Find existing lawyer profiles
       const existingLawyers = await Lawyer.find({ user: { $in: userIds } }).populate(
         "user",
-        "fullName email mobile profileImage location"
+        "fullName email mobile profileImage location isVerified isActive"
       );
 
       // Identify user IDs missing a Lawyer profile
@@ -45,14 +67,79 @@ class LawyerController {
 
       // Query again to return the full populated list
       let lawyerQuery = { user: { $in: userIds } };
-      if (specialization) {
+      
+      if (specialization && specialization !== "All" && specialization !== "All Practice Areas") {
         lawyerQuery.specialization = { $regex: specialization, $options: "i" };
       }
 
-      const lawyers = await Lawyer.find(lawyerQuery).populate(
+      // Experience filter (ranges: '0-2', '3-5', '5-10', '10+')
+      if (experience && experience !== "All" && experience !== "All Experience") {
+        if (experience === "0-2") {
+          lawyerQuery.experience = { $gte: 0, $lte: 2 };
+        } else if (experience === "3-5") {
+          lawyerQuery.experience = { $gte: 3, $lte: 5 };
+        } else if (experience === "5-10") {
+          lawyerQuery.experience = { $gte: 5, $lte: 10 };
+        } else if (experience === "10+") {
+          lawyerQuery.experience = { $gte: 10 };
+        }
+      }
+
+      // Consultation Fee filter (range)
+      if (minFee || maxFee) {
+        lawyerQuery.consultationFee = {};
+        if (minFee) {
+          lawyerQuery.consultationFee.$gte = parseInt(minFee);
+        }
+        if (maxFee) {
+          lawyerQuery.consultationFee.$lte = parseInt(maxFee);
+        }
+      }
+
+      // Rating filter (e.g. "4★+", "3★+", etc)
+      if (rating && rating !== "All" && rating !== "All Ratings") {
+        const parsedRating = parseFloat(rating.replace("★+", "").replace("+", ""));
+        if (!isNaN(parsedRating)) {
+          lawyerQuery.rating = { $gte: parsedRating };
+        }
+      }
+
+      // Language filter (e.g. list of selected languages or single language)
+      if (language) {
+        const langs = Array.isArray(language) ? language : [language];
+        const cleanLangs = langs.filter(l => l && l.trim() !== "");
+        if (cleanLangs.length > 0) {
+          lawyerQuery.languages = { $in: cleanLangs.map(l => new RegExp(l.trim(), 'i')) };
+        }
+      }
+
+      let lawyers = await Lawyer.find(lawyerQuery).populate(
         "user",
-        "fullName email mobile profileImage location"
+        "fullName email mobile profileImage location isVerified isActive"
       );
+
+      // Sorting logic in JavaScript memory
+      if (sortBy) {
+        if (sortBy === "Highest Rated") {
+          lawyers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        } else if (sortBy === "Most Reviewed") {
+          lawyers.sort((a, b) => (b.totalReviews || 0) - (a.totalReviews || 0));
+        } else if (sortBy === "Name (A - Z)") {
+          lawyers.sort((a, b) => {
+            const nameA = (a.user && a.user.fullName || '').toLowerCase();
+            const nameB = (b.user && b.user.fullName || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
+        } else if (sortBy === "Name (Z - A)") {
+          lawyers.sort((a, b) => {
+            const nameA = (a.user && a.user.fullName || '').toLowerCase();
+            const nameB = (b.user && b.user.fullName || '').toLowerCase();
+            return nameB.localeCompare(nameA);
+          });
+        } else if (sortBy === "Newest First") {
+          lawyers.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        }
+      }
 
       return ApiResponse.success(res, "Lawyers fetched successfully.", lawyers);
     } catch (error) {
