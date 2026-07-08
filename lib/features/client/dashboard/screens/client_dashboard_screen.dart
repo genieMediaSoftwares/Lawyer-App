@@ -113,7 +113,7 @@ class ClientDashboardScreen extends ConsumerWidget {
                     const SizedBox(height: 20),
                     // Clickable Search Field
                     GestureDetector(
-                      onTap: () => context.push(RouteNames.lawyerSearch),
+                      onTap: () => context.go(RouteNames.advocates),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
@@ -151,7 +151,7 @@ class ClientDashboardScreen extends ConsumerWidget {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => context.push(RouteNames.lawyerSearch),
+                    onTap: () => context.go(RouteNames.advocates),
                     child: Text(
                       "View All",
                       style: TextStyle(
@@ -183,7 +183,7 @@ class ClientDashboardScreen extends ConsumerWidget {
                     icon: category.icon,
                     onTap: () {
                       if (category.title.contains("More")) {
-                        context.push(RouteNames.lawyerSearch);
+                        context.go(RouteNames.advocates);
                       } else {
                         final cleaned = category.title.replaceAll('\n', ' ');
                         context.push('/category-detail/$cleaned');

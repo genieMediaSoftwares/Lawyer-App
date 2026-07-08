@@ -11,11 +11,11 @@ class RouteNames {
   /// Client — bottom nav tabs (live inside the shell)
   static const String clientDashboard = '/client-dashboard';
   static const String myCases = '/my-cases';
-  static const String messages = '/messages';
+  static const String advocates = '/advocates';
   static const String profile = '/profile';
+  static const String messages = '/messages';
 
   /// Client — pushed full-screen routes (sit above the shell)
-  static const String lawyerSearch = '/lawyer-search';
   static const String lawyerProfile = '/lawyer-profile/:userId';
   static const String postCase = '/post-case';
   static const String lawyersResponded = '/lawyers-responded/:caseId';

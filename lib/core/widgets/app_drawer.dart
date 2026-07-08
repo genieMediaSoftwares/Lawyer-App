@@ -8,6 +8,31 @@ import '../../routes/route_names.dart';
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
 
+  void _safeNavigate(BuildContext context, String routeName, {required bool isRoot}) {
+    // 1. Close the drawer first
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+
+    final router = GoRouter.of(context);
+    final currentUri = router.routerDelegate.currentConfiguration.uri.toString();
+
+    // 2. Prevent duplicate navigation if already on the same page
+    if (currentUri == routeName) {
+      return;
+    }
+
+    try {
+      if (isRoot) {
+        context.go(routeName);
+      } else {
+        context.push(routeName);
+      }
+    } catch (e) {
+      debugPrint("Sidebar Navigation Error for $routeName: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
@@ -83,7 +108,9 @@ class AppDrawer extends ConsumerWidget {
             label: "Sign Out",
             onTap: () async {
               final router = GoRouter.of(context);
-              Navigator.pop(context);
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
               await ref.read(authProvider.notifier).logout();
               router.go(RouteNames.login);
             },
@@ -99,66 +126,47 @@ class AppDrawer extends ConsumerWidget {
       _DrawerTile(
         icon: Icons.home_outlined,
         label: "Home Dashboard",
-        onTap: () {
-          Navigator.pop(context);
-          context.go(RouteNames.clientDashboard);
-        },
+        onTap: () => _safeNavigate(context, RouteNames.clientDashboard, isRoot: true),
       ),
       _DrawerTile(
         icon: Icons.folder_open_outlined,
         label: "My Cases",
-        onTap: () {
-          Navigator.pop(context);
-          context.go(RouteNames.myCases);
-        },
+        onTap: () => _safeNavigate(context, RouteNames.myCases, isRoot: true),
       ),
       _DrawerTile(
         icon: Icons.chat_bubble_outline,
+        label: "Advocates",
+        onTap: () => _safeNavigate(context, RouteNames.advocates, isRoot: true),
+      ),
+      _DrawerTile(
+        icon: Icons.message_outlined,
         label: "Messages",
-        onTap: () {
-          Navigator.pop(context);
-          context.go(RouteNames.messages);
-        },
+        onTap: () => _safeNavigate(context, RouteNames.messages, isRoot: false),
       ),
       _DrawerTile(
         icon: Icons.cloud_done_outlined,
         label: "My Documents",
-        onTap: () {
-          Navigator.pop(context);
-          context.go('/my-documents');
-        },
+        onTap: () => _safeNavigate(context, RouteNames.myDocuments, isRoot: false),
       ),
       _DrawerTile(
         icon: Icons.favorite_border,
         label: "Favorite Lawyers",
-        onTap: () {
-          Navigator.pop(context);
-          context.go('/favorites');
-        },
+        onTap: () => _safeNavigate(context, RouteNames.favorites, isRoot: false),
       ),
       _DrawerTile(
         icon: Icons.article_outlined,
         label: "Legal Articles",
-        onTap: () {
-          Navigator.pop(context);
-          context.go('/articles');
-        },
+        onTap: () => _safeNavigate(context, RouteNames.articles, isRoot: false),
       ),
       _DrawerTile(
         icon: Icons.question_answer_outlined,
         label: "FAQ Accordion",
-        onTap: () {
-          Navigator.pop(context);
-          context.go('/faq');
-        },
+        onTap: () => _safeNavigate(context, RouteNames.faq, isRoot: false),
       ),
       _DrawerTile(
         icon: Icons.settings_outlined,
         label: "App Settings",
-        onTap: () {
-          Navigator.pop(context);
-          context.go('/settings');
-        },
+        onTap: () => _safeNavigate(context, RouteNames.settings, isRoot: false),
       ),
     ];
   }
@@ -168,66 +176,47 @@ class AppDrawer extends ConsumerWidget {
       _DrawerTile(
         icon: Icons.space_dashboard_outlined,
         label: "Workspace Hub",
-        onTap: () {
-          Navigator.pop(context);
-          context.go('/lawyer-dashboard?tab=0');
-        },
+        onTap: () => _safeNavigate(context, '${RouteNames.lawyerDashboard}?tab=0', isRoot: true),
       ),
       _DrawerTile(
         icon: Icons.bar_chart_outlined,
         label: "Practice Stats",
-        onTap: () {
-          Navigator.pop(context);
-          context.go('/lawyer-dashboard?tab=1');
-        },
+        onTap: () => _safeNavigate(context, '${RouteNames.lawyerDashboard}?tab=1', isRoot: true),
       ),
       _DrawerTile(
         icon: Icons.gavel_outlined,
         label: "Client Leads",
-        onTap: () {
-          Navigator.pop(context);
-          context.go('/lawyer-dashboard?tab=2');
-        },
+        onTap: () => _safeNavigate(context, '${RouteNames.lawyerDashboard}?tab=2', isRoot: true),
       ),
       _DrawerTile(
         icon: Icons.people_alt_outlined,
         label: "Active Clients",
-        onTap: () {
-          Navigator.pop(context);
-          context.go('/lawyer-dashboard?tab=3');
-        },
+        onTap: () => _safeNavigate(context, '${RouteNames.lawyerDashboard}?tab=3', isRoot: true),
       ),
       _DrawerTile(
         icon: Icons.calendar_month_outlined,
         label: "Practice Calendar",
-        onTap: () {
-          Navigator.pop(context);
-          context.go('/lawyer-dashboard?tab=4');
-        },
+        onTap: () => _safeNavigate(context, '${RouteNames.lawyerDashboard}?tab=4', isRoot: true),
       ),
       _DrawerTile(
         icon: Icons.chat_bubble_outline,
-        label: "Messages Feed",
-        onTap: () {
-          Navigator.pop(context);
-          context.go(RouteNames.messages);
-        },
+        label: "Advocates",
+        onTap: () => _safeNavigate(context, RouteNames.advocates, isRoot: true),
+      ),
+      _DrawerTile(
+        icon: Icons.message_outlined,
+        label: "Messages",
+        onTap: () => _safeNavigate(context, RouteNames.messages, isRoot: false),
       ),
       _DrawerTile(
         icon: Icons.card_membership_outlined,
         label: "Membership Plans",
-        onTap: () {
-          Navigator.pop(context);
-          context.go('/subscription-plans');
-        },
+        onTap: () => _safeNavigate(context, RouteNames.subscriptionPlans, isRoot: false),
       ),
       _DrawerTile(
         icon: Icons.person_outline,
         label: "My Profile Details",
-        onTap: () {
-          Navigator.pop(context);
-          context.go('/lawyer-dashboard?tab=5');
-        },
+        onTap: () => _safeNavigate(context, '${RouteNames.lawyerDashboard}?tab=5', isRoot: true),
       ),
     ];
   }
