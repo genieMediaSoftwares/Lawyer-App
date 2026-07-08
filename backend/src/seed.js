@@ -4,6 +4,7 @@ const User = require("./models/User");
 const Lawyer = require("./models/Lawyer");
 const Article = require("./models/Article");
 const FAQ = require("./models/FAQ");
+const Court = require("./models/Court");
 
 const connectDB = async () => {
   try {
@@ -261,6 +262,130 @@ const seedData = async () => {
       }
     ]);
     console.log("✅ Seeding FAQs completed.");
+
+    // Seed Courts
+    console.log("🌱 Seeding Courts...");
+    await Court.deleteMany({});
+    await Court.insertMany([
+      {
+        courtName: "District Court, Visakhapatnam",
+        courtType: "District Court",
+        city: "Visakhapatnam",
+        district: "Visakhapatnam",
+        state: "Andhra Pradesh",
+        country: "India",
+        courtAddress: "District Court Road, Visakhapatnam",
+        pincode: "530002",
+        latitude: 17.7088,
+        longitude: 83.2985,
+        isActive: true
+      },
+      {
+        courtName: "Family Court, Visakhapatnam",
+        courtType: "Family Court",
+        city: "Visakhapatnam",
+        district: "Visakhapatnam",
+        state: "Andhra Pradesh",
+        country: "India",
+        courtAddress: "Main Road, Visakhapatnam",
+        pincode: "530002",
+        latitude: 17.7090,
+        longitude: 83.2987,
+        isActive: true
+      },
+      {
+        courtName: "Sessions Court, Visakhapatnam",
+        courtType: "Sessions Court",
+        city: "Visakhapatnam",
+        district: "Visakhapatnam",
+        state: "Andhra Pradesh",
+        country: "India",
+        courtAddress: "Court Complex, Visakhapatnam",
+        pincode: "530002",
+        latitude: 17.7085,
+        longitude: 83.2980,
+        isActive: true
+      },
+      {
+        courtName: "Chief Judicial Magistrate Court",
+        courtType: "Magistrate Court",
+        city: "Visakhapatnam",
+        district: "Visakhapatnam",
+        state: "Andhra Pradesh",
+        country: "India",
+        courtAddress: "Collectorate Junction, Visakhapatnam",
+        pincode: "530002",
+        latitude: 17.7075,
+        longitude: 83.2970,
+        isActive: true
+      },
+      {
+        courtName: "Consumer Disputes Redressal Commission",
+        courtType: "Consumer Forum",
+        city: "Visakhapatnam",
+        district: "Visakhapatnam",
+        state: "Andhra Pradesh",
+        country: "India",
+        courtAddress: "Beside District Court, Visakhapatnam",
+        pincode: "530002",
+        latitude: 17.7080,
+        longitude: 83.2975,
+        isActive: true
+      },
+      {
+        courtName: "Motor Accident Claims Tribunal",
+        courtType: "Tribunal",
+        city: "Visakhapatnam",
+        district: "Visakhapatnam",
+        state: "Andhra Pradesh",
+        country: "India",
+        courtAddress: "Law College Road, Visakhapatnam",
+        pincode: "530017",
+        latitude: 17.7288,
+        longitude: 83.3385,
+        isActive: true
+      },
+      {
+        courtName: "Nampally Criminal Court",
+        courtType: "Criminal Court",
+        city: "Hyderabad",
+        district: "Hyderabad",
+        state: "Telangana",
+        country: "India",
+        courtAddress: "Nampally, Hyderabad, Telangana",
+        pincode: "500001",
+        latitude: 17.3912,
+        longitude: 78.4682,
+        isActive: true
+      },
+      {
+        courtName: "City Civil Court, Hyderabad",
+        courtType: "Civil Court",
+        city: "Hyderabad",
+        district: "Hyderabad",
+        state: "Telangana",
+        country: "India",
+        courtAddress: "Purani Haveli, Hyderabad, Telangana",
+        pincode: "500002",
+        latitude: 17.3712,
+        longitude: 78.4812,
+        isActive: true
+      },
+      {
+        courtName: "Telangana High Court",
+        courtType: "High Court",
+        city: "Hyderabad",
+        district: "Hyderabad",
+        state: "Telangana",
+        country: "India",
+        courtAddress: "Near Charminar, Hyderabad, Telangana",
+        pincode: "500066",
+        latitude: 17.3688,
+        longitude: 78.4725,
+        isActive: true
+      }
+    ]);
+    console.log("✅ Seeding Courts completed.");
 
     console.log("🎉 Seeding completed successfully!");
     process.exit(0);

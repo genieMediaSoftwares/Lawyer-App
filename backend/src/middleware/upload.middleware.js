@@ -15,6 +15,8 @@ const storage = multer.diskStorage({
       folder = "cases";
     } else if (url.includes("/certificates")) {
       folder = "certificates";
+    } else if (url.includes("/documents")) {
+      folder = "acknowledgements";
     }
 
     const uploadPath = path.join(__dirname, "../../uploads", folder);
@@ -33,8 +35,6 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [
     "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "image/jpeg",
     "image/jpg",
     "image/png"
@@ -43,7 +43,7 @@ const fileFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Invalid file type. Only PDF, DOC, DOCX, JPG, JPEG, and PNG are allowed."));
+    cb(new Error("Only PDF, JPG, JPEG and PNG files are allowed."), false);
   }
 };
 

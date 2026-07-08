@@ -9,6 +9,7 @@ import '../core/widgets/app_shell.dart';
 import '../features/splash/presentation/screens/splash_screen.dart';
 import '../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../features/client/dashboard/screens/client_dashboard_screen.dart';
+import '../features/client/dashboard/screens/all_categories_screen.dart';
 import '../features/client/case_tracking/screens/my_cases_screen.dart';
 import '../features/chat/presentation/screens/messages_screen.dart';
 import '../features/client/profile/screens/profile_screen.dart';
@@ -163,8 +164,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
+        path: '/all-categories',
+        builder: (c, s) => const AllCategoriesScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
         path: RouteNames.postCase,
-        builder: (c, s) => const PostCaseScreen(),
+        builder: (c, s) => PostCaseScreen(
+          preselectedCategory: s.uri.queryParameters['category'],
+        ),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

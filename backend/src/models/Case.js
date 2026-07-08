@@ -29,6 +29,11 @@ const caseSchema = new mongoose.Schema(
       required: true,
     },
 
+    preferredCourt: {
+      type: String,
+      default: "",
+    },
+
     budgetRange: {
       type: String,
       default: "",
@@ -41,8 +46,8 @@ const caseSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["active", "in_progress", "closed"],
-      default: "active",
+      enum: ["Submitted", "In Progress", "Closed"],
+      default: "Submitted",
     },
 
     documents: [

@@ -1,14 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../core/network/dio_client.dart';
 import '../models/case_model.dart';
 import '../models/document_model.dart';
+import 'auth_provider.dart';
 
 final casesProvider = StateNotifierProvider<CaseNotifier, AsyncValue<List<CaseModel>>>((ref) {
-  return CaseNotifier();
+  final authState = ref.watch(authProvider);
+  final notifier = CaseNotifier(ref);
+  notifier.syncSocket(authState.userId);
+  return notifier;
 });
 
 class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
-  CaseNotifier() : super(const AsyncValue.loading()) {
+  IO.Socket? _socket;
+  String? _currentUserId;
+
+  CaseNotifier(Ref ref) : super(const AsyncValue.loading()) {
     fetchCases();
   }
 
@@ -33,8 +41,8 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     required String description,
     required String category,
     required String location,
-    required String budgetRange,
     required String urgency,
+    String? preferredCourt,
     List<DocumentModel>? documents,
   }) async {
     try {
@@ -43,8 +51,9 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
         "description": description,
         "category": category,
         "location": location,
-        "budgetRange": budgetRange,
+        "budgetRange": "",
         "urgency": urgency,
+        "preferredCourt": preferredCourt ?? "",
         "documents": documents?.map((d) => d.toJson()).toList() ?? [],
       });
 
@@ -114,5 +123,41 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
       // Handle error
     }
     return false;
+  }
+
+  void syncSocket(String? userId) {
+    if (userId == _currentUserId) return;
+    _currentUserId = userId;
+
+    _socket?.disconnect();
+    _socket?.dispose();
+    _socket = null;
+
+    if (userId == null || userId.isEmpty) return;
+
+    try {
+      _socket = IO.io('http://localhost:5000/cases', IO.OptionBuilder()
+        .setTransports(['websocket'])
+        .build());
+
+      _socket!.connect();
+
+      _socket!.onConnect((_) {
+        _socket!.emit('join', {'userId': userId});
+      });
+
+      _socket!.on('case_updated', (_) {
+        fetchCases();
+      });
+    } catch (e) {
+      // socket connection error
+    }
+  }
+
+  @override
+  void dispose() {
+    _socket?.disconnect();
+    _socket?.dispose();
+    super.dispose();
   }
 }

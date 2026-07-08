@@ -6,10 +6,17 @@ const errorMiddleware = (
 ) => {
   console.error(err);
 
-  res.status(err.statusCode || 500).json({
+  let message = err.message || "Internal Server Error";
+  let statusCode = err.statusCode || 500;
+
+  if (err.code === "LIMIT_FILE_SIZE") {
+    message = "Maximum allowed file size is 10 MB.";
+    statusCode = 400;
+  }
+
+  res.status(statusCode).json({
     success: false,
-    message:
-      err.message || "Internal Server Error",
+    message: message,
   });
 };
 

@@ -5,7 +5,7 @@ const ApiResponse = require("../../config/ApiResponse");
 class CaseController {
   async createCase(req, res, next) {
     try {
-      const { title, description, category, location, budgetRange, urgency, documents } = req.body;
+      const { title, description, category, location, budgetRange, urgency, preferredCourt, documents } = req.body;
       const client = req.user._id;
 
       // Add default milestones for case tracking
@@ -23,8 +23,9 @@ class CaseController {
         description,
         category,
         location,
-        budgetRange,
+        budgetRange: budgetRange || "",
         urgency,
+        preferredCourt: preferredCourt || "",
         documents: documents || [],
         milestones
       });
@@ -41,10 +42,10 @@ class CaseController {
       if (req.user.role === "client") {
         query.client = req.user._id;
       } else if (req.user.role === "lawyer") {
-        // Lawyers see active cases or cases they are assigned to
+        // Lawyers see submitted cases or cases they are assigned to
         query = {
           $or: [
-            { status: "active" },
+            { status: "Submitted" },
             { assignedLawyer: req.user._id }
           ]
         };
@@ -135,7 +136,7 @@ class CaseController {
       }
 
       caseItem.assignedLawyer = lawyerId;
-      caseItem.status = "in_progress";
+      caseItem.status = "In Progress";
 
       // Mark In Progress milestone to true
       const inProgressMilestone = caseItem.milestones.find((m) => m.title === "In Progress");
@@ -144,6 +145,15 @@ class CaseController {
       }
 
       await caseItem.save();
+
+      // Emit real-time case update
+      const io = req.app.get("io");
+      if (io) {
+        io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
+        if (caseItem.assignedLawyer) {
+          io.of("/cases").to(caseItem.assignedLawyer.toString()).emit("case_updated", caseItem);
+        }
+      }
 
       return ApiResponse.success(res, "Proposal accepted and lawyer assigned.", caseItem);
     } catch (error) {
@@ -170,10 +180,19 @@ class CaseController {
 
       // If Closed milestone is completed, set case status to closed
       if (milestoneTitle === "Closed" && isCompleted) {
-        caseItem.status = "closed";
+        caseItem.status = "Closed";
       }
 
       await caseItem.save();
+
+      // Emit real-time case update
+      const io = req.app.get("io");
+      if (io) {
+        io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
+        if (caseItem.assignedLawyer) {
+          io.of("/cases").to(caseItem.assignedLawyer.toString()).emit("case_updated", caseItem);
+        }
+      }
 
       return ApiResponse.success(res, "Milestone updated successfully.", caseItem);
     } catch (error) {

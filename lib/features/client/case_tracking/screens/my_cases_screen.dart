@@ -22,7 +22,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -54,7 +54,6 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
           indicatorColor: theme.colorScheme.primary,
           tabs: const [
             Tab(text: "All Cases"),
-            Tab(text: "Active"),
             Tab(text: "In Progress"),
             Tab(text: "Closed"),
           ],
@@ -62,16 +61,18 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
       ),
       body: casesState.when(
         data: (cases) {
-          if (cases.isEmpty) {
-            return const Center(child: Text("No cases posted yet."));
-          }
           return TabBarView(
             controller: _tabController,
             children: [
-              _buildCaseList(cases),
-              _buildCaseList(cases.where((c) => c.status == 'active').toList()),
-              _buildCaseList(cases.where((c) => c.status == 'in_progress').toList()),
-              _buildCaseList(cases.where((c) => c.status == 'closed').toList()),
+              _buildCaseList(cases, "No cases posted yet."),
+              _buildCaseList(
+                cases.where((c) => c.status == 'In Progress').toList(),
+                "No cases are currently in progress.",
+              ),
+              _buildCaseList(
+                cases.where((c) => c.status == 'Closed').toList(),
+                "No completed cases yet.",
+              ),
             ],
           );
         },
@@ -81,9 +82,18 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
     );
   }
 
-  Widget _buildCaseList(List<CaseModel> casesList) {
+  Widget _buildCaseList(List<CaseModel> casesList, String emptyMessage) {
     if (casesList.isEmpty) {
-      return const Center(child: Text("No cases in this category."));
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Text(
+            emptyMessage,
+            style: const TextStyle(color: Colors.grey, fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
     }
 
     return ListView.separated(
@@ -111,7 +121,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
       ),
       child: InkWell(
         onTap: () {
-          if (caseItem.status == 'active') {
+          if (caseItem.status == 'Submitted') {
             context.push('/lawyers-responded/${caseItem.id}');
           } else {
             context.push('/case-progress/${caseItem.id}');
@@ -127,9 +137,19 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: Text(
-                      caseItem.title,
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          caseItem.category,
+                          style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          caseItem.title,
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color),
+                        ),
+                      ],
                     ),
                   ),
                   Container(
@@ -145,34 +165,46 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 12),
               Text(
-                "Case ID: ${caseItem.id.substring(Math.max(0, caseItem.id.length - 8)).toUpperCase()}",
-                style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12),
+                caseItem.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 13),
               ),
               const SizedBox(height: 12),
+              if (caseItem.preferredCourt != null && caseItem.preferredCourt!.isNotEmpty) ...[
+                Row(
+                  children: [
+                    Icon(Icons.gavel_outlined, size: 14, color: theme.textTheme.bodySmall?.color),
+                    const SizedBox(width: 4),
+                    Text(caseItem.preferredCourt!, style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 12)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
               Row(
                 children: [
-                  Icon(Icons.location_on_outlined, size: 16, color: theme.textTheme.bodySmall?.color),
+                  Icon(Icons.location_on_outlined, size: 14, color: theme.textTheme.bodySmall?.color),
                   const SizedBox(width: 4),
-                  Text(caseItem.location, style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 13)),
+                  Text(caseItem.location, style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 12)),
                   const Spacer(),
-                  Icon(Icons.calendar_today_outlined, size: 16, color: theme.textTheme.bodySmall?.color),
+                  Icon(Icons.calendar_today_outlined, size: 14, color: theme.textTheme.bodySmall?.color),
                   const SizedBox(width: 4),
-                  Text("Posted on $formattedDate", style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 13)),
+                  Text(formattedDate, style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 12)),
                 ],
               ),
               const Divider(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  if (caseItem.status == 'active') ...[
+                  if (caseItem.status == 'Submitted') ...[
                     Text(
                       "${caseItem.proposals.length} Proposals Received",
                       style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary, fontSize: 13),
                     ),
                     Icon(Icons.arrow_forward_ios, size: 14, color: theme.textTheme.bodySmall?.color),
-                  ] else if (caseItem.status == 'in_progress') ...[
+                  ] else if (caseItem.status == 'In Progress') ...[
                     Row(
                       children: [
                         CircleAvatar(
@@ -208,11 +240,11 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   Color _getStatusColor(BuildContext context, String status) {
     final theme = Theme.of(context);
     switch (status) {
-      case 'active':
+      case 'Submitted':
         return AppColors.warning;
-      case 'in_progress':
+      case 'In Progress':
         return theme.colorScheme.primary;
-      case 'closed':
+      case 'Closed':
         return AppColors.success;
       default:
         return theme.textTheme.bodySmall?.color ?? AppColors.mutedText;
@@ -220,16 +252,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   }
 
   String _getStatusLabel(String status) {
-    switch (status) {
-      case 'active':
-        return "Active";
-      case 'in_progress':
-        return "In Progress";
-      case 'closed':
-        return "Closed";
-      default:
-        return status;
-    }
+    return status;
   }
 }
 
