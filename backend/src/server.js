@@ -21,9 +21,13 @@ const io = new Server(server, {
   }
 });
 
+// Set globally for controllers to access
+app.set("io", io);
+
 // Load Socket Handlers
 require("./sockets/chat.socket")(io);
 require("./sockets/notification.socket")(io);
+require("./sockets/case.socket")(io);
 
 // Start Server
 server.listen(PORT, "0.0.0.0", () => {

@@ -11,7 +11,7 @@ abstract final class AppColors {
   static const Color border = Color(0xFF2A2A2A);
 
   // Golds
-  static const Color primaryGold = Color(0xFFD4AF37);
+  static const Color primaryGold = Color(0xFFDAA02F);
   static const Color darkGold = Color(0xFFB8860B);
   static const Color goldHover = Color(0xFFE6C35C);
   static const Color accentGold = Color(0xFFF4C95D);

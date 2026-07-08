@@ -18,6 +18,7 @@ class RouteNames {
   static const String lawyerSearch = '/lawyer-search';
   static const String lawyerProfile = '/lawyer-profile/:userId';
   static const String postCase = '/post-case';
+  static const String allCategories = '/all-categories';
   static const String lawyersResponded = '/lawyers-responded/:caseId';
   static const String caseProgress = '/case-progress/:caseId';
   static const String scheduleConsultation = '/schedule-consultation/:lawyerUserId';

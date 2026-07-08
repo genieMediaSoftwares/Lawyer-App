@@ -1,4 +1,5 @@
 const Issue = require("../../models/Issue");
+const Document = require("../../models/Document");
 const ApiResponse = require("../../config/ApiResponse");
 
 class IssueController {
@@ -20,6 +21,18 @@ class IssueController {
         clientId,
         status: "Pending"
       });
+
+      // Link uploaded documents to this issue
+      if (documents && documents.length > 0) {
+        const fileNames = documents.map(d => {
+          const parts = d.url.split('/');
+          return parts[parts.length - 1];
+        });
+        await Document.updateMany(
+          { clientId, fileName: { $in: fileNames }, issueId: null },
+          { $set: { issueId: newIssue._id } }
+        );
+      }
 
       return ApiResponse.success(res, "Issue created successfully.", newIssue, 201);
     } catch (error) {

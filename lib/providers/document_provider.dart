@@ -65,14 +65,31 @@ class DocumentNotifier extends StateNotifier<AsyncValue<List<DocumentRecord>>> {
     }
   }
 
-  Future<DocumentRecord?> uploadDocument(String localPath, String fileName, {String? issueId}) async {
+  Future<DocumentRecord?> uploadDocument(
+    String? localPath,
+    String fileName, {
+    List<int>? bytes,
+    String? issueId,
+  }) async {
     try {
-      final formData = FormData.fromMap({
-        "issueId": issueId ?? "",
-        "file": await MultipartFile.fromFile(
+      MultipartFile filePayload;
+      if (bytes != null) {
+        filePayload = MultipartFile.fromBytes(
+          bytes,
+          filename: fileName,
+        );
+      } else if (localPath != null) {
+        filePayload = await MultipartFile.fromFile(
           localPath,
           filename: fileName,
-        ),
+        );
+      } else {
+        return null;
+      }
+
+      final formData = FormData.fromMap({
+        "issueId": issueId ?? "",
+        "acknowledgement": filePayload,
       });
 
       final response = await DioClient.dio.post(
@@ -88,7 +105,10 @@ class DocumentNotifier extends StateNotifier<AsyncValue<List<DocumentRecord>>> {
         return newDoc;
       }
     } catch (e) {
-      // Handle error
+      if (e is DioException && e.response?.data != null && e.response?.data['message'] != null) {
+        throw Exception(e.response!.data['message']);
+      }
+      rethrow;
     }
     return null;
   }

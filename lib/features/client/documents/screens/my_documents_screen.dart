@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -19,15 +20,19 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+      withData: true,
     );
 
-    if (result != null && result.files.single.path != null) {
+    if (result != null && (result.files.single.path != null || result.files.single.bytes != null)) {
       setState(() => _isUploading = true);
       try {
-        final filePath = result.files.single.path!;
-        final fileName = result.files.single.name;
+        final file = result.files.single;
         
-        final newDoc = await ref.read(documentsProvider.notifier).uploadDocument(filePath, fileName);
+        final newDoc = await ref.read(documentsProvider.notifier).uploadDocument(
+              kIsWeb ? null : file.path,
+              file.name,
+              bytes: file.bytes,
+            );
         if (newDoc != null && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Document uploaded successfully!")));
         } else {

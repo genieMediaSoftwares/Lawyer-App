@@ -12,6 +12,7 @@ class CaseModel {
   final String budgetRange;
   final String urgency;
   final String status;
+  final String? preferredCourt;
   final List<DocumentModel> documents;
   final List<CaseProposalModel> proposals;
   final String? assignedLawyerId;
@@ -32,6 +33,7 @@ class CaseModel {
     required this.budgetRange,
     required this.urgency,
     required this.status,
+    this.preferredCourt,
     required this.documents,
     required this.proposals,
     this.assignedLawyerId,
@@ -59,7 +61,8 @@ class CaseModel {
       location: json['location'] ?? '',
       budgetRange: json['budgetRange'] ?? '',
       urgency: json['urgency'] ?? 'Flexible',
-      status: json['status'] ?? 'active',
+      status: json['status'] ?? 'Submitted',
+      preferredCourt: json['preferredCourt'],
       documents: (json['documents'] as List?)
               ?.map((d) => DocumentModel.fromJson(d))
               .toList() ??

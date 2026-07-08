@@ -31,6 +31,26 @@ class DocumentController {
     }
   }
 
+  async getDocumentById(req, res, next) {
+    try {
+      const { id } = req.params;
+      const document = await Document.findById(id);
+      
+      if (!document) {
+        return ApiResponse.error(res, "Document not found.", 404);
+      }
+
+      // Check ownership
+      if (req.user.role === "client" && document.clientId.toString() !== req.user._id.toString()) {
+        return ApiResponse.error(res, "Unauthorized.", 403);
+      }
+
+      return ApiResponse.success(res, "Document details fetched successfully.", document);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getDocuments(req, res, next) {
     try {
       let query = {};
