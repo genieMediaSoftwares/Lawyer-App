@@ -95,10 +95,22 @@ const lawyerSchema = new mongoose.Schema(
       type: String,
       default: "9:00 AM - 6:00 PM",
     },
+    casesHandled: {
+      type: Number,
+      default: 120,
+    },
+    winPercentage: {
+      type: Number,
+      default: 85,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+lawyerSchema.index({ user: 1 });
+lawyerSchema.index({ rating: -1 });
+lawyerSchema.index({ experience: -1 });
 
 module.exports = mongoose.model("Lawyer", lawyerSchema);

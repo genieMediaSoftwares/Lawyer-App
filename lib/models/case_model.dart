@@ -8,6 +8,7 @@ class CaseModel {
   final String title;
   final String description;
   final String category;
+  final String? subcategory;
   final String location;
   final String budgetRange;
   final String urgency;
@@ -21,6 +22,15 @@ class CaseModel {
   final List<MilestoneModel> milestones;
   final DateTime createdAt;
 
+  final String? selectedLawyerId;
+  final String? selectedLawyerName;
+  final String? selectedLawyerImage;
+  final String? selectedLawyerSpecialization;
+  final int? selectedLawyerExperience;
+  final double? selectedLawyerRating;
+  final int? selectedLawyerFee;
+  final bool? selectedLawyerVerified;
+
   CaseModel({
     required this.id,
     required this.clientId,
@@ -29,6 +39,7 @@ class CaseModel {
     required this.title,
     required this.description,
     required this.category,
+    this.subcategory,
     required this.location,
     required this.budgetRange,
     required this.urgency,
@@ -41,6 +52,14 @@ class CaseModel {
     this.assignedLawyerImage,
     required this.milestones,
     required this.createdAt,
+    this.selectedLawyerId,
+    this.selectedLawyerName,
+    this.selectedLawyerImage,
+    this.selectedLawyerSpecialization,
+    this.selectedLawyerExperience,
+    this.selectedLawyerRating,
+    this.selectedLawyerFee,
+    this.selectedLawyerVerified,
   });
 
   factory CaseModel.fromJson(Map<String, dynamic> json) {
@@ -50,6 +69,10 @@ class CaseModel {
     final lawyerData = json['assignedLawyer'] is Map<String, dynamic> ? json['assignedLawyer'] : {};
     final lId = json['assignedLawyer'] is String ? json['assignedLawyer'] : (lawyerData['_id'] ?? '');
 
+    final selLawyerData = json['selectedLawyer'] is Map<String, dynamic> ? json['selectedLawyer'] : {};
+    final selLawyerId = json['selectedLawyer'] is String ? json['selectedLawyer'] : (selLawyerData['_id'] ?? '');
+    final selLawyerProfile = json['selectedLawyerProfile'] is Map<String, dynamic> ? json['selectedLawyerProfile'] : {};
+
     return CaseModel(
       id: json['_id'] ?? '',
       clientId: cId,
@@ -58,6 +81,7 @@ class CaseModel {
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       category: json['category'] ?? '',
+      subcategory: json['subcategory'],
       location: json['location'] ?? '',
       budgetRange: json['budgetRange'] ?? '',
       urgency: json['urgency'] ?? 'Flexible',
@@ -81,6 +105,14 @@ class CaseModel {
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
+      selectedLawyerId: selLawyerId.isNotEmpty ? selLawyerId : null,
+      selectedLawyerName: selLawyerData['fullName'],
+      selectedLawyerImage: selLawyerData['profileImage'],
+      selectedLawyerSpecialization: selLawyerProfile['specialization'],
+      selectedLawyerExperience: selLawyerProfile['experience'],
+      selectedLawyerRating: (selLawyerProfile['rating'] as num?)?.toDouble(),
+      selectedLawyerFee: selLawyerProfile['consultationFee'],
+      selectedLawyerVerified: selLawyerData['isVerified'] ?? false,
     );
   }
 }

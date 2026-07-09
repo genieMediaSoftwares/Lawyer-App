@@ -217,7 +217,27 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  if (caseItem.status == 'Submitted') ...[
+                  if (caseItem.status == 'Awaiting Lawyer Acceptance') ...[
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 12,
+                          backgroundImage: caseItem.selectedLawyerImage != null && caseItem.selectedLawyerImage!.isNotEmpty
+                              ? NetworkImage(caseItem.selectedLawyerImage!)
+                              : null,
+                          child: caseItem.selectedLawyerImage == null || caseItem.selectedLawyerImage!.isEmpty
+                              ? const Icon(Icons.person, size: 14)
+                              : null,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          caseItem.selectedLawyerName ?? "Selected Lawyer",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: theme.textTheme.titleMedium?.color),
+                        ),
+                      ],
+                    ),
+                    const Text("Awaiting Acceptance", style: TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold, fontSize: 13)),
+                  ] else if (caseItem.status == 'Submitted') ...[
                     Text(
                       "${caseItem.proposals.length} Proposals Received",
                       style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary, fontSize: 13),
@@ -259,6 +279,8 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   Color _getStatusColor(BuildContext context, String status) {
     final theme = Theme.of(context);
     switch (status) {
+      case 'Awaiting Lawyer Acceptance':
+        return AppColors.primaryGold;
       case 'Submitted':
         return AppColors.warning;
       case 'In Progress':

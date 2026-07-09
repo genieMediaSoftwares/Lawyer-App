@@ -268,6 +268,107 @@ class LawyerController {
       next(error);
     }
   }
+
+  async recommendLawyers(req, res, next) {
+    try {
+      const { category, subcategory, city, district, state } = req.query;
+
+      if (!category) {
+        return ApiResponse.error(res, "Category is required for recommendation.", 400);
+      }
+
+      // Fetch all lawyers with populated user details
+      const allLawyers = await Lawyer.find().populate(
+        "user",
+        "fullName email mobile profileImage location isVerified isActive"
+      );
+
+      // Filter by specialization matching the selected category
+      const categoryFiltered = allLawyers.filter((lawyer) => {
+        if (!lawyer.specialization) return false;
+        const s = lawyer.specialization.toLowerCase();
+        const c = category.toLowerCase();
+        
+        if (s === c) return true;
+        if (c.includes("family") || c.includes("divorce")) {
+          return s.includes("family") || s.includes("divorce");
+        }
+        if (c.includes("property") || c.includes("land")) {
+          return s.includes("property") || s.includes("dispute");
+        }
+        if (c.includes("labour") || c.includes("employment")) {
+          return s.includes("labour") || s.includes("work") || s.includes("employment");
+        }
+        return s.includes(c) || c.includes(s);
+      });
+
+      let recommended = [];
+
+      // Priority 1: Same City
+      if (city) {
+        recommended = categoryFiltered.filter((l) => {
+          if (!l.user || !l.user.location) return false;
+          return l.user.location.toLowerCase().includes(city.toLowerCase());
+        });
+      }
+
+      // Priority 2: Same District (Fallback)
+      if (recommended.length === 0 && district) {
+        recommended = categoryFiltered.filter((l) => {
+          if (!l.user || !l.user.location) return false;
+          return l.user.location.toLowerCase().includes(district.toLowerCase());
+        });
+      }
+
+      // Priority 3: Same State (Fallback)
+      if (recommended.length === 0 && state) {
+        recommended = categoryFiltered.filter((l) => {
+          if (!l.user || !l.user.location) return false;
+          return l.user.location.toLowerCase().includes(state.toLowerCase());
+        });
+      }
+
+      // If still none, return all matching category
+      if (recommended.length === 0) {
+        recommended = categoryFiltered;
+      }
+
+      // Sort results
+      recommended.sort((a, b) => {
+        // 1. Same City First
+        if (city) {
+          const aInCity = a.user && a.user.location && a.user.location.toLowerCase().includes(city.toLowerCase()) ? 1 : 0;
+          const bInCity = b.user && b.user.location && b.user.location.toLowerCase().includes(city.toLowerCase()) ? 1 : 0;
+          if (aInCity !== bInCity) {
+            return bInCity - aInCity;
+          }
+        }
+
+        // 2. Highest Rating First
+        const aRating = a.rating || 0;
+        const bRating = b.rating || 0;
+        if (bRating !== aRating) {
+          return bRating - aRating;
+        }
+
+        // 3. Most Experience First
+        const aExp = a.experience || 0;
+        const bExp = b.experience || 0;
+        if (bExp !== aExp) {
+          return bExp - aExp;
+        }
+
+        // 4. Verified Lawyers First
+        const aVerified = a.user && a.user.isVerified ? 1 : 0;
+        const bVerified = b.user && b.user.isVerified ? 1 : 0;
+        return bVerified - aVerified;
+      });
+
+      return ApiResponse.success(res, "Recommended lawyers fetched successfully.", recommended);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new LawyerController();

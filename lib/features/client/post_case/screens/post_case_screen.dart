@@ -20,6 +20,8 @@ import '../../../../models/place_model.dart';
 import '../../../../models/court_model.dart' as cmodel;
 import '../../../../providers/court_provider.dart';
 import '../../../../providers/place_provider.dart';
+import '../../../../models/lawyer_model.dart';
+import '../../../../providers/lawyer_provider.dart';
 
 class PostCaseScreen extends ConsumerStatefulWidget {
   final String? preselectedCategory;
@@ -31,6 +33,10 @@ class PostCaseScreen extends ConsumerStatefulWidget {
 
 class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   int _currentStep = 0;
+
+  // Selected lawyer state
+  LawyerModel? _selectedLawyer;
+  bool _viewAllLawyers = false;
 
   // Form State
   String? _selectedCategory;
@@ -233,6 +239,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         _selectedSubcategory == null ||
         _descriptionController.text.trim().length < 20 ||
         _selectedCityName == null ||
+        _selectedLawyer == null ||
         !_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please complete all required fields and agree to the terms.")),
@@ -244,10 +251,12 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           title: _selectedSubcategory!,
           description: _descriptionController.text,
           category: _selectedCategory!,
+          subcategory: _selectedSubcategory!,
           location: _cityController.text,
           urgency: _selectedUrgency ?? "Flexible",
           preferredCourt: _selectedCourtName,
           documents: _uploadedDocs,
+          selectedLawyer: _selectedLawyer!.userId,
         );
 
     if (newCase != null) {
@@ -313,7 +322,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           _buildStepDivider(_currentStep >= 2),
           _buildStepIndicator(3, "Documents", _currentStep >= 2),
           _buildStepDivider(_currentStep >= 3),
-          _buildStepIndicator(4, "Review", _currentStep >= 3),
+          _buildStepIndicator(4, "Lawyers", _currentStep >= 3),
+          _buildStepDivider(_currentStep >= 4),
+          _buildStepIndicator(5, "Review", _currentStep >= 4),
         ],
       ),
     );
@@ -381,7 +392,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       case 2:
         return _buildStep3Documents();
       case 3:
-        return _buildStep4Review();
+        return _buildStep4RecommendedLawyers();
+      case 4:
+        return _buildStep5Review();
       default:
         return Container();
     }
@@ -1300,7 +1313,549 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     _showUploadOptionsBottomSheet();
   }
 
-  Widget _buildStep4Review() {
+  Widget _buildStep4RecommendedLawyers() {
+    final theme = Theme.of(context);
+    final primaryTextColor = theme.textTheme.titleMedium?.color;
+    final secondaryTextColor = theme.textTheme.bodySmall?.color;
+
+    final queryParams = {
+      "category": _selectedCategory ?? "",
+      "subcategory": _selectedSubcategory ?? "",
+      "city": _selectedCityName ?? "",
+      "district": _selectedDistrictName ?? "",
+      "state": _selectedStateName ?? "",
+    };
+
+    final recommendedState = ref.watch(recommendedLawyersProvider(queryParams));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Recommended Lawyers",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          "We've automatically matched lawyers in your area specializing in ${_selectedSubcategory ?? _selectedCategory}.",
+          style: TextStyle(color: secondaryTextColor, fontSize: 13),
+        ),
+        const SizedBox(height: 20),
+
+        recommendedState.when(
+          data: (lawyers) {
+            if (lawyers.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40.0),
+                  child: Column(
+                    children: [
+                      Icon(Icons.person_search_outlined, size: 64, color: AppColors.mutedText.withOpacity(0.5)),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "No Recommended Lawyers Found",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primaryText),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Try picking a different city or location in the previous step.",
+                        style: TextStyle(color: secondaryTextColor, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            final visibleCount = _viewAllLawyers ? lawyers.length : (lawyers.length > 5 ? 5 : lawyers.length);
+            final visibleLawyers = lawyers.take(visibleCount).toList();
+
+            return Column(
+              children: [
+                ...visibleLawyers.map((lawyer) {
+                  final isSelected = _selectedLawyer?.userId == lawyer.userId;
+                  return _buildLawyerCard(lawyer, isSelected);
+                }),
+                if (lawyers.length > 5 && !_viewAllLawyers) ...[
+                  const SizedBox(height: 8),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _viewAllLawyers = true;
+                        });
+                      },
+                      icon: const Icon(Icons.arrow_forward, color: AppColors.primaryGold, size: 16),
+                      label: const Text(
+                        "View More Lawyers →",
+                        style: TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            );
+          },
+          loading: () => Column(
+            children: List.generate(3, (index) => _buildSkeletonCard()),
+          ),
+          error: (err, stack) => Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40.0),
+              child: Column(
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  const SizedBox(height: 16),
+                  Text("Error loading recommendations: $err", style: TextStyle(color: primaryTextColor)),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => ref.invalidate(recommendedLawyersProvider(queryParams)),
+                    child: const Text("Retry"),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSkeletonCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: const BoxDecoration(color: AppColors.border, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(width: 120, height: 16, color: AppColors.border),
+                    const SizedBox(height: 8),
+                    Container(width: 80, height: 12, color: AppColors.border),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(width: double.infinity, height: 1, color: AppColors.border),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(width: 100, height: 12, color: AppColors.border),
+              Container(width: 80, height: 12, color: AppColors.border),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLawyerCard(LawyerModel lawyer, bool isSelected) {
+    final theme = Theme.of(context);
+    final isOnline = (lawyer.rating * 10).toInt() % 2 == 0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected ? AppColors.primaryGold : AppColors.border,
+          width: isSelected ? 2 : 1,
+        ),
+        boxShadow: [
+          if (isSelected)
+            BoxShadow(
+              color: AppColors.primaryGold.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundImage: lawyer.profileImage.isNotEmpty
+                          ? NetworkImage(lawyer.profileImage)
+                          : null,
+                      child: lawyer.profileImage.isEmpty
+                          ? const Icon(Icons.person, size: 30, color: Colors.grey)
+                          : null,
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: isOnline ? AppColors.success : AppColors.disabledText,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.cardBackground, width: 2),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              lawyer.fullName,
+                              style: const TextStyle(
+                                color: AppColors.primaryText,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.verified, color: AppColors.primaryGold, size: 16),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        lawyer.specialization,
+                        style: const TextStyle(color: AppColors.mutedText, fontSize: 13),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined, color: AppColors.mutedText, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            lawyer.location.isNotEmpty ? lawyer.location.split(',').first : "Location",
+                            style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
+                          ),
+                          const SizedBox(width: 12),
+                          const Icon(Icons.work_outline, color: AppColors.mutedText, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            "${lawyer.experience} Yrs Exp",
+                            style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(color: AppColors.border),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.star, color: AppColors.primaryGold, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      "${lawyer.rating} (${lawyer.totalReviews} Reviews)",
+                      style: const TextStyle(color: AppColors.primaryText, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                Text(
+                  "${lawyer.casesHandled} Cases Handled",
+                  style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    "Languages: ${lawyer.languages.isEmpty ? 'English' : lawyer.languages.take(2).join(', ')}",
+                    style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  "Fee: ₹${lawyer.consultationFee}",
+                  style: const TextStyle(color: AppColors.primaryGold, fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _viewLawyerProfileBottomSheet(lawyer),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primaryText,
+                      side: const BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text("View Profile", style: TextStyle(fontSize: 13)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedLawyer = lawyer;
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isSelected ? AppColors.primaryGold.withOpacity(0.2) : AppColors.primaryGold,
+                      foregroundColor: isSelected ? AppColors.primaryGold : Colors.black,
+                      side: isSelected ? const BorderSide(color: AppColors.primaryGold, width: 1.5) : null,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (isSelected) ...[
+                          const Icon(Icons.check, size: 16),
+                          const SizedBox(width: 4),
+                          const Text("Selected", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        ] else ...[
+                          const Text("Select Lawyer", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _viewLawyerProfileBottomSheet(LawyerModel lawyer) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.secondaryBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: AppColors.border,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 40,
+                        backgroundImage: lawyer.profileImage.isNotEmpty
+                            ? NetworkImage(lawyer.profileImage)
+                            : null,
+                        child: lawyer.profileImage.isEmpty
+                            ? const Icon(Icons.person, size: 40, color: Colors.grey)
+                            : null,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    lawyer.fullName,
+                                    style: const TextStyle(
+                                      color: AppColors.primaryText,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                                ),
+                                const Icon(Icons.verified, color: AppColors.primaryGold, size: 20),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              lawyer.specialization,
+                              style: const TextStyle(color: AppColors.primaryGold, fontSize: 14, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              lawyer.location,
+                              style: const TextStyle(color: AppColors.mutedText, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildProfileStat("Experience", "${lawyer.experience} Yrs"),
+                      _buildProfileStat("Rating", "${lawyer.rating} ★"),
+                      _buildProfileStat("Cases", "${lawyer.casesHandled}"),
+                      _buildProfileStat("Win Rate", "${lawyer.winPercentage}%"),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const Divider(color: AppColors.border),
+                  const SizedBox(height: 16),
+                  
+                  const Text("About Lawyer", style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  Text(
+                    lawyer.bio.isNotEmpty ? lawyer.bio : "Professional legal counsel.",
+                    style: const TextStyle(color: AppColors.secondaryText, fontSize: 14, height: 1.5),
+                  ),
+                  const SizedBox(height: 20),
+
+                  const Text("Practice Areas", style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildSheetChip(lawyer.specialization),
+                      _buildSheetChip("Legal Consultation"),
+                      _buildSheetChip("Case Representation"),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  _buildDetailRow("Education", lawyer.education.isNotEmpty ? lawyer.education : "LLB, Law University"),
+                  _buildDetailRow("Bar Council Reg", lawyer.barCouncilNumber.isNotEmpty ? lawyer.barCouncilNumber : "IND/2026/BAR"),
+                  _buildDetailRow("Languages", lawyer.languages.isEmpty ? 'English' : lawyer.languages.join(", ")),
+                  _buildDetailRow("Office Address", lawyer.officeAddress.isNotEmpty ? lawyer.officeAddress : "Office Suite, City Center"),
+                  _buildDetailRow("Working Hours", lawyer.workingHours),
+                  _buildDetailRow("Consultation Fee", "₹${lawyer.consultationFee}", valueColor: AppColors.primaryGold, isBoldValue: true),
+
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedLawyer = lawyer;
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: const Text("Select This Lawyer"),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildProfileStat(String label, String value) {
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(color: AppColors.mutedText, fontSize: 12)),
+      ],
+    );
+  }
+
+  Widget _buildSheetChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Text(label, style: const TextStyle(color: AppColors.primaryGold, fontSize: 12)),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, {Color? valueColor, bool isBoldValue = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(label, style: const TextStyle(color: AppColors.mutedText, fontSize: 13, fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: valueColor ?? AppColors.secondaryText,
+                fontSize: 13,
+                fontWeight: isBoldValue ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep5Review() {
     final theme = Theme.of(context);
     final primaryTextColor = theme.textTheme.titleMedium?.color;
     return Column(
@@ -1339,10 +1894,79 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               const Divider(height: 24),
               _buildReviewRow("Urgency", _selectedUrgency ?? "Flexible"),
               const Divider(height: 24),
-              _buildReviewRow("Documents", "${_uploadedDocs.length} Documents Uploaded"),
+              _buildReviewRow("Uploaded Acknowledgement", _uploadedDocRecord?.originalName ?? "None Uploaded"),
             ],
           ),
         ),
+        const SizedBox(height: 24),
+        if (_selectedLawyer != null) ...[
+          Text(
+            "Selected Lawyer",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.primaryGold, width: 1.5),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundImage: _selectedLawyer!.profileImage.isNotEmpty
+                      ? NetworkImage(_selectedLawyer!.profileImage)
+                      : null,
+                  child: _selectedLawyer!.profileImage.isEmpty
+                      ? const Icon(Icons.person, color: Colors.grey)
+                      : null,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _selectedLawyer!.fullName,
+                              style: const TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                          ),
+                          const Icon(Icons.verified, color: AppColors.primaryGold, size: 16),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${_selectedLawyer!.specialization} • ${_selectedLawyer!.experience} Yrs Exp",
+                        style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: AppColors.primaryGold, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            "${_selectedLawyer!.rating} (${_selectedLawyer!.totalReviews} Reviews)",
+                            style: const TextStyle(color: AppColors.primaryText, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(width: 16),
+                          Text(
+                            "Fee: ₹${_selectedLawyer!.consultationFee}",
+                            style: const TextStyle(color: AppColors.primaryGold, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1365,7 +1989,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   }
 
   Widget _buildBottomActionBar() {
-    final bool isLast = _currentStep == 3;
+    final bool isLast = _currentStep == 4;
     final theme = Theme.of(context);
     
     final bool isForm1Valid = _descriptionController.text.trim().length >= 20 &&
@@ -1375,7 +1999,8 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
     final bool nextDisabled = (_currentStep == 0 && _selectedSubcategory == null) ||
         (_currentStep == 1 && !isForm1Valid) ||
-        (_currentStep == 2 && _uploadedDocRecord == null);
+        (_currentStep == 2 && _uploadedDocRecord == null) ||
+        (_currentStep == 3 && _selectedLawyer == null);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),

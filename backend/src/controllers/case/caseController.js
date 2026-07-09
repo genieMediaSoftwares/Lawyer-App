@@ -1,32 +1,43 @@
 const Case = require("../../models/Case");
 const User = require("../../models/User");
+const Lawyer = require("../../models/Lawyer");
 const ApiResponse = require("../../config/ApiResponse");
 
 class CaseController {
   async createCase(req, res, next) {
     try {
-      const { title, description, category, location, budgetRange, urgency, preferredCourt, documents } = req.body;
+      const { title, description, category, subcategory, location, budgetRange, urgency, preferredCourt, documents, selectedLawyer } = req.body;
       const client = req.user._id;
 
-      // Add default milestones for case tracking
-      const milestones = [
-        { title: "Case Posted", isCompleted: true },
-        { title: "Proposals Received", isCompleted: false },
-        { title: "Consultation Scheduled", isCompleted: false },
-        { title: "In Progress", isCompleted: false },
-        { title: "Closed", isCompleted: false }
-      ];
+      const hasSelectedLawyer = !!selectedLawyer;
+      const milestones = hasSelectedLawyer
+        ? [
+            { title: "Case Posted", isCompleted: true },
+            { title: "Awaiting Lawyer Acceptance", isCompleted: true },
+            { title: "In Progress", isCompleted: false },
+            { title: "Closed", isCompleted: false }
+          ]
+        : [
+            { title: "Case Posted", isCompleted: true },
+            { title: "Proposals Received", isCompleted: false },
+            { title: "Consultation Scheduled", isCompleted: false },
+            { title: "In Progress", isCompleted: false },
+            { title: "Closed", isCompleted: false }
+          ];
 
       const newCase = await Case.create({
         client,
         title,
         description,
         category,
+        subcategory: subcategory || "",
         location,
         budgetRange: budgetRange || "",
         urgency,
         preferredCourt: preferredCourt || "",
         documents: documents || [],
+        selectedLawyer: selectedLawyer || null,
+        status: hasSelectedLawyer ? "Awaiting Lawyer Acceptance" : "Submitted",
         milestones
       });
 
@@ -42,11 +53,15 @@ class CaseController {
       if (req.user.role === "client") {
         query.client = req.user._id;
       } else if (req.user.role === "lawyer") {
-        // Lawyers see submitted cases or cases they are assigned to
+        // Lawyers see:
+        // 1. Submitted cases
+        // 2. Cases they are assigned to
+        // 3. Cases where they are the selectedLawyer (direct requests)
         query = {
           $or: [
             { status: "Submitted" },
-            { assignedLawyer: req.user._id }
+            { assignedLawyer: req.user._id },
+            { selectedLawyer: req.user._id }
           ]
         };
       }
@@ -54,8 +69,20 @@ class CaseController {
       const cases = await Case.find(query)
         .populate("client", "fullName email mobile profileImage")
         .populate("assignedLawyer", "fullName email mobile profileImage")
+        .populate("selectedLawyer", "fullName email mobile profileImage isVerified")
         .populate("proposals.lawyer", "fullName email mobile profileImage")
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean();
+
+      // Retrieve lawyer profile details for selectedLawyer dynamically
+      for (let c of cases) {
+        if (c.selectedLawyer) {
+          const profile = await Lawyer.findOne({ user: c.selectedLawyer._id }).lean();
+          if (profile) {
+            c.selectedLawyerProfile = profile;
+          }
+        }
+      }
 
       return ApiResponse.success(res, "Cases fetched successfully.", cases);
     } catch (error) {
@@ -69,10 +96,19 @@ class CaseController {
       const caseItem = await Case.findById(id)
         .populate("client", "fullName email mobile profileImage")
         .populate("assignedLawyer", "fullName email mobile profileImage")
-        .populate("proposals.lawyer", "fullName email mobile profileImage");
+        .populate("selectedLawyer", "fullName email mobile profileImage isVerified")
+        .populate("proposals.lawyer", "fullName email mobile profileImage")
+        .lean();
 
       if (!caseItem) {
         return ApiResponse.error(res, "Case not found.", 404);
+      }
+
+      if (caseItem.selectedLawyer) {
+        const profile = await Lawyer.findOne({ user: caseItem.selectedLawyer._id }).lean();
+        if (profile) {
+          caseItem.selectedLawyerProfile = profile;
+        }
       }
 
       return ApiResponse.success(res, "Case details fetched successfully.", caseItem);
@@ -195,6 +231,74 @@ class CaseController {
       }
 
       return ApiResponse.success(res, "Milestone updated successfully.", caseItem);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async acceptCaseRequest(req, res, next) {
+    try {
+      const { id } = req.params;
+      const lawyerId = req.user._id;
+
+      const caseItem = await Case.findById(id);
+      if (!caseItem) {
+        return ApiResponse.error(res, "Case not found.", 404);
+      }
+
+      if (!caseItem.selectedLawyer || caseItem.selectedLawyer.toString() !== lawyerId.toString()) {
+        return ApiResponse.error(res, "You are not the selected lawyer for this case.", 403);
+      }
+
+      caseItem.assignedLawyer = lawyerId;
+      caseItem.status = "In Progress";
+
+      // Complete In Progress milestone
+      const inProgressMilestone = caseItem.milestones.find((m) => m.title === "In Progress");
+      if (inProgressMilestone) {
+        inProgressMilestone.isCompleted = true;
+      }
+
+      await caseItem.save();
+
+      // Emit real-time case update
+      const io = req.app.get("io");
+      if (io) {
+        io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
+        io.of("/cases").to(lawyerId.toString()).emit("case_updated", caseItem);
+      }
+
+      return ApiResponse.success(res, "Case request accepted and lawyer assigned.", caseItem);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async rejectCaseRequest(req, res, next) {
+    try {
+      const { id } = req.params;
+      const lawyerId = req.user._id;
+
+      const caseItem = await Case.findById(id);
+      if (!caseItem) {
+        return ApiResponse.error(res, "Case not found.", 404);
+      }
+
+      if (!caseItem.selectedLawyer || caseItem.selectedLawyer.toString() !== lawyerId.toString()) {
+        return ApiResponse.error(res, "You are not the selected lawyer for this case.", 403);
+      }
+
+      caseItem.status = "Rejected";
+      await caseItem.save();
+
+      // Emit real-time case update
+      const io = req.app.get("io");
+      if (io) {
+        io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
+        io.of("/cases").to(lawyerId.toString()).emit("case_updated", caseItem);
+      }
+
+      return ApiResponse.success(res, "Case request rejected.", caseItem);
     } catch (error) {
       next(error);
     }
