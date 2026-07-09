@@ -19,6 +19,8 @@ class LawyerModel {
   final String upiId;
   final String workingHours;
   final Map<String, dynamic> bankDetails;
+  final int casesHandled;
+  final int winPercentage;
 
   LawyerModel({
     required this.id,
@@ -41,6 +43,8 @@ class LawyerModel {
     required this.upiId,
     required this.workingHours,
     required this.bankDetails,
+    required this.casesHandled,
+    required this.winPercentage,
   });
 
   factory LawyerModel.fromJson(Map<String, dynamic> json) {
@@ -69,6 +73,8 @@ class LawyerModel {
       upiId: json['upiId'] ?? '',
       workingHours: json['workingHours'] ?? '9:00 AM - 6:00 PM',
       bankDetails: Map<String, dynamic>.from(json['bankDetails'] ?? {}),
+      casesHandled: json['casesHandled'] ?? 120,
+      winPercentage: json['winPercentage'] ?? 85,
     );
   }
 }
