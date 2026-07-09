@@ -21,6 +21,12 @@ class LawyerModel {
   final Map<String, dynamic> bankDetails;
   final int casesHandled;
   final int winPercentage;
+  
+  // Custom match/recommendation properties
+  final bool isVerified;
+  final String responseTime;
+  final int matchPercentage;
+  final bool onlineStatus;
 
   LawyerModel({
     required this.id,
@@ -45,36 +51,47 @@ class LawyerModel {
     required this.bankDetails,
     required this.casesHandled,
     required this.winPercentage,
+    required this.isVerified,
+    required this.responseTime,
+    required this.matchPercentage,
+    required this.onlineStatus,
   });
 
   factory LawyerModel.fromJson(Map<String, dynamic> json) {
     // Handling populated user or user ID
     final userData = json['user'] is Map<String, dynamic> ? json['user'] : {};
-    final uId = json['user'] is String ? json['user'] : (userData['_id'] ?? '');
+    final uId = json['user'] is String 
+        ? json['user'] 
+        : (userData['_id'] ?? (json['userId'] ?? ''));
+    final idVal = json['_id'] ?? (json['lawyerId'] ?? '');
 
     return LawyerModel(
-      id: json['_id'] ?? '',
+      id: idVal,
       userId: uId,
-      fullName: userData['fullName'] ?? 'Advocate',
-      email: userData['email'] ?? '',
-      mobile: userData['mobile'] ?? '',
-      profileImage: userData['profileImage'] ?? '',
+      fullName: json['fullName'] ?? (userData['fullName'] ?? 'Advocate'),
+      email: json['email'] ?? (userData['email'] ?? ''),
+      mobile: json['mobile'] ?? (userData['mobile'] ?? ''),
+      profileImage: json['profileImage'] ?? (userData['profileImage'] ?? ''),
       specialization: json['specialization'] ?? '',
       experience: json['experience'] ?? 0,
       education: json['education'] ?? '',
       consultationFee: json['consultationFee'] ?? 0,
       bio: json['bio'] ?? '',
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
-      totalReviews: json['totalReviews'] ?? 0,
+      totalReviews: json['reviewCount'] ?? (json['totalReviews'] ?? 0),
       languages: List<String>.from(json['languages'] ?? []),
       barCouncilNumber: json['barCouncilNumber'] ?? '',
-      location: userData['location'] ?? '',
+      location: json['location'] ?? (userData['location'] ?? ''),
       officeAddress: json['officeAddress'] ?? '',
       upiId: json['upiId'] ?? '',
       workingHours: json['workingHours'] ?? '9:00 AM - 6:00 PM',
       bankDetails: Map<String, dynamic>.from(json['bankDetails'] ?? {}),
       casesHandled: json['casesHandled'] ?? 120,
       winPercentage: json['winPercentage'] ?? 85,
+      isVerified: json['verified'] ?? (userData['isVerified'] ?? false),
+      responseTime: json['responseTime'] ?? 'Responds in 15 mins',
+      matchPercentage: json['matchPercentage'] ?? 80,
+      onlineStatus: json['onlineStatus'] ?? (userData['isActive'] ?? true),
     );
   }
 }

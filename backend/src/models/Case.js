@@ -101,6 +101,41 @@ const caseSchema = new mongoose.Schema(
         isCompleted: { type: Boolean, default: false },
       },
     ],
+
+    caseOutcome: {
+      type: String,
+      default: "",
+    },
+
+    claimAmount: {
+      type: String,
+      default: "",
+    },
+
+    consultationDate: {
+      type: Date,
+      default: null,
+    },
+
+    nextHearing: {
+      type: Date,
+      default: null,
+    },
+
+    closedDate: {
+      type: Date,
+      default: null,
+    },
+
+    rating: {
+      type: Number,
+      default: 0,
+    },
+
+    review: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,

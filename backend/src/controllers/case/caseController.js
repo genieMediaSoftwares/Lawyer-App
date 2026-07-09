@@ -74,12 +74,18 @@ class CaseController {
         .sort({ createdAt: -1 })
         .lean();
 
-      // Retrieve lawyer profile details for selectedLawyer dynamically
+      // Retrieve lawyer profile details dynamically
       for (let c of cases) {
         if (c.selectedLawyer) {
           const profile = await Lawyer.findOne({ user: c.selectedLawyer._id }).lean();
           if (profile) {
             c.selectedLawyerProfile = profile;
+          }
+        }
+        if (c.assignedLawyer) {
+          const profile = await Lawyer.findOne({ user: c.assignedLawyer._id }).lean();
+          if (profile) {
+            c.assignedLawyerProfile = profile;
           }
         }
       }
@@ -299,6 +305,154 @@ class CaseController {
       }
 
       return ApiResponse.success(res, "Case request rejected.", caseItem);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getInProgressCases(req, res, next) {
+    try {
+      let query = {
+        status: { $in: ["Awaiting Lawyer Acceptance", "In Progress"] }
+      };
+      if (req.user.role === "client") {
+        query.client = req.user._id;
+      } else if (req.user.role === "lawyer") {
+        query.$or = [
+          { assignedLawyer: req.user._id },
+          { selectedLawyer: req.user._id }
+        ];
+      }
+
+      const cases = await Case.find(query)
+        .populate("client", "fullName email mobile profileImage")
+        .populate("assignedLawyer", "fullName email mobile profileImage")
+        .populate("selectedLawyer", "fullName email mobile profileImage isVerified")
+        .populate("proposals.lawyer", "fullName email mobile profileImage")
+        .sort({ updatedAt: -1 })
+        .lean();
+
+      for (let c of cases) {
+        if (c.selectedLawyer) {
+          const profile = await Lawyer.findOne({ user: c.selectedLawyer._id }).lean();
+          if (profile) c.selectedLawyerProfile = profile;
+        }
+        if (c.assignedLawyer) {
+          const profile = await Lawyer.findOne({ user: c.assignedLawyer._id }).lean();
+          if (profile) c.assignedLawyerProfile = profile;
+        }
+      }
+
+      return ApiResponse.success(res, "In-progress cases fetched successfully.", cases);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getClosedCases(req, res, next) {
+    try {
+      let query = { status: "Closed" };
+      if (req.user.role === "client") {
+        query.client = req.user._id;
+      } else if (req.user.role === "lawyer") {
+        query.$or = [
+          { assignedLawyer: req.user._id },
+          { selectedLawyer: req.user._id }
+        ];
+      }
+
+      const cases = await Case.find(query)
+        .populate("client", "fullName email mobile profileImage")
+        .populate("assignedLawyer", "fullName email mobile profileImage")
+        .populate("selectedLawyer", "fullName email mobile profileImage isVerified")
+        .populate("proposals.lawyer", "fullName email mobile profileImage")
+        .sort({ updatedAt: -1 })
+        .lean();
+
+      for (let c of cases) {
+        if (c.selectedLawyer) {
+          const profile = await Lawyer.findOne({ user: c.selectedLawyer._id }).lean();
+          if (profile) c.selectedLawyerProfile = profile;
+        }
+        if (c.assignedLawyer) {
+          const profile = await Lawyer.findOne({ user: c.assignedLawyer._id }).lean();
+          if (profile) c.assignedLawyerProfile = profile;
+        }
+      }
+
+      return ApiResponse.success(res, "Closed cases fetched successfully.", cases);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getCaseTimeline(req, res, next) {
+    try {
+      const { id } = req.params;
+      const caseItem = await Case.findById(id).select("milestones status").lean();
+      if (!caseItem) {
+        return ApiResponse.error(res, "Case not found.", 404);
+      }
+      return ApiResponse.success(res, "Case timeline fetched successfully.", {
+        status: caseItem.status,
+        milestones: caseItem.milestones || []
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getCaseLawyer(req, res, next) {
+    try {
+      const { id } = req.params;
+      const caseItem = await Case.findById(id)
+        .populate("selectedLawyer", "fullName email mobile profileImage isVerified")
+        .populate("assignedLawyer", "fullName email mobile profileImage isVerified")
+        .lean();
+
+      if (!caseItem) {
+        return ApiResponse.error(res, "Case not found.", 404);
+      }
+
+      const targetUser = caseItem.assignedLawyer || caseItem.selectedLawyer;
+      if (!targetUser) {
+        return ApiResponse.success(res, "No lawyer associated with this case.", null);
+      }
+
+      const profile = await Lawyer.findOne({ user: targetUser._id }).lean();
+      return ApiResponse.success(res, "Case lawyer fetched successfully.", {
+        user: targetUser,
+        profile: profile || null
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async submitCaseReview(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { rating, review } = req.body;
+
+      const caseItem = await Case.findById(id);
+      if (!caseItem) {
+        return ApiResponse.error(res, "Case not found.", 404);
+      }
+
+      caseItem.rating = Number(rating);
+      caseItem.review = review;
+      await caseItem.save();
+
+      // Emit real-time case update
+      const io = req.app.get("io");
+      if (io) {
+        io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
+        if (caseItem.assignedLawyer) {
+          io.of("/cases").to(caseItem.assignedLawyer.toString()).emit("case_updated", caseItem);
+        }
+      }
+
+      return ApiResponse.success(res, "Review submitted successfully.", caseItem);
     } catch (error) {
       next(error);
     }

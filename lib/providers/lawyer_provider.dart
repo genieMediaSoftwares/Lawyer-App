@@ -126,8 +126,8 @@ final lawyerDetailsProvider = FutureProvider.family<LawyerModel, String>((ref, u
   throw Exception("Failed to load lawyer profile");
 });
 
-final recommendedLawyersProvider = FutureProvider.family<List<LawyerModel>, Map<String, String?>>((ref, params) async {
-  final response = await DioClient.dio.get("/lawyers/recommend", queryParameters: params);
+final recommendedLawyersProvider = FutureProvider.family<List<LawyerModel>, String>((ref, queryString) async {
+  final response = await DioClient.dio.get("/lawyers/recommend?$queryString");
   if (response.data != null && response.data['success'] == true) {
     final list = response.data['data'] as List;
     return list.map((item) => LawyerModel.fromJson(item)).toList();

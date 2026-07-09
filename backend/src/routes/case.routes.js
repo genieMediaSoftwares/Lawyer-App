@@ -9,11 +9,16 @@ router.use(authMiddleware);
 
 router.post("/", caseController.createCase);
 router.get("/", caseController.getCases);
+router.get("/status/in-progress", caseController.getInProgressCases);
+router.get("/status/closed", caseController.getClosedCases);
+router.get("/:id/timeline", caseController.getCaseTimeline);
+router.get("/:id/lawyer", caseController.getCaseLawyer);
 router.get("/:id", caseController.getCaseById);
 router.post("/:id/proposals", caseController.submitProposal);
 router.post("/:id/accept", caseController.acceptProposal);
 router.post("/:id/accept-request", caseController.acceptCaseRequest);
 router.post("/:id/reject-request", caseController.rejectCaseRequest);
 router.put("/:id/milestones", caseController.updateMilestone);
+router.post("/:id/review", caseController.submitCaseReview);
 
 module.exports = router;

@@ -31,6 +31,21 @@ class CaseModel {
   final int? selectedLawyerFee;
   final bool? selectedLawyerVerified;
 
+  final String? assignedLawyerSpecialization;
+  final int? assignedLawyerExperience;
+  final double? assignedLawyerRating;
+  final int? assignedLawyerFee;
+  final bool? assignedLawyerVerified;
+  final bool? assignedLawyerOnline;
+
+  final String? caseOutcome;
+  final String? claimAmount;
+  final DateTime? consultationDate;
+  final DateTime? nextHearing;
+  final DateTime? closedDate;
+  final double? rating;
+  final String? review;
+
   CaseModel({
     required this.id,
     required this.clientId,
@@ -60,6 +75,19 @@ class CaseModel {
     this.selectedLawyerRating,
     this.selectedLawyerFee,
     this.selectedLawyerVerified,
+    this.assignedLawyerSpecialization,
+    this.assignedLawyerExperience,
+    this.assignedLawyerRating,
+    this.assignedLawyerFee,
+    this.assignedLawyerVerified,
+    this.assignedLawyerOnline,
+    this.caseOutcome,
+    this.claimAmount,
+    this.consultationDate,
+    this.nextHearing,
+    this.closedDate,
+    this.rating,
+    this.review,
   });
 
   factory CaseModel.fromJson(Map<String, dynamic> json) {
@@ -68,6 +96,7 @@ class CaseModel {
 
     final lawyerData = json['assignedLawyer'] is Map<String, dynamic> ? json['assignedLawyer'] : {};
     final lId = json['assignedLawyer'] is String ? json['assignedLawyer'] : (lawyerData['_id'] ?? '');
+    final assignedLawyerProfile = json['assignedLawyerProfile'] is Map<String, dynamic> ? json['assignedLawyerProfile'] : {};
 
     final selLawyerData = json['selectedLawyer'] is Map<String, dynamic> ? json['selectedLawyer'] : {};
     final selLawyerId = json['selectedLawyer'] is String ? json['selectedLawyer'] : (selLawyerData['_id'] ?? '');
@@ -113,6 +142,19 @@ class CaseModel {
       selectedLawyerRating: (selLawyerProfile['rating'] as num?)?.toDouble(),
       selectedLawyerFee: selLawyerProfile['consultationFee'],
       selectedLawyerVerified: selLawyerData['isVerified'] ?? false,
+      assignedLawyerSpecialization: assignedLawyerProfile['specialization'],
+      assignedLawyerExperience: assignedLawyerProfile['experience'],
+      assignedLawyerRating: (assignedLawyerProfile['rating'] as num?)?.toDouble(),
+      assignedLawyerFee: assignedLawyerProfile['consultationFee'],
+      assignedLawyerVerified: lawyerData['isVerified'] ?? false,
+      assignedLawyerOnline: lawyerData['isActive'] ?? true,
+      caseOutcome: json['caseOutcome'] ?? '',
+      claimAmount: json['claimAmount'] ?? '',
+      consultationDate: json['consultationDate'] != null ? DateTime.parse(json['consultationDate']) : null,
+      nextHearing: json['nextHearing'] != null ? DateTime.parse(json['nextHearing']) : null,
+      closedDate: json['closedDate'] != null ? DateTime.parse(json['closedDate']) : null,
+      rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
+      review: json['review'] ?? '',
     );
   }
 }

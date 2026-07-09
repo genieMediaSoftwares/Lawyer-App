@@ -30,7 +30,10 @@ const seedData = async () => {
       "rahul.civil@genielaw.com",
       "sneha.cyber@genielaw.com",
       "anil.tax@genielaw.com",
-      "praveen.labour@genielaw.com"
+      "praveen.labour@genielaw.com",
+      "rajesh@genielaw.com",
+      "priya.sharma@genielaw.com",
+      "sandeep.reddy@genielaw.com"
     ] } });
     await Lawyer.deleteMany({});
     await Article.deleteMany({});
@@ -51,6 +54,90 @@ const seedData = async () => {
 
     // Lawyers
     console.log("🌱 Creating lawyer users and profiles...");
+
+    // 1. Adv. Rajesh Kumar (Criminal Lawyer - Visakhapatnam)
+    const rajeshUser = await User.create({
+      fullName: "Adv. Rajesh Kumar",
+      email: "rajesh@genielaw.com",
+      mobile: "9876543220",
+      password: "password123",
+      role: "lawyer",
+      isVerified: true,
+      profileImage: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150",
+      location: "Visakhapatnam, Andhra Pradesh"
+    });
+    await Lawyer.create({
+      user: rajeshUser._id,
+      specialization: "Criminal Lawyer",
+      experience: 8,
+      casesHandled: 320,
+      winPercentage: 88,
+      education: "LL.B., Andhra University College of Law",
+      consultationFee: 1000,
+      bio: "Advocate Rajesh Kumar is an expert criminal lawyer specializing in bail matters, criminal trials, and police station liaisoning. High success rate in local district courts.",
+      rating: 4.8,
+      totalReviews: 128,
+      languages: ["English", "Telugu", "Hindi"],
+      barCouncilNumber: "AP/4523/2018",
+      officeAddress: "4th Floor, Justice Chambers, Dwaraka Nagar, Visakhapatnam",
+      workingHours: "9:00 AM - 7:00 PM"
+    });
+
+    // 2. Adv. Priya Sharma (Criminal Lawyer - Visakhapatnam)
+    const priyaSharmaUser = await User.create({
+      fullName: "Adv. Priya Sharma",
+      email: "priya.sharma@genielaw.com",
+      mobile: "9876543221",
+      password: "password123",
+      role: "lawyer",
+      isVerified: true,
+      profileImage: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150",
+      location: "Visakhapatnam, Andhra Pradesh"
+    });
+    await Lawyer.create({
+      user: priyaSharmaUser._id,
+      specialization: "Criminal Lawyer",
+      experience: 10,
+      casesHandled: 450,
+      winPercentage: 92,
+      education: "LL.M. Criminal Law, NLSIU Bangalore",
+      consultationFee: 1200,
+      bio: "Advocate Priya Sharma has 10+ years of trial experience defending complex criminal litigations, white-collar crimes, and anticipatory bail representations.",
+      rating: 4.9,
+      totalReviews: 215,
+      languages: ["English", "Hindi", "Telugu"],
+      barCouncilNumber: "AP/9842/2016",
+      officeAddress: "Flat 202, Lawyers Residency, Sector 3, MVP Colony, Visakhapatnam",
+      workingHours: "10:00 AM - 6:00 PM"
+    });
+
+    // 3. Adv. Sandeep Reddy (Criminal Lawyer - Vizianagaram)
+    const sandeepReddyUser = await User.create({
+      fullName: "Adv. Sandeep Reddy",
+      email: "sandeep.reddy@genielaw.com",
+      mobile: "9876543222",
+      password: "password123",
+      role: "lawyer",
+      isVerified: true,
+      profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+      location: "Vizianagaram, Andhra Pradesh"
+    });
+    await Lawyer.create({
+      user: sandeepReddyUser._id,
+      specialization: "Criminal Lawyer",
+      experience: 6,
+      casesHandled: 200,
+      winPercentage: 84,
+      education: "LL.B., Damodaram Sanjivayya National Law University",
+      consultationFee: 800,
+      bio: "Specialist in cyber crimes, trial court proceedings, bail petitions, and general criminal advisory with 6+ years of active litigation practice.",
+      rating: 4.7,
+      totalReviews: 96,
+      languages: ["Telugu", "English"],
+      barCouncilNumber: "AP/2214/2020",
+      officeAddress: "Main Road Opp. District Court Complex, Vizianagaram",
+      workingHours: "9:00 AM - 5:00 PM"
+    });
 
     // Property Disputes
     const sandeepUser = await User.create({
