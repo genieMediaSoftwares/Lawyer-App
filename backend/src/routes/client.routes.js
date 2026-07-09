@@ -6,6 +6,11 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
+router.get("/profile", clientController.getClientProfile);
+router.put("/profile", clientController.updateClientProfile);
+router.get("/activity", clientController.getClientActivity);
+router.get("/stats", clientController.getClientStats);
+
 router.get("/", clientController.getClients);
 router.get("/:id", clientController.getClientById);
 router.post("/:id/notes", clientController.addNote);

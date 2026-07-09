@@ -185,13 +185,32 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
               ],
               Row(
                 children: [
-                  Icon(Icons.location_on_outlined, size: 14, color: theme.textTheme.bodySmall?.color),
-                  const SizedBox(width: 4),
-                  Text(caseItem.location, style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 12)),
-                  const Spacer(),
-                  Icon(Icons.calendar_today_outlined, size: 14, color: theme.textTheme.bodySmall?.color),
-                  const SizedBox(width: 4),
-                  Text(formattedDate, style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 12)),
+                  Expanded(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.location_on_outlined, size: 14, color: theme.textTheme.bodySmall?.color),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            caseItem.location,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.calendar_today_outlined, size: 14, color: theme.textTheme.bodySmall?.color),
+                      const SizedBox(width: 4),
+                      Text(formattedDate, style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 12)),
+                    ],
+                  ),
                 ],
               ),
               const Divider(height: 24),

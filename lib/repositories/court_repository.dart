@@ -6,20 +6,23 @@ class CourtRepository {
   final Map<String, List<CourtModel>> _courtCache = {};
 
   Future<List<CourtModel>> getCourtsByLocation({
-    required String city,
-    required String state,
+    String? city,
+    String? district,
+    String? state,
   }) async {
-    final cacheKey = "${city.toLowerCase().trim()}_${state.toLowerCase().trim()}";
+    final queryParameters = <String, dynamic>{};
+    if (city != null && city.isNotEmpty) queryParameters['city'] = city;
+    if (district != null && district.isNotEmpty) queryParameters['district'] = district;
+    if (state != null && state.isNotEmpty) queryParameters['state'] = state;
+
+    final cacheKey = "${city?.toLowerCase().trim()}_${district?.toLowerCase().trim()}_${state?.toLowerCase().trim()}";
     if (_courtCache.containsKey(cacheKey)) {
       return _courtCache[cacheKey]!;
     }
 
     final response = await DioClient.dio.get(
       "/courts",
-      queryParameters: {
-        "city": city,
-        "state": state,
-      },
+      queryParameters: queryParameters,
     );
 
     if (response.data != null && response.data['success'] == true) {

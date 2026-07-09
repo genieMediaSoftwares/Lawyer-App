@@ -94,6 +94,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(courtsProvider.notifier).fetchCourtsForLocation(
               city: _selectedCityName!,
+              district: _selectedDistrictName,
               stateName: _selectedStateName ?? "",
             );
       });
@@ -185,6 +186,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
         ref.read(courtsProvider.notifier).fetchCourtsForLocation(
               city: details.city,
+              district: details.district,
               stateName: details.state,
             );
       }
@@ -741,7 +743,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         if (_selectedCityName != null && !courtsState.isLoading && courtsState.courts.isEmpty) ...[
           const SizedBox(height: 8),
           const Text(
-            "No courts found for the selected location.",
+            "No courts available.",
             style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ],

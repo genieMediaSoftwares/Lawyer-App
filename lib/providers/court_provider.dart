@@ -36,11 +36,12 @@ class CourtsNotifier extends StateNotifier<CourtsState> {
 
   Future<void> fetchCourtsForLocation({
     required String city,
+    String? district,
     required String stateName,
   }) async {
     try {
       state = CourtsState.loading();
-      final courtsList = await _service.getCourts(city: city, state: stateName);
+      final courtsList = await _service.getCourts(city: city, district: district, state: stateName);
       state = CourtsState.success(courtsList);
     } catch (e) {
       state = CourtsState.error("Failed to load courts for the selected location.");
