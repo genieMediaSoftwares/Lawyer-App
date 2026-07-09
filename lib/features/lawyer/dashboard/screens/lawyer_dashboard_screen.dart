@@ -901,12 +901,15 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
     return casesState.when(
       data: (cases) {
-        final newLeadsCount = cases.where((c) => 
-          c.status == 'active' && 
-          c.assignedLawyerId == null && 
-          !c.proposals.any((p) => p.lawyerId == currentUserId) &&
-          !_dismissedLeads.contains(c.id)
-        ).length;
+        final newLeadsCount = cases.where((c) {
+          final isGeneral = (c.status == 'active' || c.status == 'Submitted') &&
+              c.assignedLawyerId == null &&
+              !c.proposals.any((p) => p.lawyerId == currentUserId) &&
+              !_dismissedLeads.contains(c.id);
+          final isDirect = c.status == 'Awaiting Lawyer Acceptance' &&
+              c.selectedLawyerId == currentUserId;
+          return isGeneral || isDirect;
+        }).length;
         
         final inProgressCount = cases.where((c) => 
           c.assignedLawyerId == null && 
@@ -919,12 +922,15 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
         List<CaseModel> filteredLeads = [];
         if (_selectedLeadsTab == 0) {
-          filteredLeads = cases.where((c) => 
-            c.status == 'active' && 
-            c.assignedLawyerId == null && 
-            !c.proposals.any((p) => p.lawyerId == currentUserId) &&
-            !_dismissedLeads.contains(c.id)
-          ).toList();
+          filteredLeads = cases.where((c) {
+            final isGeneral = (c.status == 'active' || c.status == 'Submitted') &&
+                c.assignedLawyerId == null &&
+                !c.proposals.any((p) => p.lawyerId == currentUserId) &&
+                !_dismissedLeads.contains(c.id);
+            final isDirect = c.status == 'Awaiting Lawyer Acceptance' &&
+                c.selectedLawyerId == currentUserId;
+            return isGeneral || isDirect;
+          }).toList();
         } else if (_selectedLeadsTab == 1) {
           filteredLeads = cases.where((c) => 
             c.assignedLawyerId == null && 
@@ -1048,14 +1054,24 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   child: Text(lead.category, style: const TextStyle(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.bold)),
                 ),
                 // Match percentage badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.gold.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
+                if (lead.status == 'Awaiting Lawyer Acceptance')
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.gold,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text("Direct Request", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.gold.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text("95% Match", style: TextStyle(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
-                  child: const Text("95% Match", style: TextStyle(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.bold)),
-                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -1069,7 +1085,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 const SizedBox(width: 16),
                 const Icon(Icons.currency_rupee, size: 14, color: AppColors.textSecondaryDark),
                 const SizedBox(width: 2),
-                Text(lead.budgetRange, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                Text(lead.budgetRange.isNotEmpty ? lead.budgetRange : "N/A", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
               ],
             ),
             const SizedBox(height: 12),
@@ -1078,34 +1094,124 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11),
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _showLeadDetailsDialog(lead),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 40),
-                      side: const BorderSide(color: AppColors.gold),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            if (lead.status == 'Awaiting Lawyer Acceptance') ...[
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: OutlinedButton(
+                      onPressed: () => _showLeadDetailsDialog(lead),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 40),
+                        side: const BorderSide(color: AppColors.gold),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text("View Case", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
-                    child: const Text("View Details", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _showProposalDialog(lead.id),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.black,
-                      minimumSize: const Size(double.infinity, 40),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text("Reject Request?"),
+                            content: const Text("Are you sure you want to reject this direct case request?"),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text("Reject", style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true) {
+                          final success = await ref.read(casesProvider.notifier).rejectCaseRequest(lead.id);
+                          if (success && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Case request rejected.")),
+                            );
+                          }
+                        }
+                      },
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 40),
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text("Reject", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
-                    child: const Text("Send Proposal", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 3,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text("Accept Request?"),
+                            content: const Text("Are you sure you want to accept this direct case request?"),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+                              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Accept")),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true) {
+                          final success = await ref.read(casesProvider.notifier).acceptCaseRequest(lead.id);
+                          if (success && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Case request accepted! Case is now In Progress.")),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(0, 40),
+                        backgroundColor: AppColors.gold,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text("Accept", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _showLeadDetailsDialog(lead),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 40),
+                        side: const BorderSide(color: AppColors.gold),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text("View Details", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _showProposalDialog(lead.id),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.black,
+                        minimumSize: const Size(double.infinity, 40),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text("Send Proposal", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

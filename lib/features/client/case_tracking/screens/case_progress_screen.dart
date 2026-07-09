@@ -59,7 +59,66 @@ class CaseProgressScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // Next Consultation Card
-                if (caseItem.assignedLawyerId != null) ...[
+                 if (caseItem.status == 'Awaiting Lawyer Acceptance' || caseItem.status == 'Rejected') ...[
+                   Text(
+                     caseItem.status == 'Rejected' ? "Request Declined" : "Awaiting Lawyer's Acceptance",
+                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color),
+                   ),
+                   const SizedBox(height: 12),
+                   Card(
+                     elevation: 0,
+                     shape: RoundedRectangleBorder(
+                       borderRadius: BorderRadius.circular(16),
+                       side: BorderSide(color: theme.colorScheme.outline),
+                     ),
+                     child: Padding(
+                       padding: const EdgeInsets.all(16),
+                       child: Row(
+                         children: [
+                           CircleAvatar(
+                             radius: 24,
+                             backgroundImage: caseItem.selectedLawyerImage != null && caseItem.selectedLawyerImage!.isNotEmpty
+                                 ? NetworkImage(caseItem.selectedLawyerImage!)
+                                 : null,
+                             child: caseItem.selectedLawyerImage == null || caseItem.selectedLawyerImage!.isEmpty
+                                 ? const Icon(Icons.person)
+                                 : null,
+                           ),
+                           const SizedBox(width: 12),
+                           Expanded(
+                             child: Column(
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                 Row(
+                                   children: [
+                                     Text(
+                                       caseItem.selectedLawyerName ?? "Selected Lawyer",
+                                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.titleMedium?.color),
+                                     ),
+                                     if (caseItem.selectedLawyerVerified == true) ...[
+                                       const SizedBox(width: 4),
+                                       const Icon(Icons.verified, color: AppColors.primaryGold, size: 16),
+                                     ],
+                                   ],
+                                 ),
+                                 const SizedBox(height: 4),
+                                 Text(
+                                   caseItem.selectedLawyerSpecialization ?? "Lawyer",
+                                   style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12),
+                                 ),
+                               ],
+                             ),
+                           ),
+                           Icon(
+                             caseItem.status == 'Rejected' ? Icons.cancel_outlined : Icons.hourglass_empty,
+                             color: caseItem.status == 'Rejected' ? AppColors.error : AppColors.primaryGold,
+                           ),
+                         ],
+                       ),
+                     ),
+                   ),
+                 ],
+                 if (caseItem.assignedLawyerId != null) ...[
                   Text("Next Consultation", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color)),
                   const SizedBox(height: 12),
                   _buildNextConsultationCard(context, caseItem, nextAppointment),
@@ -98,12 +157,22 @@ class CaseProgressScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    color: caseItem.status == 'Awaiting Lawyer Acceptance'
+                        ? AppColors.primaryGold.withOpacity(0.1)
+                        : (caseItem.status == 'Closed'
+                            ? AppColors.success.withOpacity(0.1)
+                            : (caseItem.status == 'Rejected' ? AppColors.error.withOpacity(0.1) : theme.colorScheme.primary.withOpacity(0.1))),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    "In Progress",
-                    style: TextStyle(color: theme.colorScheme.primary, fontSize: 11, fontWeight: FontWeight.bold),
+                    caseItem.status,
+                    style: TextStyle(
+                      color: caseItem.status == 'Awaiting Lawyer Acceptance'
+                          ? AppColors.primaryGold
+                          : (caseItem.status == 'Closed' ? AppColors.success : (caseItem.status == 'Rejected' ? AppColors.error : theme.colorScheme.primary)),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
