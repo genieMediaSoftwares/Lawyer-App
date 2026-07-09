@@ -40,21 +40,25 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     required String title,
     required String description,
     required String category,
+    String? subcategory,
     required String location,
     required String urgency,
     String? preferredCourt,
     List<DocumentModel>? documents,
+    String? selectedLawyer,
   }) async {
     try {
       final response = await DioClient.dio.post("/cases", data: {
         "title": title,
         "description": description,
         "category": category,
+        "subcategory": subcategory ?? "",
         "location": location,
         "budgetRange": "",
         "urgency": urgency,
         "preferredCourt": preferredCourt ?? "",
         "documents": documents?.map((d) => d.toJson()).toList() ?? [],
+        "selectedLawyer": selectedLawyer,
       });
 
       if (response.data != null && response.data['success'] == true) {
@@ -68,6 +72,32 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
       // Handle error
     }
     return null;
+  }
+
+  Future<bool> acceptCaseRequest(String caseId) async {
+    try {
+      final response = await DioClient.dio.post("/cases/$caseId/accept-request");
+      if (response.data != null && response.data['success'] == true) {
+        await fetchCases();
+        return true;
+      }
+    } catch (e) {
+      // Handle error
+    }
+    return false;
+  }
+
+  Future<bool> rejectCaseRequest(String caseId) async {
+    try {
+      final response = await DioClient.dio.post("/cases/$caseId/reject-request");
+      if (response.data != null && response.data['success'] == true) {
+        await fetchCases();
+        return true;
+      }
+    } catch (e) {
+      // Handle error
+    }
+    return false;
   }
 
   Future<bool> acceptProposal(String caseId, String lawyerId) async {

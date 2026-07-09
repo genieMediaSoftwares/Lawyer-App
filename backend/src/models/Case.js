@@ -24,6 +24,11 @@ const caseSchema = new mongoose.Schema(
       required: true,
     },
 
+    subcategory: {
+      type: String,
+      default: "",
+    },
+
     location: {
       type: String,
       required: true,
@@ -46,7 +51,7 @@ const caseSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Submitted", "In Progress", "Closed"],
+      enum: ["Submitted", "Awaiting Lawyer Acceptance", "In Progress", "Closed", "Rejected"],
       default: "Submitted",
     },
 
@@ -62,7 +67,7 @@ const caseSchema = new mongoose.Schema(
       {
         lawyer: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "User", // We reference User who has UserRole = lawyer
+          ref: "User",
         },
         feeProposal: {
           type: Number,
@@ -78,6 +83,11 @@ const caseSchema = new mongoose.Schema(
         },
       },
     ],
+
+    selectedLawyer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
 
     assignedLawyer: {
       type: mongoose.Schema.Types.ObjectId,
@@ -96,5 +106,10 @@ const caseSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+caseSchema.index({ client: 1 });
+caseSchema.index({ selectedLawyer: 1 });
+caseSchema.index({ assignedLawyer: 1 });
+caseSchema.index({ status: 1 });
 
 module.exports = mongoose.model("Case", caseSchema);

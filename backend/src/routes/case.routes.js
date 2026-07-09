@@ -12,6 +12,8 @@ router.get("/", caseController.getCases);
 router.get("/:id", caseController.getCaseById);
 router.post("/:id/proposals", caseController.submitProposal);
 router.post("/:id/accept", caseController.acceptProposal);
+router.post("/:id/accept-request", caseController.acceptCaseRequest);
+router.post("/:id/reject-request", caseController.rejectCaseRequest);
 router.put("/:id/milestones", caseController.updateMilestone);
 
 module.exports = router;
