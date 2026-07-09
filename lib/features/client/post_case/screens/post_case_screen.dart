@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
@@ -37,6 +38,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   // Selected lawyer state
   LawyerModel? _selectedLawyer;
   bool _viewAllLawyers = false;
+  String _sortByFilter = "Best Match";
 
   // Form State
   String? _selectedCategory;
@@ -1182,6 +1184,20 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   }
                 },
               ),
+              ListTile(
+                leading: const Icon(Icons.bug_report_outlined, color: Colors.amber),
+                title: Text("Mock Document Upload (For Testing)", style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final mockBytes = [137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 10, 73, 68, 65, 84, 120, 156, 99, 0, 1, 0, 0, 5, 0, 1, 13, 10, 45, 180, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130];
+                  await _processPickedFile(
+                    "",
+                    "mock_acknowledgement.png",
+                    bytes: mockBytes,
+                    size: mockBytes.length,
+                  );
+                },
+              ),
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.close, color: Colors.grey),
@@ -1312,34 +1328,51 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   void _replaceDocument() {
     _showUploadOptionsBottomSheet();
   }
-
   Widget _buildStep4RecommendedLawyers() {
     final theme = Theme.of(context);
     final primaryTextColor = theme.textTheme.titleMedium?.color;
     final secondaryTextColor = theme.textTheme.bodySmall?.color;
 
-    final queryParams = {
-      "category": _selectedCategory ?? "",
-      "subcategory": _selectedSubcategory ?? "",
-      "city": _selectedCityName ?? "",
-      "district": _selectedDistrictName ?? "",
-      "state": _selectedStateName ?? "",
-    };
+    final queryKey = "category=${Uri.encodeComponent(_selectedCategory ?? '')}"
+        "&subcategory=${Uri.encodeComponent(_selectedSubcategory ?? '')}"
+        "&city=${Uri.encodeComponent(_selectedCityName ?? '')}"
+        "&district=${Uri.encodeComponent(_selectedDistrictName ?? '')}"
+        "&state=${Uri.encodeComponent(_selectedStateName ?? '')}"
+        "&sortBy=${Uri.encodeComponent(_sortByFilter)}";
 
-    final recommendedState = ref.watch(recommendedLawyersProvider(queryParams));
+    final recommendedState = ref.watch(recommendedLawyersProvider(queryKey));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Recommended Lawyers",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Recommended Lawyers",
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primaryTextColor),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "We've matched the best lawyers for your issue (${_selectedSubcategory ?? _selectedCategory}) in ${_selectedCityName ?? 'your area'} and nearby areas.",
+                    style: TextStyle(color: secondaryTextColor, fontSize: 13, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            _buildWhyTheseLawyersButton(),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          "We've automatically matched lawyers in your area specializing in ${_selectedSubcategory ?? _selectedCategory}.",
-          style: TextStyle(color: secondaryTextColor, fontSize: 13),
-        ),
+        const SizedBox(height: 20),
+
+        // Filter Chips Row
+        _buildFiltersRow(),
         const SizedBox(height: 20),
 
         recommendedState.when(
@@ -1377,23 +1410,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   final isSelected = _selectedLawyer?.userId == lawyer.userId;
                   return _buildLawyerCard(lawyer, isSelected);
                 }),
-                if (lawyers.length > 5 && !_viewAllLawyers) ...[
-                  const SizedBox(height: 8),
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _viewAllLawyers = true;
-                        });
-                      },
-                      icon: const Icon(Icons.arrow_forward, color: AppColors.primaryGold, size: 16),
-                      label: const Text(
-                        "View More Lawyers →",
-                        style: TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
+                const SizedBox(height: 16),
+                
+                // Bottom Dotted prompt
+                _buildViewMorePrompt(),
               ],
             );
           },
@@ -1410,7 +1430,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   Text("Error loading recommendations: $err", style: TextStyle(color: primaryTextColor)),
                   const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: () => ref.invalidate(recommendedLawyersProvider(queryParams)),
+                    onPressed: () => ref.invalidate(recommendedLawyersProvider(queryKey)),
                     child: const Text("Retry"),
                   ),
                 ],
@@ -1422,70 +1442,213 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     );
   }
 
+  Widget _buildWhyTheseLawyersButton() {
+    return GestureDetector(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1B1B1B),
+            title: const Text("Why these lawyers?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            content: const Text(
+              "GenieLaw matches the best lawyers based on your category, subcategory, and location.\n\n"
+              "We prioritize lawyers in your Same City first, followed by your Same District, and then Same State, "
+              "sorting them by match percentage, experience, ratings, and active status.",
+              style: TextStyle(color: Colors.grey, height: 1.4, fontSize: 13),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Got It", style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFD4AF37), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Text(
+              "Why these lawyers?",
+              style: TextStyle(color: Color(0xFFD4AF37), fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(width: 4),
+            Icon(Icons.info_outline, color: Color(0xFFD4AF37), size: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFiltersRow() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildFilterChip("Best Match", isSelected: _sortByFilter == "Best Match", hasStar: true),
+          const SizedBox(width: 8),
+          _buildFilterChip("Experience", isSelected: _sortByFilter == "Experience"),
+          const SizedBox(width: 8),
+          _buildFilterChip("Rating", isSelected: _sortByFilter == "Rating"),
+          const SizedBox(width: 8),
+          _buildFilterChip("Fees: Low to High", isSelected: _sortByFilter == "Fees: Low to High"),
+          const SizedBox(width: 8),
+          _buildFilterIconButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, {required bool isSelected, bool hasStar = false}) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _sortByFilter = label;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFD4AF37) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? const Color(0xFFD4AF37) : const Color(0xFF2B2B2B),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (hasStar) ...[
+              Icon(
+                Icons.star,
+                color: isSelected ? Colors.black : const Color(0xFFD4AF37),
+                size: 14,
+              ),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.black : Colors.white70,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : const TextStyle().fontWeight,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterIconButton() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF2B2B2B), width: 1),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            "Filter",
+            style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+          SizedBox(width: 6),
+          Icon(Icons.filter_list, color: Colors.white70, size: 14),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildViewMorePrompt() {
+    return CustomPaint(
+      painter: DashedBorderPainter(
+        color: const Color(0xFFD4AF37),
+        strokeWidth: 1.0,
+        gap: 5.0,
+      ),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _viewAllLawyers = true;
+          });
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F0F10),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.folder_shared_outlined, color: Color(0xFFD4AF37), size: 20),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  "Can't find the right lawyer? View more lawyers",
+                  style: TextStyle(
+                    color: Color(0xFFD4AF37),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Color(0xFFD4AF37), size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSkeletonCard() {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      height: 180,
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: const Color(0xFF131314),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: const Color(0xFF2B2B2B)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: const BoxDecoration(color: AppColors.border, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(width: 120, height: 16, color: AppColors.border),
-                    const SizedBox(height: 8),
-                    Container(width: 80, height: 12, color: AppColors.border),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(width: double.infinity, height: 1, color: AppColors.border),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(width: 100, height: 12, color: AppColors.border),
-              Container(width: 80, height: 12, color: AppColors.border),
-            ],
-          ),
-        ],
+      child: const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4AF37)),
+        ),
       ),
     );
   }
 
   Widget _buildLawyerCard(LawyerModel lawyer, bool isSelected) {
     final theme = Theme.of(context);
-    final isOnline = (lawyer.rating * 10).toInt() % 2 == 0;
+    final displayedTags = lawyer.languages.take(3).toList();
+    final remainingTagsCount = lawyer.languages.length - displayedTags.length;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: const Color(0xFF131314),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isSelected ? AppColors.primaryGold : AppColors.border,
-          width: isSelected ? 2 : 1,
+          color: isSelected ? const Color(0xFFD4AF37) : const Color(0xFF2B2B2B),
+          width: isSelected ? 1.5 : 1.0,
         ),
         boxShadow: [
           if (isSelected)
             BoxShadow(
-              color: AppColors.primaryGold.withOpacity(0.1),
+              color: const Color(0xFFD4AF37).withOpacity(0.08),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )
@@ -1499,135 +1662,237 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 1. Profile photo stack
                 Stack(
                   children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundImage: lawyer.profileImage.isNotEmpty
-                          ? NetworkImage(lawyer.profileImage)
-                          : null,
-                      child: lawyer.profileImage.isEmpty
-                          ? const Icon(Icons.person, size: 30, color: Colors.grey)
-                          : null,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: lawyer.profileImage.isNotEmpty
+                          ? Image.network(
+                              lawyer.profileImage,
+                              width: 80,
+                              height: 88,
+                              fit: BoxFit.cover,
+                              errorBuilder: (c, o, s) => Container(
+                                width: 80,
+                                height: 88,
+                                color: const Color(0xFF2B2B2B),
+                                child: const Icon(Icons.person, color: Colors.white54, size: 40),
+                              ),
+                            )
+                          : Container(
+                              width: 80,
+                              height: 88,
+                              color: const Color(0xFF2B2B2B),
+                              child: const Icon(Icons.person, color: Colors.white54, size: 40),
+                            ),
                     ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        width: 14,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: isOnline ? AppColors.success : AppColors.disabledText,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.cardBackground, width: 2),
+                    if (lawyer.onlineStatus)
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Text(
+                                "Online",
+                                style: TextStyle(color: Colors.green, fontSize: 9, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+                    if (lawyer.isVerified)
+                      Positioned(
+                        top: -2,
+                        right: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.verified, color: Colors.white, size: 12),
+                        ),
+                      ),
                   ],
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
+
+                // 2. Center info details
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        lawyer.fullName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        lawyer.specialization,
+                        style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
+                          const Icon(Icons.location_on_outlined, color: Colors.grey, size: 13),
+                          const SizedBox(width: 3),
                           Expanded(
                             child: Text(
-                              lawyer.fullName,
-                              style: const TextStyle(
-                                color: AppColors.primaryText,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
+                              lawyer.location,
+                              style: const TextStyle(color: Colors.grey, fontSize: 12),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.verified, color: AppColors.primaryGold, size: 16),
                         ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        lawyer.specialization,
-                        style: const TextStyle(color: AppColors.mutedText, fontSize: 13),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.location_on_outlined, color: AppColors.mutedText, size: 14),
-                          const SizedBox(width: 4),
+                          const Icon(Icons.star, color: Color(0xFFD4AF37), size: 14),
+                          const SizedBox(width: 3),
                           Text(
-                            lawyer.location.isNotEmpty ? lawyer.location.split(',').first : "Location",
-                            style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
-                          ),
-                          const SizedBox(width: 12),
-                          const Icon(Icons.work_outline, color: AppColors.mutedText, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            "${lawyer.experience} Yrs Exp",
-                            style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
+                            "${lawyer.rating}  (${lawyer.totalReviews} Reviews)",
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${lawyer.experience}+ Years Exp  •  ${lawyer.casesHandled}+ Cases",
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Divider(color: AppColors.border),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
+                const SizedBox(width: 8),
+
+                // 3. Right status/stats details
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Icon(Icons.star, color: AppColors.primaryGold, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      "${lawyer.rating} (${lawyer.totalReviews} Reviews)",
-                      style: const TextStyle(color: AppColors.primaryText, fontSize: 12, fontWeight: FontWeight.bold),
+                    // Gold Circular Tick Selection Indicator
+                    Icon(
+                      isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                      color: isSelected ? const Color(0xFFD4AF37) : Colors.white30,
+                      size: 20,
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.gps_fixed, color: Colors.green, size: 12),
+                        const SizedBox(width: 3),
+                        Text(
+                          "${lawyer.matchPercentage}% Match",
+                          style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.access_time, color: Colors.grey, size: 12),
+                        const SizedBox(width: 3),
+                        Text(
+                          lawyer.responseTime,
+                          style: const TextStyle(color: Colors.grey, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text(
+                          "Consultation Fee",
+                          style: TextStyle(color: Colors.grey, fontSize: 9),
+                        ),
+                        Text(
+                          "₹${lawyer.consultationFee}",
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                Text(
-                  "${lawyer.casesHandled} Cases Handled",
-                  style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
-                ),
               ],
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const SizedBox(height: 12),
+            
+            // Practice Area Tag Chips row
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
               children: [
-                Expanded(
-                  child: Text(
-                    "Languages: ${lawyer.languages.isEmpty ? 'English' : lawyer.languages.take(2).join(', ')}",
-                    style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                ...displayedTags.map((tag) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1B1B1C),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFF2B2B2C)),
+                      ),
+                      child: Text(
+                        tag,
+                        style: const TextStyle(color: Colors.grey, fontSize: 10),
+                      ),
+                    )),
+                if (remainingTagsCount > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1B1B1C),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFF2B2B2C)),
+                    ),
+                    child: Text(
+                      "+$remainingTagsCount",
+                      style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
-                Text(
-                  "Fee: ₹${lawyer.consultationFee}",
-                  style: const TextStyle(color: AppColors.primaryGold, fontSize: 14, fontWeight: FontWeight.bold),
-                ),
               ],
             ),
             const SizedBox(height: 16),
+
+            // Action Buttons row
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => _viewLawyerProfileBottomSheet(lawyer),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primaryText,
-                      side: const BorderSide(color: AppColors.border),
+                      foregroundColor: const Color(0xFFD4AF37),
+                      side: const BorderSide(color: Color(0xFFD4AF37), width: 1.0),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text("View Profile", style: TextStyle(fontSize: 13)),
+                    child: const Text("View Profile", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1635,20 +1900,25 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       setState(() {
-                        _selectedLawyer = lawyer;
+                        if (isSelected) {
+                          _selectedLawyer = null;
+                        } else {
+                          _selectedLawyer = lawyer;
+                        }
                       });
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isSelected ? AppColors.primaryGold.withOpacity(0.2) : AppColors.primaryGold,
-                      foregroundColor: isSelected ? AppColors.primaryGold : Colors.black,
-                      side: isSelected ? const BorderSide(color: AppColors.primaryGold, width: 1.5) : null,
+                      backgroundColor: isSelected ? const Color(0xFFD4AF37).withOpacity(0.1) : const Color(0xFFD4AF37),
+                      foregroundColor: isSelected ? const Color(0xFFD4AF37) : Colors.black,
+                      side: isSelected ? const BorderSide(color: Color(0xFFD4AF37), width: 1.2) : null,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (isSelected) ...[
-                          const Icon(Icons.check, size: 16),
+                          const Icon(Icons.check, size: 14),
                           const SizedBox(width: 4),
                           const Text("Selected", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                         ] else ...[
@@ -2035,13 +2305,79 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                         setState(() => _currentStep++);
                       }
                     },
-              child: Text(isLast ? "Submit Case" : "Next"),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(isLast ? "Submit Case" : "Next", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  if (!isLast && _currentStep == 3 && nextDisabled)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Text(
+                        "(Select a lawyer to continue)",
+                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.normal, color: Colors.white54),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
   }
+}
+
+class DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+
+  DashedBorderPainter({
+    required this.color,
+    this.strokeWidth = 1.0,
+    this.gap = 4.0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final double width = size.width;
+    final double height = size.height;
+
+    _drawDashedLine(canvas, const Offset(12, 0), Offset(width - 12, 0), paint);
+    _drawDashedLine(canvas, Offset(width, 12), Offset(width, height - 12), paint);
+    _drawDashedLine(canvas, Offset(width - 12, height), Offset(12, height), paint);
+    _drawDashedLine(canvas, Offset(0, height - 12), const Offset(0, 12), paint);
+    
+    // Draw corners
+    canvas.drawArc(const Rect.fromLTWH(0, 0, 24, 24), 3.14, 1.57, false, paint);
+    canvas.drawArc(Rect.fromLTWH(width - 24, 0, 24, 24), 4.71, 1.57, false, paint);
+    canvas.drawArc(Rect.fromLTWH(width - 24, height - 24, 24, 24), 0, 1.57, false, paint);
+    canvas.drawArc(Rect.fromLTWH(0, height - 24, 24, 24), 1.57, 1.57, false, paint);
+  }
+
+  void _drawDashedLine(Canvas canvas, Offset p1, Offset p2, Paint paint) {
+    double dx = p2.dx - p1.dx;
+    double dy = p2.dy - p1.dy;
+    double len = math.sqrt(dx * dx + dy * dy);
+    int count = (len / (gap * 2)).floor();
+    for (int i = 0; i < count; i++) {
+      double startFraction = (i * 2) / (count * 2);
+      double endFraction = (i * 2 + 1) / (count * 2);
+      canvas.drawLine(
+        Offset(p1.dx + dx * startFraction, p1.dy + dy * startFraction),
+        Offset(p1.dx + dx * endFraction, p1.dy + dy * endFraction),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
 

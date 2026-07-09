@@ -155,6 +155,22 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     return false;
   }
 
+  Future<bool> submitCaseReview(String caseId, int rating, String review) async {
+    try {
+      final response = await DioClient.dio.post("/cases/$caseId/review", data: {
+        "rating": rating,
+        "review": review,
+      });
+      if (response.data != null && response.data['success'] == true) {
+        await fetchCases();
+        return true;
+      }
+    } catch (e) {
+      // Handle error
+    }
+    return false;
+  }
+
   void syncSocket(String? userId) {
     if (userId == _currentUserId) return;
     _currentUserId = userId;
@@ -189,5 +205,83 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     _socket?.disconnect();
     _socket?.dispose();
     super.dispose();
+  }
+}
+
+final caseSearchProvider = StateProvider<String>((ref) => "");
+final caseFilterProvider = StateProvider<String>((ref) => "Newest");
+
+final filteredCasesProvider = Provider<AsyncValue<List<CaseModel>>>((ref) {
+  final casesState = ref.watch(casesProvider);
+  final searchQuery = ref.watch(caseSearchProvider).toLowerCase();
+  final sortBy = ref.watch(caseFilterProvider);
+
+  return casesState.when(
+    data: (cases) {
+      var list = List<CaseModel>.from(cases);
+      
+      // Search
+      if (searchQuery.isNotEmpty) {
+        list = list.where((c) {
+          final idMatch = c.id.toLowerCase().contains(searchQuery);
+          final titleMatch = c.title.toLowerCase().contains(searchQuery);
+          final descMatch = c.description.toLowerCase().contains(searchQuery);
+          final catMatch = c.category.toLowerCase().contains(searchQuery);
+          final lName = (c.selectedLawyerName ?? c.assignedLawyerName ?? "").toLowerCase();
+          final court = (c.preferredCourt ?? "").toLowerCase();
+          return idMatch || titleMatch || descMatch || catMatch || lName.contains(searchQuery) || court.contains(searchQuery);
+        }).toList();
+      }
+
+      // Sort
+      if (sortBy == "Newest") {
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      } else if (sortBy == "Oldest") {
+        list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      } else if (sortBy == "Status") {
+        list.sort((a, b) => a.status.compareTo(b.status));
+      } else if (sortBy == "Issue") {
+        list.sort((a, b) => a.category.compareTo(b.category));
+      } else if (sortBy == "Lawyer") {
+        list.sort((a, b) {
+          final nameA = a.selectedLawyerName ?? a.assignedLawyerName ?? "";
+          final nameB = b.selectedLawyerName ?? b.assignedLawyerName ?? "";
+          return nameA.compareTo(nameB);
+        });
+      } else if (sortBy == "Location") {
+        list.sort((a, b) => a.location.compareTo(b.location));
+      }
+
+      return AsyncValue.data(list);
+    },
+    loading: () => const AsyncValue.loading(),
+    error: (e, s) => AsyncValue.error(e, s),
+  );
+});
+
+final caseDetailsProvider = StateNotifierProvider.family<CaseDetailsNotifier, AsyncValue<CaseModel?>, String>((ref, caseId) {
+  return CaseDetailsNotifier(caseId);
+});
+
+class CaseDetailsNotifier extends StateNotifier<AsyncValue<CaseModel?>> {
+  final String caseId;
+
+  CaseDetailsNotifier(this.caseId) : super(const AsyncValue.loading()) {
+    fetchCaseDetails();
+  }
+
+  Future<void> fetchCaseDetails() async {
+    try {
+      state = const AsyncValue.loading();
+      final response = await DioClient.dio.get("/cases/$caseId");
+      if (response.data != null && response.data['success'] == true) {
+        final caseItem = CaseModel.fromJson(response.data['data']);
+        state = AsyncValue.data(caseItem);
+      } else {
+        state = AsyncValue.error("Failed to load case details", StackTrace.current);
+      }
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
   }
 }
