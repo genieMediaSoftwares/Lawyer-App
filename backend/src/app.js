@@ -84,6 +84,7 @@ app.use("/api/favorites", favoriteRoutes);
 app.use("/api/articles", articleRoutes);
 app.use("/api/faqs", faqRoutes);
 app.use("/api/clients", clientRoutes);
+app.use("/api/client", clientRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);

@@ -152,6 +152,34 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
   }
 
+  Future<void> updateLocalDetails({
+    String? name,
+    String? mobile,
+    String? location,
+    String? photoUrl,
+  }) async {
+    final newName = name ?? state.userName ?? '';
+    final newMobile = mobile ?? state.userMobile ?? '';
+    final newLocation = location ?? state.userLocation ?? '';
+    final newPhoto = photoUrl ?? state.userPhotoUrl ?? '';
+
+    await _tokenStorage.saveUserDetails(
+      id: state.userId ?? '',
+      name: newName,
+      email: state.userEmail ?? '',
+      mobile: newMobile,
+      photo: newPhoto,
+      location: newLocation,
+    );
+
+    state = state.copyWith(
+      userName: newName,
+      userMobile: newMobile,
+      userLocation: newLocation,
+      userPhotoUrl: newPhoto,
+    );
+  }
+
   Future<bool> updateUserProfile({
     required String name,
     required String mobile,

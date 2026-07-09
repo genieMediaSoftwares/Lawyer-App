@@ -47,6 +47,21 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
+    dob: {
+      type: String,
+      default: "",
+    },
+
+    gender: {
+      type: String,
+      default: "",
+    },
+
+    languages: {
+      type: [String],
+      default: [],
+    },
+
     isVerified: {
       type: Boolean,
       default: false,

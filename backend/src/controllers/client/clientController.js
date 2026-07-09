@@ -3,6 +3,7 @@ const Client = require("../../models/Client");
 const Case = require("../../models/Case");
 const Appointment = require("../../models/Appointment");
 const Document = require("../../models/Document");
+const Payment = require("../../models/Payment");
 const ApiResponse = require("../../config/ApiResponse");
 
 class ClientController {
@@ -108,6 +109,137 @@ class ClientController {
       );
 
       return ApiResponse.success(res, "Client notes fetched.", lawyerNotes);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getClientProfile(req, res, next) {
+    try {
+      const user = await User.findById(req.user._id).select("-password");
+      if (!user) {
+        return ApiResponse.error(res, "User not found.", 404);
+      }
+      let clientProfile = await Client.findOne({ user: req.user._id });
+      if (!clientProfile) {
+        clientProfile = await Client.create({ user: req.user._id });
+      }
+      return ApiResponse.success(res, "Client profile retrieved successfully.", {
+        user,
+        profile: clientProfile
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateClientProfile(req, res, next) {
+    try {
+      const { fullName, mobile, location, dob, gender, languages } = req.body;
+      const updateData = {};
+      if (fullName !== undefined) updateData.fullName = fullName;
+      if (mobile !== undefined) updateData.mobile = mobile;
+      if (location !== undefined) updateData.location = location;
+      if (dob !== undefined) updateData.dob = dob;
+      if (gender !== undefined) updateData.gender = gender;
+      if (languages !== undefined) updateData.languages = languages;
+
+      const user = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set: updateData },
+        { new: true }
+      ).select("-password");
+
+      if (!user) {
+        return ApiResponse.error(res, "User not found.", 404);
+      }
+
+      let clientProfile = await Client.findOne({ user: req.user._id });
+      if (!clientProfile) {
+        clientProfile = await Client.create({ user: req.user._id });
+      }
+      if (location !== undefined) clientProfile.address = location;
+      if (languages !== undefined) clientProfile.preferredLanguages = languages;
+      await clientProfile.save();
+
+      return ApiResponse.success(res, "Client profile updated successfully.", {
+        user,
+        profile: clientProfile
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getClientActivity(req, res, next) {
+    try {
+      const userId = req.user._id;
+      const activities = [];
+
+      // 1. Profile updated activity (default fallback)
+      activities.push({
+        title: "Profile updated",
+        description: "Personal details updated",
+        date: req.user.updatedAt || req.user.createdAt || new Date(),
+        type: "profile"
+      });
+
+      // 2. Documents uploaded
+      const documents = await Document.find({ clientId: userId }).sort({ createdAt: -1 }).limit(5);
+      documents.forEach(doc => {
+        activities.push({
+          title: "Document uploaded",
+          description: `${doc.originalName} uploaded`,
+          date: doc.uploadedAt || doc.createdAt,
+          type: "document"
+        });
+      });
+
+      // 3. Appointments booked
+      const appointments = await Appointment.find({ client: userId }).populate("lawyer", "fullName").sort({ createdAt: -1 }).limit(5);
+      appointments.forEach(app => {
+        activities.push({
+          title: "Consultation booked",
+          description: `Consultation with ${app.lawyer?.fullName || "Advocate"} booked`,
+          date: app.createdAt,
+          type: "consultation"
+        });
+      });
+
+      // 4. Payments completed
+      const payments = await Payment.find({ client: userId }).populate("lawyer", "fullName").sort({ createdAt: -1 }).limit(5);
+      payments.forEach(pay => {
+        activities.push({
+          title: "Payment successful",
+          description: `Payment of ₹${pay.amount} completed`,
+          date: pay.createdAt,
+          type: "payment"
+        });
+      });
+
+      // Sort all by date desc
+      activities.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      return ApiResponse.success(res, "Client activity fetched successfully.", activities);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getClientStats(req, res, next) {
+    try {
+      const userId = req.user._id;
+      const activeCases = await Case.countDocuments({ client: userId, status: "In Progress" });
+      const totalCases = await Case.countDocuments({ client: userId });
+      const totalAppointments = await Appointment.countDocuments({ client: userId });
+      const totalDocuments = await Document.countDocuments({ clientId: userId });
+
+      return ApiResponse.success(res, "Client stats retrieved successfully.", {
+        activeCases,
+        totalCases,
+        totalAppointments,
+        totalDocuments
+      });
     } catch (error) {
       next(error);
     }
