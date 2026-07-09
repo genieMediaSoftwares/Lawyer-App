@@ -7,6 +7,7 @@ import '../../../../routes/route_names.dart';
 import 'package:law/models/category_item.dart';
 import '../widgets/category_card.dart';
 import '../widgets/hero_carousel_widget.dart';
+import '../widgets/ai_legal_assistant_card.dart';
 
 final unreadNotificationsCountProvider = StateProvider<int>((ref) => 1); // Mock 1 notification matching Figma red dot
 
@@ -146,69 +147,7 @@ class ClientDashboardScreen extends ConsumerWidget {
               const SizedBox(height: 28),
 
               // 3. AI Legal Assistant Banner
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: theme.colorScheme.outline),
-                ),
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "AI Legal Assistant",
-                            style: TextStyle(color: primaryTextColor, fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            "Get instant answers to\nyour legal questions",
-                            style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12, height: 1.4),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () => context.push(RouteNames.aiChat),
-                            child: const Text("Ask Now"),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Robot Avatar with Emblem scales overlay
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: theme.colorScheme.outline, width: 1.5),
-                          ),
-                          child: Icon(Icons.smart_toy_outlined, size: 48, color: theme.colorScheme.primary),
-                        ),
-                        Positioned(
-                          right: 2,
-                          bottom: 2,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.balance, size: 12, color: Colors.black),
-                          ),
-                        )
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              const AILegalAssistantCard(),
               const SizedBox(height: 32),
 
               // 4. How It Works? Section

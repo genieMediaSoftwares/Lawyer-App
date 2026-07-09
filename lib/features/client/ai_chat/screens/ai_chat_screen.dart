@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/widgets/app_drawer.dart';
+import '../../dashboard/widgets/ai_legal_assistant_card.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -168,10 +170,18 @@ Please let me know if you would like me to draft outlines for agreements or expl
         ),
         title: Row(
           children: [
-            CircleAvatar(
-              backgroundColor: theme.colorScheme.primary,
-              radius: 18,
-              child: const Icon(Icons.smart_toy_outlined, color: Colors.black, size: 20),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(3),
+              child: SvgPicture.string(
+                robotBodySvg,
+                fit: BoxFit.contain,
+              ),
             ),
             const SizedBox(width: 10),
             Column(
@@ -336,7 +346,15 @@ Please let me know if you would like me to draft outlines for agreements or expl
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.smart_toy_outlined, color: theme.colorScheme.primary, size: 16),
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: SvgPicture.string(
+                  robotBodySvg,
+                  colorFilter: ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn),
+                  fit: BoxFit.contain,
+                ),
+              ),
               const SizedBox(width: 8),
               Text(
                 "Legal assistant is thinking...",
