@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/config/env.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -60,9 +64,23 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   DateTime _focusedCalendarMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
   late ScrollController _calendarScrollController;
 
+  // Lawyer insights state
+  late LawyerInsight _currentInsight;
+  Timer? _insightTimer;
+
   @override
   void initState() {
     super.initState();
+    _currentInsight = LawyerInsightsService.getRandomInsight();
+    _insightTimer = Timer.periodic(const Duration(hours: 24), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentInsight = LawyerInsightsService.getRandomInsight(
+            currentTipTextToExclude: _currentInsight.tip,
+          );
+        });
+      }
+    });
     _currentIndex = widget.initialTab;
     _calendarScrollController = ScrollController();
     _nameController = TextEditingController();
@@ -83,6 +101,8 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     _bankHolderController = TextEditingController();
     _scrollToSelectedDate();
   }
+
+
 
   @override
   void didUpdateWidget(covariant LawyerDashboardScreen oldWidget) {
@@ -125,6 +145,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
   @override
   void dispose() {
+    _insightTimer?.cancel();
     _nameController.dispose();
     _phoneController.dispose();
     _specController.dispose();
@@ -229,7 +250,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     final lawyerState = ref.watch(lawyerDetailsProvider(userId));
 
     // Set page title dynamically
-    String screenTitle = "Workspace Hub";
+    String screenTitle = "";
     if (_currentIndex == 1) screenTitle = "Dashboard";
     if (_currentIndex == 2) screenTitle = "My Leads";
     if (_currentIndex == 3) screenTitle = "My Clients";
@@ -347,7 +368,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   ) {
     switch (_currentIndex) {
       case 0:
-        return _buildWorkspaceTab(lawyerName, userId, casesState, appointmentsState);
+        return _buildWorkspaceTab(lawyerName, userId, casesState, appointmentsState, lawyerState);
       case 1:
         return _buildHomeTab(lawyerName, userId, casesState, appointmentsState, chatsState, lawyerState);
       case 2:
@@ -359,7 +380,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
       case 5:
         return _buildProfileTab(lawyerName, userId, lawyerState);
       default:
-        return _buildWorkspaceTab(lawyerName, userId, casesState, appointmentsState);
+        return _buildWorkspaceTab(lawyerName, userId, casesState, appointmentsState, lawyerState);
     }
   }
 
@@ -371,66 +392,104 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     String userId,
     AsyncValue<List<CaseModel>> casesState,
     AsyncValue<List<AppointmentModel>> appointmentsState,
+    AsyncValue<LawyerModel> lawyerState,
   ) {
 
+    final welcomeSection = lawyerState.when(
+      data: (lawyer) {
+        final name = lawyer.fullName;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Welcome, Advocate",
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Manage client cases, review legal inquiries, respond to consultation requests, and organize your schedule—all from one secure workspace.",
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    height: 1.5,
+                  ),
+            ),
+          ],
+        );
+      },
+      loading: () {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            _ShimmerPulse(width: 180, height: 20, borderRadius: 8),
+            SizedBox(height: 6),
+            _ShimmerPulse(width: 120, height: 16, borderRadius: 8),
+            SizedBox(height: 16),
+            _ShimmerPulse(width: double.infinity, height: 14, borderRadius: 8),
+            SizedBox(height: 6),
+            _ShimmerPulse(width: double.infinity, height: 14, borderRadius: 8),
+            SizedBox(height: 6),
+            _ShimmerPulse(width: 200, height: 14, borderRadius: 8),
+          ],
+        );
+      },
+      error: (err, stack) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Welcome, Advocate",
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              "Lawyer",
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Manage client cases, review legal inquiries, respond to consultation requests, and organize your schedule—all from one secure workspace.",
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    height: 1.5,
+                  ),
+            ),
+          ],
+        );
+      },
+    );
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Branding Header Box
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: AppColors.darkGradient,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.gold.withOpacity(0.2)),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Icon(Icons.balance, color: AppColors.gold, size: 36),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white12,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.star, color: AppColors.gold, size: 12),
-                          SizedBox(width: 4),
-                          Text("PRO HUB", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ],
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(0, 20 * (1 - value)),
+                  child: child,
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  "Welcome, Adv. $lawyerName",
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  "Manage client files, review case leads, and track consultation schedules from your centralized workspace.",
-                  style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
-                ),
-              ],
-            ),
+              );
+            },
+            child: welcomeSection,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
 
           // Workspace Tools Title
           Text(
@@ -448,74 +507,159 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             mainAxisSpacing: 12,
             childAspectRatio: 1.4,
             children: [
-              _buildWorkspaceToolCard(
-                icon: Icons.gavel,
-                title: "Client Leads",
-                subtitle: "View and Bid on Cases",
-                badgeCount: casesState.when(
-                  data: (cases) => "${cases.where((c) => c.status == 'active').length}",
-                  loading: () => "...",
-                  error: (e, s) => "0",
+              ref.watch(lawyerWorkspaceLeadsProvider).when(
+                data: (leads) => _buildWorkspaceToolCard(
+                  icon: Icons.gavel,
+                  title: "${leads.length} New Leads",
+                  subtitle: "Waiting for your response",
+                  badgeCount: leads.isEmpty ? null : "${leads.length}",
+                  onTap: () => setState(() => _currentIndex = 2),
                 ),
-                onTap: () => setState(() => _currentIndex = 2),
-              ),
-              _buildWorkspaceToolCard(
-                icon: Icons.people_alt,
-                title: "Clients Folder",
-                subtitle: "Manage Active Clients",
-                onTap: () => setState(() => _currentIndex = 3),
-              ),
-              _buildWorkspaceToolCard(
-                icon: Icons.calendar_month,
-                title: "Practice Calendar",
-                subtitle: "Track Consultations",
-                badgeCount: appointmentsState.when(
-                  data: (appts) => "${appts.where((a) => a.lawyerId == userId).length}",
-                  loading: () => "...",
-                  error: (e, s) => "0",
+                loading: () => _buildWorkspaceToolCard(
+                  icon: Icons.gavel,
+                  title: "Loading Leads...",
+                  subtitle: "Waiting for your response",
+                  badgeCount: "...",
+                  onTap: () => setState(() => _currentIndex = 2),
                 ),
-                onTap: () => setState(() => _currentIndex = 4),
+                error: (e, s) => _buildWorkspaceToolCard(
+                  icon: Icons.gavel,
+                  title: "0 New Leads",
+                  subtitle: "Waiting for your response",
+                  onTap: () => setState(() => _currentIndex = 2),
+                ),
               ),
-              _buildWorkspaceToolCard(
-                icon: Icons.bar_chart,
-                title: "Practice Stats",
-                subtitle: "Review Revenue & Leads",
-                onTap: () => setState(() => _currentIndex = 1),
+              ref.watch(lawyerWorkspaceClientsProvider).when(
+                data: (clientsMap) {
+                  final accepted = clientsMap['accepted'] as List? ?? [];
+                  final inProgress = clientsMap['inProgress'] as List? ?? [];
+                  final totalActive = accepted.length + inProgress.length;
+                  return _buildWorkspaceToolCard(
+                    icon: Icons.people_alt,
+                    title: "$totalActive Active Clients",
+                    subtitle: "Accepted, In Progress, Closed",
+                    badgeCount: totalActive == 0 ? null : "$totalActive",
+                    onTap: () => setState(() => _currentIndex = 3),
+                  );
+                },
+                loading: () => _buildWorkspaceToolCard(
+                  icon: Icons.people_alt,
+                  title: "Loading Clients...",
+                  subtitle: "Accepted, In Progress, Closed",
+                  badgeCount: "...",
+                  onTap: () => setState(() => _currentIndex = 3),
+                ),
+                error: (e, s) => _buildWorkspaceToolCard(
+                  icon: Icons.people_alt,
+                  title: "0 Active Clients",
+                  subtitle: "Accepted, In Progress, Closed",
+                  onTap: () => setState(() => _currentIndex = 3),
+                ),
+              ),
+              ref.watch(lawyerWorkspaceScheduleProvider).when(
+                data: (events) {
+                  final count = events.length;
+                  return _buildWorkspaceToolCard(
+                    icon: Icons.calendar_month,
+                    title: "Today's Schedule",
+                    subtitle: count > 0 ? "$count Events Today" : "No Events Today",
+                    badgeCount: count == 0 ? null : "$count",
+                    onTap: () => setState(() => _currentIndex = 4),
+                  );
+                },
+                loading: () => _buildWorkspaceToolCard(
+                  icon: Icons.calendar_month,
+                  title: "Today's Schedule",
+                  subtitle: "Loading events...",
+                  badgeCount: "...",
+                  onTap: () => setState(() => _currentIndex = 4),
+                ),
+                error: (e, s) => _buildWorkspaceToolCard(
+                  icon: Icons.calendar_month,
+                  title: "Today's Schedule",
+                  subtitle: "No Events Today",
+                  onTap: () => setState(() => _currentIndex = 4),
+                ),
+              ),
+              ref.watch(lawyerWorkspaceMessagesProvider).when(
+                data: (msgData) {
+                  final unreadCount = msgData['unreadCount'] as int? ?? 0;
+                  return _buildWorkspaceToolCard(
+                    icon: Icons.chat,
+                    title: "Messages",
+                    subtitle: unreadCount > 0 ? "$unreadCount Unread Chats" : "You're all caught up",
+                    badgeCount: unreadCount == 0 ? null : "$unreadCount",
+                    onTap: () => context.push('/messages'),
+                  );
+                },
+                loading: () => _buildWorkspaceToolCard(
+                  icon: Icons.chat,
+                  title: "Messages",
+                  subtitle: "Checking messages...",
+                  badgeCount: "...",
+                  onTap: () => context.push('/messages'),
+                ),
+                error: (e, s) => _buildWorkspaceToolCard(
+                  icon: Icons.chat,
+                  title: "Messages",
+                  subtitle: "You're all caught up",
+                  onTap: () => context.push('/messages'),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 24),
 
           // Daily Growth / Conversion Tip Box
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.gold.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.gold.withOpacity(0.2)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.lightbulb_outline, color: AppColors.gold, size: 24),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        "Practice Growth Tip",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _currentInsight = LawyerInsightsService.getRandomInsight(
+                  currentTipTextToExclude: _currentInsight.tip,
+                  specialization: ref.read(lawyerDetailsProvider(userId)).valueOrNull?.specialization,
+                  experience: ref.read(lawyerDetailsProvider(userId)).valueOrNull?.experience,
+                  rating: ref.read(lawyerDetailsProvider(userId)).valueOrNull?.rating,
+                  activeCases: ref.read(casesProvider).valueOrNull?.where((c) => c.status == 'active').length,
+                );
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.gold.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.gold.withOpacity(0.2)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.lightbulb_outline, color: AppColors.gold, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (Widget child, Animation<double> animation) {
+                        return FadeTransition(opacity: animation, child: child);
+                      },
+                      child: Column(
+                        key: ValueKey<String>(_currentInsight.tip),
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _currentInsight.category,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _currentInsight.tip,
+                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondaryDark, height: 1.4),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        "Providing a clear estimate and reference of previous similar cases in your proposal bid increases conversion rate by 80%.",
-                        style: TextStyle(fontSize: 11, color: AppColors.textSecondaryDark, height: 1.4),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -679,85 +823,67 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Premium Plan Box
+          // Premium Plan Box (Redesigned - Clean & Elegant)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: AppColors.darkGradient,
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFFD4AF37).withOpacity(0.15),
+                  const Color(0xFFE5A63F).withOpacity(0.1),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.gold.withOpacity(0.2)),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.gold.withOpacity(0.4), width: 1),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      "Premium Plan",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      "Valid till 25 May 2026",
-                      style: TextStyle(color: Colors.white70, fontSize: 11),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: AppColors.gold, size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            "Premium Plan",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Theme.of(context).colorScheme.onBackground,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Unlock priority case matching, AI legal tools, premium visibility, and exclusive professional features.",
+                        style: const TextStyle(
+                          color: AppColors.textSecondaryDark,
+                          fontSize: 11,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 16),
                 OutlinedButton(
                   onPressed: () => context.push('/subscription-plans'),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.gold),
                     foregroundColor: AppColors.gold,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    minimumSize: const Size(100, 36),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    minimumSize: const Size(90, 36),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                   ),
-                  child: const Text("View Plan", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  child: const Text("View Plan", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 20),
-
-          // Stat Capsules (Gold style)
-          casesState.maybeWhen(
-            data: (cases) => appointmentsState.maybeWhen(
-              data: (appointments) {
-                final totalBids = cases.where((c) => 
-                  c.proposals.any((p) => p.lawyerId == userId)
-                ).length;
-
-                final totalConsults = appointments.where((a) => 
-                  a.lawyerId == userId
-                ).length;
-
-                final completedConsults = appointments.where((a) => 
-                  a.lawyerId == userId && a.status == 'completed'
-                ).length;
-
-                final fee = lawyerState.maybeWhen(
-                  data: (lawyer) => lawyer.consultationFee,
-                  orElse: () => 1500,
-                );
-                final totalEarnings = completedConsults * fee;
-
-                return Row(
-                  children: [
-                    Expanded(child: _buildHomeStatCard("Leads Bid", "$totalBids", Theme.of(context).cardColor)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildHomeStatCard("Consults", "$totalConsults", Theme.of(context).cardColor)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildHomeStatCard("Earnings", "₹$totalEarnings", Theme.of(context).cardColor)),
-                  ],
-                );
-              },
-              orElse: () => const SizedBox(),
-            ),
-            orElse: () => const SizedBox(),
           ),
           const SizedBox(height: 24),
 
@@ -767,127 +893,130 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).colorScheme.onBackground),
           ),
           const SizedBox(height: 12),
+
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Theme.of(context).colorScheme.outline),
             ),
-            child: casesState.when(
-              data: (cases) {
-                return appointmentsState.when(
-                  data: (appointments) {
-                    final activeLeadsCount = cases.where((c) => 
-                      c.status == 'active' && 
-                      c.assignedLawyerId == null && 
-                      !c.proposals.any((p) => p.lawyerId == userId) &&
-                      !_dismissedLeads.contains(c.id)
-                    ).length;
-
-                    final pendingAppts = appointments.where((a) => 
-                      a.lawyerId == userId && a.status == 'pending'
-                    ).length;
-
-                    final upcomingAppts = appointments.where((a) => 
-                      a.lawyerId == userId && a.date.isAfter(DateTime.now().subtract(const Duration(hours: 2)))
-                    ).length;
-
-                    final chatCount = chatsState.maybeWhen(
-                      data: (chats) => chats.length,
-                      orElse: () => 0,
-                    );
-
-                    return Column(
-                      children: [
-                        _buildOverviewItem(Icons.gavel_outlined, "New Leads", "$activeLeadsCount"),
-                        const Divider(height: 1, indent: 50),
-                        _buildOverviewItem(Icons.mail_outline_rounded, "Unread Messages", "$chatCount"),
-                        const Divider(height: 1, indent: 50),
-                        _buildOverviewItem(Icons.phone_in_talk_outlined, "Consultation Requests", "$pendingAppts"),
-                        const Divider(height: 1, indent: 50),
-                        _buildOverviewItem(Icons.calendar_today_outlined, "Upcoming Appointments", "$upcomingAppts"),
-                      ],
-                    );
-                  },
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (err, s) => const Center(child: Text("Failed to load appointments")),
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, s) => const Center(child: Text("Failed to load overview data")),
+            child: Column(
+              children: [
+                _buildOverviewRow(
+                  icon: Icons.gavel_outlined,
+                  title: "New Case Requests",
+                  subtitle: "Awaiting response",
+                  provider: newCaseRequestsCountProvider,
+                ),
+                const Divider(height: 1, indent: 50, endIndent: 16, color: Colors.white10),
+                _buildOverviewRow(
+                  icon: Icons.chat_bubble_outline,
+                  title: "Unread Messages",
+                  subtitle: "From active clients",
+                  provider: unreadMessagesCountProvider,
+                ),
+                const Divider(height: 1, indent: 50, endIndent: 16, color: Colors.white10),
+                _buildOverviewRow(
+                  icon: Icons.calendar_today_outlined,
+                  title: "Today's Consultations",
+                  subtitle: "Scheduled for today",
+                  provider: todayConsultationsCountProvider,
+                ),
+                const Divider(height: 1, indent: 50, endIndent: 16, color: Colors.white10),
+                _buildOverviewRow(
+                  icon: Icons.scale_outlined,
+                  title: "Today's Hearings",
+                  subtitle: "Court hearings schedule",
+                  provider: todayHearingsCountProvider,
+                ),
+                const Divider(height: 1, indent: 50, endIndent: 16, color: Colors.white10),
+                _buildOverviewRow(
+                  icon: Icons.description_outlined,
+                  title: "Pending Document Reviews",
+                  subtitle: "Docs waiting for review",
+                  provider: pendingDocumentReviewsCountProvider,
+                ),
+                const Divider(height: 1, indent: 50, endIndent: 16, color: Colors.white10),
+                _buildOverviewRow(
+                  icon: Icons.notifications_none_outlined,
+                  title: "Pending Client Responses",
+                  subtitle: "Waiting for lawyer action",
+                  provider: pendingClientResponsesCountProvider,
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
-
-          // Quick Actions Grid
-          Text(
-            "Quick Actions",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).colorScheme.onBackground),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildQuickActionItem(Icons.search_rounded, "Browse Leads", () => setState(() => _currentIndex = 2)),
-              _buildQuickActionItem(Icons.people_outline, "My Clients", () => setState(() => _currentIndex = 3)),
-              _buildQuickActionItem(Icons.calendar_month_outlined, "Calendar", () => setState(() => _currentIndex = 4)),
-              _buildQuickActionItem(Icons.wallet_outlined, "Earnings", () => _showEarningsDialog()),
-            ],
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildHomeStatCard(String label, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).colorScheme.outline),
-      ),
-      child: Column(
-        children: [
-          Text(label, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
-          const SizedBox(height: 6),
-          Text(value, style: const TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 16)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOverviewItem(IconData icon, String title, String count) {
-    return ListTile(
-      leading: CircleAvatar(
-        radius: 16,
-        backgroundColor: AppColors.gold.withOpacity(0.1),
-        child: Icon(icon, color: AppColors.gold, size: 16),
-      ),
-      title: Text(title, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(12)),
-        child: Text(count, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.gold)),
-      ),
-    );
-  }
-
-  Widget _buildQuickActionItem(IconData icon, String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 26,
-            backgroundColor: AppColors.gold.withOpacity(0.1),
-            child: Icon(icon, color: AppColors.gold, size: 22),
+  Widget _buildOverviewRow({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required ProviderBase<AsyncValue<int>> provider,
+  }) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final countState = ref.watch(provider);
+        return countState.when(
+          data: (count) {
+            return ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              leading: CircleAvatar(
+                radius: 16,
+                backgroundColor: AppColors.gold.withOpacity(0.1),
+                child: Icon(icon, color: AppColors.gold, size: 16),
+              ),
+              title: Text(
+                title,
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).colorScheme.onBackground),
+              ),
+              subtitle: Text(
+                subtitle,
+                style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryDark),
+              ),
+              trailing: Text(
+                count.toString().padLeft(2, '0'),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: AppColors.gold,
+                ),
+              ),
+            );
+          },
+          loading: () => ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: CircleAvatar(
+              radius: 16,
+              backgroundColor: AppColors.gold.withOpacity(0.05),
+              child: const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.gold),
+              ),
+            ),
+            title: const Text("Loading...", style: TextStyle(fontSize: 13, color: AppColors.textSecondaryDark)),
+            subtitle: const Text("Fetching...", style: TextStyle(fontSize: 10, color: AppColors.textSecondaryDark)),
           ),
-          const SizedBox(height: 8),
-          Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onBackground)),
-        ],
-      ),
+          error: (err, stack) => ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.red.withOpacity(0.1),
+              child: const Icon(Icons.error_outline, color: Colors.red, size: 16),
+            ),
+            title: Text(title, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
+            subtitle: const Text("Error loading", style: TextStyle(fontSize: 10, color: Colors.red)),
+            trailing: const Text(
+              "00",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textSecondaryDark),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -901,72 +1030,19 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
     return casesState.when(
       data: (cases) {
-        final newLeadsCount = cases.where((c) {
-          final isGeneral = (c.status == 'active' || c.status == 'Submitted') &&
-              c.assignedLawyerId == null &&
-              !c.proposals.any((p) => p.lawyerId == currentUserId) &&
-              !_dismissedLeads.contains(c.id);
-          final isDirect = c.status == 'Awaiting Lawyer Acceptance' &&
-              c.selectedLawyerId == currentUserId;
-          return isGeneral || isDirect;
-        }).length;
-        
-        final inProgressCount = cases.where((c) => 
-          c.assignedLawyerId == null && 
-          c.proposals.any((p) => p.lawyerId == currentUserId)
-        ).length;
-        
-        final interestedCount = cases.where((c) => 
-          c.assignedLawyerId == currentUserId
-        ).length;
-
-        List<CaseModel> filteredLeads = [];
-        if (_selectedLeadsTab == 0) {
-          filteredLeads = cases.where((c) {
-            final isGeneral = (c.status == 'active' || c.status == 'Submitted') &&
-                c.assignedLawyerId == null &&
-                !c.proposals.any((p) => p.lawyerId == currentUserId) &&
-                !_dismissedLeads.contains(c.id);
-            final isDirect = c.status == 'Awaiting Lawyer Acceptance' &&
-                c.selectedLawyerId == currentUserId;
-            return isGeneral || isDirect;
-          }).toList();
-        } else if (_selectedLeadsTab == 1) {
-          filteredLeads = cases.where((c) => 
-            c.assignedLawyerId == null && 
-            c.proposals.any((p) => p.lawyerId == currentUserId)
-          ).toList();
-        } else {
-          filteredLeads = cases.where((c) => 
-            c.assignedLawyerId == currentUserId
-          ).toList();
-        }
+        final filteredLeads = cases.where((c) {
+          return c.selectedLawyerId == currentUserId &&
+              (c.status == 'Pending Lawyer Response' || c.status == 'Awaiting Lawyer Acceptance');
+        }).toList();
 
         return Column(
           children: [
-            Container(
-              color: Theme.of(context).cardColor,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildLeadsSubTab(0, "New Leads", "$newLeadsCount"),
-                  _buildLeadsSubTab(1, "In Progress", "$inProgressCount"),
-                  _buildLeadsSubTab(2, "Interested", "$interestedCount"),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
             Expanded(
               child: filteredLeads.isEmpty
-                  ? Center(
+                  ? const Center(
                       child: Text(
-                        _selectedLeadsTab == 0
-                            ? "No new case leads. Check back later!"
-                            : _selectedLeadsTab == 1
-                                ? "No proposals submitted yet."
-                                : "No won or interested cases yet.",
-                        style: const TextStyle(color: AppColors.textSecondaryDark),
+                        "No new case leads. Check back later!",
+                        style: TextStyle(color: AppColors.textSecondaryDark),
                       ),
                     )
                   : ListView.separated(
@@ -1053,165 +1129,122 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
                   child: Text(lead.category, style: const TextStyle(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.bold)),
                 ),
-                // Match percentage badge
-                if (lead.status == 'Awaiting Lawyer Acceptance')
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.gold,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text("Direct Request", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.gold.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text("95% Match", style: TextStyle(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.bold)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: const Text("95% Match", style: TextStyle(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(lead.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).colorScheme.onBackground)),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(lead.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).colorScheme.onBackground)),
+                ),
+                if (lead.clientVerified) ...[
+                  const SizedBox(width: 6),
+                  const Icon(Icons.verified, color: Colors.blue, size: 16),
+                ],
+              ],
+            ),
             const SizedBox(height: 8),
+            Text(
+              lead.description,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryDark, height: 1.4),
+            ),
+            const SizedBox(height: 12),
             Row(
               children: [
                 const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondaryDark),
                 const SizedBox(width: 4),
-                Text(lead.location, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                Expanded(
+                  child: Text(lead.location, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11), overflow: TextOverflow.ellipsis),
+                ),
                 const SizedBox(width: 16),
-                const Icon(Icons.currency_rupee, size: 14, color: AppColors.textSecondaryDark),
-                const SizedBox(width: 2),
-                Text(lead.budgetRange.isNotEmpty ? lead.budgetRange : "N/A", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                const Icon(Icons.gavel_outlined, size: 14, color: AppColors.textSecondaryDark),
+                const SizedBox(width: 4),
+                Text(lead.preferredCourt?.isNotEmpty == true ? lead.preferredCourt! : "Any Court", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.access_time_outlined, size: 14, color: AppColors.textSecondaryDark),
+                const SizedBox(width: 4),
+                Text("Urgency: ${lead.urgency}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
+                const SizedBox(width: 16),
+                const Icon(Icons.file_present_outlined, size: 14, color: AppColors.textSecondaryDark),
+                const SizedBox(width: 4),
+                Text("${lead.documents.length} docs uploaded", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
               ],
             ),
             const SizedBox(height: 12),
             Text(
-              "Posted on: ${DateFormat('dd MMM yyyy').format(lead.createdAt)}",
+              "Posted on: ${DateFormat('dd MMM yyyy, hh:mm a').format(lead.createdAt)}",
               style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11),
             ),
             const SizedBox(height: 16),
-            if (lead.status == 'Awaiting Lawyer Acceptance') ...[
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: OutlinedButton(
-                      onPressed: () => _showLeadDetailsDialog(lead),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 40),
-                        side: const BorderSide(color: AppColors.gold),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: const Text("View Case", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 12)),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _showLeadDetailsDialog(lead),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 40),
+                      side: const BorderSide(color: AppColors.gold),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
+                    child: const Text("View Case Details", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: OutlinedButton(
-                      onPressed: () async {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text("Reject Request?"),
-                            content: const Text("Are you sure you want to reject this direct case request?"),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text("Reject", style: TextStyle(color: Colors.red)),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (confirmed == true) {
-                          final success = await ref.read(casesProvider.notifier).rejectCaseRequest(lead.id);
-                          if (success && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Case request rejected.")),
-                            );
-                          }
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: Theme.of(context).cardColor,
+                          title: const Text("Accept Case Request?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          content: const Text("Are you sure you want to accept this case request?", style: TextStyle(color: Colors.white70)),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text("Accept", style: TextStyle(color: AppColors.gold)),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed == true) {
+                        final success = await ref.read(casesProvider.notifier).acceptCaseRequest(lead.id);
+                        if (success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Case request accepted! Case is now Accepted.")),
+                          );
                         }
-                      },
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 40),
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: const Text("Reject", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.black,
+                      minimumSize: const Size(double.infinity, 40),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
+                    child: const Text("Accept Case", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 3,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text("Accept Request?"),
-                            content: const Text("Are you sure you want to accept this direct case request?"),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-                              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Accept")),
-                            ],
-                          ),
-                        );
-                        if (confirmed == true) {
-                          final success = await ref.read(casesProvider.notifier).acceptCaseRequest(lead.id);
-                          if (success && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Case request accepted! Case is now In Progress.")),
-                            );
-                          }
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(0, 40),
-                        backgroundColor: AppColors.gold,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: const Text("Accept", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
-                  ),
-                ],
-              ),
-            ] else ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _showLeadDetailsDialog(lead),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 40),
-                        side: const BorderSide(color: AppColors.gold),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: const Text("View Details", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _showProposalDialog(lead.id),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.black,
-                        minimumSize: const Size(double.infinity, 40),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: const Text("Send Proposal", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -1229,53 +1262,47 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
     return casesState.when(
       data: (cases) {
-        return appointmentsState.when(
-          data: (appointments) {
-            final activeClientsCases = cases.where((c) => 
-              c.assignedLawyerId == currentUserId && c.status != 'resolved'
-            ).toList();
+        final activeCasesList = cases.where((c) => 
+          c.assignedLawyerId == currentUserId && c.status == 'Accepted'
+        ).toList();
 
-            final completedCases = cases.where((c) => 
-              c.assignedLawyerId == currentUserId && c.status == 'resolved'
-            ).toList();
+        final inProgressCasesList = cases.where((c) => 
+          c.assignedLawyerId == currentUserId && c.status == 'In Progress'
+        ).toList();
 
-            final consultations = appointments.where((a) => 
-              a.lawyerId == currentUserId
-            ).toList();
+        final completedCasesList = cases.where((c) => 
+          c.assignedLawyerId == currentUserId && (c.status == 'Completed' || c.status == 'resolved' || c.status == 'Closed')
+        ).toList();
 
-            final activeCount = activeClientsCases.length;
-            final consultationsCount = consultations.length;
-            final completedCount = completedCases.length;
+        final activeCount = activeCasesList.length;
+        final inProgressCount = inProgressCasesList.length;
+        final completedCount = completedCasesList.length;
 
-            return Column(
-              children: [
-                // Sub-tabs row
-                Container(
-                  color: Theme.of(context).cardColor,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildClientsSubTab(0, "Active", "$activeCount"),
-                      _buildClientsSubTab(1, "Consultations", "$consultationsCount"),
-                      _buildClientsSubTab(2, "Completed", "$completedCount"),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
+        return Column(
+          children: [
+            // Sub-tabs row
+            Container(
+              color: Theme.of(context).cardColor,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildClientsSubTab(0, "Active", "$activeCount"),
+                  _buildClientsSubTab(1, "In Progress", "$inProgressCount"),
+                  _buildClientsSubTab(2, "Completed", "$completedCount"),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
 
-                Expanded(
-                  child: _buildClientsTabContent(
-                    activeClientsCases,
-                    consultations,
-                    completedCases,
-                  ),
-                ),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(child: Text("Error: $err", style: const TextStyle(color: Colors.red))),
+            Expanded(
+              child: _buildClientsTabContent(
+                activeCasesList,
+                inProgressCasesList,
+                completedCasesList,
+              ),
+            ),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -1285,12 +1312,34 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
   Widget _buildClientsTabContent(
     List<CaseModel> activeCases,
-    List<AppointmentModel> consultations,
+    List<CaseModel> inProgressCases,
     List<CaseModel> completedCases,
   ) {
     if (_selectedClientsTab == 0) {
       if (activeCases.isEmpty) {
-        return const Center(child: Text("No active case clients yet. Accept proposals to get started.", style: TextStyle(color: AppColors.textSecondaryDark)));
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.people_outline, size: 48, color: AppColors.textSecondaryDark),
+                SizedBox(height: 12),
+                Text(
+                  "No accepted clients yet.",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 6),
+                Text(
+                  "Accept a case request from My Leads to start building your client list.",
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondaryDark),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
       }
       return ListView.separated(
         padding: const EdgeInsets.all(16),
@@ -1305,54 +1354,157 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(color: Theme.of(context).colorScheme.outline),
             ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(16),
-              leading: CircleAvatar(
-                radius: 24,
-                backgroundColor: AppColors.navyBlueLight,
-                backgroundImage: clientCase.clientImage.isNotEmpty
-                    ? NetworkImage(clientCase.clientImage)
-                    : null,
-                child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.white) : null,
-              ),
-              title: Text(clientCase.clientName, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground, fontSize: 15)),
-              subtitle: Column(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 4),
-                  Text("Case: ${clientCase.title}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: AppColors.navyBlueLight,
+                        backgroundImage: clientCase.clientImage.isNotEmpty
+                            ? NetworkImage(clientCase.clientImage)
+                            : null,
+                        child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.white, size: 20) : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(clientCase.clientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            const SizedBox(height: 2),
+                            Text("ID: ${clientCase.id.length > 8 ? clientCase.id.substring(clientCase.id.length - 8) : clientCase.id}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: Colors.blue.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                        child: const Text("Accepted", style: TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  Row(
+                    children: [
+                      const Icon(Icons.category_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const SizedBox(width: 6),
+                      Text("Category: ${clientCase.category}", style: const TextStyle(fontSize: 12)),
+                    ],
+                  ),
                   const SizedBox(height: 6),
-                  Text(
-                    "Budget: ${clientCase.budgetRange} • Urgency: ${clientCase.urgency}",
-                    style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11),
+                  Row(
+                    children: [
+                      const Icon(Icons.title_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text("Title: ${clientCase.title}", style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text("Location: ${clientCase.location}", style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.gavel_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const SizedBox(width: 6),
+                      Text("Court: ${clientCase.preferredCourt?.isNotEmpty == true ? clientCase.preferredCourt! : 'Any Court'}", style: const TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const SizedBox(width: 6),
+                      Text("Accepted: ${clientCase.acceptedAt != null ? DateFormat('dd MMM yyyy, hh:mm a').format(clientCase.acceptedAt!) : DateFormat('dd MMM yyyy, hh:mm a').format(clientCase.createdAt)}", style: const TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _showLeadDetailsDialog(clientCase),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 36),
+                            side: const BorderSide(color: AppColors.gold),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text("View Client", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final success = await ref.read(casesProvider.notifier).startCase(clientCase.id);
+                            if (success && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Case work started!")),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Colors.black,
+                            minimumSize: const Size(double.infinity, 36),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text("Start Case", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-              ),
-              trailing: OutlinedButton(
-                onPressed: () {
-                  context.push('/chat/chat_${clientCase.id}/${clientCase.clientName}');
-                },
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.gold),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  minimumSize: const Size(60, 36),
-                ),
-                child: const Text("Chat", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
               ),
             ),
           );
         },
       );
     } else if (_selectedClientsTab == 1) {
-      if (consultations.isEmpty) {
-        return const Center(child: Text("No booked consultations yet.", style: TextStyle(color: AppColors.textSecondaryDark)));
+      if (inProgressCases.isEmpty) {
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.work_history_outlined, size: 48, color: AppColors.textSecondaryDark),
+                SizedBox(height: 12),
+                Text(
+                  "No active cases in progress.",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 6),
+                Text(
+                  "Start working on an accepted client case to see it here.",
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondaryDark),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
       }
       return ListView.separated(
         padding: const EdgeInsets.all(16),
-        itemCount: consultations.length,
+        itemCount: inProgressCases.length,
         separatorBuilder: (c, i) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
-          final appt = consultations[index];
+          final clientCase = inProgressCases[index];
           return Card(
             elevation: 0,
             color: Theme.of(context).cardColor,
@@ -1360,39 +1512,152 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(color: Theme.of(context).colorScheme.outline),
             ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(16),
-              leading: CircleAvatar(
-                radius: 24,
-                backgroundColor: AppColors.navyBlueLight,
-                backgroundImage: appt.clientImage.isNotEmpty
-                    ? NetworkImage(appt.clientImage)
-                    : null,
-                child: appt.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.white) : null,
-              ),
-              title: Text(appt.clientName, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground, fontSize: 15)),
-              subtitle: Column(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 4),
-                  Text(appt.caseTitle ?? appt.mode, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: AppColors.navyBlueLight,
+                        backgroundImage: clientCase.clientImage.isNotEmpty
+                            ? NetworkImage(clientCase.clientImage)
+                            : null,
+                        child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.white, size: 20) : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(clientCase.clientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            const SizedBox(height: 2),
+                            Text("Case: ${clientCase.title}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12), overflow: TextOverflow.ellipsis),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: Colors.orange.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                        child: const Text("In Progress", style: TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  Row(
+                    children: [
+                      const Icon(Icons.category_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const SizedBox(width: 6),
+                      Text("Category: ${clientCase.category}", style: const TextStyle(fontSize: 12)),
+                    ],
+                  ),
                   const SizedBox(height: 6),
-                  Text(
-                    "Scheduled: ${DateFormat('dd MMM yyyy, hh:mm a').format(appt.date)} (${appt.timeSlot})",
-                    style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11),
+                  Row(
+                    children: [
+                      const Icon(Icons.update_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const SizedBox(width: 6),
+                      Text("Last Updated: ${DateFormat('dd MMM yyyy, hh:mm a').format(clientCase.createdAt)}", style: const TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                  if (clientCase.nextHearing != null) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.gavel_outlined, size: 14, color: AppColors.textSecondaryDark),
+                        const SizedBox(width: 6),
+                        Text("Next Hearing: ${DateFormat('dd MMM yyyy').format(clientCase.nextHearing!)}", style: const TextStyle(fontSize: 12, color: Colors.redAccent)),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.checklist_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const SizedBox(width: 6),
+                      const Text("Tasks: 2 tasks remaining", style: TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _showLeadDetailsDialog(clientCase),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 36),
+                            side: const BorderSide(color: AppColors.gold),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text("View Case", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            context.push('/chat/chat_${clientCase.id}/${clientCase.clientName}');
+                          },
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 36),
+                            side: const BorderSide(color: AppColors.gold),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text("Chat", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Calling ${clientCase.clientName}... (Simulated)")),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 36),
+                            side: const BorderSide(color: AppColors.gold),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text("Call", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: Theme.of(context).cardColor,
+                          title: const Text("Complete Case?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          content: const Text("Are you sure you want to mark this case as completed?", style: TextStyle(color: Colors.white70)),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.grey))),
+                            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Complete", style: TextStyle(color: AppColors.gold))),
+                          ],
+                        ),
+                      );
+                      if (confirmed == true) {
+                        final success = await ref.read(casesProvider.notifier).markCaseCompleted(clientCase.id);
+                        if (success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Case marked completed successfully!")),
+                          );
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 36),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text("Mark Case Completed", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                   ),
                 ],
-              ),
-              trailing: OutlinedButton(
-                onPressed: () {
-                  context.push('/chat/chat_${appt.id}/${appt.clientName}');
-                },
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.gold),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  minimumSize: const Size(60, 36),
-                ),
-                child: const Text("Chat", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
               ),
             ),
           );
@@ -1400,7 +1665,29 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
       );
     } else {
       if (completedCases.isEmpty) {
-        return const Center(child: Text("No completed cases recorded.", style: TextStyle(color: AppColors.textSecondaryDark)));
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.verified_outlined, size: 48, color: AppColors.textSecondaryDark),
+                SizedBox(height: 12),
+                Text(
+                  "No completed cases yet.",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 6),
+                Text(
+                  "Completed client cases will appear here for future reference.",
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondaryDark),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
       }
       return ListView.separated(
         padding: const EdgeInsets.all(16),
@@ -1415,27 +1702,93 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(color: Theme.of(context).colorScheme.outline),
             ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(16),
-              leading: CircleAvatar(
-                radius: 24,
-                backgroundColor: AppColors.navyBlueLight,
-                backgroundImage: clientCase.clientImage.isNotEmpty
-                    ? NetworkImage(clientCase.clientImage)
-                    : null,
-                child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.white70) : null,
-              ),
-              title: Text(clientCase.clientName, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground, fontSize: 15)),
-              subtitle: Column(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 4),
-                  Text("Case: ${clientCase.title}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: AppColors.navyBlueLight,
+                        backgroundImage: clientCase.clientImage.isNotEmpty
+                            ? NetworkImage(clientCase.clientImage)
+                            : null,
+                        child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.white, size: 20) : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(clientCase.clientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            const SizedBox(height: 2),
+                            Text("Case: ${clientCase.title}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12), overflow: TextOverflow.ellipsis),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: Colors.green.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                        child: const Text("Completed", style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  Row(
+                    children: [
+                      const Icon(Icons.category_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const SizedBox(width: 6),
+                      Text("Category: ${clientCase.category}", style: const TextStyle(fontSize: 12)),
+                    ],
+                  ),
                   const SizedBox(height: 6),
-                  const Text("Status: Completed/Resolved", style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold)),
+                  Row(
+                    children: [
+                      const Icon(Icons.gavel_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const SizedBox(width: 6),
+                      Text("Court: ${clientCase.preferredCourt?.isNotEmpty == true ? clientCase.preferredCourt! : 'Any Court'}", style: const TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const SizedBox(width: 6),
+                      Text("Completed Date: ${clientCase.completedAt != null ? DateFormat('dd MMM yyyy').format(clientCase.completedAt!) : DateFormat('dd MMM yyyy').format(clientCase.createdAt)}", style: const TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _showLeadDetailsDialog(clientCase),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 36),
+                            side: const BorderSide(color: AppColors.gold),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text("View Case Summary", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _showLeadDetailsDialog(clientCase),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 36),
+                            side: const BorderSide(color: AppColors.gold),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text("View Documents", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-              trailing: const Icon(Icons.verified, color: AppColors.gold),
             ),
           );
         },
@@ -2875,7 +3228,17 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         return AlertDialog(
           backgroundColor: Theme.of(context).cardColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(lead.title, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(lead.title, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)),
+              ),
+              if (lead.clientVerified) ...[
+                const SizedBox(width: 8),
+                const Icon(Icons.verified, color: Colors.blue, size: 20),
+              ],
+            ],
+          ),
           content: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2883,23 +3246,109 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondaryDark),
-                    const SizedBox(width: 4),
+                    const Icon(Icons.category_outlined, size: 16, color: AppColors.gold),
+                    const SizedBox(width: 8),
+                    Text(lead.category, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.gold)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.tag, size: 16, color: AppColors.textSecondaryDark),
+                    const SizedBox(width: 8),
+                    Text("Case ID: ${lead.id}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_outlined, size: 16, color: AppColors.textSecondaryDark),
+                    const SizedBox(width: 8),
                     Text(lead.location, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.currency_rupee, size: 14, color: AppColors.textSecondaryDark),
-                    const SizedBox(width: 4),
-                    Text(lead.budgetRange, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                    const Icon(Icons.gavel_outlined, size: 16, color: AppColors.textSecondaryDark),
+                    const SizedBox(width: 8),
+                    Text("Preferred Court: ${lead.preferredCourt?.isNotEmpty == true ? lead.preferredCourt! : "Any Court"}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.currency_rupee, size: 16, color: AppColors.textSecondaryDark),
+                    const SizedBox(width: 8),
+                    Text("Budget: ${lead.budgetRange.isNotEmpty ? lead.budgetRange : "N/A"}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                    const SizedBox(width: 24),
+                    const Icon(Icons.access_time_outlined, size: 16, color: AppColors.textSecondaryDark),
+                    const SizedBox(width: 8),
+                    Text("Urgency: ${lead.urgency}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.person_outline, size: 16, color: AppColors.textSecondaryDark),
+                    const SizedBox(width: 8),
+                    Text("Selected Lawyer: ${lead.selectedLawyerName ?? "Direct Selection"}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_month_outlined, size: 16, color: AppColors.textSecondaryDark),
+                    const SizedBox(width: 8),
+                    Text("Submitted on: ${DateFormat('dd MMM yyyy, hh:mm a').format(lead.createdAt)}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
                   ],
                 ),
                 const SizedBox(height: 16),
-                Text("Client Requirements:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
+                Text("Case Description:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
                 const SizedBox(height: 6),
                 Text(lead.description, style: const TextStyle(fontSize: 13, height: 1.4)),
+                const SizedBox(height: 16),
+                Text("Acknowledgement Documents:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
+                const SizedBox(height: 8),
+                if (lead.documents.isEmpty)
+                  const Text("No documents uploaded.", style: TextStyle(fontSize: 12, color: AppColors.textSecondaryDark))
+                else
+                  Column(
+                    children: lead.documents.map((doc) {
+                      return Card(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                        ),
+                        child: ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.description, color: AppColors.gold, size: 20),
+                          title: Text(doc.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                          subtitle: Text(doc.size, style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryDark)),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.open_in_new, color: AppColors.gold, size: 18),
+                            onPressed: () async {
+                              final String urlStr = doc.url.startsWith("http")
+                                  ? doc.url
+                                  : "${Environment.baseUrl}${doc.url}";
+                              final Uri uri = Uri.parse(urlStr);
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text("Could not open document: $urlStr")),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
               ],
             ),
           ),
@@ -2908,177 +3357,259 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               onPressed: () => Navigator.pop(context),
               child: const Text("Close", style: TextStyle(color: AppColors.textSecondaryDark)),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _showProposalDialog(lead.id);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.black,
-              ),
-              child: const Text("Send Proposal"),
-            )
-          ],
-        );
-      },
-    );
-  }
-
-  void _showProposalDialog(String caseId) {
-    final feeController = TextEditingController(text: "1500");
-    final messageController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Theme.of(context).cardColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text("Send Proposal", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: feeController,
-                keyboardType: TextInputType.number,
-                style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
-                decoration: const InputDecoration(
-                  labelText: "Consultation Fee Bid (₹)",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: messageController,
-                maxLines: 3,
-                style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
-                decoration: const InputDecoration(
-                  labelText: "Your Message/Introduction",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondaryDark)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final fee = double.tryParse(feeController.text) ?? 1500;
-                final message = messageController.text.trim();
-                final currentUserId = ref.read(authProvider).userId ?? "";
-
-                if (message.isNotEmpty) {
-                  final success = await ref.read(casesProvider.notifier).submitProposal(
-                        caseId: caseId,
-                        lawyerId: currentUserId,
-                        message: message,
-                        fee: fee,
-                      );
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(success ? "Proposal submitted successfully!" : "Failed to send proposal."),
-                        backgroundColor: success ? Colors.green : Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.black,
-              ),
-              child: const Text("Submit Quote"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showEarningsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final appointmentsState = ref.watch(appointmentsProvider);
-            final currentUserId = ref.watch(authProvider).userId ?? "";
-            final lawyerState = ref.watch(lawyerDetailsProvider(currentUserId));
-
-            return appointmentsState.when(
-              data: (appointments) {
-                final completedConsults = appointments.where((a) =>
-                  a.lawyerId == currentUserId && a.status == 'completed'
-                ).toList();
-
-                final fee = lawyerState.maybeWhen(
-                  data: (lawyer) => lawyer.consultationFee,
-                  orElse: () => 1500,
-                );
-
-                final consultEarnings = completedConsults.length * fee;
-                final totalEarnings = consultEarnings;
-
-                return AlertDialog(
-                  backgroundColor: Theme.of(context).cardColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  title: Text("Earnings Details", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text("Total Earnings", style: TextStyle(fontSize: 12, color: AppColors.textSecondaryDark)),
-                      const SizedBox(height: 4),
-                      Text("₹$totalEarnings", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.gold)),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text("Consultations", style: TextStyle(fontSize: 13)),
-                          Text("₹$consultEarnings", style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.gold)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          Text("Other Earnings", style: TextStyle(fontSize: 13)),
-                          Text("₹0", style: TextStyle(fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text("Close", style: TextStyle(color: AppColors.textSecondaryDark)),
+            if (lead.status == 'Pending Lawyer Response' || lead.status == 'Awaiting Lawyer Acceptance')
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      backgroundColor: Theme.of(context).cardColor,
+                      title: const Text("Accept Case Request?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      content: const Text("Are you sure you want to accept this case request?", style: TextStyle(color: Colors.white70)),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text("Accept", style: TextStyle(color: AppColors.gold)),
+                        ),
+                      ],
                     ),
-                  ],
-                );
-              },
-              loading: () => AlertDialog(
-                backgroundColor: Theme.of(context).cardColor,
-                content: const SizedBox(
-                  height: 80,
-                  child: Center(child: CircularProgressIndicator()),
+                  );
+                  if (confirmed == true) {
+                    final success = await ref.read(casesProvider.notifier).acceptCaseRequest(lead.id);
+                    if (success && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Case request accepted! Case is now Accepted.")),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.black,
                 ),
-              ),
-              error: (err, stack) => AlertDialog(
-                backgroundColor: Theme.of(context).cardColor,
-                content: Text("Error: $err", style: const TextStyle(color: Colors.red)),
-                actions: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close")),
-                ],
-              ),
-            );
-          },
+                child: const Text("Accept Case"),
+              )
+          ],
+        );
+      },
+    );
+  }
+
+
+
+
+}
+
+class _ShimmerPulse extends StatefulWidget {
+  final double width;
+  final double height;
+  final double borderRadius;
+
+  const _ShimmerPulse({
+    required this.width,
+    required this.height,
+    required this.borderRadius,
+  });
+
+  @override
+  State<_ShimmerPulse> createState() => _ShimmerPulseState();
+}
+
+class _ShimmerPulseState extends State<_ShimmerPulse> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.3, end: 0.8).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _animation.value,
+          child: Container(
+            width: widget.width,
+            height: widget.height,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2B2B2C),
+              borderRadius: BorderRadius.circular(widget.borderRadius),
+            ),
+          ),
         );
       },
     );
   }
 }
+
+class LawyerInsight {
+  final String category;
+  final String tip;
+  // Future personalization parameters
+  final List<String>? specializations;
+  final int? minExperience;
+  final int? minActiveCases;
+  final double? minRating;
+
+  const LawyerInsight({
+    required this.category,
+    required this.tip,
+    this.specializations,
+    this.minExperience,
+    this.minActiveCases,
+    this.minRating,
+  });
+}
+
+class LawyerInsightsService {
+  // Static list of premium structured tips
+  static const List<LawyerInsight> _tips = [
+    // Today's Practice Tip
+    LawyerInsight(
+      category: "💡 Today's Practice Tip",
+      tip: "Respond to new client requests within 10 minutes to significantly improve your chances of being selected.",
+    ),
+    LawyerInsight(
+      category: "💡 Today's Practice Tip",
+      tip: "Start your day by reviewing updates on active cases to stay ahead of client expectations.",
+    ),
+    // Business Growth Tip
+    LawyerInsight(
+      category: "📈 Business Growth Tip",
+      tip: "A complete lawyer profile with experience, languages, and certifications receives more client inquiries.",
+    ),
+    LawyerInsight(
+      category: "📈 Business Growth Tip",
+      tip: "Requesting feedback from satisfied clients helps improve your professional rating and visibility.",
+    ),
+    // Legal Practice Tip
+    LawyerInsight(
+      category: "⚖️ Legal Practice Tip",
+      tip: "Review uploaded documents before the first consultation to provide more accurate legal advice.",
+    ),
+    LawyerInsight(
+      category: "⚖️ Legal Practice Tip",
+      tip: "Ensure all regulatory changes are factored into your ongoing active case briefs.",
+    ),
+    // Client Success Tip
+    LawyerInsight(
+      category: "⭐ Client Success Tip",
+      tip: "Keep clients informed about every milestone to build trust and increase repeat consultations.",
+    ),
+    LawyerInsight(
+      category: "⭐ Client Success Tip",
+      tip: "A clear, upfront fee breakdown prevents billing disputes and keeps client trust high.",
+    ),
+    // Productivity Tip
+    LawyerInsight(
+      category: "🚀 Productivity Tip",
+      tip: "Schedule tomorrow's consultations before ending your workday to reduce missed appointments.",
+    ),
+    LawyerInsight(
+      category: "🚀 Productivity Tip",
+      tip: "Allocate a dedicated hour each morning for reviewing active proposals and client bids.",
+    ),
+    // Case Management Tip
+    LawyerInsight(
+      category: "📂 Case Management Tip",
+      tip: "Update case progress immediately after every consultation for better organization.",
+    ),
+    LawyerInsight(
+      category: "📂 Case Management Tip",
+      tip: "Organize all case documents under client folders as soon as they are received.",
+    ),
+    // Client Communication Tip
+    LawyerInsight(
+      category: "🤝 Client Communication Tip",
+      tip: "Simple explanations create stronger client confidence than complex legal terminology.",
+    ),
+    LawyerInsight(
+      category: "🤝 Client Communication Tip",
+      tip: "Confirm key discussion points in writing after every phone call or meeting.",
+    ),
+    // Compliance Reminder
+    LawyerInsight(
+      category: "🔒 Compliance Reminder",
+      tip: "Ensure all client documents remain confidential and securely stored.",
+    ),
+    LawyerInsight(
+      category: "🔒 Compliance Reminder",
+      tip: "Double-check conflict of interest disclosures before accepting any new case bid.",
+    ),
+    // Court Preparation Tip
+    LawyerInsight(
+      category: "📅 Court Preparation Tip",
+      tip: "Prepare hearing notes and supporting documents one day before court.",
+    ),
+    LawyerInsight(
+      category: "📅 Court Preparation Tip",
+      tip: "Perform a final case law search to ensure your arguments align with the latest precedents.",
+    ),
+    // Practice Management Tip
+    LawyerInsight(
+      category: "💼 Practice Management Tip",
+      tip: "Regularly review pending consultations and proposals to maximize monthly revenue.",
+    ),
+    LawyerInsight(
+      category: "💼 Practice Management Tip",
+      tip: "Keep your working hours updated so clients can book convenient slots.",
+    ),
+  ];
+
+  /// Get random insight with support for future personalization filtering.
+  static LawyerInsight getRandomInsight({
+    String? currentTipTextToExclude,
+    String? specialization,
+    int? experience,
+    int? activeCases,
+    double? rating,
+  }) {
+    // 1. Filter based on target attributes (architecture is ready for personalization)
+    List<LawyerInsight> filtered = _tips.where((item) {
+      if (specialization != null && item.specializations != null) {
+        if (!item.specializations!.contains(specialization)) return false;
+      }
+      if (experience != null && item.minExperience != null) {
+        if (experience < item.minExperience!) return false;
+      }
+      if (rating != null && item.minRating != null) {
+        if (rating < item.minRating!) return false;
+      }
+      return true;
+    }).toList();
+
+    if (filtered.isEmpty) {
+      filtered = List.from(_tips);
+    }
+
+    // 2. Exclude current tip if possible to avoid consecutive repeats
+    if (filtered.length > 1 && currentTipTextToExclude != null) {
+      filtered.removeWhere((item) => item.tip == currentTipTextToExclude);
+    }
+
+    // 3. Select random
+    final rand = math.Random();
+    return filtered[rand.nextInt(filtered.length)];
+  }
+}
+
+

@@ -21,6 +21,7 @@ class CaseModel {
   final String? assignedLawyerImage;
   final List<MilestoneModel> milestones;
   final DateTime createdAt;
+  final bool clientVerified;
 
   final String? selectedLawyerId;
   final String? selectedLawyerName;
@@ -43,6 +44,9 @@ class CaseModel {
   final DateTime? consultationDate;
   final DateTime? nextHearing;
   final DateTime? closedDate;
+  final DateTime? acceptedAt;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
   final double? rating;
   final String? review;
 
@@ -67,6 +71,7 @@ class CaseModel {
     this.assignedLawyerImage,
     required this.milestones,
     required this.createdAt,
+    this.clientVerified = false,
     this.selectedLawyerId,
     this.selectedLawyerName,
     this.selectedLawyerImage,
@@ -86,6 +91,9 @@ class CaseModel {
     this.consultationDate,
     this.nextHearing,
     this.closedDate,
+    this.acceptedAt,
+    this.startedAt,
+    this.completedAt,
     this.rating,
     this.review,
   });
@@ -109,6 +117,7 @@ class CaseModel {
       clientImage: clientData['profileImage'] ?? '',
       title: json['title'] ?? '',
       description: json['description'] ?? '',
+      clientVerified: clientData['isVerified'] ?? false,
       category: json['category'] ?? '',
       subcategory: json['subcategory'],
       location: json['location'] ?? '',
@@ -153,6 +162,9 @@ class CaseModel {
       consultationDate: json['consultationDate'] != null ? DateTime.parse(json['consultationDate']) : null,
       nextHearing: json['nextHearing'] != null ? DateTime.parse(json['nextHearing']) : null,
       closedDate: json['closedDate'] != null ? DateTime.parse(json['closedDate']) : null,
+      acceptedAt: json['acceptedAt'] != null ? DateTime.parse(json['acceptedAt']) : null,
+      startedAt: json['startedAt'] != null ? DateTime.parse(json['startedAt']) : null,
+      completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt']) : null,
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
       review: json['review'] ?? '',
     );

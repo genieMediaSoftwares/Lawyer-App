@@ -51,7 +51,7 @@ const caseSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Submitted", "Awaiting Lawyer Acceptance", "In Progress", "Closed", "Rejected"],
+      enum: ["Submitted", "Awaiting Lawyer Acceptance", "Pending Lawyer Response", "Interested", "Accepted", "In Progress", "Closed", "Rejected"],
       default: "Submitted",
     },
 
@@ -136,6 +136,21 @@ const caseSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    acceptedAt: {
+      type: Date,
+      default: null,
+    },
+
+    startedAt: {
+      type: Date,
+      default: null,
+    },
+
+    completedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -146,5 +161,7 @@ caseSchema.index({ client: 1 });
 caseSchema.index({ selectedLawyer: 1 });
 caseSchema.index({ assignedLawyer: 1 });
 caseSchema.index({ status: 1 });
+caseSchema.index({ createdAt: -1 });
+caseSchema.index({ updatedAt: -1 });
 
 module.exports = mongoose.model("Case", caseSchema);
