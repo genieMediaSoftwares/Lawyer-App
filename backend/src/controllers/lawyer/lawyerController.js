@@ -407,6 +407,178 @@ class LawyerController {
       next(error);
     }
   }
+
+  async getLeads(req, res, next) {
+    try {
+      const Case = require("../../models/Case");
+      const leads = await Case.find({
+        selectedLawyer: req.user._id,
+        status: "Pending Lawyer Response"
+      }).populate("client", "fullName");
+
+      const formattedLeads = leads.map(c => ({
+        caseId: c._id,
+        clientName: c.client ? c.client.fullName : "Unknown Client",
+        issueCategory: c.category,
+        issueTitle: c.title,
+        location: c.location,
+        postedTime: c.createdAt,
+        urgency: c.urgency,
+        acknowledgementDocument: c.documents && c.documents[0] ? c.documents[0].url : "",
+        preferredCourt: c.preferredCourt,
+        caseStatus: c.status,
+      }));
+
+      return ApiResponse.success(res, "Leads retrieved successfully.", formattedLeads);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getClients(req, res, next) {
+    try {
+      const Case = require("../../models/Case");
+      const cases = await Case.find({
+        assignedLawyer: req.user._id
+      }).populate("client", "fullName profileImage");
+
+      const mapClient = (c) => ({
+        clientId: c.client ? c.client._id : "",
+        name: c.client ? c.client.fullName : "Unknown Client",
+        caseId: c._id,
+        issue: c.title,
+        currentStatus: c.status,
+        lastActivity: c.updatedAt,
+        profileImage: c.client ? c.client.profileImage : "",
+      });
+
+      const accepted = cases.filter(c => c.status === "Awaiting Lawyer Acceptance" || c.status === "Submitted").map(mapClient);
+      const inProgress = cases.filter(c => c.status === "In Progress").map(mapClient);
+      const closed = cases.filter(c => c.status === "Closed").map(mapClient);
+
+      return ApiResponse.success(res, "Clients fetched and grouped successfully.", {
+        accepted,
+        inProgress,
+        closed
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getScheduleToday(req, res, next) {
+    try {
+      const Appointment = require("../../models/Appointment");
+      const CalendarEvent = require("../../models/CalendarEvent");
+      const Case = require("../../models/Case");
+
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+
+      const appointments = await Appointment.find({
+        lawyer: req.user._id,
+        date: { $gte: startOfToday, $lte: endOfToday }
+      }).populate("client", "fullName").populate("case", "title");
+
+      const casesWithHearings = await Case.find({
+        assignedLawyer: req.user._id,
+        nextHearing: { $gte: startOfToday, $lte: endOfToday }
+      }).populate("client", "fullName");
+
+      const calendarEvents = await CalendarEvent.find({
+        lawyer: req.user._id,
+        date: { $gte: startOfToday, $lte: endOfToday }
+      });
+
+      const apptEvents = appointments.map(a => ({
+        title: `Consultation with ${a.client ? a.client.fullName : "Client"}`,
+        client: a.client ? a.client.fullName : "",
+        case: a.case ? a.case.title : "",
+        startTime: a.date,
+        endTime: new Date(a.date.getTime() + 30 * 60000),
+        eventType: "consultation"
+      }));
+
+      const hearingEvents = casesWithHearings.map(c => ({
+        title: `Court Hearing: ${c.title}`,
+        client: c.client ? c.client.fullName : "",
+        case: c.title,
+        startTime: c.nextHearing,
+        endTime: new Date(c.nextHearing.getTime() + 60 * 60000),
+        eventType: "hearing"
+      }));
+
+      const calEvents = calendarEvents.map(e => ({
+        title: e.title,
+        client: "",
+        case: "",
+        startTime: e.date,
+        endTime: e.date,
+        eventType: e.type === "personal_event" ? "meeting" : "reminder"
+      }));
+
+      const allEvents = [...apptEvents, ...hearingEvents, ...calEvents];
+      allEvents.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+      return ApiResponse.success(res, "Today's schedule fetched successfully.", allEvents);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getUnreadMessages(req, res, next) {
+    try {
+      const Chat = require("../../models/Chat");
+      const Message = require("../../models/Message");
+
+      const chats = await Chat.find({
+        participants: req.user._id
+      }).populate("participants", "fullName");
+
+      let unreadCount = 0;
+      let latestMessage = "";
+      let latestClient = "";
+      let lastMessageTime = null;
+      let conversationCount = chats.length;
+
+      if (chats.length > 0) {
+        const chatIds = chats.map(c => c._id);
+        
+        unreadCount = await Message.countDocuments({
+          chat: { $in: chatIds },
+          isRead: false,
+          sender: { $ne: req.user._id }
+        });
+
+        const lastMsg = await Message.findOne({
+          chat: { $in: chatIds }
+        }).sort({ createdAt: -1 }).populate("sender", "fullName");
+
+        if (lastMsg) {
+          latestMessage = lastMsg.content;
+          lastMessageTime = lastMsg.createdAt;
+          
+          const chatDetail = chats.find(c => c._id.toString() === lastMsg.chat.toString());
+          if (chatDetail) {
+            const clientPart = chatDetail.participants.find(p => p._id.toString() !== req.user._id.toString());
+            latestClient = clientPart ? clientPart.fullName : (lastMsg.sender ? lastMsg.sender.fullName : "");
+          }
+        }
+      }
+
+      return ApiResponse.success(res, "Unread messages count fetched.", {
+        unreadCount,
+        conversationCount,
+        latestMessage,
+        latestClient,
+        lastMessageTime
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new LawyerController();

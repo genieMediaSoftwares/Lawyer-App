@@ -3,6 +3,10 @@ import '../core/network/dio_client.dart';
 import '../models/lawyer_model.dart';
 import '../models/advocate_model.dart';
 import '../repositories/lawyer_repository.dart';
+import 'case_provider.dart';
+import 'appointment_provider.dart';
+import 'chat_provider.dart';
+import 'auth_provider.dart';
 
 final lawyerRepositoryProvider = Provider((ref) => LawyerRepository());
 
@@ -182,3 +186,147 @@ class LawyerProfileUpdater {
     return false;
   }
 }
+
+final lawyerWorkspaceRepositoryProvider = Provider((ref) => LawyerWorkspaceRepository());
+
+final lawyerWorkspaceLeadsProvider = FutureProvider<List<dynamic>>((ref) async {
+  // Automatically re-fetch leads when cases change (e.g. via sockets)
+  ref.watch(casesProvider);
+  final repo = ref.watch(lawyerWorkspaceRepositoryProvider);
+  return repo.getLeads();
+});
+
+final lawyerWorkspaceClientsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  // Automatically re-fetch clients when cases change (e.g. via sockets)
+  ref.watch(casesProvider);
+  final repo = ref.watch(lawyerWorkspaceRepositoryProvider);
+  return repo.getClients();
+});
+
+final lawyerWorkspaceScheduleProvider = FutureProvider<List<dynamic>>((ref) async {
+  // Automatically re-fetch schedule when appointments change (e.g. via sockets)
+  ref.watch(appointmentsProvider);
+  final repo = ref.watch(lawyerWorkspaceRepositoryProvider);
+  return repo.getScheduleToday();
+});
+
+final lawyerWorkspaceMessagesProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  // Automatically re-fetch message stats when chats change (e.g. via sockets)
+  ref.watch(chatsProvider);
+  final repo = ref.watch(lawyerWorkspaceRepositoryProvider);
+  return repo.getUnreadMessages();
+});
+
+class LawyerWorkspaceRepository {
+  Future<List<dynamic>> getLeads() async {
+    final response = await DioClient.dio.get("/lawyers/leads");
+    if (response.data != null && response.data['success'] == true) {
+      return response.data['data'] as List;
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> getClients() async {
+    final response = await DioClient.dio.get("/lawyers/clients");
+    if (response.data != null && response.data['success'] == true) {
+      return Map<String, dynamic>.from(response.data['data']);
+    }
+    return {"accepted": [], "inProgress": [], "closed": []};
+  }
+
+  Future<List<dynamic>> getScheduleToday() async {
+    final response = await DioClient.dio.get("/lawyers/schedule/today");
+    if (response.data != null && response.data['success'] == true) {
+      return response.data['data'] as List;
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> getUnreadMessages() async {
+    final response = await DioClient.dio.get("/lawyers/messages/unread");
+    if (response.data != null && response.data['success'] == true) {
+      return Map<String, dynamic>.from(response.data['data']);
+    }
+    return {
+      "unreadCount": 0,
+      "conversationCount": 0,
+      "latestMessage": "",
+      "latestClient": "",
+      "lastMessageTime": null
+    };
+  }
+}
+
+final newCaseRequestsCountProvider = Provider<AsyncValue<int>>((ref) {
+  final casesAsync = ref.watch(casesProvider);
+  final authState = ref.watch(authProvider);
+  final currentUserId = authState.userId ?? "";
+  return casesAsync.when(
+    data: (cases) {
+      final count = cases.where((c) =>
+        c.selectedLawyerId == currentUserId &&
+        (c.status == 'Pending Lawyer Response' || c.status == 'Awaiting Lawyer Acceptance')
+      ).length;
+      return AsyncValue.data(count);
+    },
+    loading: () => const AsyncValue.loading(),
+    error: (err, stack) => AsyncValue.error(err, stack),
+  );
+});
+
+final unreadMessagesCountProvider = FutureProvider<int>((ref) async {
+  ref.watch(chatsProvider);
+  final repo = ref.watch(lawyerWorkspaceRepositoryProvider);
+  final data = await repo.getUnreadMessages();
+  return (data['unreadCount'] as num?)?.toInt() ?? 0;
+});
+
+final todayConsultationsCountProvider = FutureProvider<int>((ref) async {
+  ref.watch(appointmentsProvider);
+  final repo = ref.watch(lawyerWorkspaceRepositoryProvider);
+  final schedule = await repo.getScheduleToday();
+  final count = schedule.where((e) => e['eventType'] == 'consultation').length;
+  return count;
+});
+
+final todayHearingsCountProvider = FutureProvider<int>((ref) async {
+  ref.watch(casesProvider);
+  final repo = ref.watch(lawyerWorkspaceRepositoryProvider);
+  final schedule = await repo.getScheduleToday();
+  final count = schedule.where((e) => e['eventType'] == 'hearing').length;
+  return count;
+});
+
+final pendingDocumentReviewsCountProvider = Provider<AsyncValue<int>>((ref) {
+  final casesAsync = ref.watch(casesProvider);
+  final authState = ref.watch(authProvider);
+  final currentUserId = authState.userId ?? "";
+  return casesAsync.when(
+    data: (cases) {
+      final count = cases.where((c) =>
+        (c.selectedLawyerId == currentUserId || c.assignedLawyerId == currentUserId) &&
+        c.status != 'Completed' && c.status != 'Closed' && c.status != 'resolved'
+      ).fold<int>(0, (sum, c) => sum + c.documents.length);
+      return AsyncValue.data(count);
+    },
+    loading: () => const AsyncValue.loading(),
+    error: (err, stack) => AsyncValue.error(err, stack),
+  );
+});
+
+final pendingClientResponsesCountProvider = Provider<AsyncValue<int>>((ref) {
+  final casesAsync = ref.watch(casesProvider);
+  final authState = ref.watch(authProvider);
+  final currentUserId = authState.userId ?? "";
+  return casesAsync.when(
+    data: (cases) {
+      final count = cases.where((c) =>
+        c.selectedLawyerId == currentUserId &&
+        (c.status == 'Pending Lawyer Response' || c.status == 'Awaiting Lawyer Acceptance')
+      ).length;
+      return AsyncValue.data(count);
+    },
+    loading: () => const AsyncValue.loading(),
+    error: (err, stack) => AsyncValue.error(err, stack),
+  );
+});

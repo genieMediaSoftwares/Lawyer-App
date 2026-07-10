@@ -87,6 +87,32 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     return false;
   }
 
+  Future<bool> startCase(String caseId) async {
+    try {
+      final response = await DioClient.dio.post("/cases/$caseId/start");
+      if (response.data != null && response.data['success'] == true) {
+        await fetchCases();
+        return true;
+      }
+    } catch (e) {
+      // Handle error
+    }
+    return false;
+  }
+
+  Future<bool> markCaseCompleted(String caseId) async {
+    try {
+      final response = await DioClient.dio.post("/cases/$caseId/complete");
+      if (response.data != null && response.data['success'] == true) {
+        await fetchCases();
+        return true;
+      }
+    } catch (e) {
+      // Handle error
+    }
+    return false;
+  }
+
   Future<bool> rejectCaseRequest(String caseId) async {
     try {
       final response = await DioClient.dio.post("/cases/$caseId/reject-request");
@@ -138,11 +164,17 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     required String lawyerId,
     required String message,
     required double fee,
+    String estimatedResponseTime = "24 hours",
+    String consultationMode = "Video",
+    String availability = "Mon-Fri 9AM-5PM",
   }) async {
     try {
       final response = await DioClient.dio.post("/cases/$caseId/proposals", data: {
         "feeProposal": fee.toInt(),
         "message": message,
+        "estimatedResponseTime": estimatedResponseTime,
+        "consultationMode": consultationMode,
+        "availability": availability,
       });
 
       if (response.data != null && response.data['success'] == true) {
