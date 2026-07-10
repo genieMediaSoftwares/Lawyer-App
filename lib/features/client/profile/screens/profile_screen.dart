@@ -188,42 +188,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Column(
               children: [
                 _buildMenuRow(
-                  icon: Icons.business_center_outlined,
-                  title: "My Cases",
-                  subtitle: "Track your legal cases",
-                  onTap: () => context.go(RouteNames.myCases),
-                ),
-                const Divider(color: Color(0xFF2B2B2B), height: 1),
-                _buildMenuRow(
-                  icon: Icons.event_note_outlined,
-                  title: "Consultations",
-                  subtitle: "Your consultation history",
-                  onTap: () => context.push(RouteNames.consult),
-                ),
-                const Divider(color: Color(0xFF2B2B2B), height: 1),
-                _buildMenuRow(
                   icon: Icons.description_outlined,
                   title: "Documents",
                   subtitle: "Your legal documents",
                   onTap: () => context.push(RouteNames.myDocuments),
-                ),
-                const Divider(color: Color(0xFF2B2B2B), height: 1),
-                _buildMenuRow(
-                  icon: Icons.favorite_border,
-                  title: "Favorite Advocates",
-                  subtitle: "Advocates you follow",
-                  onTap: () => context.push(RouteNames.favorites),
-                ),
-                const Divider(color: Color(0xFF2B2B2B), height: 1),
-                _buildMenuRow(
-                  icon: Icons.payment_outlined,
-                  title: "Payments",
-                  subtitle: "Payment history & invoices",
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Payments history screen coming soon!")),
-                    );
-                  },
                 ),
                 const Divider(color: Color(0xFF2B2B2B), height: 1),
                 _buildMenuRow(
