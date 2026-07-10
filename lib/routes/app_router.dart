@@ -36,7 +36,11 @@ import '../features/client/documents/screens/my_documents_screen.dart';
 import '../features/client/profile/screens/settings_screen.dart';
 import '../features/client/profile/screens/favorite_lawyers_screen.dart';
 import '../features/client/profile/screens/articles_screen.dart';
-import '../features/client/profile/screens/faq_screen.dart';
+import '../features/client/profile/screens/help_center_screen.dart';
+import '../features/client/profile/screens/contact_support_screen.dart';
+import '../features/client/profile/screens/about_us_screen.dart';
+import '../features/client/profile/screens/privacy_policy_screen.dart';
+import '../features/client/profile/screens/terms_conditions_screen.dart';
 
 final routerListenableProvider = Provider((ref) {
   final listenable = RouterListenable();
@@ -114,6 +118,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         RouteNames.favorites,
         RouteNames.articles,
         RouteNames.faq,
+        RouteNames.contactSupport,
+        RouteNames.aboutUs,
+        RouteNames.privacyPolicy,
+        RouteNames.termsConditions,
       ];
 
       if (clientRoutes.contains(path) && role == UserRole.lawyer) {
@@ -264,7 +272,27 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: RouteNames.faq,
-        builder: (c, s) => const FaqScreen(),
+        builder: (c, s) => const HelpCenterScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.contactSupport,
+        builder: (c, s) => const ContactSupportScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.aboutUs,
+        builder: (c, s) => const AboutUsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.privacyPolicy,
+        builder: (c, s) => const PrivacyPolicyScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.termsConditions,
+        builder: (c, s) => const TermsConditionsScreen(),
       ),
 
       GoRoute(

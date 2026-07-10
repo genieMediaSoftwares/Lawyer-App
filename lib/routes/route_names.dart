@@ -35,6 +35,10 @@ class RouteNames {
   static const String favorites = '/favorites';
   static const String articles = '/articles';
   static const String faq = '/faq';
+  static const String contactSupport = '/contact-support';
+  static const String aboutUs = '/about-us';
+  static const String privacyPolicy = '/privacy-policy';
+  static const String termsConditions = '/terms-conditions';
 
   static const String lawyerDashboard = '/lawyer-dashboard';
   static const String subscriptionPlans = '/subscription-plans';
