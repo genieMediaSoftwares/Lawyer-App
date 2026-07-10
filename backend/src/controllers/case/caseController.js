@@ -1,6 +1,7 @@
 const Case = require("../../models/Case");
 const User = require("../../models/User");
 const Lawyer = require("../../models/Lawyer");
+const Proposal = require("../../models/Proposal");
 const ApiResponse = require("../../config/ApiResponse");
 
 class CaseController {
@@ -126,7 +127,13 @@ class CaseController {
   async submitProposal(req, res, next) {
     try {
       const { id } = req.params;
-      const { feeProposal, message } = req.body;
+      const { 
+        feeProposal, 
+        message, 
+        estimatedResponseTime, 
+        consultationMode, 
+        availability 
+      } = req.body;
       const lawyerId = req.user._id;
 
       const caseItem = await Case.findById(id);
@@ -134,21 +141,47 @@ class CaseController {
         return ApiResponse.error(res, "Case not found.", 404);
       }
 
-      // Check if lawyer already responded
+      // 1. Create or update in Proposal collection
+      let proposal = await Proposal.findOne({ caseId: id, lawyerId });
+      if (proposal) {
+        proposal.consultationFee = feeProposal || 1500;
+        proposal.proposalMessage = message || "";
+        proposal.estimatedResponseTime = estimatedResponseTime || "24 hours";
+        proposal.consultationMode = consultationMode || "Video";
+        proposal.availability = availability || "Mon-Fri 9AM-5PM";
+        await proposal.save();
+      } else {
+        proposal = await Proposal.create({
+          caseId: id,
+          lawyerId,
+          clientId: caseItem.client,
+          consultationFee: feeProposal || 1500,
+          proposalMessage: message || "",
+          estimatedResponseTime: estimatedResponseTime || "24 hours",
+          consultationMode: consultationMode || "Video",
+          availability: availability || "Mon-Fri 9AM-5PM",
+          status: "Pending"
+        });
+      }
+
+      // 2. Add to Case proposals subdocument array for compatibility
       const existingProposalIndex = caseItem.proposals.findIndex(
         (p) => p.lawyer.toString() === lawyerId.toString()
       );
 
       if (existingProposalIndex > -1) {
-        caseItem.proposals[existingProposalIndex].feeProposal = feeProposal;
-        caseItem.proposals[existingProposalIndex].message = message;
+        caseItem.proposals[existingProposalIndex].feeProposal = feeProposal || 1500;
+        caseItem.proposals[existingProposalIndex].message = message || "";
       } else {
         caseItem.proposals.push({
           lawyer: lawyerId,
-          feeProposal,
-          message
+          feeProposal: feeProposal || 1500,
+          message: message || ""
         });
       }
+
+      // 3. Move status to Interested
+      caseItem.status = "Interested";
 
       // Set Proposals Received milestone to true
       const proposalsMilestone = caseItem.milestones.find((m) => m.title === "Proposals Received");
@@ -157,6 +190,22 @@ class CaseController {
       }
 
       await caseItem.save();
+
+      // 4. Create Notification for Client (Proposal Received)
+      const Notification = require("../../models/Notification");
+      await Notification.create({
+        recipient: caseItem.client,
+        type: "Offers",
+        title: "Proposal Received",
+        message: `An advocate has sent a proposal for your case: "${caseItem.title}".`
+      });
+
+      // 5. Emit real-time case update
+      const io = req.app.get("io");
+      if (io) {
+        io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
+        io.of("/cases").to(lawyerId.toString()).emit("case_updated", caseItem);
+      }
 
       const updatedCase = await Case.findById(id)
         .populate("proposals.lawyer", "fullName email mobile profileImage");
@@ -188,16 +237,58 @@ class CaseController {
 
       await caseItem.save();
 
+      // Create Notification for Lawyer (Proposal Accepted)
+      const Notification = require("../../models/Notification");
+      await Notification.create({
+        recipient: lawyerId,
+        type: "Offers",
+        title: "Proposal Accepted",
+        message: `Your proposal for the case: "${caseItem.title}" has been accepted!`
+      });
+
       // Emit real-time case update
       const io = req.app.get("io");
       if (io) {
         io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
-        if (caseItem.assignedLawyer) {
-          io.of("/cases").to(caseItem.assignedLawyer.toString()).emit("case_updated", caseItem);
-        }
+        io.of("/cases").to(lawyerId.toString()).emit("case_updated", caseItem);
       }
 
       return ApiResponse.success(res, "Proposal accepted and lawyer assigned.", caseItem);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async rejectProposal(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { lawyerId } = req.body;
+
+      const caseItem = await Case.findById(id);
+      if (!caseItem) {
+        return ApiResponse.error(res, "Case not found.", 404);
+      }
+
+      caseItem.status = "Rejected";
+      await caseItem.save();
+
+      // Create Notification for Lawyer (Proposal Rejected)
+      const Notification = require("../../models/Notification");
+      await Notification.create({
+        recipient: lawyerId,
+        type: "Offers",
+        title: "Proposal Rejected",
+        message: `Your proposal for the case: "${caseItem.title}" has been rejected.`
+      });
+
+      // Emit real-time case update
+      const io = req.app.get("io");
+      if (io) {
+        io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
+        io.of("/cases").to(lawyerId.toString()).emit("case_updated", caseItem);
+      }
+
+      return ApiResponse.success(res, "Proposal rejected successfully.", caseItem);
     } catch (error) {
       next(error);
     }
@@ -257,7 +348,8 @@ class CaseController {
       }
 
       caseItem.assignedLawyer = lawyerId;
-      caseItem.status = "In Progress";
+      caseItem.status = "Accepted";
+      caseItem.acceptedAt = new Date();
 
       // Complete In Progress milestone
       const inProgressMilestone = caseItem.milestones.find((m) => m.title === "In Progress");
@@ -266,6 +358,22 @@ class CaseController {
       }
 
       await caseItem.save();
+
+      // Create notifications
+      const Notification = require("../../models/Notification");
+      await Notification.create({
+        recipient: lawyerId,
+        type: "Offers",
+        title: "Case Accepted",
+        message: "You have accepted a new case."
+      });
+
+      await Notification.create({
+        recipient: caseItem.client,
+        type: "Offers",
+        title: "Case Accepted",
+        message: "Your selected lawyer has accepted your case."
+      });
 
       // Emit real-time case update
       const io = req.app.get("io");
@@ -305,6 +413,100 @@ class CaseController {
       }
 
       return ApiResponse.success(res, "Case request rejected.", caseItem);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async startCase(req, res, next) {
+    try {
+      const { id } = req.params;
+      const lawyerId = req.user._id;
+
+      const caseItem = await Case.findById(id);
+      if (!caseItem) {
+        return ApiResponse.error(res, "Case not found.", 404);
+      }
+
+      if (!caseItem.assignedLawyer || caseItem.assignedLawyer.toString() !== lawyerId.toString()) {
+        return ApiResponse.error(res, "You are not assigned to this case.", 403);
+      }
+
+      caseItem.status = "In Progress";
+      caseItem.startedAt = new Date();
+      await caseItem.save();
+
+      // Create notifications
+      const Notification = require("../../models/Notification");
+      await Notification.create({
+        recipient: lawyerId,
+        type: "Offers",
+        title: "Case Started",
+        message: `You have started working on case: "${caseItem.title}"`
+      });
+
+      await Notification.create({
+        recipient: caseItem.client,
+        type: "Offers",
+        title: "Case Started",
+        message: "Your lawyer has started working on your case."
+      });
+
+      // Emit real-time case update
+      const io = req.app.get("io");
+      if (io) {
+        io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
+        io.of("/cases").to(lawyerId.toString()).emit("case_updated", caseItem);
+      }
+
+      return ApiResponse.success(res, "Case started successfully.", caseItem);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async markCaseCompleted(req, res, next) {
+    try {
+      const { id } = req.params;
+      const lawyerId = req.user._id;
+
+      const caseItem = await Case.findById(id);
+      if (!caseItem) {
+        return ApiResponse.error(res, "Case not found.", 404);
+      }
+
+      if (!caseItem.assignedLawyer || caseItem.assignedLawyer.toString() !== lawyerId.toString()) {
+        return ApiResponse.error(res, "You are not assigned to this case.", 403);
+      }
+
+      caseItem.status = "Completed";
+      caseItem.completedAt = new Date();
+      await caseItem.save();
+
+      // Create notifications
+      const Notification = require("../../models/Notification");
+      await Notification.create({
+        recipient: lawyerId,
+        type: "Offers",
+        title: "Case Completed",
+        message: `You have marked the case as completed: "${caseItem.title}"`
+      });
+
+      await Notification.create({
+        recipient: caseItem.client,
+        type: "Offers",
+        title: "Case Completed",
+        message: "Your lawyer has marked your case as completed."
+      });
+
+      // Emit real-time case update
+      const io = req.app.get("io");
+      if (io) {
+        io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
+        io.of("/cases").to(lawyerId.toString()).emit("case_updated", caseItem);
+      }
+
+      return ApiResponse.success(res, "Case marked completed successfully.", caseItem);
     } catch (error) {
       next(error);
     }
