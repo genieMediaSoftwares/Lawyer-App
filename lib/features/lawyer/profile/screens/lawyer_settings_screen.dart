@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/app_drawer.dart';
 
-class SettingsScreen extends ConsumerStatefulWidget {
-  const SettingsScreen({super.key});
+class LawyerSettingsScreen extends ConsumerStatefulWidget {
+  const LawyerSettingsScreen({super.key});
 
   @override
-  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<LawyerSettingsScreen> createState() => _LawyerSettingsScreenState();
 }
 
-class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
   bool _pushNotifications = true;
   bool _emailAlerts = true;
-  bool _darkMode = false;
+  bool _darkMode = true;
   String _selectedLanguage = "English";
 
   @override
@@ -22,13 +20,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          icon: Icon(Icons.arrow_back, color: theme.colorScheme.onSurface),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text("Settings", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          "Settings",
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -37,22 +41,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _buildSectionHeader("Notifications"),
           Card(
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: theme.colorScheme.outline)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: theme.colorScheme.outline),
+            ),
             child: Column(
               children: [
                 SwitchListTile(
                   value: _pushNotifications,
                   activeColor: theme.colorScheme.primary,
                   title: const Text("Push Notifications", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: const Text("Receive alerts about consultations, alerts and updates", style: TextStyle(fontSize: 11)),
+                  subtitle: const Text("Receive alerts about active cases, client requests, and chats", style: TextStyle(fontSize: 11)),
                   onChanged: (val) => setState(() => _pushNotifications = val),
                 ),
-                const Divider(height: 1),
+                Divider(color: theme.colorScheme.outline, height: 1),
                 SwitchListTile(
                   value: _emailAlerts,
                   activeColor: theme.colorScheme.primary,
                   title: const Text("Email Notifications", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: const Text("Receive updates regarding reports and files directly", style: TextStyle(fontSize: 11)),
+                  subtitle: const Text("Receive updates regarding weekly briefings and payout settlements", style: TextStyle(fontSize: 11)),
                   onChanged: (val) => setState(() => _emailAlerts = val),
                 ),
               ],
@@ -64,7 +71,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _buildSectionHeader("Preferences"),
           Card(
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: theme.colorScheme.outline)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: theme.colorScheme.outline),
+            ),
             child: Column(
               children: [
                 SwitchListTile(
@@ -74,11 +84,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   subtitle: const Text("Switch to dark color schemes (Simulated)", style: TextStyle(fontSize: 11)),
                   onChanged: (val) => setState(() => _darkMode = val),
                 ),
-                const Divider(height: 1),
+                Divider(color: theme.colorScheme.outline, height: 1),
                 ListTile(
                   title: const Text("Language Selection", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   subtitle: Text("Current: $_selectedLanguage", style: const TextStyle(fontSize: 11)),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                  trailing: Icon(Icons.arrow_forward_ios, size: 14, color: theme.colorScheme.primary),
                   onTap: _showLanguageSelector,
                 ),
               ],
@@ -90,7 +100,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _buildSectionHeader("Account & Support"),
           Card(
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: theme.colorScheme.outline)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: theme.colorScheme.outline),
+            ),
             child: Column(
               children: [
                 ListTile(
@@ -125,7 +138,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: ["English", "Hindi", "Telugu", "Kannada"].map((lang) {
+          children: ["English", "Hindi", "Telugu", "Tamil", "Kannada"].map((lang) {
             return ListTile(
               title: Text(lang),
               trailing: _selectedLanguage == lang ? Icon(Icons.check, color: theme.colorScheme.primary) : null,
@@ -145,10 +158,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Delete Account", style: TextStyle(color: AppColors.error)),
-        content: const Text("Deleting your account is permanent. All case progress, consultation history, and uploaded documents will be erased. Proceed?"),
+        content: const Text("Deleting your account is permanent. All cases, payout history, and certifications will be erased from Genie Law. Proceed?"),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Delete Account", style: TextStyle(color: AppColors.error))),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete Account", style: TextStyle(color: AppColors.error)),
+          ),
         ],
       ),
     );
