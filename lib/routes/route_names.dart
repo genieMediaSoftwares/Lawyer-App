@@ -11,7 +11,6 @@ class RouteNames {
   /// Client — bottom nav tabs (live inside the shell)
   static const String clientDashboard = '/client-dashboard';
   static const String myCases = '/my-cases';
-  static const String advocates = '/advocates';
   static const String profile = '/profile';
   static const String messages = '/messages';
 
@@ -42,4 +41,5 @@ class RouteNames {
 
   static const String lawyerDashboard = '/lawyer-dashboard';
   static const String subscriptionPlans = '/subscription-plans';
+  static const String lawyerMessages = '/lawyer-messages';
 }

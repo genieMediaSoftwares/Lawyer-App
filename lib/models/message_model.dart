@@ -36,4 +36,26 @@ class MessageModel {
       isRead: json['isRead'] ?? false,
     );
   }
+
+  MessageModel copyWith({
+    String? id,
+    String? chatId,
+    String? senderId,
+    String? senderName,
+    String? senderImage,
+    String? content,
+    DateTime? createdAt,
+    bool? isRead,
+  }) {
+    return MessageModel(
+      id: id ?? this.id,
+      chatId: chatId ?? this.chatId,
+      senderId: senderId ?? this.senderId,
+      senderName: senderName ?? this.senderName,
+      senderImage: senderImage ?? this.senderImage,
+      content: content ?? this.content,
+      createdAt: createdAt ?? this.createdAt,
+      isRead: isRead ?? this.isRead,
+    );
+  }
 }

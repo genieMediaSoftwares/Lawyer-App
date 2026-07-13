@@ -31,8 +31,8 @@ const appointmentSchema = new mongoose.Schema(
 
     mode: {
       type: String,
-      enum: ["Audio Call", "Video Call"],
-      default: "Video Call",
+      enum: ["Chat", "In-Person"],
+      default: "Chat",
     },
 
     status: {

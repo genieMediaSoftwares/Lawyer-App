@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/network/dio_client.dart';
 import '../models/lawyer_model.dart';
-import '../models/advocate_model.dart';
+
 import '../repositories/lawyer_repository.dart';
 import 'case_provider.dart';
 import 'appointment_provider.dart';
@@ -10,107 +10,7 @@ import 'auth_provider.dart';
 
 final lawyerRepositoryProvider = Provider((ref) => LawyerRepository());
 
-class AdvocateFilters {
-  final String search;
-  final String specialization;
-  final String location;
-  final String experience;
-  final double? minFee;
-  final double? maxFee;
-  final double? minRating;
-  final List<String> languages;
-  final bool verifiedOnly;
-  final bool availableNow;
-  final String sortBy;
 
-  AdvocateFilters({
-    this.search = "",
-    this.specialization = "All",
-    this.location = "All",
-    this.experience = "All",
-    this.minFee,
-    this.maxFee,
-    this.minRating,
-    this.languages = const [],
-    this.verifiedOnly = false,
-    this.availableNow = false,
-    this.sortBy = "Most Relevant",
-  });
-
-  AdvocateFilters copyWith({
-    String? search,
-    String? specialization,
-    String? location,
-    String? experience,
-    double? minFee,
-    double? maxFee,
-    double? minRating,
-    List<String>? languages,
-    bool? verifiedOnly,
-    bool? availableNow,
-    String? sortBy,
-  }) {
-    return AdvocateFilters(
-      search: search ?? this.search,
-      specialization: specialization ?? this.specialization,
-      location: location ?? this.location,
-      experience: experience ?? this.experience,
-      minFee: minFee ?? this.minFee,
-      maxFee: maxFee ?? this.maxFee,
-      minRating: minRating ?? this.minRating,
-      languages: languages ?? this.languages,
-      verifiedOnly: verifiedOnly ?? this.verifiedOnly,
-      availableNow: availableNow ?? this.availableNow,
-      sortBy: sortBy ?? this.sortBy,
-    );
-  }
-}
-
-final advocateFiltersProvider = StateProvider<AdvocateFilters>((ref) => AdvocateFilters());
-
-final filterOptionsProvider = FutureProvider<Map<String, List<String>>>((ref) async {
-  try {
-    final repository = ref.watch(lawyerRepositoryProvider);
-    final allAdvocates = await repository.getAdvocates();
-    final specializations = allAdvocates
-        .map((a) => a.specialization.trim())
-        .where((s) => s.isNotEmpty)
-        .toSet()
-        .toList();
-    final locations = allAdvocates
-        .map((a) => a.location.trim())
-        .where((l) => l.isNotEmpty)
-        .toSet()
-        .toList();
-    return {
-      'specializations': ['All Practice Areas', ...specializations],
-      'locations': ['All Locations', ...locations],
-    };
-  } catch (e) {
-    return {
-      'specializations': ['All Practice Areas'],
-      'locations': ['All Locations'],
-    };
-  }
-});
-
-final advocatesProvider = FutureProvider<List<AdvocateModel>>((ref) async {
-  final repository = ref.watch(lawyerRepositoryProvider);
-  final filters = ref.watch(advocateFiltersProvider);
-  return repository.getAdvocates(
-    search: filters.search,
-    specialization: filters.specialization,
-    location: filters.location,
-    experience: filters.experience,
-    minFee: filters.minFee,
-    maxFee: filters.maxFee,
-    minRating: filters.minRating,
-    languages: filters.languages,
-    verifiedOnly: filters.verifiedOnly,
-    availableNow: filters.availableNow,
-    sortBy: filters.sortBy,
-  );
-});
 
 
 final lawyersProvider = FutureProvider<List<LawyerModel>>((ref) async {
@@ -274,11 +174,16 @@ final newCaseRequestsCountProvider = Provider<AsyncValue<int>>((ref) {
   );
 });
 
-final unreadMessagesCountProvider = FutureProvider<int>((ref) async {
-  ref.watch(chatsProvider);
-  final repo = ref.watch(lawyerWorkspaceRepositoryProvider);
-  final data = await repo.getUnreadMessages();
-  return (data['unreadCount'] as num?)?.toInt() ?? 0;
+final unreadMessagesCountProvider = Provider<AsyncValue<int>>((ref) {
+  final chatsState = ref.watch(chatsProvider);
+  return chatsState.when(
+    data: (chats) {
+      final total = chats.fold<int>(0, (sum, chat) => sum + chat.unreadCount);
+      return AsyncValue.data(total);
+    },
+    loading: () => const AsyncValue.loading(),
+    error: (err, stack) => AsyncValue.error(err, stack),
+  );
 });
 
 final todayConsultationsCountProvider = FutureProvider<int>((ref) async {

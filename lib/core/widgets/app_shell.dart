@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../constants/app_colors.dart';
-
 class AppShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -77,8 +75,8 @@ class AppShell extends StatelessWidget {
               ),
               const SizedBox(width: 48), // FAB notch space
               _NavItem(
-                icon: Icons.chat_bubble_outline_rounded,
-                label: "Advocates",
+                icon: Icons.message_outlined,
+                label: "Messages",
                 isActive: navigationShell.currentIndex == 2,
                 onTap: () => _onTap(2),
                 activeColor: activeColor,

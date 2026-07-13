@@ -41,7 +41,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     String? selectedLawyerId = widget.lawyerUserId ?? lawyers.first.userId;
     DateTime selectedDate = initialDate;
     String selectedTimeSlot = "11:00 AM";
-    String selectedMode = "Video Call";
+    String selectedMode = "Chat";
 
     final List<String> timeSlots = [
       '09:00 AM',
@@ -160,8 +160,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         border: OutlineInputBorder(),
                       ),
                       items: [
-                        DropdownMenuItem(value: "Video Call", child: Text("Video Call", style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color))),
-                        DropdownMenuItem(value: "Audio Call", child: Text("Audio Call", style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color))),
+                        DropdownMenuItem(value: "Chat", child: Text("Chat", style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color))),
+                        DropdownMenuItem(value: "In-Person", child: Text("In-Person", style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color))),
                       ],
                       onChanged: (val) {
                         setDialogState(() => selectedMode = val!);

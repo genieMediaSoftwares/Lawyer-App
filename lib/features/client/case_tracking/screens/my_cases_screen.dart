@@ -622,39 +622,6 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
             const SizedBox(width: 10),
             IconButton(
               onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    backgroundColor: const Color(0xFF181818),
-                    title: const Text("Call Advocate", style: TextStyle(color: Colors.white)),
-                    content: Text("Do you want to initiate a secure voice call with $lawyerName?"),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Connecting call to $lawyerName...")),
-                          );
-                        },
-                        child: const Text("Call Now", style: TextStyle(color: Color(0xFFE6B325))),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              icon: const Icon(Icons.phone_outlined),
-              color: const Color(0xFFE6B325),
-              iconSize: 18,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-            const SizedBox(width: 10),
-            IconButton(
-              onPressed: () {
                 final otherUserId = caseItem.selectedLawyerId ?? caseItem.assignedLawyerId;
                 if (otherUserId != null) {
                   context.push('/lawyer-profile/$otherUserId');

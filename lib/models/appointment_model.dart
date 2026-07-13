@@ -51,7 +51,7 @@ class AppointmentModel {
       caseTitle: caseData['title'],
       date: json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(),
       timeSlot: json['timeSlot'] ?? '',
-      mode: json['mode'] ?? 'Video Call',
+      mode: json['mode'] ?? 'Chat',
       status: json['status'] ?? 'pending',
     );
   }
