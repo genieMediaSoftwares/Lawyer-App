@@ -248,6 +248,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     final appointmentsState = ref.watch(appointmentsProvider);
     final chatsState = ref.watch(chatsProvider);
     final lawyerState = ref.watch(lawyerDetailsProvider(userId));
+    final unreadCount = ref.watch(notificationsProvider).unreadCount;
 
     // Set page title dynamically
     String screenTitle = "";
@@ -306,7 +307,6 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   icon: Icon(Icons.notifications_none_outlined, color: Theme.of(context).colorScheme.onSurface),
                   onPressed: () => _showNotificationsBottomSheet(context),
                 ),
-                final unreadCount = ref.watch(notificationsProvider).unreadCount;
                 if (unreadCount > 0)
                   Positioned(
                     right: 8,

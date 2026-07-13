@@ -11,7 +11,6 @@ import '../widgets/category_card.dart';
 import '../widgets/hero_carousel_widget.dart';
 import '../widgets/ai_legal_assistant_card.dart';
 
-final unreadNotificationsCountProvider = StateProvider<int>((ref) => 1); // Mock 1 notification matching Figma red dot
 
 class ClientDashboardScreen extends ConsumerWidget {
   const ClientDashboardScreen({super.key});
@@ -20,6 +19,7 @@ class ClientDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final primaryTextColor = theme.textTheme.titleLarge?.color;
+    final unreadCount = ref.watch(notificationsProvider).unreadCount;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -64,7 +64,6 @@ class ClientDashboardScreen extends ConsumerWidget {
                 onPressed: () => context.push(RouteNames.notifications),
                 icon: Icon(Icons.notifications_none_outlined, color: primaryTextColor, size: 26),
               ),
-              final unreadCount = ref.watch(notificationsProvider).unreadCount;
               if (unreadCount > 0)
                 Positioned(
                   right: 8,
