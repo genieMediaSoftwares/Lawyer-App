@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../routes/route_names.dart';
 
@@ -133,15 +132,11 @@ class AppDrawer extends ConsumerWidget {
         label: "My Cases",
         onTap: () => _safeNavigate(context, RouteNames.myCases, isRoot: true),
       ),
-      _DrawerTile(
-        icon: Icons.chat_bubble_outline,
-        label: "Advocates",
-        onTap: () => _safeNavigate(context, RouteNames.advocates, isRoot: true),
-      ),
+
       _DrawerTile(
         icon: Icons.message_outlined,
         label: "Messages",
-        onTap: () => _safeNavigate(context, RouteNames.messages, isRoot: false),
+        onTap: () => _safeNavigate(context, RouteNames.messages, isRoot: true),
       ),
       _DrawerTile(
         icon: Icons.cloud_done_outlined,
@@ -175,47 +170,42 @@ class AppDrawer extends ConsumerWidget {
     return [
       _DrawerTile(
         icon: Icons.space_dashboard_outlined,
-        label: "Workspace Hub",
+        label: "Workspace",
         onTap: () => _safeNavigate(context, '${RouteNames.lawyerDashboard}?tab=0', isRoot: true),
       ),
       _DrawerTile(
         icon: Icons.bar_chart_outlined,
-        label: "Practice Stats",
+        label: "Dashboard",
         onTap: () => _safeNavigate(context, '${RouteNames.lawyerDashboard}?tab=1', isRoot: true),
       ),
       _DrawerTile(
         icon: Icons.gavel_outlined,
-        label: "Client Leads",
+        label: "Leads",
         onTap: () => _safeNavigate(context, '${RouteNames.lawyerDashboard}?tab=2', isRoot: true),
       ),
       _DrawerTile(
         icon: Icons.people_alt_outlined,
-        label: "Active Clients",
+        label: "Clients",
         onTap: () => _safeNavigate(context, '${RouteNames.lawyerDashboard}?tab=3', isRoot: true),
       ),
       _DrawerTile(
         icon: Icons.calendar_month_outlined,
-        label: "Practice Calendar",
+        label: "Calendar",
         onTap: () => _safeNavigate(context, '${RouteNames.lawyerDashboard}?tab=4', isRoot: true),
-      ),
-      _DrawerTile(
-        icon: Icons.chat_bubble_outline,
-        label: "Advocates",
-        onTap: () => _safeNavigate(context, RouteNames.advocates, isRoot: true),
       ),
       _DrawerTile(
         icon: Icons.message_outlined,
         label: "Messages",
-        onTap: () => _safeNavigate(context, RouteNames.messages, isRoot: false),
+        onTap: () => _safeNavigate(context, RouteNames.lawyerMessages, isRoot: false),
       ),
       _DrawerTile(
         icon: Icons.card_membership_outlined,
-        label: "Membership Plans",
+        label: "Subscription Plans",
         onTap: () => _safeNavigate(context, RouteNames.subscriptionPlans, isRoot: false),
       ),
       _DrawerTile(
         icon: Icons.person_outline,
-        label: "My Profile Details",
+        label: "My Profile",
         onTap: () => _safeNavigate(context, '${RouteNames.lawyerDashboard}?tab=5', isRoot: true),
       ),
     ];

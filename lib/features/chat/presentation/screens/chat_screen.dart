@@ -112,6 +112,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         title: Consumer(
           builder: (context, ref, child) {
             final typingUser = ref.watch(chatTypingProvider(widget.chatId));
+            
+            final chatsState = ref.watch(chatsProvider);
+            String? otherParticipantId;
+            chatsState.whenData((chats) {
+              final chat = chats.firstWhere((c) => c.id == widget.chatId, orElse: () => chats.first);
+              final auth = ref.read(authProvider);
+              final currentUserId = auth.userId ?? "";
+              final other = chat.participants.firstWhere(
+                (p) => p.id != currentUserId,
+                orElse: () => chat.participants.first,
+              );
+              otherParticipantId = other.id;
+            });
+
+            final isOnline = otherParticipantId != null
+                ? ref.watch(userOnlineStatusProvider(otherParticipantId!))
+                : false;
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -124,9 +142,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 else
                   Row(
                     children: [
-                      const CircleAvatar(radius: 4, backgroundColor: AppColors.success),
+                      CircleAvatar(
+                        radius: 4,
+                        backgroundColor: isOnline ? AppColors.success : Colors.grey,
+                      ),
                       const SizedBox(width: 4),
-                      Text("Online", style: TextStyle(fontSize: 11, color: theme.textTheme.bodySmall?.color)),
+                      Text(
+                        isOnline ? "Online" : "Offline",
+                        style: TextStyle(fontSize: 11, color: theme.textTheme.bodySmall?.color),
+                      ),
                     ],
                   )
               ],
@@ -192,9 +216,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            formattedTime,
-            style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 10),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                formattedTime,
+                style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 10),
+              ),
+              if (isMe) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  message.isRead ? Icons.done_all : Icons.done,
+                  color: message.isRead ? AppColors.primaryGold : theme.textTheme.bodySmall?.color,
+                  size: 14,
+                ),
+              ],
+            ],
           )
         ],
       ),

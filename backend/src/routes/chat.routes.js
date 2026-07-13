@@ -10,5 +10,6 @@ router.post("/", chatController.getOrCreateChat);
 router.get("/", chatController.getChats);
 router.post("/:chatId/messages", chatController.sendMessage);
 router.get("/:chatId/messages", chatController.getMessages);
+router.put("/:chatId/read", chatController.markAsRead);
 
 module.exports = router;

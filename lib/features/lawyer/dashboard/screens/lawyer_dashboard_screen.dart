@@ -111,13 +111,12 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     final appointmentsState = ref.watch(appointmentsProvider);
     final chatsState = ref.watch(chatsProvider);
     final lawyerState = ref.watch(lawyerDetailsProvider(userId));
-    final unreadCount = ref.watch(notificationsProvider).unreadCount;
 
     // Set page title dynamically
     String screenTitle = "";
     if (_currentIndex == 1) screenTitle = "Dashboard";
-    if (_currentIndex == 2) screenTitle = "My Leads";
-    if (_currentIndex == 3) screenTitle = "My Clients";
+    if (_currentIndex == 2) screenTitle = "Leads";
+    if (_currentIndex == 3) screenTitle = "Clients";
     if (_currentIndex == 4) screenTitle = "Calendar";
     if (_currentIndex == 5) screenTitle = "My Profile";
 
@@ -396,7 +395,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   final totalActive = accepted.length + inProgress.length;
                   return _buildWorkspaceToolCard(
                     icon: Icons.people_alt,
-                    title: "$totalActive Active Clients",
+                    title: "$totalActive Clients",
                     subtitle: "Accepted, In Progress, Closed",
                     badgeCount: totalActive == 0 ? null : "$totalActive",
                     onTap: () => setState(() => _currentIndex = 3),
@@ -411,7 +410,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 ),
                 error: (e, s) => _buildWorkspaceToolCard(
                   icon: Icons.people_alt,
-                  title: "0 Active Clients",
+                  title: "0 Clients",
                   subtitle: "Accepted, In Progress, Closed",
                   onTap: () => setState(() => _currentIndex = 3),
                 ),
@@ -2081,7 +2080,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
     DateTime selectedDate = _selectedCalendarDate;
     String selectedTimeSlot = "11:00 AM";
-    String selectedMode = "Video Call";
+    String selectedMode = "Chat";
     bool isSaving = false;
 
     final List<String> timeSlots = [
@@ -2228,7 +2227,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       dropdownColor: Theme.of(context).cardColor,
                       iconEnabledColor: AppColors.gold,
                       selectedItemBuilder: (BuildContext context) {
-                        return ["Video Call", "Audio Call"].map((String mode) {
+                        return ["Chat", "In-Person"].map((String mode) {
                           return Text(
                             mode,
                             style: TextStyle(color: Theme.of(context).colorScheme.onBackground, fontSize: 13),
@@ -2240,8 +2239,8 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         border: OutlineInputBorder(),
                       ),
                       items: [
-                        DropdownMenuItem(value: "Video Call", child: Text("Video Call", style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground))),
-                        DropdownMenuItem(value: "Audio Call", child: Text("Audio Call", style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground))),
+                        DropdownMenuItem(value: "Chat", child: Text("Chat", style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground))),
+                        DropdownMenuItem(value: "In-Person", child: Text("In-Person", style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground))),
                       ],
                       onChanged: (val) {
                         setDialogState(() => selectedMode = val!);

@@ -43,7 +43,22 @@ class ChatController {
         .populate("participants", "fullName email mobile profileImage role")
         .sort({ lastMessageAt: -1 });
 
-      return ApiResponse.success(res, "Chats fetched successfully.", chats);
+      // Count unread messages for each chat conversation dynamically
+      const chatsWithUnread = await Promise.all(
+        chats.map(async (chat) => {
+          const unreadCount = await Message.countDocuments({
+            chat: chat._id,
+            sender: { $ne: currentUserId },
+            isRead: false
+          });
+          return {
+            ...chat.toObject(),
+            unreadCount,
+          };
+        })
+      );
+
+      return ApiResponse.success(res, "Chats fetched successfully.", chatsWithUnread);
     } catch (error) {
       next(error);
     }
@@ -70,6 +85,20 @@ class ChatController {
         chat.lastMessage = content;
         chat.lastMessageAt = new Date();
         await chat.save();
+
+        const io = req.app.get("io");
+        if (io) {
+          const populatedMessage = await Message.findById(message._id)
+            .populate("sender", "fullName profileImage role");
+
+          // Emit to chatId room
+          io.of("/chat").to(chatId.toString()).emit("message", populatedMessage);
+
+          // Emit to participants rooms
+          chat.participants.forEach((p) => {
+            io.of("/chat").to(p.toString()).emit("message", populatedMessage);
+          });
+        }
 
         const otherParticipant = chat.participants.find((p) => p.toString() !== sender.toString());
         if (otherParticipant) {
@@ -99,6 +128,27 @@ class ChatController {
         .sort({ createdAt: 1 });
 
       return ApiResponse.success(res, "Messages fetched successfully.", messages);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async markAsRead(req, res, next) {
+    try {
+      const { chatId } = req.params;
+      const currentUserId = req.user._id;
+
+      await Message.updateMany(
+        { chat: chatId, sender: { $ne: currentUserId }, isRead: false },
+        { isRead: true }
+      );
+
+      const io = req.app.get("io");
+      if (io) {
+        io.of("/chat").to(chatId.toString()).emit("read", { chatId, readBy: currentUserId });
+      }
+
+      return ApiResponse.success(res, "Messages marked as read.");
     } catch (error) {
       next(error);
     }

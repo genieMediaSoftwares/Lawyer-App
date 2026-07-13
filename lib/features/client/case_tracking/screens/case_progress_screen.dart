@@ -377,15 +377,6 @@ class CaseProgressScreen extends ConsumerWidget {
             icon: const Icon(Icons.chat_bubble_outline),
             color: const Color(0xFFE6B325),
           ),
-          IconButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Calling $lawyerName via secure relay...")),
-              );
-            },
-            icon: const Icon(Icons.phone_outlined),
-            color: const Color(0xFFE6B325),
-          ),
         ],
       ),
     );
@@ -395,7 +386,7 @@ class CaseProgressScreen extends ConsumerWidget {
     final hasAppointment = appointment != null;
     final formattedDate = hasAppointment ? DateFormat('dd MMM yyyy').format(appointment.date) : "TBD";
     final timeSlot = hasAppointment ? appointment.timeSlot : "Consultation Pending";
-    final mode = hasAppointment ? appointment.mode : "Video Call";
+    final mode = hasAppointment ? appointment.mode : "Chat";
 
     return Container(
       padding: const EdgeInsets.all(16),

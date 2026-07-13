@@ -254,35 +254,18 @@ class LawyerProfileScreen extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () async {
-                    // Initialize or retrieve chat session and navigate to ChatScreen
-                    final chat = await ref.read(chatsProvider.notifier).getOrCreateChat(lawyer.userId);
-                    if (chat != null && context.mounted) {
-                      context.push('/chat/${chat.id}/${lawyer.fullName}');
-                    }
-                  },
-                  child: const Text("Chat Now"),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Initiating call with ${lawyer.fullName}...")),
-                    );
-                  },
-                  child: const Text("Call Now"),
-                ),
-              ),
-            ],
+          ElevatedButton(
+            onPressed: () async {
+              // Initialize or retrieve chat session and navigate to ChatScreen
+              final chat = await ref.read(chatsProvider.notifier).getOrCreateChat(lawyer.userId);
+              if (chat != null && context.mounted) {
+                context.push('/chat/${chat.id}/${lawyer.fullName}');
+              }
+            },
+            child: const Text("Chat Now"),
           ),
           const SizedBox(height: 12),
-          ElevatedButton(
+          OutlinedButton(
             onPressed: () {
               // Navigate to Schedule Consultation passing lawyer user ID
               context.push('/schedule-consultation/${lawyer.userId}${caseId != null ? "?caseId=$caseId" : ""}');

@@ -24,7 +24,7 @@ class ScheduleConsultationScreen extends ConsumerStatefulWidget {
 class _ScheduleConsultationScreenState
     extends ConsumerState<ScheduleConsultationScreen> {
   String? _selectedTimeSlot;
-  String _selectedMode = 'Audio Call';
+  String _selectedMode = 'Chat';
 
   final List<String> _timeSlots = [
     '11:00 AM',
@@ -174,9 +174,9 @@ class _ScheduleConsultationScreenState
   Widget _buildModeSelector() {
     return Row(
       children: [
-        Expanded(child: _buildModeCard('Audio Call')),
+        Expanded(child: _buildModeCard('Chat')),
         const SizedBox(width: 14),
-        Expanded(child: _buildModeCard('Video Call')),
+        Expanded(child: _buildModeCard('In-Person')),
       ],
     );
   }

@@ -3,12 +3,14 @@ class ChatModel {
   final List<ChatParticipantModel> participants;
   final String lastMessage;
   final DateTime lastMessageAt;
+  final int unreadCount;
 
   ChatModel({
     required this.id,
     required this.participants,
     required this.lastMessage,
     required this.lastMessageAt,
+    required this.unreadCount,
   });
 
   factory ChatModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +24,7 @@ class ChatModel {
       lastMessageAt: json['lastMessageAt'] != null
           ? DateTime.parse(json['lastMessageAt'])
           : DateTime.now(),
+      unreadCount: json['unreadCount'] ?? 0,
     );
   }
 
@@ -30,12 +33,14 @@ class ChatModel {
     List<ChatParticipantModel>? participants,
     String? lastMessage,
     DateTime? lastMessageAt,
+    int? unreadCount,
   }) {
     return ChatModel(
       id: id ?? this.id,
       participants: participants ?? this.participants,
       lastMessage: lastMessage ?? this.lastMessage,
       lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+      unreadCount: unreadCount ?? this.unreadCount,
     );
   }
 }
