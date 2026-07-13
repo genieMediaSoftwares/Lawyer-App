@@ -20,24 +20,10 @@ class MessagesScreen extends ConsumerWidget {
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Messages", style: TextStyle(fontWeight: FontWeight.bold)),
-<<<<<<< HEAD
-        leading: Navigator.of(context).canPop()
-            ? IconButton(
-                icon: Icon(Icons.arrow_back, color: theme.appBarTheme.iconTheme?.color),
-                onPressed: () => Navigator.of(context).pop(),
-              )
-            : Builder(
-                builder: (context) => IconButton(
-                  icon: Icon(Icons.menu, color: theme.appBarTheme.iconTheme?.color, size: 24),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                ),
-              ),
-=======
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: theme.appBarTheme.iconTheme?.color, size: 24),
           onPressed: () => context.pop(),
         ),
->>>>>>> b2f129ca21a91abda955107c47c49098363a0707
       ),
       body: chatsState.when(
         data: (chats) {
