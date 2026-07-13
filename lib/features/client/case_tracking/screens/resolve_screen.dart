@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/issue_provider.dart';
+import '../../../../providers/case_provider.dart';
 import '../../../../models/issue_model.dart';
-import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/network/dio_client.dart';
 
 class ResolveScreen extends ConsumerStatefulWidget {
@@ -76,11 +76,22 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
   @override
   Widget build(BuildContext context) {
     final issuesState = ref.watch(issuesProvider);
+    final casesState = ref.watch(casesProvider);
     final theme = Theme.of(context);
+
+    String? associatedLawyerId;
+    casesState.whenData((cases) {
+      if (cases.isNotEmpty) {
+        final matchingCase = cases.firstWhere(
+          (c) => c.status == 'In Progress' || c.status == 'Closed' || c.status == 'Completed',
+          orElse: () => cases.first,
+        );
+        associatedLawyerId = matchingCase.assignedLawyerId ?? matchingCase.selectedLawyerId;
+      }
+    });
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -278,7 +289,9 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: _isSubmittingFeedback ? null : () => _submitFeedback("sandeep@genielaw.com"), // default mock lawyer user
+                        onPressed: (_isSubmittingFeedback || associatedLawyerId == null)
+                            ? null
+                            : () => _submitFeedback(associatedLawyerId!),
                         child: _isSubmittingFeedback
                             ? const CircularProgressIndicator()
                             : const Text("Submit Review"),

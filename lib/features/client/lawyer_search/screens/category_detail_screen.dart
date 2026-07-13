@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../providers/faq_provider.dart';
 import '../../../../routes/route_names.dart';
-import '../../../../core/widgets/app_drawer.dart';
 
 class CategoryDetailScreen extends ConsumerStatefulWidget {
   final String categoryName;
@@ -83,7 +82,6 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

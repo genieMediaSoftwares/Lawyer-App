@@ -102,7 +102,6 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final lawyerName = authState.userName ?? "Rahul Sharma";
     final userId = authState.userId ?? "";
     final unreadCount = ref.watch(notificationsProvider).unreadCount;
 
@@ -111,6 +110,14 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     final appointmentsState = ref.watch(appointmentsProvider);
     final chatsState = ref.watch(chatsProvider);
     final lawyerState = ref.watch(lawyerDetailsProvider(userId));
+<<<<<<< HEAD
+=======
+
+    final lawyerName = lawyerState.maybeWhen(
+      data: (lawyer) => lawyer.fullName,
+      orElse: () => authState.userName ?? "Advocate",
+    );
+>>>>>>> b2f129ca21a91abda955107c47c49098363a0707
 
     // Set page title dynamically
     String screenTitle = "";
@@ -2072,11 +2079,8 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
       }
     }
 
-    String selectedClientId = clients.isNotEmpty ? clients.first['id']! : "64f15d2a900994f29a02256c";
+    String selectedClientId = clients.isNotEmpty ? clients.first['id']! : "";
     final TextEditingController nameTextController = TextEditingController();
-    if (clients.isEmpty) {
-      nameTextController.text = "Rahul Sharma"; // Default seeded client name
-    }
 
     DateTime selectedDate = _selectedCalendarDate;
     String selectedTimeSlot = "11:00 AM";

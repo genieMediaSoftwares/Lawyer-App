@@ -6,7 +6,6 @@ import '../../../../providers/lawyer_provider.dart';
 import '../../../../models/lawyer_model.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../routes/route_names.dart';
-import '../../../../core/widgets/app_drawer.dart';
 
 import '../../../../providers/favorite_provider.dart';
 
@@ -27,7 +26,6 @@ class LawyerProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
