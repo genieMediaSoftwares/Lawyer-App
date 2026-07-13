@@ -36,7 +36,6 @@ import '../features/client/documents/screens/my_documents_screen.dart';
 import '../features/client/profile/screens/settings_screen.dart';
 import '../features/client/profile/screens/favorite_lawyers_screen.dart';
 import '../features/client/profile/screens/articles_screen.dart';
-import '../features/client/profile/screens/help_center_screen.dart';
 import '../features/client/profile/screens/contact_support_screen.dart';
 import '../features/client/profile/screens/about_us_screen.dart';
 import '../features/client/profile/screens/privacy_policy_screen.dart';
@@ -117,7 +116,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         RouteNames.settings,
         RouteNames.favorites,
         RouteNames.articles,
-        RouteNames.faq,
         RouteNames.contactSupport,
         RouteNames.aboutUs,
         RouteNames.privacyPolicy,
@@ -268,11 +266,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: RouteNames.articles,
         builder: (c, s) => const ArticlesScreen(),
-      ),
-      GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
-        path: RouteNames.faq,
-        builder: (c, s) => const HelpCenterScreen(),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

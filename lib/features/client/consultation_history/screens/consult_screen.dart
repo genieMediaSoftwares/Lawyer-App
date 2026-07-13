@@ -6,7 +6,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/appointment_provider.dart';
 import '../../../../models/appointment_model.dart';
 import '../../../../routes/route_names.dart';
-import '../../../../core/widgets/app_drawer.dart';
 
 class ConsultScreen extends ConsumerStatefulWidget {
   const ConsultScreen({super.key});
@@ -37,7 +36,6 @@ class _ConsultScreenState extends ConsumerState<ConsultScreen> with SingleTicker
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

@@ -9,6 +9,7 @@ import '../../../../models/client_profile_model.dart';
 import '../../../../routes/route_names.dart';
 import '../../../../core/widgets/location_picker_sheet.dart';
 import '../../../../providers/notification_provider.dart';
+import '../../../../core/widgets/app_drawer.dart';
 
 import 'my_profile_screen.dart';
 import 'personal_information_screen.dart';
@@ -30,6 +31,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
+      drawer: const AppDrawer(),
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
@@ -41,11 +43,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             fontSize: 20,
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white),
-          onPressed: () {
-            Scaffold.of(context).openDrawer();
-          },
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          ),
         ),
         actions: [
           Stack(
