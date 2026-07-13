@@ -124,7 +124,7 @@ class AppDrawer extends ConsumerWidget {
     return [
       _DrawerTile(
         icon: Icons.home_outlined,
-        label: "Home Dashboard",
+        label: "Dashboard",
         onTap: () => _safeNavigate(context, RouteNames.clientDashboard, isRoot: true),
       ),
       _DrawerTile(
@@ -154,9 +154,9 @@ class AppDrawer extends ConsumerWidget {
         onTap: () => _safeNavigate(context, RouteNames.articles, isRoot: false),
       ),
       _DrawerTile(
-        icon: Icons.question_answer_outlined,
-        label: "FAQ Accordion",
-        onTap: () => _safeNavigate(context, RouteNames.faq, isRoot: false),
+        icon: Icons.person_outline,
+        label: "My Profile",
+        onTap: () => _safeNavigate(context, RouteNames.profile, isRoot: true),
       ),
       _DrawerTile(
         icon: Icons.settings_outlined,

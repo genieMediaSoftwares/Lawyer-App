@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../models/case_model.dart';
 import '../../../../routes/route_names.dart';
-import '../../../../core/widgets/app_drawer.dart';
 
 class LawyersRespondedScreen extends ConsumerWidget {
   final String caseId;
@@ -19,7 +18,6 @@ class LawyersRespondedScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

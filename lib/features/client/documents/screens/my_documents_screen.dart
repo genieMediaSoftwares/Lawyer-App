@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/document_provider.dart';
-import '../../../../core/widgets/app_drawer.dart';
 
 class MyDocumentsScreen extends ConsumerStatefulWidget {
   const MyDocumentsScreen({super.key});
@@ -55,7 +54,6 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
