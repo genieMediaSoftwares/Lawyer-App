@@ -75,8 +75,8 @@ class AppShell extends StatelessWidget {
               ),
               const SizedBox(width: 48), // FAB notch space
               _NavItem(
-                icon: Icons.message_outlined,
-                label: "Messages",
+                icon: Icons.people_outline,
+                label: "Advocates",
                 isActive: navigationShell.currentIndex == 2,
                 onTap: () => _onTap(2),
                 activeColor: activeColor,
