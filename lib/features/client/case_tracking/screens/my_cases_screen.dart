@@ -8,6 +8,7 @@ import '../../../../models/case_model.dart';
 import '../../../../routes/route_names.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../providers/chat_provider.dart';
+import '../../../../providers/notification_provider.dart';
 
 class MyCasesScreen extends ConsumerStatefulWidget {
   const MyCasesScreen({super.key});
@@ -71,10 +72,42 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.white),
-            onPressed: () {},
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_none, color: Colors.white),
+                onPressed: () => context.push(RouteNames.notifications),
+              ),
+              final unreadCount = ref.watch(notificationsProvider).unreadCount;
+              if (unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: AppColors.error,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 14,
+                      minHeight: 14,
+                    ),
+                    child: Text(
+                      '$unreadCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+            ],
           ),
+          const SizedBox(width: 8),
         ],
         bottom: TabBar(
           controller: _tabController,

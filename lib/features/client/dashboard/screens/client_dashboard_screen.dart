@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../routes/route_names.dart';
+import '../../../../providers/notification_provider.dart';
 import 'package:law/models/category_item.dart';
 import '../widgets/category_card.dart';
 import '../widgets/hero_carousel_widget.dart';
@@ -63,18 +64,32 @@ class ClientDashboardScreen extends ConsumerWidget {
                 onPressed: () => context.push(RouteNames.notifications),
                 icon: Icon(Icons.notifications_none_outlined, color: primaryTextColor, size: 26),
               ),
-              Positioned(
-                right: 12,
-                top: 12,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppColors.error,
-                    shape: BoxShape.circle,
+              final unreadCount = ref.watch(notificationsProvider).unreadCount;
+              if (unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: AppColors.error,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 14,
+                      minHeight: 14,
+                    ),
+                    child: Text(
+                      '$unreadCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                ),
-              )
+                )
             ],
           ),
           const SizedBox(width: 8),
