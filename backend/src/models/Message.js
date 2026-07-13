@@ -16,8 +16,17 @@ const messageSchema = new mongoose.Schema(
 
     content: {
       type: String,
-      required: true,
+      default: "",
     },
+
+    attachments: [
+      {
+        name: { type: String, required: true },
+        url: { type: String, required: true },
+        mimeType: { type: String },
+        size: { type: Number }
+      }
+    ],
 
     isRead: {
       type: Boolean,

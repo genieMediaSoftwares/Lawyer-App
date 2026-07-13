@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/lawyer_provider.dart';
 import '../../routes/route_names.dart';
+import '../../core/config/env.dart';
 
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
@@ -52,15 +54,24 @@ class AppDrawer extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: theme.colorScheme.onSurface.withOpacity(0.12),
-                    backgroundImage: auth.userPhotoUrl != null && auth.userPhotoUrl!.isNotEmpty
-                        ? NetworkImage(auth.userPhotoUrl!)
-                        : null,
-                    child: (auth.userPhotoUrl == null || auth.userPhotoUrl!.isEmpty)
-                        ? Icon(Icons.person, color: theme.colorScheme.onSurface, size: 28)
-                        : null,
+                  Builder(
+                    builder: (context) {
+                      final resolvedPhotoUrl = (auth.userPhotoUrl != null && auth.userPhotoUrl!.isNotEmpty)
+                          ? (auth.userPhotoUrl!.startsWith('http')
+                              ? auth.userPhotoUrl!
+                              : '${Environment.baseUrl.replaceAll('/api', '')}${auth.userPhotoUrl!.startsWith('/') ? auth.userPhotoUrl! : '/${auth.userPhotoUrl!}'}')
+                          : null;
+                      return CircleAvatar(
+                        radius: 28,
+                        backgroundColor: theme.colorScheme.onSurface.withOpacity(0.12),
+                        backgroundImage: resolvedPhotoUrl != null
+                            ? NetworkImage(resolvedPhotoUrl)
+                            : null,
+                        child: (resolvedPhotoUrl == null)
+                            ? Icon(Icons.person, color: theme.colorScheme.onSurface, size: 28)
+                            : null,
+                      );
+                    },
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -141,6 +152,23 @@ class AppDrawer extends ConsumerWidget {
       _DrawerTile(
         icon: Icons.message_outlined,
         label: "Messages",
+        trailing: Consumer(
+          builder: (context, ref, child) {
+            final theme = Theme.of(context);
+            final countAsync = ref.watch(unreadMessagesCountProvider);
+            return countAsync.when(
+              data: (count) => count > 0
+                  ? Badge(
+                      label: Text('$count'),
+                      backgroundColor: theme.colorScheme.primary,
+                      textColor: Colors.black,
+                    )
+                  : const SizedBox.shrink(),
+              loading: () => const SizedBox.shrink(),
+              error: (err, stack) => const SizedBox.shrink(),
+            );
+          },
+        ),
         onTap: () => _safeNavigate(context, RouteNames.messages, isRoot: false),
       ),
       _DrawerTile(
@@ -201,6 +229,23 @@ class AppDrawer extends ConsumerWidget {
       _DrawerTile(
         icon: Icons.message_outlined,
         label: "Messages",
+        trailing: Consumer(
+          builder: (context, ref, child) {
+            final theme = Theme.of(context);
+            final countAsync = ref.watch(unreadMessagesCountProvider);
+            return countAsync.when(
+              data: (count) => count > 0
+                  ? Badge(
+                      label: Text('$count'),
+                      backgroundColor: theme.colorScheme.primary,
+                      textColor: Colors.black,
+                    )
+                  : const SizedBox.shrink(),
+              loading: () => const SizedBox.shrink(),
+              error: (err, stack) => const SizedBox.shrink(),
+            );
+          },
+        ),
         onTap: () => _safeNavigate(context, RouteNames.lawyerMessages, isRoot: false),
       ),
       _DrawerTile(
@@ -221,8 +266,14 @@ class _DrawerTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Widget? trailing;
 
-  const _DrawerTile({required this.icon, required this.label, required this.onTap});
+  const _DrawerTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -237,6 +288,7 @@ class _DrawerTile extends StatelessWidget {
           color: theme.textTheme.bodyMedium?.color,
         ),
       ),
+      trailing: trailing,
       onTap: onTap,
       dense: true,
     );
