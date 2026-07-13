@@ -444,9 +444,8 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   onTap: () => setState(() => _currentIndex = 4),
                 ),
               ),
-              ref.watch(lawyerWorkspaceMessagesProvider).when(
-                data: (msgData) {
-                  final unreadCount = msgData['unreadCount'] as int? ?? 0;
+              ref.watch(unreadMessagesCountProvider).when(
+                data: (unreadCount) {
                   return _buildWorkspaceToolCard(
                     icon: Icons.chat,
                     title: "Messages",
