@@ -22,6 +22,7 @@ const paymentRoutes = require("./routes/payment.routes");
 const subscriptionRoutes = require("./routes/subscription.routes");
 const courtRoutes = require("./routes/court.routes");
 const placeRoutes = require("./routes/place.routes");
+const aiRoutes = require("./routes/ai.routes");
 
 const app = express();
 
@@ -90,6 +91,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/courts", courtRoutes);
 app.use("/api/places", placeRoutes);
+app.use("/api/ai", aiRoutes);
 
 // Global Error Handler
 app.use(errorMiddleware);

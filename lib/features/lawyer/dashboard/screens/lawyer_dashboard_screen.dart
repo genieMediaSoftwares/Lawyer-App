@@ -159,15 +159,22 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   icon: Icon(Icons.notifications_none_outlined, color: Theme.of(context).colorScheme.onSurface),
                   onPressed: () => _showNotificationsBottomSheet(context),
                 ),
-                Positioned(
-                  right: 12,
-                  top: 12,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                    constraints: const BoxConstraints(minWidth: 8, minHeight: 8),
-                  ),
-                )
+                final unreadCount = ref.watch(notificationsProvider).unreadCount;
+                if (unreadCount > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                      constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                      child: Text(
+                        '$unreadCount',
+                        style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  )
               ],
             ),
         ],
@@ -2068,7 +2075,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     String selectedClientId = clients.isNotEmpty ? clients.first['id']! : "64f15d2a900994f29a02256c";
     final TextEditingController nameTextController = TextEditingController();
     if (clients.isEmpty) {
-      nameTextController.text = "Rahul Sharma"; // Default client name
+      nameTextController.text = "Rahul Sharma"; // Default seeded client name
     }
 
     DateTime selectedDate = _selectedCalendarDate;
@@ -2324,62 +2331,71 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   child: Consumer(
                     builder: (context, ref, child) {
                       final notificationsState = ref.watch(notificationsProvider);
-                      return notificationsState.when(
-                        data: (notifications) {
-                          if (notifications.isEmpty) {
-                            return const Center(
-                              child: Text(
-                                "No notifications yet.",
-                                style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
-                              ),
-                            );
-                          }
-                          return ListView.separated(
-                            itemCount: notifications.length,
-                            separatorBuilder: (context, index) => Divider(color: Theme.of(context).dividerColor),
-                            itemBuilder: (context, index) {
-                              final notif = notifications[index];
-                              IconData icon = Icons.notifications_none_outlined;
-                              if (notif.type == "Appointment") icon = Icons.calendar_today_outlined;
-                              if (notif.type == "Messages") icon = Icons.mail_outline_rounded;
-                              if (notif.type == "Offers") icon = Icons.gavel_outlined;
+                      
+                      if (notificationsState.isLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      
+                      if (notificationsState.errorMessage != null) {
+                        return Center(child: Text("Error: ${notificationsState.errorMessage}", style: const TextStyle(color: Colors.red)));
+                      }
 
-                              final timeStr = DateFormat('dd MMM, hh:mm a').format(notif.createdAt);
-                              return Dismissible(
-                                key: Key(notif.id),
-                                onDismissed: (_) {
-                                  ref.read(notificationsProvider.notifier).markAsRead(notif.id);
-                                },
-                                child: ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  leading: CircleAvatar(
-                                    backgroundColor: AppColors.gold.withOpacity(0.1),
-                                    child: Icon(icon, color: AppColors.gold, size: 20),
-                                  ),
-                                  title: Text(
-                                    notif.title,
-                                    style: TextStyle(
-                                      fontWeight: notif.read ? FontWeight.normal : FontWeight.bold,
-                                      fontSize: 14,
-                                      color: Theme.of(context).colorScheme.onBackground,
-                                    ),
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const SizedBox(height: 4),
-                                      Text(notif.message, style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryDark)),
-                                      const SizedBox(height: 4),
-                                      Text(timeStr, style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryDark)),
-                                    ],
-                                  ),
-                                ),
-                              );
+                      final notifications = notificationsState.notifications;
+                      if (notifications.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            "No notifications yet.",
+                            style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
+                          ),
+                        );
+                      }
+
+                      return ListView.separated(
+                        itemCount: notifications.length,
+                        separatorBuilder: (context, index) => Divider(color: Theme.of(context).dividerColor),
+                        itemBuilder: (context, index) {
+                          final notif = notifications[index];
+                          IconData icon = Icons.notifications_none_outlined;
+                          if (notif.type == "appointment_requested" || notif.type == "appointment_confirmed" || notif.type == "appointment_cancelled") {
+                            icon = Icons.calendar_today_outlined;
+                          }
+                          if (notif.type == "chat_message") icon = Icons.mail_outline_rounded;
+                          if (notif.type == "proposal_received" || notif.type == "proposal_accepted" || notif.type == "proposal_rejected") {
+                            icon = Icons.gavel_outlined;
+                          }
+
+                          final timeStr = DateFormat('dd MMM, hh:mm a').format(notif.createdAt);
+                          return Dismissible(
+                            key: Key(notif.id),
+                            onDismissed: (_) {
+                              ref.read(notificationsProvider.notifier).markAsRead(notif.id);
                             },
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: CircleAvatar(
+                                backgroundColor: AppColors.gold.withOpacity(0.1),
+                                child: Icon(icon, color: AppColors.gold, size: 20),
+                              ),
+                              title: Text(
+                                notif.title,
+                                style: TextStyle(
+                                  fontWeight: notif.isRead ? FontWeight.normal : FontWeight.bold,
+                                  fontSize: 14,
+                                  color: Theme.of(context).colorScheme.onBackground,
+                                ),
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 4),
+                                  Text(notif.message, style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryDark)),
+                                  const SizedBox(height: 4),
+                                  Text(timeStr, style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryDark)),
+                                ],
+                              ),
+                            ),
                           );
                         },
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (err, stack) => Center(child: Text("Error loading notifications: $err", style: const TextStyle(color: Colors.red))),
                       );
                     },
                   ),

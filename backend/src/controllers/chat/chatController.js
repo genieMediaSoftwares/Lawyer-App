@@ -1,4 +1,5 @@
 const Chat = require("../../models/Chat");
+const notificationService = require("../../services/notification/notificationService");
 const Message = require("../../models/Message");
 const ApiResponse = require("../../config/ApiResponse");
 
@@ -64,10 +65,24 @@ class ChatController {
         content
       });
 
-      await Chat.findByIdAndUpdate(chatId, {
-        lastMessage: content,
-        lastMessageAt: new Date()
-      });
+      const chat = await Chat.findById(chatId);
+      if (chat) {
+        chat.lastMessage = content;
+        chat.lastMessageAt = new Date();
+        await chat.save();
+
+        const otherParticipant = chat.participants.find((p) => p.toString() !== sender.toString());
+        if (otherParticipant) {
+          await notificationService.createAndSendNotification({
+            senderId: sender,
+            receiverId: otherParticipant,
+            type: "chat_message",
+            title: "New Message",
+            message: `${req.user.fullName || "Someone"} sent you a message: "${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`,
+            referenceId: chatId,
+          });
+        }
+      }
 
       return ApiResponse.success(res, "Message sent successfully.", message, 201);
     } catch (error) {
