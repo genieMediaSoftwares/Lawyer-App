@@ -134,9 +134,14 @@ class AppDrawer extends ConsumerWidget {
       ),
 
       _DrawerTile(
+        icon: Icons.chat_bubble_outline,
+        label: "Advocates",
+        onTap: () => _safeNavigate(context, RouteNames.advocates, isRoot: true),
+      ),
+      _DrawerTile(
         icon: Icons.message_outlined,
         label: "Messages",
-        onTap: () => _safeNavigate(context, RouteNames.messages, isRoot: true),
+        onTap: () => _safeNavigate(context, RouteNames.messages, isRoot: false),
       ),
       _DrawerTile(
         icon: Icons.cloud_done_outlined,

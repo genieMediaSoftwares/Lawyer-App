@@ -21,6 +21,7 @@ import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/widgets/location_picker_sheet.dart';
 import '../../../client/appointment_booking/providers/calendar_provider.dart';
 import '../../profile/screens/lawyer_profile_screen.dart';
+import '../../../../routes/route_names.dart';
 
 class LawyerDashboardScreen extends ConsumerStatefulWidget {
   final int initialTab;
@@ -451,7 +452,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     title: "Messages",
                     subtitle: unreadCount > 0 ? "$unreadCount Unread Chats" : "You're all caught up",
                     badgeCount: unreadCount == 0 ? null : "$unreadCount",
-                    onTap: () => context.push('/messages'),
+                    onTap: () => context.push(RouteNames.lawyerMessages),
                   );
                 },
                 loading: () => _buildWorkspaceToolCard(
@@ -459,13 +460,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   title: "Messages",
                   subtitle: "Checking messages...",
                   badgeCount: "...",
-                  onTap: () => context.push('/messages'),
+                  onTap: () => context.push(RouteNames.lawyerMessages),
                 ),
                 error: (e, s) => _buildWorkspaceToolCard(
                   icon: Icons.chat,
                   title: "Messages",
                   subtitle: "You're all caught up",
-                  onTap: () => context.push('/messages'),
+                  onTap: () => context.push(RouteNames.lawyerMessages),
                 ),
               ),
             ],
