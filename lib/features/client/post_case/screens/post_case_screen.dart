@@ -13,7 +13,6 @@ import '../../../../providers/issue_provider.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/document_provider.dart';
 import 'package:file_picker/file_picker.dart';
-import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/widgets/location_picker_sheet.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../models/category_item.dart';
@@ -271,7 +270,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Post Your Case"),
         leading: IconButton(

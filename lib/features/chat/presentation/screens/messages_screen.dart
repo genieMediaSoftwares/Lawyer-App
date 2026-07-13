@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../providers/auth_provider.dart';
-import '../../../../core/widgets/app_drawer.dart';
 
 class MessagesScreen extends ConsumerWidget {
   const MessagesScreen({super.key});
@@ -19,14 +18,11 @@ class MessagesScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Messages", style: TextStyle(fontWeight: FontWeight.bold)),
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: Icon(Icons.menu, color: theme.appBarTheme.iconTheme?.color, size: 24),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: theme.appBarTheme.iconTheme?.color, size: 24),
+          onPressed: () => context.pop(),
         ),
       ),
       body: chatsState.when(

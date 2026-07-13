@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../models/lawyer_model.dart';
-import '../../../../core/widgets/app_drawer.dart';
 
 class GetMatchedScreen extends ConsumerStatefulWidget {
   const GetMatchedScreen({super.key});
@@ -142,7 +141,6 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

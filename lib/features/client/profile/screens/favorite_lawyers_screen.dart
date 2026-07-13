@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/favorite_provider.dart';
 import '../../../../routes/route_names.dart';
-import '../../../../core/widgets/app_drawer.dart';
 
 class FavoriteLawyersScreen extends ConsumerStatefulWidget {
   const FavoriteLawyersScreen({super.key});
@@ -23,7 +22,6 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

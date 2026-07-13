@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/article_provider.dart';
 import '../../../../models/article_model.dart';
-import '../../../../core/widgets/app_drawer.dart';
 
 class ArticlesScreen extends ConsumerStatefulWidget {
   const ArticlesScreen({super.key});
@@ -47,7 +46,6 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../../../core/widgets/app_drawer.dart';
 import '../../dashboard/widgets/ai_legal_assistant_card.dart';
 import '../../../../core/network/api_client.dart';
 
@@ -204,7 +203,6 @@ Please let me know if you would like me to draft outlines for agreements or expl
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

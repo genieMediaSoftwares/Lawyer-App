@@ -6,7 +6,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/issue_provider.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../models/issue_model.dart';
-import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/network/dio_client.dart';
 
 class ResolveScreen extends ConsumerStatefulWidget {
@@ -93,7 +92,6 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
