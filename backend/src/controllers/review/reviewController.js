@@ -1,4 +1,5 @@
 const Review = require("../../models/Review");
+const notificationService = require("../../services/notification/notificationService");
 const Lawyer = require("../../models/Lawyer");
 const ApiResponse = require("../../config/ApiResponse");
 
@@ -29,6 +30,16 @@ class ReviewController {
         { rating: parseFloat(avgRating.toFixed(1)), totalReviews },
         { new: true }
       );
+
+      // Notify the lawyer
+      await notificationService.createAndSendNotification({
+        senderId: client,
+        receiverId: lawyerId,
+        type: "review_received",
+        title: "New Review Received",
+        message: `A client left you a ${rating}-star review: "${review.substring(0, 30)}${review.length > 30 ? '...' : ''}"`,
+        referenceId: newReview._id.toString()
+      });
 
       return ApiResponse.success(res, "Review submitted successfully.", newReview, 201);
     } catch (error) {
@@ -76,6 +87,16 @@ class ReviewController {
       reviewItem.reply = reply;
       reviewItem.replyDate = new Date();
       await reviewItem.save();
+
+      // Notify the client
+      await notificationService.createAndSendNotification({
+        senderId: lawyerId,
+        receiverId: reviewItem.client,
+        type: "review_received",
+        title: "Advocate Replied to Your Review",
+        message: `An advocate replied to your review: "${reply.substring(0, 30)}${reply.length > 30 ? '...' : ''}"`,
+        referenceId: reviewItem._id.toString()
+      });
 
       return ApiResponse.success(res, "Reply added successfully.", reviewItem);
     } catch (error) {
