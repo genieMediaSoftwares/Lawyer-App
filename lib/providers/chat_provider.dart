@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:dio/dio.dart';
 import '../core/network/dio_client.dart';
 import '../models/chat_model.dart';
 import '../models/message_model.dart';
@@ -28,6 +29,18 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
       .build());
 
     _socket.connect();
+
+    _socket.onConnectError((data) {
+      print('🔌 Chats Socket Connect Error: $data');
+    });
+
+    _socket.onError((data) {
+      print('🔌 Chats Socket Error: $data');
+    });
+
+    _socket.onDisconnect((data) {
+      print('🔌 Chats Socket Disconnected: $data');
+    });
 
     _socket.onConnect((_) {
       final userId = _ref.read(authProvider).userId;
@@ -66,6 +79,10 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
         final chatId = data['chat'] as String;
         final content = data['content'] as String;
         final createdAtStr = data['createdAt'] as String;
+        final senderData = data['sender'] is Map<String, dynamic> ? data['sender'] : {};
+        final senderId = data['sender'] is String ? data['sender'] : (senderData['_id'] ?? '');
+        final currentUserId = _ref.read(authProvider).userId;
+        final isMsgFromMe = senderId == currentUserId;
 
         state.whenData((currentChats) {
           final hasChat = currentChats.any((c) => c.id == chatId);
@@ -79,8 +96,8 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
               return c.copyWith(
                 lastMessage: content,
                 lastMessageAt: DateTime.parse(createdAtStr),
-                // Increment unread count if we are not currently viewing it
-                unreadCount: c.unreadCount + 1,
+                // Only increment unread count if the message is from someone else
+                unreadCount: isMsgFromMe ? c.unreadCount : (c.unreadCount + 1),
               );
             }
             return c;
@@ -102,16 +119,21 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
 
   Future<void> fetchChats() async {
     try {
+      print('💬 ChatsNotifier: fetchChats() started');
       state = const AsyncValue.loading();
       final response = await DioClient.dio.get("/chats");
+      print('💬 ChatsNotifier: fetchChats() got response. StatusCode = ${response.statusCode}');
       if (response.data != null && response.data['success'] == true) {
         final list = response.data['data'] as List;
+        print('💬 ChatsNotifier: fetchChats() parsing ${list.length} items');
         final chats = list.map((item) => ChatModel.fromJson(item)).toList();
         state = AsyncValue.data(chats);
       } else {
+        print('💬 ChatsNotifier: fetchChats() failed. response = ${response.data}');
         state = AsyncValue.error("Failed to load chats", StackTrace.current);
       }
     } catch (e, stack) {
+      print('💬 ChatsNotifier: fetchChats() error = $e\n$stack');
       state = AsyncValue.error(e, stack);
     }
   }
@@ -160,6 +182,18 @@ class ChatMessagesNotifier extends StateNotifier<AsyncValue<List<MessageModel>>>
       .build());
 
     _socket.connect();
+
+    _socket.onConnectError((data) {
+      print('🔌 ChatMessages Socket (${chatId}) Connect Error: $data');
+    });
+
+    _socket.onError((data) {
+      print('🔌 ChatMessages Socket (${chatId}) Error: $data');
+    });
+
+    _socket.onDisconnect((data) {
+      print('🔌 ChatMessages Socket (${chatId}) Disconnected: $data');
+    });
 
     _socket.onConnect((_) {
       final userId = _ref.read(authProvider).userId;
@@ -259,10 +293,49 @@ class ChatMessagesNotifier extends StateNotifier<AsyncValue<List<MessageModel>>>
     }
   }
 
-  Future<bool> sendMessage(String content) async {
+  Future<MessageAttachmentModel?> uploadAttachment({
+    String? filePath,
+    List<int>? fileBytes,
+    required String fileName,
+  }) async {
+    try {
+      MultipartFile file;
+      if (fileBytes != null) {
+        file = MultipartFile.fromBytes(fileBytes, filename: fileName);
+      } else if (filePath != null) {
+        file = await MultipartFile.fromFile(filePath, filename: fileName);
+      } else {
+        return null;
+      }
+
+      final formData = FormData.fromMap({
+        "file": file,
+      });
+
+      final response = await DioClient.dio.post(
+        "/chats/$chatId/attachments",
+        data: formData,
+      );
+
+      if (response.data != null && response.data['success'] == true) {
+        return MessageAttachmentModel.fromJson(response.data['data']);
+      }
+    } catch (e) {
+      print('🔌 uploadAttachment error: $e');
+    }
+    return null;
+  }
+
+  Future<bool> sendMessage(String content, {List<MessageAttachmentModel> attachments = const []}) async {
     try {
       final response = await DioClient.dio.post("/chats/$chatId/messages", data: {
         "content": content,
+        "attachments": attachments.map((a) => {
+          "name": a.name,
+          "url": a.url,
+          "mimeType": a.mimeType,
+          "size": a.size,
+        }).toList(),
       });
 
       if (response.data != null && response.data['success'] == true) {
@@ -273,6 +346,28 @@ class ChatMessagesNotifier extends StateNotifier<AsyncValue<List<MessageModel>>>
             state = AsyncValue.data([...currentMessages, newMessage]);
           }
         });
+
+        // Also update the chats list last message locally
+        final lastMsgText = content.isNotEmpty 
+            ? content 
+            : (attachments.isNotEmpty ? "Sent an attachment" : "");
+        _ref.read(chatsProvider.notifier).state.whenData((chats) {
+          final updatedChats = chats.map((c) {
+            if (c.id == chatId) {
+              return c.copyWith(
+                lastMessage: lastMsgText,
+                lastMessageAt: newMessage.createdAt,
+              );
+            }
+            return c;
+          }).toList();
+          updatedChats.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+          _ref.read(chatsProvider.notifier).state = AsyncValue.data(updatedChats);
+        });
+
+        // Refresh chats list asynchronously to ensure synchronization
+        _ref.read(chatsProvider.notifier).fetchChats();
+
         return true;
       }
     } catch (e) {
