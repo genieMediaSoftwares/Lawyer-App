@@ -121,11 +121,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         actions: [
           if (state.notifications.isNotEmpty) ...[
             IconButton(
-              icon: const Icon(Icons.done_all_outlined, tooltip: "Mark all as read"),
+              icon: const Icon(Icons.done_all_outlined),
+              tooltip: "Mark all as read",
               onPressed: () => ref.read(notificationsProvider.notifier).markAllAsRead(),
             ),
             IconButton(
-              icon: const Icon(Icons.delete_sweep_outlined, tooltip: "Clear all"),
+              icon: const Icon(Icons.delete_sweep_outlined),
+              tooltip: "Clear all",
               onPressed: () => ref.read(notificationsProvider.notifier).clearAll(),
             ),
           ]

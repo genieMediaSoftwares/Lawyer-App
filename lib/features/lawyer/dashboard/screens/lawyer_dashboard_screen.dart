@@ -104,6 +104,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     final authState = ref.watch(authProvider);
     final lawyerName = authState.userName ?? "Rahul Sharma";
     final userId = authState.userId ?? "";
+    final unreadCount = ref.watch(notificationsProvider).unreadCount;
 
     // Watch all providers at the top level to avoid conditional watcher assertion violations
     final casesState = ref.watch(casesProvider);
@@ -159,7 +160,6 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   icon: Icon(Icons.notifications_none_outlined, color: Theme.of(context).colorScheme.onSurface),
                   onPressed: () => _showNotificationsBottomSheet(context),
                 ),
-                final unreadCount = ref.watch(notificationsProvider).unreadCount;
                 if (unreadCount > 0)
                   Positioned(
                     right: 8,

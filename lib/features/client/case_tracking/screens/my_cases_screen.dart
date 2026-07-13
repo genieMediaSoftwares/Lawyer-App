@@ -43,6 +43,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   Widget build(BuildContext context) {
     final filteredCasesState = ref.watch(filteredCasesProvider);
     final allCasesState = ref.watch(casesProvider);
+    final unreadCount = ref.watch(notificationsProvider).unreadCount;
 
     int allCount = 0;
     int progressCount = 0;
@@ -79,7 +80,6 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                 icon: const Icon(Icons.notifications_none, color: Colors.white),
                 onPressed: () => context.push(RouteNames.notifications),
               ),
-              final unreadCount = ref.watch(notificationsProvider).unreadCount;
               if (unreadCount > 0)
                 Positioned(
                   right: 8,
