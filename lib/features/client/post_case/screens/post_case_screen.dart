@@ -82,12 +82,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
   final List<CategoryData> _categories = allCategories;
 
-  final List<Map<String, String>> _predefinedFiles = [
-    {"name": "FIR Copy.pdf", "size": "2.4 MB"},
-    {"name": "Notice.pdf", "size": "1.8 MB"},
-    {"name": "Property Papers.jpg", "size": "1.2 MB"},
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -1182,20 +1176,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                       size: file.bytes?.length,
                     );
                   }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.bug_report_outlined, color: Colors.amber),
-                title: Text("Mock Document Upload (For Testing)", style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final mockBytes = [137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 10, 73, 68, 65, 84, 120, 156, 99, 0, 1, 0, 0, 5, 0, 1, 13, 10, 45, 180, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130];
-                  await _processPickedFile(
-                    "",
-                    "mock_acknowledgement.png",
-                    bytes: mockBytes,
-                    size: mockBytes.length,
-                  );
                 },
               ),
               const Divider(),

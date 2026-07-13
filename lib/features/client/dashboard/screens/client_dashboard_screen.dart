@@ -11,7 +11,6 @@ import '../widgets/category_card.dart';
 import '../widgets/hero_carousel_widget.dart';
 import '../widgets/ai_legal_assistant_card.dart';
 
-
 class ClientDashboardScreen extends ConsumerWidget {
   const ClientDashboardScreen({super.key});
 
