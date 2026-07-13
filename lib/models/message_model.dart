@@ -7,6 +7,7 @@ class MessageModel {
   final String content;
   final DateTime createdAt;
   final bool isRead;
+  final List<MessageAttachmentModel> attachments;
 
   MessageModel({
     required this.id,
@@ -17,6 +18,7 @@ class MessageModel {
     required this.content,
     required this.createdAt,
     required this.isRead,
+    this.attachments = const [],
   });
 
   factory MessageModel.fromJson(Map<String, dynamic> json) {
@@ -31,9 +33,13 @@ class MessageModel {
       senderImage: senderData['profileImage'] ?? '',
       content: json['content'] ?? '',
       createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
+          ? DateTime.parse(json['createdAt']).toLocal()
           : DateTime.now(),
       isRead: json['isRead'] ?? false,
+      attachments: (json['attachments'] as List?)
+              ?.map((a) => MessageAttachmentModel.fromJson(a))
+              .toList() ??
+          [],
     );
   }
 
@@ -46,6 +52,7 @@ class MessageModel {
     String? content,
     DateTime? createdAt,
     bool? isRead,
+    List<MessageAttachmentModel>? attachments,
   }) {
     return MessageModel(
       id: id ?? this.id,
@@ -56,6 +63,30 @@ class MessageModel {
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
       isRead: isRead ?? this.isRead,
+      attachments: attachments ?? this.attachments,
+    );
+  }
+}
+
+class MessageAttachmentModel {
+  final String name;
+  final String url;
+  final String mimeType;
+  final int size;
+
+  MessageAttachmentModel({
+    required this.name,
+    required this.url,
+    required this.mimeType,
+    required this.size,
+  });
+
+  factory MessageAttachmentModel.fromJson(Map<String, dynamic> json) {
+    return MessageAttachmentModel(
+      name: json['name'] ?? '',
+      url: json['url'] ?? '',
+      mimeType: json['mimeType'] ?? '',
+      size: json['size'] ?? 0,
     );
   }
 }

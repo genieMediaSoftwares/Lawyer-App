@@ -27,7 +27,25 @@ class ChatController {
         chat = await Chat.findById(chat._id).populate("participants", "fullName email mobile profileImage role");
       }
 
-      return ApiResponse.success(res, "Chat conversation retrieved.", chat);
+      let chatObj = chat.toObject();
+      const Case = require("../../models/Case");
+      const linkedCase = await Case.findOne({
+        $or: [
+          { assignedLawyer: currentUserId, client: otherUserId },
+          { selectedLawyer: currentUserId, client: otherUserId },
+          { assignedLawyer: otherUserId, client: currentUserId },
+          { selectedLawyer: otherUserId, client: currentUserId }
+        ]
+      }).select("title _id");
+
+      if (linkedCase) {
+        chatObj.caseInfo = {
+          id: linkedCase._id,
+          title: linkedCase.title
+        };
+      }
+
+      return ApiResponse.success(res, "Chat conversation retrieved.", chatObj);
     } catch (error) {
       next(error);
     }
@@ -51,9 +69,32 @@ class ChatController {
             sender: { $ne: currentUserId },
             isRead: false
           });
+
+          const otherParticipant = chat.participants.find(p => p._id.toString() !== currentUserId.toString());
+          let caseInfo = null;
+          if (otherParticipant) {
+            const Case = require("../../models/Case");
+            const linkedCase = await Case.findOne({
+              $or: [
+                { assignedLawyer: currentUserId, client: otherParticipant._id },
+                { selectedLawyer: currentUserId, client: otherParticipant._id },
+                { assignedLawyer: otherParticipant._id, client: currentUserId },
+                { selectedLawyer: otherParticipant._id, client: currentUserId }
+              ]
+            }).select("title _id");
+
+            if (linkedCase) {
+              caseInfo = {
+                id: linkedCase._id,
+                title: linkedCase.title
+              };
+            }
+          }
+
           return {
             ...chat.toObject(),
             unreadCount,
+            caseInfo
           };
         })
       );
@@ -67,22 +108,23 @@ class ChatController {
   async sendMessage(req, res, next) {
     try {
       const { chatId } = req.params;
-      const { content } = req.body;
+      const { content, attachments } = req.body;
       const sender = req.user._id;
 
-      if (!content) {
-        return ApiResponse.error(res, "Message content is required.", 400);
+      if (!content && (!attachments || attachments.length === 0)) {
+        return ApiResponse.error(res, "Message content or attachments is required.", 400);
       }
 
       const message = await Message.create({
         chat: chatId,
         sender,
-        content
+        content: content || "",
+        attachments: attachments || []
       });
 
       const chat = await Chat.findById(chatId);
       if (chat) {
-        chat.lastMessage = content;
+        chat.lastMessage = content || (attachments && attachments.length > 0 ? "Sent an attachment" : "");
         chat.lastMessageAt = new Date();
         await chat.save();
 
@@ -102,18 +144,22 @@ class ChatController {
 
         const otherParticipant = chat.participants.find((p) => p.toString() !== sender.toString());
         if (otherParticipant) {
+          const textPreview = content || (attachments && attachments.length > 0 ? "Attachment" : "");
           await notificationService.createAndSendNotification({
             senderId: sender,
             receiverId: otherParticipant,
             type: "chat_message",
             title: "New Message",
-            message: `${req.user.fullName || "Someone"} sent you a message: "${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`,
+            message: `${req.user.fullName || "Someone"} sent you a message: "${textPreview.substring(0, 30)}${textPreview.length > 30 ? '...' : ''}"`,
             referenceId: chatId,
           });
         }
       }
 
-      return ApiResponse.success(res, "Message sent successfully.", message, 201);
+      const populatedMsg = await Message.findById(message._id)
+        .populate("sender", "fullName profileImage role");
+
+      return ApiResponse.success(res, "Message sent successfully.", populatedMsg, 201);
     } catch (error) {
       next(error);
     }
@@ -149,6 +195,24 @@ class ChatController {
       }
 
       return ApiResponse.success(res, "Messages marked as read.");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async uploadAttachment(req, res, next) {
+    try {
+      if (!req.file) {
+        return ApiResponse.error(res, "No file uploaded.", 400);
+      }
+      const storageService = require("../../services/storageService");
+      const metadata = await storageService.uploadFile(req.file, "chat_attachments");
+      return ApiResponse.success(res, "File uploaded successfully.", {
+        name: req.file.originalname,
+        url: metadata.url,
+        mimeType: metadata.mimeType || req.file.mimetype,
+        size: req.file.size
+      });
     } catch (error) {
       next(error);
     }

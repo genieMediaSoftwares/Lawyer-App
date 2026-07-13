@@ -4,6 +4,7 @@ class ChatModel {
   final String lastMessage;
   final DateTime lastMessageAt;
   final int unreadCount;
+  final ChatCaseInfoModel? caseInfo;
 
   ChatModel({
     required this.id,
@@ -11,6 +12,7 @@ class ChatModel {
     required this.lastMessage,
     required this.lastMessageAt,
     required this.unreadCount,
+    this.caseInfo,
   });
 
   factory ChatModel.fromJson(Map<String, dynamic> json) {
@@ -22,9 +24,12 @@ class ChatModel {
           [],
       lastMessage: json['lastMessage'] ?? '',
       lastMessageAt: json['lastMessageAt'] != null
-          ? DateTime.parse(json['lastMessageAt'])
+          ? DateTime.parse(json['lastMessageAt']).toLocal()
           : DateTime.now(),
       unreadCount: json['unreadCount'] ?? 0,
+      caseInfo: json['caseInfo'] != null
+          ? ChatCaseInfoModel.fromJson(json['caseInfo'])
+          : null,
     );
   }
 
@@ -34,6 +39,7 @@ class ChatModel {
     String? lastMessage,
     DateTime? lastMessageAt,
     int? unreadCount,
+    ChatCaseInfoModel? caseInfo,
   }) {
     return ChatModel(
       id: id ?? this.id,
@@ -41,6 +47,7 @@ class ChatModel {
       lastMessage: lastMessage ?? this.lastMessage,
       lastMessageAt: lastMessageAt ?? this.lastMessageAt,
       unreadCount: unreadCount ?? this.unreadCount,
+      caseInfo: caseInfo ?? this.caseInfo,
     );
   }
 }
@@ -64,6 +71,23 @@ class ChatParticipantModel {
       fullName: json['fullName'] ?? '',
       profileImage: json['profileImage'] ?? '',
       role: json['role'] ?? 'client',
+    );
+  }
+}
+
+class ChatCaseInfoModel {
+  final String id;
+  final String title;
+
+  ChatCaseInfoModel({
+    required this.id,
+    required this.title,
+  });
+
+  factory ChatCaseInfoModel.fromJson(Map<String, dynamic> json) {
+    return ChatCaseInfoModel(
+      id: json['id'] ?? json['_id'] ?? '',
+      title: json['title'] ?? '',
     );
   }
 }
