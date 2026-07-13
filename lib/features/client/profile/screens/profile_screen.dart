@@ -26,6 +26,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(profileProvider);
+    final unreadCount = ref.watch(notificationsProvider).unreadCount;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -54,7 +55,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 icon: const Icon(Icons.notifications_none, color: Colors.white),
                 onPressed: () => context.push(RouteNames.notifications),
               ),
-              final unreadCount = ref.watch(notificationsProvider).unreadCount;
               if (unreadCount > 0)
                 Positioned(
                   right: 8,
