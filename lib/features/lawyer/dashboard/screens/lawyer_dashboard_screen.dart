@@ -110,14 +110,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     final appointmentsState = ref.watch(appointmentsProvider);
     final chatsState = ref.watch(chatsProvider);
     final lawyerState = ref.watch(lawyerDetailsProvider(userId));
-<<<<<<< HEAD
-=======
-
     final lawyerName = lawyerState.maybeWhen(
       data: (lawyer) => lawyer.fullName,
       orElse: () => authState.userName ?? "Advocate",
     );
->>>>>>> b2f129ca21a91abda955107c47c49098363a0707
 
     // Set page title dynamically
     String screenTitle = "";
