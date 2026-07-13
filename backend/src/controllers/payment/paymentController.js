@@ -1,4 +1,5 @@
 const Payment = require("../../models/Payment");
+const notificationService = require("../../services/notification/notificationService");
 const Transaction = require("../../models/Transaction");
 const Appointment = require("../../models/Appointment");
 const Lawyer = require("../../models/Lawyer");
@@ -143,6 +144,23 @@ class PaymentController {
         type: "debit",
         description: "Consultation Booking Payment",
         status: "completed",
+      });
+
+      // Send notifications to client & lawyer
+      await notificationService.createAndSendNotification({
+        receiverId: client,
+        type: "payment_success",
+        title: "Payment Successful",
+        message: `Your payment of ₹${amount} was processed successfully.`,
+        referenceId: payment._id.toString()
+      });
+
+      await notificationService.createAndSendNotification({
+        receiverId: lawyerId,
+        type: "payment_success",
+        title: "Payment Received",
+        message: `You have received a payment of ₹${amount} for a consultation booking.`,
+        referenceId: payment._id.toString()
       });
 
       return ApiResponse.success(res, "Checkout payment created.", payment, 201);

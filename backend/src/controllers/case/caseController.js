@@ -3,6 +3,7 @@ const User = require("../../models/User");
 const Lawyer = require("../../models/Lawyer");
 const Proposal = require("../../models/Proposal");
 const ApiResponse = require("../../config/ApiResponse");
+const notificationService = require("../../services/notification/notificationService");
 
 class CaseController {
   async createCase(req, res, next) {
@@ -41,6 +42,30 @@ class CaseController {
         status: hasSelectedLawyer ? "Awaiting Lawyer Acceptance" : "Submitted",
         milestones
       });
+
+      // Trigger notifications for new case posted
+      if (hasSelectedLawyer) {
+        await notificationService.createAndSendNotification({
+          senderId: client,
+          receiverId: selectedLawyer,
+          type: "case_posted",
+          title: "New Case Request",
+          message: `You received a direct case request: "${title}".`,
+          referenceId: newCase._id.toString()
+        });
+      } else {
+        const lawyers = await User.find({ role: "lawyer" });
+        for (const lawyer of lawyers) {
+          await notificationService.createAndSendNotification({
+            senderId: client,
+            receiverId: lawyer._id,
+            type: "case_posted",
+            title: "New Case Posted",
+            message: `A new case matching your specialization was posted: "${title}".`,
+            referenceId: newCase._id.toString()
+          });
+        }
+      }
 
       return ApiResponse.success(res, "Case created successfully.", newCase, 201);
     } catch (error) {
@@ -192,12 +217,13 @@ class CaseController {
       await caseItem.save();
 
       // 4. Create Notification for Client (Proposal Received)
-      const Notification = require("../../models/Notification");
-      await Notification.create({
-        recipient: caseItem.client,
-        type: "Offers",
+      await notificationService.createAndSendNotification({
+        senderId: lawyerId,
+        receiverId: caseItem.client,
+        type: "proposal_received",
         title: "Proposal Received",
-        message: `An advocate has sent a proposal for your case: "${caseItem.title}".`
+        message: `An advocate has sent a proposal for your case: "${caseItem.title}".`,
+        referenceId: caseItem._id.toString()
       });
 
       // 5. Emit real-time case update
@@ -238,12 +264,13 @@ class CaseController {
       await caseItem.save();
 
       // Create Notification for Lawyer (Proposal Accepted)
-      const Notification = require("../../models/Notification");
-      await Notification.create({
-        recipient: lawyerId,
-        type: "Offers",
+      await notificationService.createAndSendNotification({
+        senderId: caseItem.client,
+        receiverId: lawyerId,
+        type: "proposal_accepted",
         title: "Proposal Accepted",
-        message: `Your proposal for the case: "${caseItem.title}" has been accepted!`
+        message: `Your proposal for the case: "${caseItem.title}" has been accepted!`,
+        referenceId: caseItem._id.toString()
       });
 
       // Emit real-time case update
@@ -273,12 +300,13 @@ class CaseController {
       await caseItem.save();
 
       // Create Notification for Lawyer (Proposal Rejected)
-      const Notification = require("../../models/Notification");
-      await Notification.create({
-        recipient: lawyerId,
-        type: "Offers",
+      await notificationService.createAndSendNotification({
+        senderId: caseItem.client,
+        receiverId: lawyerId,
+        type: "proposal_rejected",
         title: "Proposal Rejected",
-        message: `Your proposal for the case: "${caseItem.title}" has been rejected.`
+        message: `Your proposal for the case: "${caseItem.title}" has been rejected.`,
+        referenceId: caseItem._id.toString()
       });
 
       // Emit real-time case update
@@ -317,6 +345,19 @@ class CaseController {
       }
 
       await caseItem.save();
+
+      // Trigger notification for case status/milestone update
+      const notifyUser = req.user.role === "client" ? caseItem.assignedLawyer : caseItem.client;
+      if (notifyUser) {
+        await notificationService.createAndSendNotification({
+          senderId: req.user._id,
+          receiverId: notifyUser,
+          type: "case_status_updated",
+          title: "Milestone Updated",
+          message: `The milestone "${milestoneTitle}" has been updated for case: "${caseItem.title}".`,
+          referenceId: caseItem._id.toString()
+        });
+      }
 
       // Emit real-time case update
       const io = req.app.get("io");
@@ -360,19 +401,22 @@ class CaseController {
       await caseItem.save();
 
       // Create notifications
-      const Notification = require("../../models/Notification");
-      await Notification.create({
-        recipient: lawyerId,
-        type: "Offers",
-        title: "Case Accepted",
-        message: "You have accepted a new case."
+      await notificationService.createAndSendNotification({
+        senderId: caseItem.client,
+        receiverId: lawyerId,
+        type: "proposal_accepted",
+        title: "Case Request Accepted",
+        message: "You have accepted a new case request.",
+        referenceId: caseItem._id.toString()
       });
 
-      await Notification.create({
-        recipient: caseItem.client,
-        type: "Offers",
-        title: "Case Accepted",
-        message: "Your selected lawyer has accepted your case."
+      await notificationService.createAndSendNotification({
+        senderId: lawyerId,
+        receiverId: caseItem.client,
+        type: "proposal_accepted",
+        title: "Case Request Accepted",
+        message: "Your selected lawyer has accepted your case request.",
+        referenceId: caseItem._id.toString()
       });
 
       // Emit real-time case update
@@ -404,6 +448,16 @@ class CaseController {
 
       caseItem.status = "Rejected";
       await caseItem.save();
+
+      // Notify client that lawyer rejected the request
+      await notificationService.createAndSendNotification({
+        senderId: lawyerId,
+        receiverId: caseItem.client,
+        type: "proposal_rejected",
+        title: "Case Request Rejected",
+        message: `Your case request has been rejected by the advocate.`,
+        referenceId: caseItem._id.toString()
+      });
 
       // Emit real-time case update
       const io = req.app.get("io");
@@ -437,19 +491,22 @@ class CaseController {
       await caseItem.save();
 
       // Create notifications
-      const Notification = require("../../models/Notification");
-      await Notification.create({
-        recipient: lawyerId,
-        type: "Offers",
+      await notificationService.createAndSendNotification({
+        senderId: caseItem.client,
+        receiverId: lawyerId,
+        type: "case_status_updated",
         title: "Case Started",
-        message: `You have started working on case: "${caseItem.title}"`
+        message: `You have started working on case: "${caseItem.title}".`,
+        referenceId: caseItem._id.toString()
       });
 
-      await Notification.create({
-        recipient: caseItem.client,
-        type: "Offers",
+      await notificationService.createAndSendNotification({
+        senderId: lawyerId,
+        receiverId: caseItem.client,
+        type: "case_status_updated",
         title: "Case Started",
-        message: "Your lawyer has started working on your case."
+        message: `Your lawyer has started working on your case: "${caseItem.title}".`,
+        referenceId: caseItem._id.toString()
       });
 
       // Emit real-time case update
@@ -484,19 +541,22 @@ class CaseController {
       await caseItem.save();
 
       // Create notifications
-      const Notification = require("../../models/Notification");
-      await Notification.create({
-        recipient: lawyerId,
-        type: "Offers",
+      await notificationService.createAndSendNotification({
+        senderId: caseItem.client,
+        receiverId: lawyerId,
+        type: "case_status_updated",
         title: "Case Completed",
-        message: `You have marked the case as completed: "${caseItem.title}"`
+        message: `You have marked the case as completed: "${caseItem.title}".`,
+        referenceId: caseItem._id.toString()
       });
 
-      await Notification.create({
-        recipient: caseItem.client,
-        type: "Offers",
+      await notificationService.createAndSendNotification({
+        senderId: lawyerId,
+        receiverId: caseItem.client,
+        type: "case_status_updated",
         title: "Case Completed",
-        message: "Your lawyer has marked your case as completed."
+        message: `Your lawyer has marked your case as completed: "${caseItem.title}".`,
+        referenceId: caseItem._id.toString()
       });
 
       // Emit real-time case update

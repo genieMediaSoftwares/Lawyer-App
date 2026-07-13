@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../dashboard/widgets/ai_legal_assistant_card.dart';
+import '../../../../core/network/api_client.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -58,7 +59,7 @@ class _AiChatScreenState extends State<AiChatScreen> with SingleTickerProviderSt
     }
   }
 
-  void _sendQuery(String query) {
+  Future<void> _sendQuery(String query) async {
     if (query.trim().isEmpty) return;
 
     setState(() {
@@ -72,19 +73,60 @@ class _AiChatScreenState extends State<AiChatScreen> with SingleTickerProviderSt
     _messageController.clear();
     Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
 
-    // Simulate structured legal bot typing analysis
-    Future.delayed(const Duration(seconds: 2), () {
+    try {
+      final List<Map<String, dynamic>> historyList = [];
+      
+      // Skip the initial greeting message at index 0
+      for (int i = 1; i < _messages.length - 1; i++) {
+        final msg = _messages[i];
+        historyList.add({
+          "role": msg["isMe"] == true ? "user" : "model",
+          "parts": [
+            {"text": msg["text"]}
+          ]
+        });
+      }
+
+      final response = await ApiClient.post('/ai/chat', {
+        'message': query,
+        'history': historyList,
+      });
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200 && response.data != null) {
+        final responseData = response.data;
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final replyText = responseData['data']['response'] as String;
+          setState(() {
+            _isThinking = false;
+            _messages.add({
+              "isMe": false,
+              "text": replyText,
+              "time": "Just now"
+            });
+          });
+          Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+          return;
+        }
+      }
+
+      throw Exception(response.data?['message'] ?? 'Failed to get a response');
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         _isThinking = false;
         _messages.add({
           "isMe": false,
-          "text": _getProfessionalLegalResponse(query),
+          "text": "### ⚠️ Error Connecting to AI Assistant\n\n"
+              "I encountered an issue trying to connect to the Gemini API service. Please ensure that the **GEMINI_API_KEY** is configured correctly in the backend environment.\n\n"
+              "*(Falling back to offline helper analysis)*\n\n"
+              "${_getProfessionalLegalResponse(query)}",
           "time": "Just now"
         });
       });
       Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
-    });
+    }
   }
 
   String _getProfessionalLegalResponse(String query) {
