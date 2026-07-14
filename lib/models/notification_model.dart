@@ -2,6 +2,7 @@ class NotificationModel {
   final String id;
   final String notificationId;
   final String? senderId;
+  final String? senderName;
   final String receiverId;
   final String title;
   final String message;
@@ -18,6 +19,7 @@ class NotificationModel {
     required this.id,
     required this.notificationId,
     this.senderId,
+    this.senderName,
     required this.receiverId,
     required this.title,
     required this.message,
@@ -35,6 +37,7 @@ class NotificationModel {
     String? id,
     String? notificationId,
     String? senderId,
+    String? senderName,
     String? receiverId,
     String? title,
     String? message,
@@ -51,6 +54,7 @@ class NotificationModel {
       id: id ?? this.id,
       notificationId: notificationId ?? this.notificationId,
       senderId: senderId ?? this.senderId,
+      senderName: senderName ?? this.senderName,
       receiverId: receiverId ?? this.receiverId,
       title: title ?? this.title,
       message: message ?? this.message,
@@ -66,10 +70,21 @@ class NotificationModel {
   }
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    String? resolvedSenderId;
+    String? resolvedSenderName;
+
+    if (json['senderId'] is Map) {
+      resolvedSenderId = json['senderId']['_id']?.toString();
+      resolvedSenderName = json['senderId']['fullName']?.toString();
+    } else {
+      resolvedSenderId = json['senderId']?.toString();
+    }
+
     return NotificationModel(
       id: json['_id'] ?? '',
       notificationId: json['notificationId'] ?? json['_id'] ?? '',
-      senderId: json['senderId']?.toString(),
+      senderId: resolvedSenderId,
+      senderName: resolvedSenderName,
       receiverId: json['receiverId'] ?? json['recipient'] ?? '',
       title: json['title'] ?? '',
       message: json['message'] ?? '',
@@ -89,6 +104,7 @@ class NotificationModel {
       '_id': id,
       'notificationId': notificationId,
       'senderId': senderId,
+      'senderName': senderName,
       'receiverId': receiverId,
       'title': title,
       'message': message,

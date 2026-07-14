@@ -7,135 +7,203 @@ import '../models/message_model.dart';
 import '../core/config/env.dart';
 import 'auth_provider.dart';
 
-final userOnlineStatusProvider = StateProvider.family<bool, String>((ref, userId) => false);
+final userOnlineStatusProvider =
+    StateProvider.family<bool, String>((ref, userId) => false);
 
-final chatsProvider = StateNotifierProvider<ChatsNotifier, AsyncValue<List<ChatModel>>>((ref) {
-  return ChatsNotifier(ref);
+// ────────────────────────────────────────────────────────────────────────────
+// chatsProvider — rebuilds ONLY when isLoggedIn changes (not on every
+// auth state update like name/photo edits).
+// ────────────────────────────────────────────────────────────────────────────
+final chatsProvider =
+    StateNotifierProvider<ChatsNotifier, AsyncValue<List<ChatModel>>>((ref) {
+  final isLoggedIn = ref.watch(authProvider.select((s) => s.isLoggedIn));
+  return ChatsNotifier(ref, shouldFetch: isLoggedIn);
 });
 
 class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
   final Ref _ref;
-  late IO.Socket _socket;
+  IO.Socket? _socket;
 
-  ChatsNotifier(this._ref) : super(const AsyncValue.loading()) {
-    fetchChats().then((_) => _initSocket());
+  ChatsNotifier(this._ref, {bool shouldFetch = true})
+      : super(
+          shouldFetch
+              ? const AsyncValue.loading()
+              : const AsyncValue.data([]),
+        ) {
+    if (shouldFetch) {
+      fetchChats().then((_) => _initSocket());
+    }
   }
 
   void _initSocket() {
+    // Guard against creating duplicate sockets
+    if (_socket != null && _socket!.connected) return;
+
     final base = Environment.baseUrl.replaceAll('/api', '');
-    _socket = IO.io('$base/chat', IO.OptionBuilder()
-      .setTransports(['websocket'])
-      .disableAutoConnect()
-      .build());
+    _socket = IO.io(
+      '$base/chat',
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .disableAutoConnect()
+          .build(),
+    );
 
-    _socket.connect();
+    _socket!.connect();
 
-    _socket.onConnectError((data) {
-      print('🔌 Chats Socket Connect Error: $data');
+    _socket!.onConnectError((data) {
+      print('🔌 [ChatsSocket] Connect Error: $data');
     });
 
-    _socket.onError((data) {
-      print('🔌 Chats Socket Error: $data');
+    _socket!.onError((data) {
+      print('🔌 [ChatsSocket] Error: $data');
     });
 
-    _socket.onDisconnect((data) {
-      print('🔌 Chats Socket Disconnected: $data');
+    _socket!.onDisconnect((data) {
+      print('🔌 [ChatsSocket] Disconnected: $data');
     });
 
-    _socket.onConnect((_) {
+    _socket!.onConnect((_) {
+      print('🔌 [ChatsSocket] Connected');
       final userId = _ref.read(authProvider).userId;
       if (userId != null) {
-        _socket.emit('register', {'userId': userId});
+        // Register personal user room to receive chat_updated events
+        _socket!.emit('register', {'userId': userId});
       }
+
+      // Join every existing chat room
       state.whenData((chats) {
         for (final chat in chats) {
-          _socket.emit('join', {'chatId': chat.id});
-          
-          if (userId != null) {
+          _socket!.emit('join', {'chatId': chat.id});
+
+          if (userId != null && chat.participants.isNotEmpty) {
             final other = chat.participants.firstWhere(
               (p) => p.id != userId,
               orElse: () => chat.participants.first,
             );
-            _socket.emitWithAck('check_status', {'userId': other.id}, ack: (response) {
-              if (response != null && response['status'] == 'online') {
-                _ref.read(userOnlineStatusProvider(other.id).notifier).state = true;
-              }
-            });
+            // Request current online status for the other participant
+            _socket!.emitWithAck(
+              'check_status',
+              {'userId': other.id},
+              ack: (response) {
+                if (response != null && response['status'] == 'online') {
+                  _ref
+                      .read(userOnlineStatusProvider(other.id).notifier)
+                      .state = true;
+                }
+              },
+            );
           }
         }
       });
     });
 
-    _socket.on('user_status', (data) {
-      if (data != null) {
-        final userId = data['userId'] as String;
-        final status = data['status'] as String;
-        _ref.read(userOnlineStatusProvider(userId).notifier).state = (status == 'online');
+    // ── Online/offline status updates ──
+    _socket!.on('user_status', (data) {
+      if (data == null) return;
+      final userId = (data['userId'] ?? '').toString();
+      final status = (data['status'] ?? 'offline').toString();
+      if (userId.isNotEmpty) {
+        _ref.read(userOnlineStatusProvider(userId).notifier).state =
+            (status == 'online');
       }
     });
 
-    _socket.on('message', (data) {
-      if (data != null) {
-        final chatId = data['chat'] as String;
-        final content = data['content'] as String;
-        final createdAtStr = data['createdAt'] as String;
-        final senderData = data['sender'] is Map<String, dynamic> ? data['sender'] : {};
-        final senderId = data['sender'] is String ? data['sender'] : (senderData['_id'] ?? '');
-        final currentUserId = _ref.read(authProvider).userId;
-        final isMsgFromMe = senderId == currentUserId;
+    // ── chat_updated: lightweight event emitted to user rooms on new message ──
+    // Updates last-message preview and unread badge WITHOUT adding a bubble
+    // (that is handled by ChatMessagesNotifier which listens to "message").
+    _socket!.on('chat_updated', (data) {
+      if (data == null) return;
+      final chatId = (data['chatId'] ?? data['chat'] ?? '').toString();
+      final content = (data['lastMessage'] ?? '').toString();
+      final lastMsgAtStr = (data['lastMessageAt'] ?? '').toString();
+      final senderId = (data['senderId'] ?? '').toString();
+      final currentUserId = _ref.read(authProvider).userId ?? '';
+      final isMsgFromMe = senderId == currentUserId;
 
-        state.whenData((currentChats) {
-          final hasChat = currentChats.any((c) => c.id == chatId);
-          if (!hasChat) {
-            // New chat conversation, refresh list from backend
-            fetchChats();
-            return;
+      state.whenData((currentChats) {
+        final hasChat = currentChats.any((c) => c.id == chatId);
+        if (!hasChat) {
+          // Completely new conversation — refresh list from backend
+          fetchChats();
+          return;
+        }
+        final updatedChats = currentChats.map((c) {
+          if (c.id == chatId) {
+            return c.copyWith(
+              lastMessage: content,
+              lastMessageAt: lastMsgAtStr.isNotEmpty
+                  ? (DateTime.tryParse(lastMsgAtStr)?.toLocal() ??
+                      DateTime.now())
+                  : DateTime.now(),
+              // Only increment unread if the message is from someone else
+              unreadCount:
+                  isMsgFromMe ? c.unreadCount : (c.unreadCount + 1),
+            );
           }
-          final updatedChats = currentChats.map((c) {
-            if (c.id == chatId) {
-              return c.copyWith(
-                lastMessage: content,
-                lastMessageAt: DateTime.parse(createdAtStr),
-                // Only increment unread count if the message is from someone else
-                unreadCount: isMsgFromMe ? c.unreadCount : (c.unreadCount + 1),
-              );
-            }
-            return c;
-          }).toList();
-          
-          updatedChats.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
-          state = AsyncValue.data(updatedChats);
-        });
-      }
+          return c;
+        }).toList();
+        updatedChats.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+        state = AsyncValue.data(updatedChats);
+      });
     });
   }
 
   @override
   void dispose() {
-    _socket.disconnect();
-    _socket.dispose();
+    _socket?.disconnect();
+    _socket?.dispose();
     super.dispose();
   }
 
   Future<void> fetchChats() async {
     try {
-      print('💬 ChatsNotifier: fetchChats() started');
       state = const AsyncValue.loading();
       final response = await DioClient.dio.get("/chats");
-      print('💬 ChatsNotifier: fetchChats() got response. StatusCode = ${response.statusCode}');
       if (response.data != null && response.data['success'] == true) {
         final list = response.data['data'] as List;
-        print('💬 ChatsNotifier: fetchChats() parsing ${list.length} items');
-        final chats = list.map((item) => ChatModel.fromJson(item)).toList();
+        final chats =
+            list.map((item) => ChatModel.fromJson(item as Map<String, dynamic>)).toList();
         state = AsyncValue.data(chats);
+
+        // Ensure new chat rooms are joined on the socket after a fetch
+        if (_socket != null && _socket!.connected) {
+          for (final chat in chats) {
+            _socket!.emit('join', {'chatId': chat.id});
+          }
+        }
       } else {
-        print('💬 ChatsNotifier: fetchChats() failed. response = ${response.data}');
         state = AsyncValue.error("Failed to load chats", StackTrace.current);
       }
     } catch (e, stack) {
-      print('💬 ChatsNotifier: fetchChats() error = $e\n$stack');
       state = AsyncValue.error(e, stack);
     }
+  }
+
+  /// Set unread count to 0 for a specific chat (called when the user opens it).
+  void markChatAsRead(String chatId) {
+    state.whenData((chats) {
+      final updated = chats.map((c) {
+        if (c.id == chatId) return c.copyWith(unreadCount: 0);
+        return c;
+      }).toList();
+      state = AsyncValue.data(updated);
+    });
+  }
+
+  /// Update last message preview after the current user sends a message.
+  void updateLastMessage(
+      String chatId, String lastMessage, DateTime lastMessageAt) {
+    state.whenData((chats) {
+      final updated = chats.map((c) {
+        if (c.id == chatId) {
+          return c.copyWith(
+              lastMessage: lastMessage, lastMessageAt: lastMessageAt);
+        }
+        return c;
+      }).toList();
+      updated.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+      state = AsyncValue.data(updated);
+    });
   }
 
   Future<ChatModel?> getOrCreateChat(String otherUserId) async {
@@ -145,114 +213,146 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
       });
 
       if (response.data != null && response.data['success'] == true) {
-        final chat = ChatModel.fromJson(response.data['data']);
+        final chat = ChatModel.fromJson(
+            response.data['data'] as Map<String, dynamic>);
         await fetchChats();
-        _socket.emit('join', {'chatId': chat.id});
+        _socket?.emit('join', {'chatId': chat.id});
         return chat;
       }
     } catch (e) {
-      // Handle error
+      print('🔌 [ChatsNotifier] getOrCreateChat error: $e');
     }
     return null;
   }
 }
 
-final chatTypingProvider = StateProvider.family<String?, String>((ref, chatId) => null);
+// ────────────────────────────────────────────────────────────────────────────
+// chatTypingProvider — per-chat typing indicator
+// ────────────────────────────────────────────────────────────────────────────
+final chatTypingProvider =
+    StateProvider.family<String?, String>((ref, chatId) => null);
 
-// Family provider to manage messages for a specific chat
-final chatMessagesProvider = StateNotifierProvider.family<ChatMessagesNotifier, AsyncValue<List<MessageModel>>, String>((ref, chatId) {
+// ────────────────────────────────────────────────────────────────────────────
+// chatMessagesProvider — manages messages + socket for ONE specific chat
+// ────────────────────────────────────────────────────────────────────────────
+final chatMessagesProvider = StateNotifierProvider.family<
+    ChatMessagesNotifier,
+    AsyncValue<List<MessageModel>>,
+    String>((ref, chatId) {
   return ChatMessagesNotifier(chatId, ref);
 });
 
-class ChatMessagesNotifier extends StateNotifier<AsyncValue<List<MessageModel>>> {
+class ChatMessagesNotifier
+    extends StateNotifier<AsyncValue<List<MessageModel>>> {
   final String chatId;
   final Ref _ref;
-  late IO.Socket _socket;
+  IO.Socket? _socket;
 
-  ChatMessagesNotifier(this.chatId, this._ref) : super(const AsyncValue.loading()) {
+  ChatMessagesNotifier(this.chatId, this._ref)
+      : super(const AsyncValue.loading()) {
     fetchMessages();
     _initSocket();
   }
 
   void _initSocket() {
+    if (_socket != null && _socket!.connected) return;
+
     final base = Environment.baseUrl.replaceAll('/api', '');
-    _socket = IO.io('$base/chat', IO.OptionBuilder()
-      .setTransports(['websocket'])
-      .disableAutoConnect()
-      .build());
+    _socket = IO.io(
+      '$base/chat',
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .disableAutoConnect()
+          .build(),
+    );
 
-    _socket.connect();
+    _socket!.connect();
 
-    _socket.onConnectError((data) {
-      print('🔌 ChatMessages Socket (${chatId}) Connect Error: $data');
+    _socket!.onConnectError((data) {
+      print('🔌 [ChatMsgSocket:$chatId] Connect Error: $data');
     });
 
-    _socket.onError((data) {
-      print('🔌 ChatMessages Socket (${chatId}) Error: $data');
+    _socket!.onError((data) {
+      print('🔌 [ChatMsgSocket:$chatId] Error: $data');
     });
 
-    _socket.onDisconnect((data) {
-      print('🔌 ChatMessages Socket (${chatId}) Disconnected: $data');
+    _socket!.onDisconnect((data) {
+      print('🔌 [ChatMsgSocket:$chatId] Disconnected: $data');
     });
 
-    _socket.onConnect((_) {
+    _socket!.onConnect((_) {
+      print('🔌 [ChatMsgSocket:$chatId] Connected');
       final userId = _ref.read(authProvider).userId;
       if (userId != null) {
-        _socket.emit('register', {'userId': userId});
+        _socket!.emit('register', {'userId': userId});
       }
-      _socket.emit('join', {'chatId': chatId});
+      _socket!.emit('join', {'chatId': chatId});
     });
 
-    _socket.on('user_status', (data) {
-      if (data != null) {
-        final userId = data['userId'] as String;
-        final status = data['status'] as String;
-        _ref.read(userOnlineStatusProvider(userId).notifier).state = (status == 'online');
+    // ── Online/offline status ──
+    _socket!.on('user_status', (data) {
+      if (data == null) return;
+      final userId = (data['userId'] ?? '').toString();
+      final status = (data['status'] ?? 'offline').toString();
+      if (userId.isNotEmpty) {
+        _ref.read(userOnlineStatusProvider(userId).notifier).state =
+            (status == 'online');
       }
     });
 
-    _socket.on('message', (data) {
-      if (data != null) {
-        final message = MessageModel.fromJson(data);
+    // ── Incoming message bubble ──
+    _socket!.on('message', (data) {
+      if (data == null) return;
+      try {
+        final rawData = Map<String, dynamic>.from(data as Map);
+        // Only process messages belonging to this chat
+        final msgChatId = (rawData['chat'] ?? '').toString();
+        if (msgChatId != chatId) return;
+
+        final message = MessageModel.fromJson(rawData);
         state.whenData((currentMessages) {
           if (!currentMessages.any((m) => m.id == message.id)) {
             state = AsyncValue.data([...currentMessages, message]);
-            // Mark as read and refresh chats list
+            // User is viewing this chat — mark as read immediately
             markAsRead();
           }
         });
+      } catch (e) {
+        print('🔌 [ChatMsgSocket:$chatId] message parse error: $e');
       }
     });
 
-    _socket.on('read', (data) {
-      if (data != null) {
-        final readChatId = data['chatId'] as String;
-        if (readChatId == chatId) {
-          state.whenData((currentMessages) {
-            final currentUserId = _ref.read(authProvider).userId;
-            final updatedMessages = currentMessages.map((m) {
-              if (m.senderId != currentUserId) {
-                return m;
-              }
-              return m.copyWith(isRead: true);
-            }).toList();
-            state = AsyncValue.data(updatedMessages);
-          });
-        }
-      }
+    // ── Read receipts ──
+    _socket!.on('read', (data) {
+      if (data == null) return;
+      final readChatId = (data['chatId'] ?? '').toString();
+      if (readChatId != chatId) return;
+
+      state.whenData((currentMessages) {
+        final currentUserId = _ref.read(authProvider).userId;
+        final updatedMessages = currentMessages.map((m) {
+          // Mark our own outgoing messages as read
+          if (m.senderId == currentUserId) {
+            return m.copyWith(isRead: true);
+          }
+          return m;
+        }).toList();
+        state = AsyncValue.data(updatedMessages);
+      });
     });
 
-    _socket.on('typing', (data) {
-      if (data != null) {
-        final userName = data['userName'] as String;
-        final isTyping = data['isTyping'] as bool;
-        _ref.read(chatTypingProvider(chatId).notifier).state = isTyping ? userName : null;
-      }
+    // ── Typing indicator ──
+    _socket!.on('typing', (data) {
+      if (data == null) return;
+      final userName = (data['userName'] ?? '').toString();
+      final isTyping = data['isTyping'] as bool? ?? false;
+      _ref.read(chatTypingProvider(chatId).notifier).state =
+          isTyping ? userName : null;
     });
   }
 
   void emitTyping(String userName, bool isTyping) {
-    _socket.emit('typing', {
+    _socket?.emit('typing', {
       'chatId': chatId,
       'userName': userName,
       'isTyping': isTyping,
@@ -261,18 +361,19 @@ class ChatMessagesNotifier extends StateNotifier<AsyncValue<List<MessageModel>>>
 
   @override
   void dispose() {
-    _socket.disconnect();
-    _socket.dispose();
+    _socket?.disconnect();
+    _socket?.dispose();
     super.dispose();
   }
 
+  /// Mark all messages in this chat as read on the backend and update local state.
   Future<void> markAsRead() async {
     try {
       await DioClient.dio.put("/chats/$chatId/read");
-      // Refresh chats list to clear unread counts on parent screen
-      _ref.read(chatsProvider.notifier).fetchChats();
+      // Update the parent list's unread badge to 0 — no full fetchChats needed
+      _ref.read(chatsProvider.notifier).markChatAsRead(chatId);
     } catch (e) {
-      // ignore
+      // Ignore — non-critical
     }
   }
 
@@ -282,11 +383,16 @@ class ChatMessagesNotifier extends StateNotifier<AsyncValue<List<MessageModel>>>
       final response = await DioClient.dio.get("/chats/$chatId/messages");
       if (response.data != null && response.data['success'] == true) {
         final list = response.data['data'] as List;
-        final messages = list.map((item) => MessageModel.fromJson(item)).toList();
+        final messages = list
+            .map((item) =>
+                MessageModel.fromJson(item as Map<String, dynamic>))
+            .toList();
         state = AsyncValue.data(messages);
-        await markAsRead();
+        // Mark as read after loading (fire-and-forget, no await)
+        markAsRead();
       } else {
-        state = AsyncValue.error("Failed to load messages", StackTrace.current);
+        state = AsyncValue.error(
+            "Failed to load messages", StackTrace.current);
       }
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -308,9 +414,7 @@ class ChatMessagesNotifier extends StateNotifier<AsyncValue<List<MessageModel>>>
         return null;
       }
 
-      final formData = FormData.fromMap({
-        "file": file,
-      });
+      final formData = FormData.fromMap({"file": file});
 
       final response = await DioClient.dio.post(
         "/chats/$chatId/attachments",
@@ -318,60 +422,59 @@ class ChatMessagesNotifier extends StateNotifier<AsyncValue<List<MessageModel>>>
       );
 
       if (response.data != null && response.data['success'] == true) {
-        return MessageAttachmentModel.fromJson(response.data['data']);
+        return MessageAttachmentModel.fromJson(
+            response.data['data'] as Map<String, dynamic>);
       }
     } catch (e) {
-      print('🔌 uploadAttachment error: $e');
+      print('🔌 [ChatMsgNotifier] uploadAttachment error: $e');
     }
     return null;
   }
 
-  Future<bool> sendMessage(String content, {List<MessageAttachmentModel> attachments = const []}) async {
+  Future<bool> sendMessage(String content,
+      {List<MessageAttachmentModel> attachments = const []}) async {
     try {
-      final response = await DioClient.dio.post("/chats/$chatId/messages", data: {
-        "content": content,
-        "attachments": attachments.map((a) => {
-          "name": a.name,
-          "url": a.url,
-          "mimeType": a.mimeType,
-          "size": a.size,
-        }).toList(),
-      });
+      final response = await DioClient.dio.post(
+        "/chats/$chatId/messages",
+        data: {
+          "content": content,
+          "attachments": attachments
+              .map((a) => {
+                    "name": a.name,
+                    "url": a.url,
+                    "mimeType": a.mimeType,
+                    "size": a.size,
+                  })
+              .toList(),
+        },
+      );
 
       if (response.data != null && response.data['success'] == true) {
-        final newMessage = MessageModel.fromJson(response.data['data']);
-        
+        final newMessage = MessageModel.fromJson(
+            response.data['data'] as Map<String, dynamic>);
+
+        // Add to local message list (dedup check)
         state.whenData((currentMessages) {
           if (!currentMessages.any((m) => m.id == newMessage.id)) {
             state = AsyncValue.data([...currentMessages, newMessage]);
           }
         });
 
-        // Also update the chats list last message locally
-        final lastMsgText = content.isNotEmpty 
-            ? content 
+        // Update the chat list preview locally (no fetchChats — socket
+        // chat_updated will handle the other participant's list update)
+        final lastMsgText = content.isNotEmpty
+            ? content
             : (attachments.isNotEmpty ? "Sent an attachment" : "");
-        _ref.read(chatsProvider.notifier).state.whenData((chats) {
-          final updatedChats = chats.map((c) {
-            if (c.id == chatId) {
-              return c.copyWith(
-                lastMessage: lastMsgText,
-                lastMessageAt: newMessage.createdAt,
-              );
-            }
-            return c;
-          }).toList();
-          updatedChats.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
-          _ref.read(chatsProvider.notifier).state = AsyncValue.data(updatedChats);
-        });
-
-        // Refresh chats list asynchronously to ensure synchronization
-        _ref.read(chatsProvider.notifier).fetchChats();
+        _ref.read(chatsProvider.notifier).updateLastMessage(
+              chatId,
+              lastMsgText,
+              newMessage.createdAt,
+            );
 
         return true;
       }
     } catch (e) {
-      // Handle error
+      print('🔌 [ChatMsgNotifier] sendMessage error: $e');
     }
     return false;
   }

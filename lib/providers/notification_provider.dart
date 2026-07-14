@@ -246,6 +246,22 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     }
   }
 
+  Future<void> clearAllFromSender(String senderId) async {
+    try {
+      final countClearedUnread = state.notifications
+          .where((n) => n.senderId == senderId && !n.isRead)
+          .length;
+      state = state.copyWith(
+        notifications: state.notifications.where((n) => n.senderId != senderId).toList(),
+        unreadCount: (state.unreadCount - countClearedUnread).clamp(0, 99999),
+      );
+
+      await DioClient.dio.delete("/notifications/clear-sender/$senderId");
+    } catch (e) {
+      // Log error
+    }
+  }
+
   Future<void> clearAll() async {
     try {
       state = state.copyWith(

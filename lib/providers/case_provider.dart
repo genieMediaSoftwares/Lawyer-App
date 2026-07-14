@@ -27,8 +27,14 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
       state = const AsyncValue.loading();
       final response = await DioClient.dio.get("/cases");
       if (response.data != null && response.data['success'] == true) {
-        final list = response.data['data'] as List;
-        final cases = list.map((item) => CaseModel.fromJson(item)).toList();
+        // IMPORTANT: On Flutter Web, `as List` throws a TypeError on raw JS
+        // arrays ("Symbol($signatureRti)"). List.from() is safe on all platforms.
+        final raw = response.data['data'];
+        final list = raw is List ? raw : List.from(raw as Iterable? ?? []);
+        final cases = list
+            .map((item) => CaseModel.fromJson(
+                item is Map ? Map<String, dynamic>.from(item) : <String, dynamic>{}))
+            .toList();
         state = AsyncValue.data(cases);
       } else {
         state = AsyncValue.error("Failed to load cases", StackTrace.current);
@@ -64,7 +70,9 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
       });
 
       if (response.data != null && response.data['success'] == true) {
-        final newCase = CaseModel.fromJson(response.data['data']);
+        final raw = response.data['data'];
+        final newCase = CaseModel.fromJson(
+            raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{});
         state.whenData((currentCases) {
           state = AsyncValue.data([newCase, ...currentCases]);
         });
@@ -310,7 +318,9 @@ class CaseDetailsNotifier extends StateNotifier<AsyncValue<CaseModel?>> {
       state = const AsyncValue.loading();
       final response = await DioClient.dio.get("/cases/$caseId");
       if (response.data != null && response.data['success'] == true) {
-        final caseItem = CaseModel.fromJson(response.data['data']);
+        final raw = response.data['data'];
+        final caseItem = CaseModel.fromJson(
+            raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{});
         state = AsyncValue.data(caseItem);
       } else {
         state = AsyncValue.error("Failed to load case details", StackTrace.current);

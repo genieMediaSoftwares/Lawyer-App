@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/appointment_provider.dart';
 import '../../../../models/case_model.dart';
-import '../../../../routes/route_names.dart';
-import '../../../../core/widgets/app_drawer.dart';
 import '../../../../providers/chat_provider.dart';
 
 class CaseProgressScreen extends ConsumerWidget {
@@ -453,7 +450,7 @@ class CaseProgressScreen extends ConsumerWidget {
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.description, color: Color(0xFFE6B325)),
             title: Text(doc.name, style: const TextStyle(color: Colors.white, fontSize: 13)),
-            subtitle: Text(doc.size ?? "Unknown Size", style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            subtitle: Text(doc.size, style: const TextStyle(color: Colors.grey, fontSize: 11)),
             trailing: IconButton(
               icon: const Icon(Icons.download, color: Colors.grey),
               onPressed: () {
