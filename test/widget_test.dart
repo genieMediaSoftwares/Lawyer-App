@@ -8,7 +8,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:law/main.dart';
 import 'package:law/app.dart';
 
 void main() {

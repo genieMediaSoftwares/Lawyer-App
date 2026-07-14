@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../models/case_model.dart';
-import '../../../../routes/route_names.dart';
 
 class LawyersRespondedScreen extends ConsumerWidget {
   final String caseId;

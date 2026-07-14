@@ -107,8 +107,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         RouteNames.caseProgress,
         RouteNames.scheduleConsultation,
         RouteNames.notifications,
-        RouteNames.aiChat,
-        RouteNames.chat,
+        // NOTE: RouteNames.chat is intentionally excluded here so that
+        // lawyers can also navigate to /chat/:chatId/:name from their
+        // Messages screen without being redirected back to the dashboard.
         RouteNames.getMatched,
         RouteNames.consult,
         RouteNames.resolve,
@@ -126,6 +127,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (clientRoutes.contains(path) && role == UserRole.lawyer) {
         return RouteNames.lawyerDashboard;
       }
+
 
       return null;
     },

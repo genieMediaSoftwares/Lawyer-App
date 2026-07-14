@@ -5,9 +5,6 @@ import '../widgets/calendar_widget.dart';
 import '../providers/calendar_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../providers/appointment_provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../models/appointment_model.dart';
-import '../../../../models/lawyer_model.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   final String? lawyerUserId;

@@ -75,6 +75,16 @@ class CaseController {
         }
       }
 
+      // Emit socket case_updated event to notify lawyers of new lead in real-time
+      const io = req.app.get("io");
+      if (io) {
+        if (hasSelectedLawyer) {
+          io.of("/cases").to(selectedLawyer.toString()).emit("case_updated", newCase);
+        } else {
+          io.of("/cases").emit("case_updated", newCase);
+        }
+      }
+
       return ApiResponse.success(res, "Case created successfully.", newCase, 201);
     } catch (error) {
       next(error);
@@ -271,6 +281,19 @@ class CaseController {
 
       await caseItem.save();
 
+      // Ensure a chat conversation is created automatically
+      const Chat = require("../../models/Chat");
+      let chat = await Chat.findOne({
+        participants: { $all: [caseItem.client, lawyerId] }
+      });
+      if (!chat) {
+        await Chat.create({
+          participants: [caseItem.client, lawyerId],
+          lastMessage: "Consultation accepted. You can now start messaging.",
+          lastMessageAt: new Date()
+        });
+      }
+
       // Create Notification for Lawyer (Proposal Accepted)
       await notificationService.createAndSendNotification({
         senderId: caseItem.client,
@@ -392,8 +415,11 @@ class CaseController {
         return ApiResponse.error(res, "Case not found.", 404);
       }
 
-      if (!caseItem.selectedLawyer || caseItem.selectedLawyer.toString() !== lawyerId.toString()) {
-        return ApiResponse.error(res, "You are not the selected lawyer for this case.", 403);
+      const isSelected = caseItem.selectedLawyer && caseItem.selectedLawyer.toString() === lawyerId.toString();
+      const isGeneral = !caseItem.selectedLawyer && caseItem.status === "Submitted";
+
+      if (!isSelected && !isGeneral) {
+        return ApiResponse.error(res, "You are not authorized to accept this case request.", 403);
       }
 
       caseItem.assignedLawyer = lawyerId;
@@ -407,6 +433,19 @@ class CaseController {
       }
 
       await caseItem.save();
+
+      // Ensure a chat conversation is created automatically
+      const Chat = require("../../models/Chat");
+      let chat = await Chat.findOne({
+        participants: { $all: [caseItem.client, lawyerId] }
+      });
+      if (!chat) {
+        await Chat.create({
+          participants: [caseItem.client, lawyerId],
+          lastMessage: "Consultation accepted. You can now start messaging.",
+          lastMessageAt: new Date()
+        });
+      }
 
       // Create notifications
       await notificationService.createAndSendNotification({

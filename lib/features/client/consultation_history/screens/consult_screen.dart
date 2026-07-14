@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/appointment_provider.dart';
 import '../../../../models/appointment_model.dart';
-import '../../../../routes/route_names.dart';
 
 class ConsultScreen extends ConsumerStatefulWidget {
   const ConsultScreen({super.key});

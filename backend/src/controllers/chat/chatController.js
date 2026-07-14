@@ -54,52 +54,99 @@ class ChatController {
   async getChats(req, res, next) {
     try {
       const currentUserId = req.user._id;
+      const Case = require("../../models/Case");
 
-      const chats = await Chat.find({
-        participants: currentUserId
-      })
+      // Ensure a chat conversation exists for every case assigned to this lawyer
+      const assignedCases = await Case.find({ assignedLawyer: currentUserId });
+      for (const caseItem of assignedCases) {
+        if (caseItem.client) {
+          let chat = await Chat.findOne({
+            participants: { $all: [currentUserId, caseItem.client] }
+          });
+          if (!chat) {
+            await Chat.create({
+              participants: [currentUserId, caseItem.client],
+              lastMessage: "Consultation accepted. You can now start messaging.",
+              lastMessageAt: new Date()
+            });
+          }
+        }
+      }
+
+      const chats = await Chat.find({ participants: currentUserId })
         .populate("participants", "fullName email mobile profileImage role")
-        .sort({ lastMessageAt: -1 });
+        .sort({ lastMessageAt: -1 })
+        .lean();
 
-      // Count unread messages for each chat conversation dynamically
-      const chatsWithUnread = await Promise.all(
-        chats.map(async (chat) => {
-          const unreadCount = await Message.countDocuments({
-            chat: chat._id,
+
+      if (chats.length === 0) {
+        return ApiResponse.success(res, "Chats fetched successfully.", []);
+      }
+
+      const chatIds = chats.map(c => c._id);
+
+      // ── Batch 1: unread counts via aggregation (1 DB query instead of N) ──
+      const unreadAgg = await Message.aggregate([
+        {
+          $match: {
+            chat: { $in: chatIds },
             sender: { $ne: currentUserId },
             isRead: false
-          });
-
-          const otherParticipant = chat.participants.find(p => p._id.toString() !== currentUserId.toString());
-          let caseInfo = null;
-          if (otherParticipant) {
-            const Case = require("../../models/Case");
-            const linkedCase = await Case.findOne({
-              $or: [
-                { assignedLawyer: currentUserId, client: otherParticipant._id },
-                { selectedLawyer: currentUserId, client: otherParticipant._id },
-                { assignedLawyer: otherParticipant._id, client: currentUserId },
-                { selectedLawyer: otherParticipant._id, client: currentUserId }
-              ]
-            }).select("title _id");
-
-            if (linkedCase) {
-              caseInfo = {
-                id: linkedCase._id,
-                title: linkedCase.title
-              };
-            }
           }
+        },
+        {
+          $group: { _id: "$chat", count: { $sum: 1 } }
+        }
+      ]);
+      const unreadMap = {};
+      unreadAgg.forEach(u => { unreadMap[u._id.toString()] = u.count; });
 
-          return {
-            ...chat.toObject(),
-            unreadCount,
-            caseInfo
-          };
-        })
-      );
+      // ── Batch 2: find linked cases (1 DB query instead of N) ──
+      const otherIds = [];
+      const chatToOtherMap = {}; // chatId → otherId
 
-      return ApiResponse.success(res, "Chats fetched successfully.", chatsWithUnread);
+      chats.forEach(chat => {
+        const other = (chat.participants || []).find(
+          p => p._id.toString() !== currentUserId.toString()
+        );
+        if (other) {
+          otherIds.push(other._id);
+          chatToOtherMap[chat._id.toString()] = other._id.toString();
+        }
+      });
+
+      let caseByOtherId = {};
+      if (otherIds.length > 0) {
+        const linkedCases = await Case.find({
+          $or: [
+            { assignedLawyer: currentUserId, client: { $in: otherIds } },
+            { selectedLawyer: currentUserId, client: { $in: otherIds } },
+            { assignedLawyer: { $in: otherIds }, client: currentUserId },
+            { selectedLawyer: { $in: otherIds }, client: currentUserId }
+          ]
+        }).select("title _id assignedLawyer selectedLawyer client").lean();
+
+        linkedCases.forEach(c => {
+          const lawyerId = c.assignedLawyer?.toString() || c.selectedLawyer?.toString() || "";
+          const clientId = c.client?.toString() || "";
+          const isCurrentUserLawyer = lawyerId === currentUserId.toString();
+          // "other" relative to currentUser
+          const otherId = isCurrentUserLawyer ? clientId : lawyerId;
+          if (otherId && !caseByOtherId[otherId]) {
+            caseByOtherId[otherId] = { id: c._id, title: c.title };
+          }
+        });
+      }
+
+      // ── Assemble response ──
+      const chatsWithData = chats.map(chat => {
+        const unreadCount = unreadMap[chat._id.toString()] || 0;
+        const otherId = chatToOtherMap[chat._id.toString()];
+        const caseInfo = otherId ? (caseByOtherId[otherId] || null) : null;
+        return { ...chat, unreadCount, caseInfo };
+      });
+
+      return ApiResponse.success(res, "Chats fetched successfully.", chatsWithData);
     } catch (error) {
       next(error);
     }
@@ -133,12 +180,19 @@ class ChatController {
           const populatedMessage = await Message.findById(message._id)
             .populate("sender", "fullName profileImage role");
 
-          // Emit to chatId room
+          // ── Emit full message to the chatId room ──
+          // ChatMessagesNotifier listens here to add message bubbles
           io.of("/chat").to(chatId.toString()).emit("message", populatedMessage);
 
-          // Emit to participants rooms
+          // ── Emit lightweight chat_updated to each participant's user room ──
+          // ChatsNotifier listens here to update last-message preview + unread badge
           chat.participants.forEach((p) => {
-            io.of("/chat").to(p.toString()).emit("message", populatedMessage);
+            io.of("/chat").to(p.toString()).emit("chat_updated", {
+              chatId: chatId.toString(),
+              lastMessage: chat.lastMessage,
+              lastMessageAt: chat.lastMessageAt,
+              senderId: sender.toString()
+            });
           });
         }
 
@@ -150,7 +204,7 @@ class ChatController {
             receiverId: otherParticipant,
             type: "chat_message",
             title: "New Message",
-            message: `${req.user.fullName || "Someone"} sent you a message: "${textPreview.substring(0, 30)}${textPreview.length > 30 ? '...' : ''}"`,
+            message: `${req.user.fullName || "Someone"} sent you a message: "${textPreview.substring(0, 30)}${textPreview.length > 30 ? "..." : ""}"`,
             referenceId: chatId,
           });
         }

@@ -412,8 +412,10 @@ class LawyerController {
     try {
       const Case = require("../../models/Case");
       const leads = await Case.find({
-        selectedLawyer: req.user._id,
-        status: "Pending Lawyer Response"
+        $or: [
+          { selectedLawyer: req.user._id, status: { $in: ["Awaiting Lawyer Acceptance", "Pending Lawyer Response"] } },
+          { status: "Submitted", selectedLawyer: null }
+        ]
       }).populate("client", "fullName");
 
       const formattedLeads = leads.map(c => ({
