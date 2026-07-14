@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/config/env.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/profile_provider.dart';
@@ -292,9 +293,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             radius: 28,
             backgroundColor: const Color(0xFF2B2B2B),
             backgroundImage: profile.profileImage.isNotEmpty
-                ? NetworkImage(profile.profileImage.startsWith('http')
-                    ? profile.profileImage
-                    : 'http://localhost:5000/${profile.profileImage}')
+                ? NetworkImage(Environment.getAttachmentUrl(profile.profileImage))
                 : null,
             child: profile.profileImage.isEmpty
                 ? Text(

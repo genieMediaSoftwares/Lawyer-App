@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/config/env.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
@@ -103,9 +104,7 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
                       radius: 56,
                       backgroundColor: theme.colorScheme.outline,
                       backgroundImage: auth.userPhotoUrl != null && auth.userPhotoUrl!.isNotEmpty
-                          ? NetworkImage(auth.userPhotoUrl!.startsWith('http')
-                              ? auth.userPhotoUrl!
-                              : 'http://localhost:5000/${auth.userPhotoUrl}')
+                          ? NetworkImage(Environment.getAttachmentUrl(auth.userPhotoUrl))
                           : null,
                       child: (auth.userPhotoUrl == null || auth.userPhotoUrl!.isEmpty)
                           ? Text(

@@ -10,8 +10,12 @@ class StorageService {
     // For local storage, the file is already stored in the destination folder by Multer.
     // We construct the public URL path and return the metadata.
     const relativePath = path.relative(path.join(__dirname, "../.."), file.path).replace(/\\/g, "/");
-    const fileUrl = `http://localhost:${process.env.PORT || 5000}/${relativePath}`;
-    
+    const backendUrl = process.env.BACKEND_URL;
+    if (!backendUrl) {
+      throw new Error("BACKEND_URL is not defined in the environment variables.");
+    }
+    const fileUrl = `${backendUrl}/${relativePath}`;
+
     return {
       originalName: file.originalname,
       fileName: file.filename,
