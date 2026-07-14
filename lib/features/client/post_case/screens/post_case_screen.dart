@@ -93,6 +93,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   String? _selectedCityName;
   String? _selectedDistrictName;
   String? _selectedStateName;
+  String? _selectedCountryName;
+  double? _selectedLatitude;
+  double? _selectedLongitude;
+  String? _selectedGooglePlaceId;
 
   List<PlaceSuggestionModel> _locationSuggestions = [];
   bool _isLocationLoading = false;
