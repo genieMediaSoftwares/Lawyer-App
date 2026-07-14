@@ -34,6 +34,36 @@ const caseSchema = new mongoose.Schema(
       required: true,
     },
 
+    locationCity: {
+      type: String,
+      default: "",
+    },
+
+    locationDistrict: {
+      type: String,
+      default: "",
+    },
+
+    locationState: {
+      type: String,
+      default: "",
+    },
+
+    locationCountry: {
+      type: String,
+      default: "",
+    },
+
+    locationLatitude: {
+      type: Number,
+      default: 0.0,
+    },
+
+    locationLongitude: {
+      type: Number,
+      default: 0.0,
+    },
+
     preferredCourt: {
       type: String,
       default: "",
@@ -150,6 +180,16 @@ const caseSchema = new mongoose.Schema(
     completedAt: {
       type: Date,
       default: null,
+    },
+
+    voiceUrl: {
+      type: String,
+      default: "",
+    },
+
+    voiceTranscript: {
+      type: String,
+      default: "",
     },
   },
   {

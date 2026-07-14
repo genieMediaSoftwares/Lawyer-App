@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../routes/route_names.dart';
 import '../../../../providers/notification_provider.dart';
+import '../../../../providers/category_provider.dart';
 import 'package:law/models/category_item.dart';
 import '../widgets/category_card.dart';
 import '../widgets/hero_carousel_widget.dart';
@@ -153,7 +154,8 @@ class ClientDashboardScreen extends ConsumerWidget {
                     title: category.title,
                     icon: category.icon,
                     onTap: () {
-                      context.push('${RouteNames.postCase}?category=${category.title}');
+                      ref.read(selectedCategoryProvider.notifier).selectCategory(category.id);
+                      context.push('${RouteNames.postCase}?categoryId=${category.id}');
                     },
                   );
                 },

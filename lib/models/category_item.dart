@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 
 class CategoryData {
+  final String id;
   final String title;
+  final String slug;
+  final int index;
   final IconData icon;
   final List<String> subcategories;
 
   const CategoryData({
+    required this.id,
     required this.title,
+    required this.slug,
+    required this.index,
     required this.icon,
     required this.subcategories,
   });
@@ -14,7 +20,10 @@ class CategoryData {
 
 final List<CategoryData> allCategories = const [
   CategoryData(
+    id: "criminal_law",
     title: "Criminal Law",
+    slug: "criminal-law",
+    index: 0,
     icon: Icons.gavel_outlined,
     subcategories: [
       "FIR Registration",
@@ -25,7 +34,10 @@ final List<CategoryData> allCategories = const [
     ],
   ),
   CategoryData(
+    id: "family_divorce",
     title: "Family & Divorce",
+    slug: "family-divorce",
+    index: 1,
     icon: Icons.family_restroom_outlined,
     subcategories: [
       "Divorce",
@@ -36,7 +48,10 @@ final List<CategoryData> allCategories = const [
     ],
   ),
   CategoryData(
+    id: "property_land",
     title: "Property & Land",
+    slug: "property-land",
+    index: 2,
     icon: Icons.home_work_outlined,
     subcategories: [
       "Property Registration",
@@ -47,7 +62,10 @@ final List<CategoryData> allCategories = const [
     ],
   ),
   CategoryData(
+    id: "civil_cases",
     title: "Civil Cases",
+    slug: "civil-cases",
+    index: 3,
     icon: Icons.balance_outlined,
     subcategories: [
       "Money Recovery",
@@ -58,7 +76,10 @@ final List<CategoryData> allCategories = const [
     ],
   ),
   CategoryData(
+    id: "cyber_crime",
     title: "Cyber Crime",
+    slug: "cyber-crime",
+    index: 4,
     icon: Icons.security_outlined,
     subcategories: [
       "Online Scam",
@@ -69,7 +90,10 @@ final List<CategoryData> allCategories = const [
     ],
   ),
   CategoryData(
+    id: "gst_taxation",
     title: "GST & Taxation",
+    slug: "gst-taxation",
+    index: 5,
     icon: Icons.receipt_long_outlined,
     subcategories: [
       "GST Registration",
@@ -80,7 +104,10 @@ final List<CategoryData> allCategories = const [
     ],
   ),
   CategoryData(
+    id: "employment_labour",
     title: "Employment & Labour",
+    slug: "employment-labour",
+    index: 6,
     icon: Icons.work_outline,
     subcategories: [
       "Salary Issues",
@@ -91,7 +118,10 @@ final List<CategoryData> allCategories = const [
     ],
   ),
   CategoryData(
+    id: "consumer_complaints",
     title: "Consumer Complaints",
+    slug: "consumer-complaints",
+    index: 7,
     icon: Icons.shopping_cart_outlined,
     subcategories: [
       "Refund Issue",
@@ -102,7 +132,10 @@ final List<CategoryData> allCategories = const [
     ],
   ),
   CategoryData(
+    id: "banking_financial",
     title: "Banking & Financial",
+    slug: "banking-financial",
+    index: 8,
     icon: Icons.account_balance_outlined,
     subcategories: [
       "Loan Dispute",
@@ -113,7 +146,10 @@ final List<CategoryData> allCategories = const [
     ],
   ),
   CategoryData(
+    id: "business_corporate",
     title: "Business & Corporate",
+    slug: "business-corporate",
+    index: 9,
     icon: Icons.business_outlined,
     subcategories: [
       "Company Registration",
@@ -124,7 +160,10 @@ final List<CategoryData> allCategories = const [
     ],
   ),
   CategoryData(
+    id: "documentation",
     title: "Documentation",
+    slug: "documentation",
+    index: 10,
     icon: Icons.description_outlined,
     subcategories: [
       "Legal Notice",
@@ -135,7 +174,10 @@ final List<CategoryData> allCategories = const [
     ],
   ),
   CategoryData(
+    id: "motor_accident_claims",
     title: "Motor Accident Claims",
+    slug: "motor-accident-claims",
+    index: 11,
     icon: Icons.car_crash_outlined,
     subcategories: [
       "Accident Compensation",
@@ -146,7 +188,10 @@ final List<CategoryData> allCategories = const [
     ],
   ),
   CategoryData(
+    id: "medical_negligence",
     title: "Medical Negligence",
+    slug: "medical-negligence",
+    index: 12,
     icon: Icons.local_hospital_outlined,
     subcategories: [
       "Doctor Negligence",
@@ -157,7 +202,10 @@ final List<CategoryData> allCategories = const [
     ],
   ),
   CategoryData(
+    id: "education_law",
     title: "Education Law",
+    slug: "education-law",
+    index: 13,
     icon: Icons.school_outlined,
     subcategories: [
       "Admission Dispute",
@@ -168,7 +216,10 @@ final List<CategoryData> allCategories = const [
     ],
   ),
   CategoryData(
+    id: "immigration_visa",
     title: "Immigration & Visa",
+    slug: "immigration-visa",
+    index: 14,
     icon: Icons.flight_takeoff_outlined,
     subcategories: [
       "Student Visa",

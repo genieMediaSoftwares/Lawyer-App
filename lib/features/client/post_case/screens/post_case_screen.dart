@@ -3,17 +3,26 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/config/env.dart';
+import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../models/document_model.dart';
 import '../../../../providers/issue_provider.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/document_provider.dart';
+import '../../../../providers/category_provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:record/record.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:http_parser/http_parser.dart';
+import '../widgets/voice_recording_visualizer.dart';
+import '../widgets/premium_audio_player.dart';
 import '../../../../core/widgets/location_picker_sheet.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../models/category_item.dart';
@@ -25,8 +34,8 @@ import '../../../../models/lawyer_model.dart';
 import '../../../../providers/lawyer_provider.dart';
 
 class PostCaseScreen extends ConsumerStatefulWidget {
-  final String? preselectedCategory;
-  const PostCaseScreen({super.key, this.preselectedCategory});
+  final String? preselectedCategoryId;
+  const PostCaseScreen({super.key, this.preselectedCategoryId});
 
   @override
   ConsumerState<PostCaseScreen> createState() => _PostCaseScreenState();
@@ -40,10 +49,39 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   bool _viewAllLawyers = false;
   String _sortByFilter = "Best Match";
 
-  // Form State
-  String? _selectedCategory;
-  String? _selectedSubcategory;
-  final Set<String> _expandedCategories = {};
+  // Form State State Getters linked to Riverpod Single Source of Truth
+  String? get _selectedCategory {
+    final activeState = ref.read(selectedCategoryProvider);
+    if (activeState.categoryId == null) return null;
+    try {
+      return _categories.firstWhere((c) => c.id == activeState.categoryId).title;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? get _selectedSubcategory {
+    return ref.read(selectedCategoryProvider).subcategory;
+  }
+
+  String? _expandedCategory;
+  final Map<String, GlobalKey> _categoryKeys = {};
+
+  // Voice Recording & Transcription State
+  late final AudioRecorder _audioRecorder;
+  StreamSubscription<Amplitude>? _amplitudeSubscription;
+  bool _isRecording = false;
+  int _recordingSeconds = 0;
+  Timer? _recordingTimer;
+  List<double> _amplitudes = [];
+  String? _recordedFilePath;
+
+  // Transcription states
+  bool _isTranscribing = false;
+  String? _transcribeError;
+
+  // Replay source path
+  String? _audioPlayerSource;
 
   final _descriptionController = TextEditingController();
   final _cityController = TextEditingController();
@@ -65,6 +103,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   List<PlaceSuggestionModel> _locationSuggestions = [];
   bool _isLocationLoading = false;
   Timer? _locationDebounce;
+  final Map<String, List<PlaceSuggestionModel>> _autocompleteCache = {};
+  String? _locationError;
+  late final FocusNode _cityFocusNode;
 
   // Court Suggestions State
   String? _selectedCourtName;
@@ -85,6 +126,40 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   @override
   void initState() {
     super.initState();
+    _audioRecorder = AudioRecorder();
+    _cityFocusNode = FocusNode();
+
+    _loadDraft().then((_) {
+      if (widget.preselectedCategoryId != null) {
+        final preselectedId = widget.preselectedCategoryId!.trim();
+        try {
+          final matchedCategory = _categories.firstWhere(
+            (c) => c.id == preselectedId,
+          );
+          ref.read(selectedCategoryProvider.notifier).selectCategory(matchedCategory.id);
+          setState(() {
+            _expandedCategory = matchedCategory.title;
+          });
+          _scrollToCategory(matchedCategory.title);
+          _saveDraft();
+        } catch (_) {
+          // fallback if category not found
+        }
+      } else {
+        // If there was a loaded selected category from draft, expand it
+        final activeState = ref.read(selectedCategoryProvider);
+        if (activeState.categoryId != null) {
+          try {
+            final cat = _categories.firstWhere((c) => c.id == activeState.categoryId);
+            setState(() {
+              _expandedCategory = cat.title;
+            });
+            _scrollToCategory(cat.title);
+          } catch (_) {}
+        }
+      }
+    });
+
     final userLocation = ref.read(authProvider).userLocation;
     if (userLocation != null && userLocation.isNotEmpty) {
       _cityController.text = userLocation;
@@ -101,28 +176,492 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             );
       });
     }
+  }
 
-    if (widget.preselectedCategory != null) {
-      final preselected = widget.preselectedCategory!.trim().toLowerCase();
-      try {
-        final matchedCategory = _categories.firstWhere(
-          (c) => c.title.trim().toLowerCase() == preselected,
+  void _scrollToCategory(String categoryTitle) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final keyContext = _categoryKeys[categoryTitle]?.currentContext;
+      if (keyContext != null && mounted) {
+        Scrollable.ensureVisible(
+          keyContext,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
         );
-        _selectedCategory = matchedCategory.title;
-        _expandedCategories.add(matchedCategory.title);
-      } catch (_) {
-        // fallback if category not found
       }
-    }
+    });
   }
 
   @override
   void dispose() {
+    _cityFocusNode.dispose();
+    _amplitudeSubscription?.cancel();
+    _recordingTimer?.cancel();
+    _audioRecorder.dispose();
     _descriptionController.dispose();
     _cityController.dispose();
     _courtController.dispose();
     _locationDebounce?.cancel();
     super.dispose();
+  }
+
+  Future<void> _saveDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final activeState = ref.read(selectedCategoryProvider);
+      await prefs.setString("draft_selectedCategoryId", activeState.categoryId ?? "");
+      await prefs.setString("draft_selectedSubcategory", activeState.subcategory ?? "");
+      await prefs.setString("draft_expandedCategory", _expandedCategory ?? "");
+      await prefs.setString("draft_description", _descriptionController.text);
+      await prefs.setString("draft_recordedFilePath", _recordedFilePath ?? "");
+      await prefs.setString("draft_cityName", _selectedCityName ?? "");
+      await prefs.setString("draft_stateName", _selectedStateName ?? "");
+      await prefs.setString("draft_cityText", _cityController.text);
+      await prefs.setString("draft_courtName", _selectedCourtName ?? "");
+      await prefs.setString("draft_urgency", _selectedUrgency ?? "");
+    } catch (e) {
+      debugPrint("Error saving draft: $e");
+    }
+  }
+
+  Future<void> _loadDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final catId = prefs.getString("draft_selectedCategoryId");
+      final sub = prefs.getString("draft_selectedSubcategory");
+      final exp = prefs.getString("draft_expandedCategory");
+      final desc = prefs.getString("draft_description");
+      final path = prefs.getString("draft_recordedFilePath");
+      final city = prefs.getString("draft_cityName");
+      final state = prefs.getString("draft_stateName");
+      final cityText = prefs.getString("draft_cityText");
+      final court = prefs.getString("draft_courtName");
+      final urgency = prefs.getString("draft_urgency");
+
+      if (mounted) {
+        if (catId != null && catId.isNotEmpty) {
+          ref.read(selectedCategoryProvider.notifier).selectSubcategory(catId, sub);
+        }
+        setState(() {
+          if (exp != null && exp.isNotEmpty) {
+            _expandedCategory = exp;
+          } else if (catId != null && catId.isNotEmpty) {
+            try {
+              final cat = _categories.firstWhere((c) => c.id == catId);
+              _expandedCategory = cat.title;
+            } catch (_) {}
+          }
+          if (desc != null && desc.isNotEmpty) _descriptionController.text = desc;
+          if (path != null && path.isNotEmpty) {
+            _recordedFilePath = path;
+            _audioPlayerSource = path;
+          }
+          if (city != null && city.isNotEmpty) _selectedCityName = city;
+          if (state != null && state.isNotEmpty) _selectedStateName = state;
+          if (cityText != null && cityText.isNotEmpty) _cityController.text = cityText;
+          if (court != null && court.isNotEmpty) _selectedCourtName = court;
+          if (urgency != null && urgency.isNotEmpty) _selectedUrgency = urgency;
+        });
+
+        // Scroll to preselected or loaded category card
+        if (_expandedCategory != null) {
+          _scrollToCategory(_expandedCategory!);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading draft: $e");
+    }
+  }
+
+  Future<void> _clearDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove("draft_selectedCategoryId");
+      await prefs.remove("draft_selectedSubcategory");
+      await prefs.remove("draft_expandedCategory");
+      await prefs.remove("draft_description");
+      await prefs.remove("draft_recordedFilePath");
+      await prefs.remove("draft_cityName");
+      await prefs.remove("draft_stateName");
+      await prefs.remove("draft_cityText");
+      await prefs.remove("draft_courtName");
+      await prefs.remove("draft_urgency");
+      ref.read(selectedCategoryProvider.notifier).clearSelection();
+    } catch (e) {
+      debugPrint("Error clearing draft: $e");
+    }
+  }
+
+  Future<void> _startRecording() async {
+    try {
+      final hasPermission = await Permission.microphone.request().isGranted;
+      if (!hasPermission) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Microphone permission is required to record audio.")),
+        );
+        return;
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final String path = "${tempDir.path}/case_desc_${DateTime.now().millisecondsSinceEpoch}.m4a";
+
+      setState(() {
+        _isRecording = true;
+        _recordingSeconds = 0;
+        _amplitudes = [];
+        _recordedFilePath = null;
+        _audioPlayerSource = null;
+        _transcribeError = null;
+      });
+
+      await _audioRecorder.start(
+        const RecordConfig(encoder: AudioEncoder.aacLc),
+        path: path,
+      );
+
+      _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (mounted) {
+          setState(() {
+            _recordingSeconds++;
+          });
+          _saveDraft();
+        }
+      });
+
+      _amplitudeSubscription = _audioRecorder
+          .onAmplitudeChanged(const Duration(milliseconds: 100))
+          .listen((amp) {
+        if (mounted) {
+          setState(() {
+            double val = (amp.current + 160.0) / 160.0;
+            if (val < 0.0) val = 0.0;
+            _amplitudes.add(val);
+            if (_amplitudes.length > 25) {
+              _amplitudes.removeAt(0);
+            }
+          });
+        }
+      });
+      _saveDraft();
+    } catch (e) {
+      debugPrint("Error starting recording: $e");
+      setState(() {
+        _isRecording = false;
+      });
+    }
+  }
+
+  Future<void> _stopRecording({bool cancel = false}) async {
+    _recordingTimer?.cancel();
+    _amplitudeSubscription?.cancel();
+
+    try {
+      final path = await _audioRecorder.stop();
+      if (cancel) {
+        if (path != null) {
+          final file = File(path);
+          if (await file.exists()) {
+            await file.delete();
+          }
+        }
+        setState(() {
+          _isRecording = false;
+          _recordingSeconds = 0;
+          _amplitudes = [];
+          _recordedFilePath = null;
+          _audioPlayerSource = null;
+        });
+        _saveDraft();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Recording cancelled")),
+          );
+        }
+        return;
+      }
+
+      if (path != null) {
+        setState(() {
+          _isRecording = false;
+          _recordedFilePath = path;
+          _audioPlayerSource = path;
+        });
+        _saveDraft();
+        _transcribeAudio(path);
+      } else {
+        setState(() {
+          _isRecording = false;
+        });
+        _saveDraft();
+      }
+    } catch (e) {
+      debugPrint("Error stopping recording: $e");
+      setState(() {
+        _isRecording = false;
+      });
+      _saveDraft();
+    }
+  }
+
+  Future<void> _cancelRecording() async {
+    await _stopRecording(cancel: true);
+  }
+
+  Future<void> _transcribeAudio(String path) async {
+    setState(() {
+      _isTranscribing = true;
+      _transcribeError = null;
+    });
+
+    try {
+      final file = File(path);
+      if (!await file.exists()) {
+        throw Exception("Audio file not found.");
+      }
+
+      final formData = FormData.fromMap({
+        "audio": await MultipartFile.fromFile(
+          path,
+          filename: "recording.m4a",
+          contentType: MediaType("audio", "mp4"),
+        ),
+      });
+
+      final response = await DioClient.dio.post(
+        "/ai/transcribe",
+        data: formData,
+      );
+
+      if (response.data != null && response.data['success'] == true) {
+        final String transcript = response.data['data']['transcript'] ?? "";
+        if (transcript.isNotEmpty) {
+          _handleNewTranscript(transcript);
+        }
+      } else {
+        throw Exception(response.data?['message'] ?? "Transcription failed");
+      }
+    } catch (e) {
+      debugPrint("Error transcribing audio: $e");
+      if (mounted) {
+        setState(() {
+          _transcribeError = e.toString().replaceAll("Exception: ", "");
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTranscribing = false;
+        });
+      }
+    }
+  }
+
+  void _handleNewTranscript(String newText) {
+    final existingText = _descriptionController.text.trim();
+    if (existingText.isEmpty) {
+      _descriptionController.text = newText;
+      setState(() {
+        _hasTouchedDescription = true;
+      });
+      _saveDraft();
+    } else {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text("New Transcript Available"),
+            content: const Text(
+              "You already have some description text. Would you like to append the new transcript to it, or replace it entirely?",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _descriptionController.text = "$existingText\n\n$newText";
+                  setState(() {
+                    _hasTouchedDescription = true;
+                  });
+                  _saveDraft();
+                },
+                child: const Text("APPEND", style: TextStyle(color: AppColors.primaryGold)),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _descriptionController.text = newText;
+                  setState(() {
+                    _hasTouchedDescription = true;
+                  });
+                  _saveDraft();
+                },
+                child: const Text("REPLACE", style: TextStyle(color: AppColors.primaryGold)),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  Widget _buildDescriptionSection(ThemeData theme, Color? primaryTextColor, Color? secondaryTextColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Stack(
+          children: [
+            TextField(
+              controller: _descriptionController,
+              maxLines: 6,
+              style: TextStyle(color: primaryTextColor),
+              onChanged: (val) {
+                setState(() {
+                  _hasTouchedDescription = true;
+                });
+                _saveDraft();
+              },
+              decoration: InputDecoration(
+                hintText: "Briefly explain your legal issue...",
+                hintStyle: TextStyle(color: secondaryTextColor),
+                errorText: _hasTouchedDescription && _descriptionError != null 
+                    ? _descriptionError 
+                    : null,
+                contentPadding: const EdgeInsets.only(
+                  left: 16,
+                  right: 48, // Leave space for microphone button
+                  top: 16,
+                  bottom: 40, // Space so text doesn't hide behind positioned mic button
+                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            Positioned(
+              bottom: 8,
+              right: 8,
+              child: _isRecording
+                  ? IconButton(
+                      onPressed: () => _stopRecording(),
+                      icon: const Icon(Icons.stop_circle_rounded, color: Colors.red, size: 28),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    )
+                  : IconButton(
+                      onPressed: () => _startRecording(),
+                      icon: const Icon(Icons.mic, color: AppColors.primaryGold, size: 28),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+            ),
+            if (_isTranscribing)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.75),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator(strokeWidth: 2),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Transcribing voice to English...",
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+        if (_isRecording) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: theme.colorScheme.outline),
+            ),
+            child: Row(
+              children: [
+                const _PulsingRecordDot(),
+                const SizedBox(width: 8),
+                Text(
+                  "Recording: ${(_recordingSeconds ~/ 60).toString().padLeft(2, '0')}:${(_recordingSeconds % 60).toString().padLeft(2, '0')}",
+                  style: TextStyle(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: VoiceRecordingVisualizer(amplitudes: _amplitudes, isRecording: _isRecording),
+                ),
+                const SizedBox(width: 12),
+                TextButton(
+                  onPressed: () => _cancelRecording(),
+                  child: const Text("Cancel", style: TextStyle(color: AppColors.mutedText, fontSize: 12)),
+                ),
+              ],
+            ),
+          ),
+        ],
+        if (_transcribeError != null) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  "Transcription error: $_transcribeError",
+                  style: const TextStyle(color: Colors.red, fontSize: 11),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  if (_recordedFilePath != null) {
+                    _transcribeAudio(_recordedFilePath!);
+                  }
+                },
+                icon: const Icon(Icons.refresh, size: 14),
+                label: const Text("Retry", style: TextStyle(fontSize: 11)),
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.primary,
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ],
+          ),
+        ],
+        if (_audioPlayerSource != null) ...[
+          const SizedBox(height: 12),
+          PremiumAudioPlayer(
+            source: _audioPlayerSource!,
+            onDelete: () {
+              setState(() {
+                _audioPlayerSource = null;
+                _recordedFilePath = null;
+              });
+              _saveDraft();
+            },
+            onReRecord: () {
+              setState(() {
+                _audioPlayerSource = null;
+                _recordedFilePath = null;
+              });
+              _saveDraft();
+              _startRecording();
+            },
+          ),
+        ],
+      ],
+    );
   }
 
   void _onCitySearchChanged(String query) {
@@ -131,12 +670,25 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       setState(() {
         _locationSuggestions = [];
         _isLocationLoading = false;
+        _locationError = null;
+      });
+      return;
+    }
+
+    final cacheKey = query.trim().toLowerCase();
+    final cached = _autocompleteCache[cacheKey];
+    if (cached != null) {
+      setState(() {
+        _locationSuggestions = cached;
+        _isLocationLoading = false;
+        _locationError = null;
       });
       return;
     }
 
     setState(() {
       _isLocationLoading = true;
+      _locationError = null;
     });
 
     _locationDebounce = Timer(const Duration(milliseconds: 500), () async {
@@ -145,13 +697,16 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         if (mounted) {
           setState(() {
             _locationSuggestions = suggestions;
+            _autocompleteCache[cacheKey] = suggestions;
             _isLocationLoading = false;
+            _locationError = null;
           });
         }
       } catch (e) {
         if (mounted) {
           setState(() {
             _isLocationLoading = false;
+            _locationError = "Failed to load suggestions. Tap retry.";
           });
         }
       }
@@ -191,6 +746,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               district: details.district,
               stateName: details.state,
             );
+        _saveDraft();
       }
     } catch (e) {
       if (mounted) {
@@ -223,6 +779,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             size: "${(doc.fileSize / 1024).toStringAsFixed(1)} KB",
           ));
         });
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Document uploaded and attached successfully!")),
         );
@@ -243,6 +800,28 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       return;
     }
 
+    String? voiceUrl;
+    if (_recordedFilePath != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Uploading voice description recording...")),
+      );
+      try {
+        final docRecord = await ref.read(documentsProvider.notifier).uploadDocument(
+          _recordedFilePath!,
+          "voice_description_${DateTime.now().millisecondsSinceEpoch}.m4a",
+        );
+        if (docRecord != null) {
+          voiceUrl = Environment.getAttachmentUrl(docRecord.filePath);
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to upload audio recording: $e")),
+        );
+        return;
+      }
+    }
+
     final newCase = await ref.read(casesProvider.notifier).createCase(
           title: _selectedSubcategory!,
           description: _descriptionController.text,
@@ -253,14 +832,25 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           preferredCourt: _selectedCourtName,
           documents: _uploadedDocs,
           selectedLawyer: _selectedLawyer!.userId,
+          voiceUrl: voiceUrl,
+          voiceTranscript: _recordedFilePath != null ? _descriptionController.text : null,
+          city: _selectedCityName,
+          district: _selectedDistrictName,
+          stateName: _selectedStateName,
+          country: _selectedCountryName,
+          latitude: _selectedLatitude,
+          longitude: _selectedLongitude,
         );
 
     if (newCase != null) {
+      _clearDraft();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Case posted successfully!")),
       );
       context.pop();
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Failed to post case. Please try again.")),
       );
@@ -269,6 +859,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(selectedCategoryProvider);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -420,20 +1011,32 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
   Widget _buildCategoryCard(CategoryData cat) {
     final theme = Theme.of(context);
-    final isExpanded = _expandedCategories.contains(cat.title);
-    final isAnySelectedInCategory = _selectedCategory == cat.title;
+    final selectedCategoryState = ref.watch(selectedCategoryProvider);
+    final isExpanded = _expandedCategory == cat.title;
+    final isHighlighted = selectedCategoryState.categoryId == cat.id;
+    final cardKey = _categoryKeys.putIfAbsent(cat.title, () => GlobalKey());
 
     return Container(
+      key: cardKey,
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isAnySelectedInCategory
-              ? theme.colorScheme.primary.withOpacity(0.5)
+          color: isHighlighted
+              ? theme.colorScheme.primary
               : theme.colorScheme.outline,
-          width: isAnySelectedInCategory ? 1.5 : 1,
+          width: isHighlighted ? 1.8 : 1,
         ),
+        boxShadow: isHighlighted
+            ? [
+                BoxShadow(
+                  color: theme.colorScheme.primary.withOpacity(0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ]
+            : null,
       ),
       child: Column(
         children: [
@@ -442,11 +1045,17 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             onTap: () {
               setState(() {
                 if (isExpanded) {
-                  _expandedCategories.remove(cat.title);
+                  _expandedCategory = null;
+                  if (selectedCategoryState.subcategory == null) {
+                    ref.read(selectedCategoryProvider.notifier).clearSelection();
+                  }
                 } else {
-                  _expandedCategories.add(cat.title);
+                  _expandedCategory = cat.title;
+                  ref.read(selectedCategoryProvider.notifier).selectCategory(cat.id);
+                  _scrollToCategory(cat.title);
                 }
               });
+              _saveDraft();
             },
             borderRadius: BorderRadius.circular(14),
             child: Padding(
@@ -456,7 +1065,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   Icon(
                     cat.icon,
                     size: 24,
-                    color: isAnySelectedInCategory
+                    color: isHighlighted
                         ? theme.colorScheme.primary
                         : theme.textTheme.bodyMedium?.color?.withOpacity(0.7) ?? Colors.white70,
                   ),
@@ -464,10 +1073,8 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   Expanded(
                     child: Text(
                       cat.title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: isAnySelectedInCategory
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: isHighlighted
                             ? theme.colorScheme.primary
                             : theme.textTheme.titleMedium?.color,
                       ),
@@ -486,40 +1093,42 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             ),
           ),
           // Subcategories section
-          AnimatedCrossFade(
-            firstChild: const SizedBox(width: double.infinity, height: 0),
-            secondChild: Padding(
-              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-              child: Column(
-                children: [
-                  Divider(color: theme.colorScheme.outline.withOpacity(0.5)),
-                  const SizedBox(height: 12),
-                  ...cat.subcategories.map((sub) => _buildSubcategoryItem(cat.title, sub)),
-                ],
-              ),
-            ),
-            crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 200),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: isExpanded
+                ? Padding(
+                    padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                    child: Column(
+                      children: [
+                        Divider(color: theme.colorScheme.outline.withOpacity(0.5)),
+                        const SizedBox(height: 12),
+                        ...cat.subcategories.map((sub) => _buildSubcategoryItem(cat.id, sub)),
+                      ],
+                    ),
+                  )
+                : const SizedBox(width: double.infinity, height: 0),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSubcategoryItem(String categoryName, String subcategoryName) {
-    final isSelected = _selectedCategory == categoryName && _selectedSubcategory == subcategoryName;
+  Widget _buildSubcategoryItem(String categoryId, String subcategoryName) {
+    final selectedCategoryState = ref.watch(selectedCategoryProvider);
+    final isSelected = selectedCategoryState.categoryId == categoryId && selectedCategoryState.subcategory == subcategoryName;
     final theme = Theme.of(context);
     return GestureDetector(
       onTap: () {
         setState(() {
           if (isSelected) {
-            _selectedCategory = null;
-            _selectedSubcategory = null;
+            ref.read(selectedCategoryProvider.notifier).selectCategory(categoryId);
           } else {
-            _selectedCategory = categoryName;
-            _selectedSubcategory = subcategoryName;
+            ref.read(selectedCategoryProvider.notifier).selectSubcategory(categoryId, subcategoryName);
           }
         });
+        _saveDraft();
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
@@ -542,8 +1151,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             Expanded(
               child: Text(
                 subcategoryName,
-                style: TextStyle(
-                  fontSize: 14,
+                style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   color: isSelected
                       ? theme.colorScheme.primary
@@ -572,6 +1180,41 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       return "Description must be at least 20 characters.";
     }
     return null;
+  }
+
+  Widget _buildHighlightedText(String text, String query, TextStyle defaultStyle, TextStyle highlightStyle) {
+    if (query.isEmpty) {
+      return Text(text, style: defaultStyle);
+    }
+
+    final String lowerText = text.toLowerCase();
+    final String lowerQuery = query.toLowerCase();
+
+    final List<TextSpan> spans = [];
+    int start = 0;
+    int indexOfMatch = lowerText.indexOf(lowerQuery, start);
+
+    while (indexOfMatch != -1) {
+      if (indexOfMatch > start) {
+        spans.add(TextSpan(text: text.substring(start, indexOfMatch), style: defaultStyle));
+      }
+
+      spans.add(TextSpan(
+        text: text.substring(indexOfMatch, indexOfMatch + query.length),
+        style: highlightStyle,
+      ));
+
+      start = indexOfMatch + query.length;
+      indexOfMatch = lowerText.indexOf(lowerQuery, start);
+    }
+
+    if (start < text.length) {
+      spans.add(TextSpan(text: text.substring(start), style: defaultStyle));
+    }
+
+    return RichText(
+      text: TextSpan(children: spans),
+    );
   }
 
   Widget _buildStep2Details() {
@@ -603,24 +1246,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: _descriptionController,
-          maxLines: 4,
-          style: TextStyle(color: primaryTextColor),
-          onChanged: (val) {
-            setState(() {
-              _hasTouchedDescription = true;
-            });
-          },
-          decoration: InputDecoration(
-            hintText: "Briefly explain your legal issue...",
-            hintStyle: TextStyle(color: secondaryTextColor),
-            errorText: _hasTouchedDescription && _descriptionError != null 
-                ? _descriptionError 
-                : null,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
+        _buildDescriptionSection(theme, primaryTextColor, secondaryTextColor),
         const SizedBox(height: 16),
 
         // 2. City / Location *
@@ -637,64 +1263,136 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: _cityController,
-          style: TextStyle(color: primaryTextColor),
-          onChanged: (val) {
-            setState(() {
-              _selectedCityName = null;
-              _selectedDistrictName = null;
-              _selectedStateName = null;
-              _selectedCountryName = null;
-              _selectedLatitude = null;
-              _selectedLongitude = null;
-              _selectedGooglePlaceId = null;
-              
-              _selectedCourtName = null;
-              _courtController.clear();
-              ref.read(courtsProvider.notifier).clear();
-            });
-            _onCitySearchChanged(val);
+        RawAutocomplete<PlaceSuggestionModel>(
+          focusNode: _cityFocusNode,
+          textEditingController: _cityController,
+          optionsBuilder: (TextEditingValue textEditingValue) {
+            return _locationSuggestions;
           },
-          decoration: InputDecoration(
-            hintText: "Start typing your city name...",
-            hintStyle: TextStyle(color: secondaryTextColor),
-            suffixIcon: _isLocationLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : const Icon(Icons.search),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-        if (_locationSuggestions.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.colorScheme.outline),
-            ),
-            constraints: const BoxConstraints(maxHeight: 200),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _locationSuggestions.length,
-              itemBuilder: (context, index) {
-                final sug = _locationSuggestions[index];
-                return ListTile(
-                  dense: true,
-                  title: Text(sug.description, style: TextStyle(color: primaryTextColor)),
-                  onTap: () {
-                    _selectPlace(sug);
-                  },
-                );
+          optionsViewBuilder: (context, onSelected, options) {
+            final listOptions = options.toList();
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 8,
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: MediaQuery.of(context).size.width - 40,
+                  constraints: const BoxConstraints(maxHeight: 250),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: theme.colorScheme.outline),
+                  ),
+                  child: ListView.builder(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    itemCount: listOptions.length,
+                    itemBuilder: (context, index) {
+                      final option = listOptions[index];
+                      final isFocused = AutocompleteHighlightedOption.of(context) == index;
+                      return InkWell(
+                        onTap: () => onSelected(option),
+                        child: Container(
+                          color: isFocused ? theme.colorScheme.primary.withOpacity(0.08) : Colors.transparent,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.location_on_outlined,
+                                color: isFocused ? theme.colorScheme.primary : AppColors.mutedText,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildHighlightedText(
+                                  option.description,
+                                  _cityController.text,
+                                  theme.textTheme.bodyMedium?.copyWith(
+                                    color: isFocused ? theme.colorScheme.primary : theme.textTheme.bodyMedium?.color,
+                                  ) ?? const TextStyle(),
+                                  TextStyle(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
+          },
+          onSelected: (option) {
+            _selectPlace(option);
+          },
+          fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+            return TextField(
+              controller: textEditingController,
+              focusNode: focusNode,
+              style: TextStyle(color: primaryTextColor),
+              onChanged: (val) {
+                setState(() {
+                  _selectedCityName = null;
+                  _selectedDistrictName = null;
+                  _selectedStateName = null;
+                  _selectedCountryName = null;
+                  _selectedLatitude = null;
+                  _selectedLongitude = null;
+                  _selectedGooglePlaceId = null;
+
+                  _selectedCourtName = null;
+                  _courtController.clear();
+                  ref.read(courtsProvider.notifier).clear();
+                });
+                _onCitySearchChanged(val);
               },
-            ),
+              decoration: InputDecoration(
+                hintText: "Start typing your city name...",
+                hintStyle: TextStyle(color: secondaryTextColor),
+                suffixIcon: _isLocationLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : const Icon(Icons.search),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+          },
+        ),
+        if (_locationError != null) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _locationError!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  _onCitySearchChanged(_cityController.text);
+                },
+                icon: const Icon(Icons.refresh, size: 14),
+                label: const Text("Retry", style: TextStyle(fontSize: 12)),
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.primary,
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ],
           ),
         ],
         const SizedBox(height: 16),
@@ -797,6 +1495,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                           _selectedCourtAddress = court.courtAddress;
                           _showCourtSuggestions = false;
                         });
+                        _saveDraft();
                       },
                     );
                   },
@@ -825,7 +1524,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           ]
               .map((val) => DropdownMenuItem(value: val, child: Text(val, style: TextStyle(color: primaryTextColor))))
               .toList(),
-          onChanged: (val) => setState(() => _selectedUrgency = val),
+          onChanged: (val) {
+            setState(() => _selectedUrgency = val);
+            _saveDraft();
+          },
           hint: Text("Select urgency", style: TextStyle(color: secondaryTextColor)),
         ),
         const SizedBox(height: 24),
@@ -2357,6 +3059,47 @@ class DashedBorderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+class _PulsingRecordDot extends StatefulWidget {
+  const _PulsingRecordDot();
+
+  @override
+  State<_PulsingRecordDot> createState() => _PulsingRecordDotState();
+}
+
+class _PulsingRecordDotState extends State<_PulsingRecordDot> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _controller,
+      child: Container(
+        width: 10,
+        height: 10,
+        decoration: const BoxDecoration(
+          color: Colors.red,
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
+  }
 }
 
 

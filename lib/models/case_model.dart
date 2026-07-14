@@ -49,6 +49,8 @@ class CaseModel {
   final DateTime? completedAt;
   final double? rating;
   final String? review;
+  final String? voiceUrl;
+  final String? voiceTranscript;
 
   CaseModel({
     required this.id,
@@ -96,6 +98,8 @@ class CaseModel {
     this.completedAt,
     this.rating,
     this.review,
+    this.voiceUrl,
+    this.voiceTranscript,
   });
 
   factory CaseModel.fromJson(Map<String, dynamic> json) {
@@ -167,6 +171,8 @@ class CaseModel {
       completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt']) : null,
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
       review: json['review'] ?? '',
+      voiceUrl: json['voiceUrl'],
+      voiceTranscript: json['voiceTranscript'],
     );
   }
 }

@@ -11,7 +11,7 @@ const storage = multer.diskStorage({
     const url = req.originalUrl || "";
     if (url.includes("/auth") || url.includes("/profile")) {
       folder = "profiles";
-    } else if (url.includes("/issues") || url.includes("/cases")) {
+    } else if (url.includes("/issues") || url.includes("/cases") || url.includes("/ai")) {
       folder = "cases";
     } else if (url.includes("/certificates")) {
       folder = "certificates";
@@ -37,13 +37,25 @@ const fileFilter = (req, file, cb) => {
     "application/pdf",
     "image/jpeg",
     "image/jpg",
-    "image/png"
+    "image/png",
+    "audio/mpeg",
+    "audio/mp3",
+    "audio/wav",
+    "audio/m4a",
+    "audio/mp4",
+    "audio/webm",
+    "audio/ogg",
+    "audio/x-m4a",
+    "audio/aac",
+    "audio/3gpp",
+    "audio/amr",
+    "application/octet-stream"
   ];
   
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only PDF, JPG, JPEG and PNG files are allowed."), false);
+    cb(new Error("Only PDF, JPG, JPEG, PNG and standard Audio files are allowed."), false);
   }
 };
 

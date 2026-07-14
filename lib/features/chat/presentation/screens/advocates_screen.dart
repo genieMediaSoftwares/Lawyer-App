@@ -65,6 +65,9 @@ class _AdvocatesScreenState extends ConsumerState<AdvocatesScreen> {
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
+        actions: const [
+          SizedBox(width: 56), // Keeps layout symmetrical with leading width
+        ],
       ),
       body: Column(
         children: [

@@ -8,7 +8,7 @@ const notificationService = require("../../services/notification/notificationSer
 class CaseController {
   async createCase(req, res, next) {
     try {
-      const { title, description, category, subcategory, location, budgetRange, urgency, preferredCourt, documents, selectedLawyer } = req.body;
+      const { title, description, category, subcategory, location, budgetRange, urgency, preferredCourt, documents, selectedLawyer, voiceUrl, voiceTranscript, city, district, state, country, latitude, longitude } = req.body;
       const client = req.user._id;
 
       const hasSelectedLawyer = !!selectedLawyer;
@@ -40,7 +40,15 @@ class CaseController {
         documents: documents || [],
         selectedLawyer: selectedLawyer || null,
         status: hasSelectedLawyer ? "Awaiting Lawyer Acceptance" : "Submitted",
-        milestones
+        milestones,
+        voiceUrl: voiceUrl || "",
+        voiceTranscript: voiceTranscript || "",
+        locationCity: city || "",
+        locationDistrict: district || "",
+        locationState: state || "",
+        locationCountry: country || "",
+        locationLatitude: latitude ? Number(latitude) : 0.0,
+        locationLongitude: longitude ? Number(longitude) : 0.0,
       });
 
       // Trigger notifications for new case posted

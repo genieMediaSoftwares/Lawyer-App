@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../routes/route_names.dart';
 import '../../../../models/category_item.dart';
+import '../../../../providers/category_provider.dart';
 import '../widgets/category_card.dart';
 
-class AllCategoriesScreen extends StatefulWidget {
+class AllCategoriesScreen extends ConsumerStatefulWidget {
   const AllCategoriesScreen({super.key});
 
   @override
-  State<AllCategoriesScreen> createState() => _AllCategoriesScreenState();
+  ConsumerState<AllCategoriesScreen> createState() => _AllCategoriesScreenState();
 }
 
-class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
+class _AllCategoriesScreenState extends ConsumerState<AllCategoriesScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<CategoryData> _filteredCategories = List.from(allCategories);
 
@@ -45,6 +47,8 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryTextColor = theme.textTheme.titleLarge?.color;
+    final selectedCategoryState = ref.watch(selectedCategoryProvider);
+    final selectedCategoryId = selectedCategoryState.categoryId;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -109,11 +113,14 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                       ),
                       itemBuilder: (context, index) {
                         final category = _filteredCategories[index];
+                        final isSelected = selectedCategoryId == category.id;
                         return CategoryCard(
                           title: category.title,
                           icon: category.icon,
+                          isSelected: isSelected,
                           onTap: () {
-                            context.push('${RouteNames.postCase}?category=${category.title}');
+                            ref.read(selectedCategoryProvider.notifier).selectCategory(category.id);
+                            context.push('${RouteNames.postCase}?categoryId=${category.id}');
                           },
                         );
                       },

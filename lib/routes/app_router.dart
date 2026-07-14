@@ -184,7 +184,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: RouteNames.postCase,
         builder: (c, s) => PostCaseScreen(
-          preselectedCategory: s.uri.queryParameters['category'],
+          preselectedCategoryId: s.uri.queryParameters['categoryId'],
         ),
       ),
       GoRoute(
