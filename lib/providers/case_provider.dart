@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../core/config/env.dart';
 import '../core/network/dio_client.dart';
 import '../models/case_model.dart';
 import '../models/document_model.dart';
 import 'auth_provider.dart';
+
 
 final casesProvider = StateNotifierProvider<CaseNotifier, AsyncValue<List<CaseModel>>>((ref) {
   final authState = ref.watch(authProvider);
@@ -214,7 +216,8 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     if (userId == null || userId.isEmpty) return;
 
     try {
-      _socket = IO.io('http://localhost:5000/cases', IO.OptionBuilder()
+      final base = Environment.baseSocketUrl;
+      _socket = IO.io('$base/cases', IO.OptionBuilder()
         .setTransports(['websocket'])
         .build());
 

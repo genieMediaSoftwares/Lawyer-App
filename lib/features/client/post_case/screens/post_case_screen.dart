@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/config/env.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../models/document_model.dart';
 import '../../../../providers/issue_provider.dart';
@@ -218,7 +219,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         setState(() {
           _uploadedDocs.add(DocumentModel(
             name: doc.originalName,
-            url: "http://localhost:5000/${doc.filePath}",
+            url: Environment.getAttachmentUrl(doc.filePath),
             size: "${(doc.fileSize / 1024).toStringAsFixed(1)} KB",
           ));
         });
@@ -1084,7 +1085,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           _uploadedDocs.clear();
           _uploadedDocs.add(DocumentModel(
             name: doc.originalName,
-            url: "http://localhost:5000/${doc.filePath}",
+            url: Environment.getAttachmentUrl(doc.filePath),
             size: "${(doc.fileSize / (1024 * 1024)).toStringAsFixed(1)} MB",
           ));
           _isDocUploading = false;
@@ -1194,7 +1195,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   void _viewDocument() {
     if (_uploadedDocRecord == null) return;
     
-    final url = "http://localhost:5000/${_uploadedDocRecord!.filePath}";
+    final url = Environment.getAttachmentUrl(_uploadedDocRecord!.filePath);
     final isPdf = _uploadedDocRecord!.mimeType.contains("pdf");
     
     showDialog(
