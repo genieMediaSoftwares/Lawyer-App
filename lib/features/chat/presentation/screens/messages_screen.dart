@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/env.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../providers/auth_provider.dart';
+import '../../../../models/chat_model.dart';
 
 class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
@@ -23,6 +24,13 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     super.initState();
     _searchController.addListener(() {
       setState(() {});
+    });
+    // Always fetch fresh data when the Messages screen is shown
+    // (covers the case where the user navigates back from a chat)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(chatsProvider.notifier).fetchChats();
+      }
     });
   }
 
@@ -50,9 +58,11 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text("Messages", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("Messages",
+            style: TextStyle(fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: theme.appBarTheme.iconTheme?.color, size: 24),
+          icon: Icon(Icons.arrow_back,
+              color: theme.appBarTheme.iconTheme?.color, size: 24),
           onPressed: () => context.pop(),
         ),
         elevation: 0,
@@ -60,7 +70,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
       ),
       body: Column(
         children: [
-          // 1. Search Bar
+          // ── Search Bar ──
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: TextField(
@@ -69,35 +79,42 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
               decoration: InputDecoration(
                 hintText: "Search conversations...",
                 hintStyle: TextStyle(color: Colors.grey.shade500),
-                prefixIcon: const Icon(Icons.search, color: AppColors.primaryGold),
+                prefixIcon:
+                    const Icon(Icons.search, color: AppColors.primaryGold),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        icon:
+                            const Icon(Icons.clear, color: Colors.grey),
                         onPressed: () => _searchController.clear(),
                       )
                     : null,
                 filled: true,
                 fillColor: AppColors.secondaryBackground,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide(color: theme.colorScheme.outline),
+                  borderSide:
+                      BorderSide(color: theme.colorScheme.outline),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide(color: theme.colorScheme.outline.withOpacity(0.5)),
+                  borderSide: BorderSide(
+                      color: theme.colorScheme.outline.withAlpha(128)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
-                  borderSide: const BorderSide(color: AppColors.primaryGold, width: 1),
+                  borderSide: const BorderSide(
+                      color: AppColors.primaryGold, width: 1),
                 ),
               ),
             ),
           ),
 
-          // 2. Filter Chips
+          // ── Filter Chips ──
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: ['All', 'Unread', 'Clients'].map((filter) {
                 final isSelected = _selectedFilter == filter;
@@ -108,21 +125,25 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                     selected: isSelected,
                     onSelected: (val) {
                       if (val) {
-                        setState(() {
-                          _selectedFilter = filter;
-                        });
+                        setState(() => _selectedFilter = filter);
                       }
                     },
                     selectedColor: AppColors.primaryGold,
                     backgroundColor: AppColors.secondaryBackground,
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.black : Colors.grey.shade400,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected
+                          ? Colors.black
+                          : Colors.grey.shade400,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                       side: BorderSide(
-                        color: isSelected ? AppColors.primaryGold : theme.colorScheme.outline.withOpacity(0.3),
+                        color: isSelected
+                            ? AppColors.primaryGold
+                            : theme.colorScheme.outline.withAlpha(77),
                         width: 0.8,
                       ),
                     ),
@@ -133,57 +154,72 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
             ),
           ),
 
-          // 3. Conversation Cards List
+          // ── Conversation Cards ──
           Expanded(
             child: chatsState.when(
               data: (chats) {
-                // Apply Search query
+                // Apply search query
                 var filtered = chats;
-                final query = _searchController.text.trim().toLowerCase();
+                final query =
+                    _searchController.text.trim().toLowerCase();
                 if (query.isNotEmpty) {
                   filtered = filtered.where((chat) {
-                    final other = chat.participants.firstWhere(
-                      (p) => p.id != currentUserId,
-                      orElse: () => chat.participants.first,
-                    );
-                    final nameMatches = other.fullName.toLowerCase().contains(query);
-                    final caseMatches = chat.caseInfo?.title.toLowerCase().contains(query) ?? false;
+                    final other = _getOtherParticipant(chat.participants, currentUserId);
+                    final nameMatches =
+                        other.fullName.toLowerCase().contains(query);
+                    final caseMatches = chat.caseInfo?.title
+                            .toLowerCase()
+                            .contains(query) ??
+                        false;
                     return nameMatches || caseMatches;
                   }).toList();
                 }
 
-                // Apply Filters
+                // Apply filter chip
                 if (_selectedFilter == 'Unread') {
-                  filtered = filtered.where((chat) => chat.unreadCount > 0).toList();
+                  filtered = filtered
+                      .where((chat) => chat.unreadCount > 0)
+                      .toList();
                 } else if (_selectedFilter == 'Clients') {
                   filtered = filtered.where((chat) {
-                    final other = chat.participants.firstWhere(
-                      (p) => p.id != currentUserId,
-                      orElse: () => chat.participants.first,
-                    );
+                    final other = _getOtherParticipant(chat.participants, currentUserId);
                     return other.role == 'client';
                   }).toList();
                 }
 
                 if (filtered.isEmpty) {
                   return RefreshIndicator(
-                    onRefresh: () => ref.read(chatsProvider.notifier).fetchChats(),
+                    onRefresh: () =>
+                        ref.read(chatsProvider.notifier).fetchChats(),
                     color: AppColors.primaryGold,
                     backgroundColor: AppColors.cardBackground,
                     child: ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
                         SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.5,
+                          height:
+                              MediaQuery.of(context).size.height * 0.5,
                           child: Center(
                             child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisAlignment:
+                                  MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey.shade600),
+                                Icon(Icons.chat_bubble_outline,
+                                    size: 48,
+                                    color: Colors.grey.shade600),
                                 const SizedBox(height: 16),
                                 Text(
                                   "No conversations found",
-                                  style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
+                                  style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 16),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "Accept a client case to start messaging",
+                                  style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 13),
                                 ),
                               ],
                             ),
@@ -195,24 +231,27 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                 }
 
                 return RefreshIndicator(
-                  onRefresh: () => ref.read(chatsProvider.notifier).fetchChats(),
+                  onRefresh: () =>
+                      ref.read(chatsProvider.notifier).fetchChats(),
                   color: AppColors.primaryGold,
                   backgroundColor: AppColors.cardBackground,
                   child: ListView.separated(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                     itemCount: filtered.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final chat = filtered[index];
-                      final otherParticipant = chat.participants.firstWhere(
-                        (p) => p.id != currentUserId,
-                        orElse: () => chat.participants.first,
-                      );
+                      final otherParticipant =
+                          _getOtherParticipant(chat.participants, currentUserId);
 
-                      final isOnline = ref.watch(userOnlineStatusProvider(otherParticipant.id));
-                      final typingUser = ref.watch(chatTypingProvider(chat.id));
-                      final formattedTime = DateFormat('hh:mm a').format(chat.lastMessageAt);
+                      final isOnline = ref.watch(
+                          userOnlineStatusProvider(otherParticipant.id));
+                      final typingUser =
+                          ref.watch(chatTypingProvider(chat.id));
+                      final formattedTime =
+                          _formatTime(chat.lastMessageAt);
                       final isUnread = chat.unreadCount > 0;
 
                       return Card(
@@ -222,24 +261,31 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                           borderRadius: BorderRadius.circular(16),
                           side: BorderSide(
                             color: isUnread
-                                ? AppColors.primaryGold.withOpacity(0.4)
-                                : theme.colorScheme.outline.withOpacity(0.5),
+                                ? AppColors.primaryGold.withAlpha(102)
+                                : theme.colorScheme.outline
+                                    .withAlpha(128),
                             width: isUnread ? 1.2 : 0.8,
                           ),
                         ),
                         child: ListTile(
                           onTap: () {
-                            context.push('/chat/${chat.id}/${otherParticipant.fullName}');
+                            context.push(
+                                '/chat/${chat.id}/${Uri.encodeComponent(otherParticipant.fullName)}');
                           },
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
                           leading: Stack(
                             children: [
                               CircleAvatar(
                                 radius: 26,
-                                backgroundColor: AppColors.secondaryBackground,
-                                backgroundImage: _resolveImage(otherParticipant.profileImage),
-                                child: otherParticipant.profileImage.isEmpty
-                                    ? const Icon(Icons.person, color: AppColors.primaryGold)
+                                backgroundColor:
+                                    AppColors.secondaryBackground,
+                                backgroundImage: _resolveImage(
+                                    otherParticipant.profileImage),
+                                child: otherParticipant
+                                        .profileImage.isEmpty
+                                    ? const Icon(Icons.person,
+                                        color: AppColors.primaryGold)
                                     : null,
                               ),
                               if (isOnline)
@@ -252,7 +298,10 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                     decoration: BoxDecoration(
                                       color: Colors.green,
                                       shape: BoxShape.circle,
-                                      border: Border.all(color: AppColors.cardBackground, width: 2),
+                                      border: Border.all(
+                                          color:
+                                              AppColors.cardBackground,
+                                          width: 2),
                                     ),
                                   ),
                                 ),
@@ -266,7 +315,9 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    fontWeight: isUnread ? FontWeight.bold : FontWeight.w600,
+                                    fontWeight: isUnread
+                                        ? FontWeight.bold
+                                        : FontWeight.w600,
                                     fontSize: 16,
                                     color: Colors.white,
                                   ),
@@ -276,9 +327,13 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                               Text(
                                 formattedTime,
                                 style: TextStyle(
-                                  color: isUnread ? AppColors.primaryGold : Colors.grey.shade500,
+                                  color: isUnread
+                                      ? AppColors.primaryGold
+                                      : Colors.grey.shade500,
                                   fontSize: 11,
-                                  fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
+                                  fontWeight: isUnread
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                 ),
                               ),
                             ],
@@ -286,16 +341,20 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
-                                // Case Title
+                                // Case title (if linked)
                                 Row(
                                   children: [
-                                    const Icon(Icons.folder_open, size: 12, color: AppColors.primaryGold),
+                                    const Icon(Icons.folder_open,
+                                        size: 12,
+                                        color: AppColors.primaryGold),
                                     const SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
-                                        chat.caseInfo?.title ?? "General Consultation",
+                                        chat.caseInfo?.title ??
+                                            "General Consultation",
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
@@ -308,21 +367,29 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 4),
-                                // Message Text
+                                // Last message or typing indicator
                                 Text(
                                   typingUser != null
                                       ? "typing..."
-                                      : (chat.lastMessage.isNotEmpty ? chat.lastMessage : "No messages yet."),
+                                      : (chat.lastMessage.isNotEmpty
+                                          ? chat.lastMessage
+                                          : "No messages yet."),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     color: typingUser != null
                                         ? AppColors.success
-                                        : (isUnread ? Colors.white : Colors.grey.shade400),
-                                    fontStyle: typingUser != null ? FontStyle.italic : FontStyle.normal,
+                                        : (isUnread
+                                            ? Colors.white
+                                            : Colors.grey.shade400),
+                                    fontStyle: typingUser != null
+                                        ? FontStyle.italic
+                                        : FontStyle.normal,
                                     fontWeight: typingUser != null
                                         ? FontWeight.bold
-                                        : (isUnread ? FontWeight.w600 : FontWeight.normal),
+                                        : (isUnread
+                                            ? FontWeight.w600
+                                            : FontWeight.normal),
                                     fontSize: 13,
                                   ),
                                 ),
@@ -358,13 +425,23 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                   ),
                 );
               },
-              loading: () => ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: 5,
-                itemBuilder: (context, index) => const _MessageShimmerTile(),
+              loading: () => RefreshIndicator(
+                // Wrap shimmer in RefreshIndicator so users can retry
+                onRefresh: () =>
+                    ref.read(chatsProvider.notifier).fetchChats(),
+                color: AppColors.primaryGold,
+                backgroundColor: AppColors.cardBackground,
+                child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  itemCount: 5,
+                  itemBuilder: (context, index) =>
+                      const _MessageShimmerTile(),
+                ),
               ),
               error: (err, stack) => RefreshIndicator(
-                onRefresh: () => ref.read(chatsProvider.notifier).fetchChats(),
+                onRefresh: () =>
+                    ref.read(chatsProvider.notifier).fetchChats(),
                 color: AppColors.primaryGold,
                 backgroundColor: AppColors.cardBackground,
                 child: ListView(
@@ -373,9 +450,44 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                     SizedBox(
                       height: MediaQuery.of(context).size.height * 0.5,
                       child: Center(
-                        child: Text(
-                          "Error: $err",
-                          style: const TextStyle(color: Colors.red),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.wifi_off,
+                                size: 48, color: Colors.grey.shade600),
+                            const SizedBox(height: 16),
+                            Text(
+                              "Could not load conversations",
+                              style: TextStyle(
+                                  color: Colors.grey.shade400,
+                                  fontSize: 16),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              err.toString().contains('401')
+                                  ? "Session expired. Please log in again."
+                                  : "Pull down to retry",
+                              style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 13),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton.icon(
+                              onPressed: () => ref
+                                  .read(chatsProvider.notifier)
+                                  .fetchChats(),
+                              icon: const Icon(Icons.refresh, size: 18),
+                              label: const Text("Retry"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryGold,
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -388,8 +500,40 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
       ),
     );
   }
+
+  /// Smart timestamp: shows time for today's messages, or date for older ones.
+  String _formatTime(DateTime dt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final msgDay = DateTime(dt.year, dt.month, dt.day);
+    if (msgDay == today) {
+      return DateFormat('hh:mm a').format(dt);
+    } else if (today.difference(msgDay).inDays == 1) {
+      return 'Yesterday';
+    } else {
+      return DateFormat('dd/MM/yy').format(dt);
+    }
+  }
+
+  ChatParticipantModel _getOtherParticipant(List<ChatParticipantModel> participants, String currentUserId) {
+    if (participants.isEmpty) {
+      return ChatParticipantModel(id: '', fullName: 'Unknown', profileImage: '', role: 'client');
+    }
+    for (final p in participants) {
+      if (p.id.isNotEmpty && currentUserId.isNotEmpty && p.id.toLowerCase() != currentUserId.toLowerCase()) {
+        return p;
+      }
+    }
+    for (final p in participants) {
+      if (p.role == 'client') {
+        return p;
+      }
+    }
+    return participants.first;
+  }
 }
 
+// ── Shimmer Loading Tile ──────────────────────────────────────────────────────
 class _MessageShimmerTile extends StatefulWidget {
   const _MessageShimmerTile();
 
@@ -429,7 +573,8 @@ class _MessageShimmerTileState extends State<_MessageShimmerTile>
         margin: const EdgeInsets.symmetric(vertical: 6),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: theme.colorScheme.outline.withOpacity(0.3)),
+          side: BorderSide(
+              color: theme.colorScheme.outline.withAlpha(77)),
         ),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -438,7 +583,8 @@ class _MessageShimmerTileState extends State<_MessageShimmerTile>
             children: [
               CircleAvatar(
                 radius: 26,
-                backgroundColor: theme.colorScheme.onSurface.withOpacity(0.08),
+                backgroundColor:
+                    theme.colorScheme.onSurface.withAlpha(20),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -450,7 +596,8 @@ class _MessageShimmerTileState extends State<_MessageShimmerTile>
                       width: 120,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurface.withOpacity(0.08),
+                        color:
+                            theme.colorScheme.onSurface.withAlpha(20),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -459,7 +606,8 @@ class _MessageShimmerTileState extends State<_MessageShimmerTile>
                       width: 180,
                       height: 12,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurface.withOpacity(0.05),
+                        color:
+                            theme.colorScheme.onSurface.withAlpha(13),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -468,7 +616,8 @@ class _MessageShimmerTileState extends State<_MessageShimmerTile>
                       width: double.infinity,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurface.withOpacity(0.03),
+                        color:
+                            theme.colorScheme.onSurface.withAlpha(8),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),

@@ -99,74 +99,109 @@ class CaseModel {
   });
 
   factory CaseModel.fromJson(Map<String, dynamic> json) {
-    final clientData = json['client'] is Map<String, dynamic> ? json['client'] : {};
-    final cId = json['client'] is String ? json['client'] : (clientData['_id'] ?? '');
+    // ── Safe helpers (Flutter Web: `as List` throws Symbol($signatureRti) on
+    // raw JS arrays; List.from() is safe across all platforms) ──────────────
+    List<T> safeList<T>(dynamic raw, T Function(dynamic) mapper) {
+      if (raw == null) return [];
+      try {
+        return List<dynamic>.from(raw as Iterable)
+            .map(mapper)
+            .toList();
+      } catch (_) {
+        return [];
+      }
+    }
 
-    final lawyerData = json['assignedLawyer'] is Map<String, dynamic> ? json['assignedLawyer'] : {};
-    final lId = json['assignedLawyer'] is String ? json['assignedLawyer'] : (lawyerData['_id'] ?? '');
-    final assignedLawyerProfile = json['assignedLawyerProfile'] is Map<String, dynamic> ? json['assignedLawyerProfile'] : {};
+    int? safeInt(dynamic v) {
+      if (v == null) return null;
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      return null;
+    }
 
-    final selLawyerData = json['selectedLawyer'] is Map<String, dynamic> ? json['selectedLawyer'] : {};
-    final selLawyerId = json['selectedLawyer'] is String ? json['selectedLawyer'] : (selLawyerData['_id'] ?? '');
-    final selLawyerProfile = json['selectedLawyerProfile'] is Map<String, dynamic> ? json['selectedLawyerProfile'] : {};
+    double? safeDouble(dynamic v) {
+      if (v == null) return null;
+      if (v is num) return v.toDouble();
+      return null;
+    }
+
+    DateTime? safeDate(dynamic v) {
+      if (v == null) return null;
+      if (v is String && v.isNotEmpty) {
+        try { return DateTime.parse(v); } catch (_) { return null; }
+      }
+      return null;
+    }
+
+    final clientRaw = json['client'];
+    final clientData = clientRaw is Map ? Map<String, dynamic>.from(clientRaw) : <String, dynamic>{};
+    final cId = clientRaw is String ? clientRaw : (clientData['_id']?.toString() ?? '');
+
+    final lawyerRaw = json['assignedLawyer'];
+    final lawyerData = lawyerRaw is Map ? Map<String, dynamic>.from(lawyerRaw) : <String, dynamic>{};
+    final lId = lawyerRaw is String ? lawyerRaw : (lawyerData['_id']?.toString() ?? '');
+    final assignedProfileRaw = json['assignedLawyerProfile'];
+    final assignedLawyerProfile = assignedProfileRaw is Map
+        ? Map<String, dynamic>.from(assignedProfileRaw)
+        : <String, dynamic>{};
+
+    final selRaw = json['selectedLawyer'];
+    final selLawyerData = selRaw is Map ? Map<String, dynamic>.from(selRaw) : <String, dynamic>{};
+    final selLawyerId = selRaw is String ? selRaw : (selLawyerData['_id']?.toString() ?? '');
+    final selProfileRaw = json['selectedLawyerProfile'];
+    final selLawyerProfile = selProfileRaw is Map
+        ? Map<String, dynamic>.from(selProfileRaw)
+        : <String, dynamic>{};
 
     return CaseModel(
-      id: json['_id'] ?? '',
+      id: json['_id']?.toString() ?? '',
       clientId: cId,
-      clientName: clientData['fullName'] ?? '',
-      clientImage: clientData['profileImage'] ?? '',
-      title: json['title'] ?? '',
-      description: json['description'] ?? '',
-      clientVerified: clientData['isVerified'] ?? false,
-      category: json['category'] ?? '',
-      subcategory: json['subcategory'],
-      location: json['location'] ?? '',
-      budgetRange: json['budgetRange'] ?? '',
-      urgency: json['urgency'] ?? 'Flexible',
-      status: json['status'] ?? 'Submitted',
-      preferredCourt: json['preferredCourt'],
-      documents: (json['documents'] as List?)
-              ?.map((d) => DocumentModel.fromJson(d))
-              .toList() ??
-          [],
-      proposals: (json['proposals'] as List?)
-              ?.map((p) => CaseProposalModel.fromJson(p))
-              .toList() ??
-          [],
+      clientName: clientData['fullName']?.toString() ?? '',
+      clientImage: clientData['profileImage']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      clientVerified: clientData['isVerified'] == true,
+      category: json['category']?.toString() ?? '',
+      subcategory: json['subcategory']?.toString(),
+      location: json['location']?.toString() ?? '',
+      budgetRange: json['budgetRange']?.toString() ?? '',
+      urgency: json['urgency']?.toString() ?? 'Flexible',
+      status: json['status']?.toString() ?? 'Submitted',
+      preferredCourt: json['preferredCourt']?.toString(),
+      documents: safeList(json['documents'],
+          (d) => DocumentModel.fromJson(Map<String, dynamic>.from(d is Map ? d : {}))),
+      proposals: safeList(json['proposals'],
+          (p) => CaseProposalModel.fromJson(Map<String, dynamic>.from(p is Map ? p : {}))),
       assignedLawyerId: lId.isNotEmpty ? lId : null,
-      assignedLawyerName: lawyerData['fullName'],
-      assignedLawyerImage: lawyerData['profileImage'],
-      milestones: (json['milestones'] as List?)
-              ?.map((m) => MilestoneModel.fromJson(m))
-              .toList() ??
-          [],
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : DateTime.now(),
+      assignedLawyerName: lawyerData['fullName']?.toString(),
+      assignedLawyerImage: lawyerData['profileImage']?.toString(),
+      milestones: safeList(json['milestones'],
+          (m) => MilestoneModel.fromJson(Map<String, dynamic>.from(m is Map ? m : {}))),
+      createdAt: safeDate(json['createdAt']) ?? DateTime.now(),
       selectedLawyerId: selLawyerId.isNotEmpty ? selLawyerId : null,
-      selectedLawyerName: selLawyerData['fullName'],
-      selectedLawyerImage: selLawyerData['profileImage'],
-      selectedLawyerSpecialization: selLawyerProfile['specialization'],
-      selectedLawyerExperience: selLawyerProfile['experience'],
-      selectedLawyerRating: (selLawyerProfile['rating'] as num?)?.toDouble(),
-      selectedLawyerFee: selLawyerProfile['consultationFee'],
-      selectedLawyerVerified: selLawyerData['isVerified'] ?? false,
-      assignedLawyerSpecialization: assignedLawyerProfile['specialization'],
-      assignedLawyerExperience: assignedLawyerProfile['experience'],
-      assignedLawyerRating: (assignedLawyerProfile['rating'] as num?)?.toDouble(),
-      assignedLawyerFee: assignedLawyerProfile['consultationFee'],
-      assignedLawyerVerified: lawyerData['isVerified'] ?? false,
-      assignedLawyerOnline: lawyerData['isActive'] ?? true,
-      caseOutcome: json['caseOutcome'] ?? '',
-      claimAmount: json['claimAmount'] ?? '',
-      consultationDate: json['consultationDate'] != null ? DateTime.parse(json['consultationDate']) : null,
-      nextHearing: json['nextHearing'] != null ? DateTime.parse(json['nextHearing']) : null,
-      closedDate: json['closedDate'] != null ? DateTime.parse(json['closedDate']) : null,
-      acceptedAt: json['acceptedAt'] != null ? DateTime.parse(json['acceptedAt']) : null,
-      startedAt: json['startedAt'] != null ? DateTime.parse(json['startedAt']) : null,
-      completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt']) : null,
-      rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
-      review: json['review'] ?? '',
+      selectedLawyerName: selLawyerData['fullName']?.toString(),
+      selectedLawyerImage: selLawyerData['profileImage']?.toString(),
+      selectedLawyerSpecialization: selLawyerProfile['specialization']?.toString(),
+      selectedLawyerExperience: safeInt(selLawyerProfile['experience']),
+      selectedLawyerRating: safeDouble(selLawyerProfile['rating']),
+      selectedLawyerFee: safeInt(selLawyerProfile['consultationFee']),
+      selectedLawyerVerified: selLawyerData['isVerified'] == true,
+      assignedLawyerSpecialization: assignedLawyerProfile['specialization']?.toString(),
+      assignedLawyerExperience: safeInt(assignedLawyerProfile['experience']),
+      assignedLawyerRating: safeDouble(assignedLawyerProfile['rating']),
+      assignedLawyerFee: safeInt(assignedLawyerProfile['consultationFee']),
+      assignedLawyerVerified: lawyerData['isVerified'] == true,
+      assignedLawyerOnline: lawyerData['isActive'] != false,
+      caseOutcome: json['caseOutcome']?.toString() ?? '',
+      claimAmount: json['claimAmount']?.toString() ?? '',
+      consultationDate: safeDate(json['consultationDate']),
+      nextHearing: safeDate(json['nextHearing']),
+      closedDate: safeDate(json['closedDate']),
+      acceptedAt: safeDate(json['acceptedAt']),
+      startedAt: safeDate(json['startedAt']),
+      completedAt: safeDate(json['completedAt']),
+      rating: safeDouble(json['rating']) ?? 0.0,
+      review: json['review']?.toString() ?? '',
     );
   }
 }
@@ -189,18 +224,31 @@ class CaseProposalModel {
   });
 
   factory CaseProposalModel.fromJson(Map<String, dynamic> json) {
-    final lawyerData = json['lawyer'] is Map<String, dynamic> ? json['lawyer'] : {};
-    final lId = json['lawyer'] is String ? json['lawyer'] : (lawyerData['_id'] ?? '');
+    final lawyerRaw = json['lawyer'];
+    final lawyerData = lawyerRaw is Map
+        ? Map<String, dynamic>.from(lawyerRaw)
+        : <String, dynamic>{};
+    final lId = lawyerRaw is String
+        ? lawyerRaw
+        : (lawyerData['_id']?.toString() ?? '');
+
+    DateTime? safeDate(dynamic v) {
+      if (v == null) return null;
+      if (v is String && v.isNotEmpty) {
+        try { return DateTime.parse(v); } catch (_) { return null; }
+      }
+      return null;
+    }
 
     return CaseProposalModel(
       lawyerId: lId,
-      fullName: lawyerData['fullName'] ?? 'Lawyer',
-      profileImage: lawyerData['profileImage'] ?? '',
-      feeProposal: json['feeProposal'] ?? 0,
-      message: json['message'] ?? '',
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : DateTime.now(),
+      fullName: lawyerData['fullName']?.toString() ?? 'Lawyer',
+      profileImage: lawyerData['profileImage']?.toString() ?? '',
+      feeProposal: json['feeProposal'] is num
+          ? (json['feeProposal'] as num).toInt()
+          : 0,
+      message: json['message']?.toString() ?? '',
+      createdAt: safeDate(json['createdAt']) ?? DateTime.now(),
     );
   }
 }
@@ -217,10 +265,18 @@ class MilestoneModel {
   });
 
   factory MilestoneModel.fromJson(Map<String, dynamic> json) {
+    DateTime safeDate(dynamic v) {
+      if (v == null) return DateTime.now();
+      if (v is String && v.isNotEmpty) {
+        try { return DateTime.parse(v); } catch (_) { return DateTime.now(); }
+      }
+      return DateTime.now();
+    }
+
     return MilestoneModel(
-      title: json['title'] ?? '',
-      date: json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(),
-      isCompleted: json['isCompleted'] ?? false,
+      title: json['title']?.toString() ?? '',
+      date: safeDate(json['date']),
+      isCompleted: json['isCompleted'] == true,
     );
   }
 }

@@ -7,28 +7,28 @@ module.exports = (io) => {
     console.log(`🔌 Chat Socket connected: ${socket.id}`);
     let registeredUserId = null;
 
-    // Join room for specific chat
+    // ── Join room for a specific chat conversation ──
     socket.on("join", ({ chatId }) => {
       if (chatId) {
         socket.join(chatId.toString());
-        console.log(`👥 Socket ${socket.id} joined room: ${chatId}`);
+        console.log(`👥 Socket ${socket.id} joined chat room: ${chatId}`);
       }
     });
 
-    // Join personal user room to receive chat updates
+    // ── Join personal user room to receive chat_updated events ──
     socket.on("register", ({ userId }) => {
       if (userId) {
         registeredUserId = userId.toString();
         activeUsers.add(registeredUserId);
         socket.join(registeredUserId);
-        console.log(`👤 User joined chat room: ${registeredUserId}`);
+        console.log(`👤 User registered in chat: ${registeredUserId}`);
 
-        // Broadcast that this user is online
+        // Broadcast online status to all connected clients
         chatNamespace.emit("user_status", { userId: registeredUserId, status: "online" });
       }
     });
 
-    // Handle check_status request from client
+    // ── Status check from a client ──
     socket.on("check_status", ({ userId }, callback) => {
       if (userId && callback) {
         const isOnline = activeUsers.has(userId.toString());
@@ -36,30 +36,22 @@ module.exports = (io) => {
       }
     });
 
-    // Handle new message event
-    socket.on("message", (messageData) => {
-      const { chat, sender, content, attachments, createdAt } = messageData;
-      console.log(`💬 Message in ${chat} from ${sender}`);
-      
-      // Broadcast to everyone in the room
-      chatNamespace.to(chat).emit("message", {
-        chat,
-        sender,
-        content,
-        attachments,
-        createdAt: createdAt || new Date(),
-      });
+    // ── Typing indicator — relay to the chat room only ──
+    socket.on("typing", ({ chatId, userName, isTyping }) => {
+      if (chatId) {
+        socket.to(chatId.toString()).emit("typing", { userName, isTyping });
+      }
     });
 
-    // Handle typing indicator
-    socket.on("typing", ({ chatId, userName, isTyping }) => {
-      socket.to(chatId).emit("typing", { userName, isTyping });
-    });
+    // NOTE: We intentionally do NOT handle a socket-level "message" event here.
+    // All message broadcasting is done by the REST controller (chatController.sendMessage)
+    // which uses populated sender data. A socket-level handler would cause a
+    // duplicate broadcast with unpopulated data.
 
     socket.on("disconnect", () => {
       if (registeredUserId) {
         activeUsers.delete(registeredUserId);
-        // Broadcast that this user is offline
+        // Broadcast offline status
         chatNamespace.emit("user_status", { userId: registeredUserId, status: "offline" });
       }
       console.log(`🔌 Chat Socket disconnected: ${socket.id}`);

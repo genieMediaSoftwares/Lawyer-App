@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/network/dio_client.dart';
-import '../models/lawyer_model.dart';
 
 class FavoriteItem {
   final String id;

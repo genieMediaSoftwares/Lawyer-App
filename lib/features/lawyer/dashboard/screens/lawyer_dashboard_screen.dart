@@ -18,10 +18,11 @@ import '../../../../models/lawyer_model.dart';
 import '../../../../models/appointment_model.dart';
 import '../../../../models/chat_model.dart';
 import '../../../../core/widgets/app_drawer.dart';
-import '../../../../core/widgets/location_picker_sheet.dart';
 import '../../../client/appointment_booking/providers/calendar_provider.dart';
 import '../../profile/screens/lawyer_profile_screen.dart';
 import '../../../../routes/route_names.dart';
+import 'lawyer_notifications_screen.dart';
+import '../../leads/screens/lawyer_leads_screen.dart';
 
 class LawyerDashboardScreen extends ConsumerStatefulWidget {
   final int initialTab;
@@ -33,10 +34,9 @@ class LawyerDashboardScreen extends ConsumerStatefulWidget {
 
 class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   int _currentIndex = 0;
-  final Set<String> _dismissedLeads = {};
+  bool _showNotifications = false;
 
   // Selected sub-tabs
-  int _selectedLeadsTab = 0; // 0: New Leads, 1: In Progress, 2: Interested
   int _selectedClientsTab = 0; // 0: Active, 1: Consultations, 2: Completed
 
   // Selected date in calendar tab
@@ -124,17 +124,65 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     if (_currentIndex == 4) screenTitle = "Calendar";
     if (_currentIndex == 5) screenTitle = "My Profile";
 
+    if (_showNotifications) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF131211),
+        body: SafeArea(
+          child: LawyerNotificationsScreen(
+            onBack: () => setState(() => _showNotifications = false),
+          ),
+        ),
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, -2))],
+          ),
+          child: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (index) => setState(() {
+              _showNotifications = false;
+              _currentIndex = index;
+            }),
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
+            selectedItemColor: Theme.of(context).bottomNavigationBarTheme.selectedItemColor,
+            unselectedItemColor: Theme.of(context).bottomNavigationBarTheme.unselectedItemColor,
+            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+            unselectedLabelStyle: const TextStyle(fontSize: 10),
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.space_dashboard_outlined, size: 20), activeIcon: Icon(Icons.space_dashboard, size: 20), label: "Workspace"),
+              BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined, size: 20), activeIcon: Icon(Icons.bar_chart, size: 20), label: "Dashboard"),
+              BottomNavigationBarItem(icon: Icon(Icons.gavel_outlined, size: 20), activeIcon: Icon(Icons.gavel, size: 20), label: "Leads"),
+              BottomNavigationBarItem(icon: Icon(Icons.people_alt_outlined, size: 20), activeIcon: Icon(Icons.people_alt, size: 20), label: "Clients"),
+              BottomNavigationBarItem(icon: Icon(Icons.calendar_month_outlined, size: 20), activeIcon: Icon(Icons.calendar_month, size: 20), label: "Calendar"),
+              BottomNavigationBarItem(icon: Icon(Icons.person_outline, size: 20), activeIcon: Icon(Icons.person, size: 20), label: "Profile"),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: _currentIndex == 2 ? const Color(0xFF0B0B0B) : Theme.of(context).scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
-        title: Text(screenTitle, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Theme.of(context).colorScheme.onSurface)),
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        elevation: 0.5,
+        title: Text(
+          screenTitle,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: _currentIndex == 2 ? Colors.white : Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        centerTitle: _currentIndex == 2 ? true : false,
+        backgroundColor: _currentIndex == 2 ? const Color(0xFF0B0B0B) : Theme.of(context).appBarTheme.backgroundColor,
+        foregroundColor: _currentIndex == 2 ? Colors.white : Theme.of(context).colorScheme.onSurface,
+        elevation: _currentIndex == 2 ? 0 : 0.5,
         leading: Builder(
           builder: (context) => IconButton(
-            icon: Icon(Icons.menu, color: Theme.of(context).colorScheme.onSurface),
+            icon: Icon(
+              Icons.menu,
+              color: _currentIndex == 2 ? Colors.white : Theme.of(context).colorScheme.onSurface,
+            ),
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
@@ -161,8 +209,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               alignment: Alignment.center,
               children: [
                 IconButton(
-                  icon: Icon(Icons.notifications_none_outlined, color: Theme.of(context).colorScheme.onSurface),
-                  onPressed: () => _showNotificationsBottomSheet(context),
+                  icon: Icon(
+                    Icons.notifications_none_outlined,
+                    color: _currentIndex == 2 ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                  ),
+                  onPressed: () => setState(() => _showNotifications = true),
                 ),
                 if (unreadCount > 0)
                   Positioned(
@@ -235,7 +286,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
       case 1:
         return _buildHomeTab(lawyerName, userId, casesState, appointmentsState, chatsState, lawyerState);
       case 2:
-        return _buildLeadsTab(casesState, userId);
+        return const LawyerLeadsScreen();
       case 3:
         return _buildClientsTab(casesState, appointmentsState, userId);
       case 4:
@@ -883,235 +934,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 2. LEADS TAB (Figma Screen 2)
-  // ═══════════════════════════════════════════════════════════
-  Widget _buildLeadsTab(
-    AsyncValue<List<CaseModel>> casesState,
-    String currentUserId,
-  ) {
 
-    return casesState.when(
-      data: (cases) {
-        final filteredLeads = cases.where((c) {
-          return c.selectedLawyerId == currentUserId &&
-              (c.status == 'Pending Lawyer Response' || c.status == 'Awaiting Lawyer Acceptance');
-        }).toList();
-
-        return Column(
-          children: [
-            Expanded(
-              child: filteredLeads.isEmpty
-                  ? const Center(
-                      child: Text(
-                        "No new case leads. Check back later!",
-                        style: TextStyle(color: AppColors.textSecondaryDark),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: filteredLeads.length,
-                      separatorBuilder: (c, i) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final lead = filteredLeads[index];
-                        return _buildFigmaLeadCard(lead);
-                      },
-                    ),
-            ),
-          ],
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text("Error: $err", style: const TextStyle(color: Colors.red))),
-    );
-  }
-
-  Widget _buildLeadsSubTab(int index, String label, String count) {
-    final isSelected = _selectedLeadsTab == index;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedLeadsTab = index),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? AppColors.gold : AppColors.textSecondaryDark,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.gold.withOpacity(0.15) : Theme.of(context).scaffoldBackgroundColor,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  count,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? AppColors.gold : AppColors.textSecondaryDark,
-                  ),
-                ),
-              )
-            ],
-          ),
-          const SizedBox(height: 6),
-          Container(
-            height: 2,
-            width: 70,
-            color: isSelected ? AppColors.gold : Colors.transparent,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFigmaLeadCard(CaseModel lead) {
-    return Card(
-      elevation: 0,
-      color: Theme.of(context).cardColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).colorScheme.outline),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                  child: Text(lead.category, style: const TextStyle(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.bold)),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.gold.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text("95% Match", style: TextStyle(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(lead.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).colorScheme.onBackground)),
-                ),
-                if (lead.clientVerified) ...[
-                  const SizedBox(width: 6),
-                  const Icon(Icons.verified, color: Colors.blue, size: 16),
-                ],
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              lead.description,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryDark, height: 1.4),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondaryDark),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(lead.location, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11), overflow: TextOverflow.ellipsis),
-                ),
-                const SizedBox(width: 16),
-                const Icon(Icons.gavel_outlined, size: 14, color: AppColors.textSecondaryDark),
-                const SizedBox(width: 4),
-                Text(lead.preferredCourt?.isNotEmpty == true ? lead.preferredCourt! : "Any Court", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.access_time_outlined, size: 14, color: AppColors.textSecondaryDark),
-                const SizedBox(width: 4),
-                Text("Urgency: ${lead.urgency}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
-                const SizedBox(width: 16),
-                const Icon(Icons.file_present_outlined, size: 14, color: AppColors.textSecondaryDark),
-                const SizedBox(width: 4),
-                Text("${lead.documents.length} docs uploaded", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              "Posted on: ${DateFormat('dd MMM yyyy, hh:mm a').format(lead.createdAt)}",
-              style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _showLeadDetailsDialog(lead),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 40),
-                      side: const BorderSide(color: AppColors.gold),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text("View Case Details", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          backgroundColor: Theme.of(context).cardColor,
-                          title: const Text("Accept Case Request?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          content: const Text("Are you sure you want to accept this case request?", style: TextStyle(color: Colors.white70)),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              child: const Text("Accept", style: TextStyle(color: AppColors.gold)),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirmed == true) {
-                        final success = await ref.read(casesProvider.notifier).acceptCaseRequest(lead.id);
-                        if (success && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Case request accepted! Case is now Accepted.")),
-                          );
-                        }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.black,
-                      minimumSize: const Size(double.infinity, 40),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text("Accept Case", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   // ═══════════════════════════════════════════════════════════
   // 3. CLIENTS TAB (Figma Screen 7)
@@ -1300,7 +1123,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         child: OutlinedButton(
                           onPressed: () => _showLeadDetailsDialog(clientCase),
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 36),
+                            minimumSize: const Size(0, 36),
                             side: const BorderSide(color: AppColors.gold),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
@@ -1321,7 +1144,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Theme.of(context).colorScheme.primary,
                             foregroundColor: Colors.black,
-                            minimumSize: const Size(double.infinity, 36),
+                            minimumSize: const Size(0, 36),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                           child: const Text("Start Case", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
@@ -1455,11 +1278,15 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           child: const Text("View Case", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () {
-                            context.push('/chat/chat_${clientCase.id}/${clientCase.clientName}');
+                          onPressed: () async {
+                            final chatNotifier = ref.read(chatsProvider.notifier);
+                            final chat = await chatNotifier.getOrCreateChat(clientCase.clientId);
+                            if (chat != null && context.mounted) {
+                              context.push('/chat/${chat.id}/${Uri.encodeComponent(clientCase.clientName)}');
+                            }
                           },
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 36),
@@ -1469,55 +1296,42 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           child: const Text("Chat", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("Calling ${clientCase.clientName}... (Simulated)")),
-                            );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 36),
-                            side: const BorderSide(color: AppColors.gold),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: const Text("Call", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
-                        ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: () async {
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          backgroundColor: Theme.of(context).cardColor,
-                          title: const Text("Complete Case?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          content: const Text("Are you sure you want to mark this case as completed?", style: TextStyle(color: Colors.white70)),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.grey))),
-                            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Complete", style: TextStyle(color: AppColors.gold))),
-                          ],
-                        ),
-                      );
-                      if (confirmed == true) {
-                        final success = await ref.read(casesProvider.notifier).markCaseCompleted(clientCase.id);
-                        if (success && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Case marked completed successfully!")),
-                          );
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            backgroundColor: Theme.of(context).cardColor,
+                            title: const Text("Complete Case?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            content: const Text("Are you sure you want to mark this case as completed?", style: TextStyle(color: Colors.white70)),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.grey))),
+                              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Complete", style: TextStyle(color: AppColors.gold))),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true) {
+                          final success = await ref.read(casesProvider.notifier).markCaseCompleted(clientCase.id);
+                          if (success && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Case marked completed successfully!")),
+                            );
+                          }
                         }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 36),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(0, 36),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text("Mark Case Completed", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                     ),
-                    child: const Text("Mark Case Completed", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                   ),
                 ],
               ),
@@ -1628,7 +1442,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         child: OutlinedButton(
                           onPressed: () => _showLeadDetailsDialog(clientCase),
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 36),
+                            minimumSize: const Size(0, 36),
                             side: const BorderSide(color: AppColors.gold),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
@@ -1640,7 +1454,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         child: OutlinedButton(
                           onPressed: () => _showLeadDetailsDialog(clientCase),
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 36),
+                            minimumSize: const Size(0, 36),
                             side: const BorderSide(color: AppColors.gold),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
@@ -2298,135 +2112,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     );
   }
 
-  void _showNotificationsBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).cardColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Notifications",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onBackground),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: Consumer(
-                    builder: (context, ref, child) {
-                      final notificationsState = ref.watch(notificationsProvider);
-                      
-                      if (notificationsState.isLoading) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      
-                      if (notificationsState.errorMessage != null) {
-                        return Center(child: Text("Error: ${notificationsState.errorMessage}", style: const TextStyle(color: Colors.red)));
-                      }
 
-                      final notifications = notificationsState.notifications;
-                      if (notifications.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            "No notifications yet.",
-                            style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
-                          ),
-                        );
-                      }
-
-                      return ListView.separated(
-                        itemCount: notifications.length,
-                        separatorBuilder: (context, index) => Divider(color: Theme.of(context).dividerColor),
-                        itemBuilder: (context, index) {
-                          final notif = notifications[index];
-                          IconData icon = Icons.notifications_none_outlined;
-                          if (notif.type == "appointment_requested" || notif.type == "appointment_confirmed" || notif.type == "appointment_cancelled") {
-                            icon = Icons.calendar_today_outlined;
-                          }
-                          if (notif.type == "chat_message") icon = Icons.mail_outline_rounded;
-                          if (notif.type == "proposal_received" || notif.type == "proposal_accepted" || notif.type == "proposal_rejected") {
-                            icon = Icons.gavel_outlined;
-                          }
-
-                          final timeStr = DateFormat('dd MMM, hh:mm a').format(notif.createdAt);
-                          return Dismissible(
-                            key: Key(notif.id),
-                            onDismissed: (_) {
-                              ref.read(notificationsProvider.notifier).markAsRead(notif.id);
-                            },
-                            child: ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: CircleAvatar(
-                                backgroundColor: AppColors.gold.withOpacity(0.1),
-                                child: Icon(icon, color: AppColors.gold, size: 20),
-                              ),
-                              title: Text(
-                                notif.title,
-                                style: TextStyle(
-                                  fontWeight: notif.isRead ? FontWeight.normal : FontWeight.bold,
-                                  fontSize: 14,
-                                  color: Theme.of(context).colorScheme.onBackground,
-                                ),
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Text(notif.message, style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryDark)),
-                                  const SizedBox(height: 4),
-                                  Text(timeStr, style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryDark)),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildNotificationTile(IconData icon, String title, String subtitle, String time) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        backgroundColor: AppColors.navyBlue.withOpacity(0.08),
-        child: Icon(icon, color: AppColors.navyBlue, size: 20),
-      ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navyBlue)),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 4),
-          Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.grey500)),
-          const SizedBox(height: 4),
-          Text(time, style: const TextStyle(fontSize: 10, color: AppColors.grey400)),
-        ],
-      ),
-    );
-  }
 
 
 
@@ -2569,7 +2255,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               onPressed: () => Navigator.pop(context),
               child: const Text("Close", style: TextStyle(color: AppColors.textSecondaryDark)),
             ),
-            if (lead.status == 'Pending Lawyer Response' || lead.status == 'Awaiting Lawyer Acceptance')
+            if (lead.status == 'Pending Lawyer Response' || lead.status == 'Awaiting Lawyer Acceptance' || lead.status == 'Submitted')
               ElevatedButton(
                 onPressed: () async {
                   Navigator.pop(context);

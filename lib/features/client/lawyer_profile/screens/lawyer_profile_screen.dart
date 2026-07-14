@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../models/lawyer_model.dart';
 import '../../../../providers/chat_provider.dart';
-import '../../../../routes/route_names.dart';
 
 import '../../../../providers/favorite_provider.dart';
 

@@ -16,6 +16,7 @@ class NotificationController {
       };
 
       const notifications = await Notification.find(query)
+        .populate("senderId", "fullName profileImage role")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
@@ -100,6 +101,22 @@ class NotificationController {
       }
 
       return ApiResponse.success(res, "Notification deleted successfully.");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async clearAllFromSender(req, res, next) {
+    try {
+      const { senderId } = req.params;
+      const receiverId = req.user._id;
+
+      await Notification.updateMany(
+        { receiverId, senderId, softDelete: false },
+        { softDelete: true }
+      );
+
+      return ApiResponse.success(res, "All notifications from sender cleared.");
     } catch (error) {
       next(error);
     }

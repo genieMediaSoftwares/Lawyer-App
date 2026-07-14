@@ -3,22 +3,18 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/config/env.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../models/document_model.dart';
-import '../../../../providers/issue_provider.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/document_provider.dart';
 import 'package:file_picker/file_picker.dart';
-import '../../../../core/widgets/location_picker_sheet.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../models/category_item.dart';
 import '../../../../models/place_model.dart';
-import '../../../../models/court_model.dart' as cmodel;
 import '../../../../providers/court_provider.dart';
 import '../../../../providers/place_provider.dart';
 import '../../../../models/lawyer_model.dart';
@@ -57,10 +53,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   String? _selectedCityName;
   String? _selectedDistrictName;
   String? _selectedStateName;
-  String? _selectedCountryName;
-  double? _selectedLatitude;
-  double? _selectedLongitude;
-  String? _selectedGooglePlaceId;
 
   List<PlaceSuggestionModel> _locationSuggestions = [];
   bool _isLocationLoading = false;
@@ -68,8 +60,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
   // Court Suggestions State
   String? _selectedCourtName;
-  String? _selectedCourtType;
-  String? _selectedCourtAddress;
   String _courtFilter = "";
   bool _showCourtSuggestions = false;
 
@@ -171,18 +161,12 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           _selectedCityName = details.city;
           _selectedDistrictName = details.district;
           _selectedStateName = details.state;
-          _selectedCountryName = details.country;
-          _selectedLatitude = details.latitude;
-          _selectedLongitude = details.longitude;
-          _selectedGooglePlaceId = details.placeId;
 
           _locationSuggestions = [];
           _isLocationLoading = false;
 
           _courtController.clear();
           _selectedCourtName = null;
-          _selectedCourtType = null;
-          _selectedCourtAddress = null;
           _courtFilter = "";
         });
 
@@ -204,31 +188,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     }
   }
 
-  Future<void> _simulateUpload() async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
-    );
 
-    if (result != null && result.files.single.path != null) {
-      final filePath = result.files.single.path!;
-      final fileName = result.files.single.name;
-      
-      final doc = await ref.read(documentsProvider.notifier).uploadDocument(filePath, fileName);
-      if (doc != null) {
-        setState(() {
-          _uploadedDocs.add(DocumentModel(
-            name: doc.originalName,
-            url: Environment.getAttachmentUrl(doc.filePath),
-            size: "${(doc.fileSize / 1024).toStringAsFixed(1)} KB",
-          ));
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Document uploaded and attached successfully!")),
-        );
-      }
-    }
-  }
 
   Future<void> _submitCase() async {
     if (_selectedCategory == null ||
@@ -645,10 +605,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               _selectedCityName = null;
               _selectedDistrictName = null;
               _selectedStateName = null;
-              _selectedCountryName = null;
-              _selectedLatitude = null;
-              _selectedLongitude = null;
-              _selectedGooglePlaceId = null;
               
               _selectedCourtName = null;
               _courtController.clear();
@@ -793,8 +749,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                         setState(() {
                           _courtController.text = court.courtName;
                           _selectedCourtName = court.courtName;
-                          _selectedCourtType = court.courtType;
-                          _selectedCourtAddress = court.courtAddress;
                           _showCourtSuggestions = false;
                         });
                       },
@@ -1611,7 +1565,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   }
 
   Widget _buildLawyerCard(LawyerModel lawyer, bool isSelected) {
-    final theme = Theme.of(context);
     final displayedTags = lawyer.languages.take(3).toList();
     final remainingTagsCount = lawyer.languages.length - displayedTags.length;
 
