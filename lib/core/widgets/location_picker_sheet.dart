@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import '../constants/app_colors.dart';
 
 class LocationPickerSheet extends StatefulWidget {
   final String? initialLocation;

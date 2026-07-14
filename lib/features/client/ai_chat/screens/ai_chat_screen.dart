@@ -408,7 +408,6 @@ Please let me know if you would like me to draft outlines for agreements or expl
   }
 
   Widget _buildSuggestions() {
-    final theme = Theme.of(context);
     return Container(
       height: 48,
       margin: const EdgeInsets.only(bottom: 8),

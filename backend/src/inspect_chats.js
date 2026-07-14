@@ -1,40 +1,29 @@
+require("dotenv").config();
 const mongoose = require("mongoose");
-const Chat = require("./models/Chat");
-const Message = require("./models/Message");
+const connectDB = require("./config/db");
 const User = require("./models/User");
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../.env") });
+const Case = require("./models/Case");
+const Chat = require("./models/Chat");
 
-async function inspect() {
+async function run() {
+  await connectDB();
   try {
-    console.log("Connecting to:", process.env.MONGO_URI);
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("Connected to MongoDB.");
-
     const users = await User.find();
-    console.log("\n--- USERS ---");
-    users.forEach(u => console.log(`ID: ${u._id}, Name: ${u.fullName}, Role: ${u.role}, Email: ${u.email}`));
+    console.log("=== USERS ===");
+    users.forEach(u => console.log(`- ${u._id}: ${u.fullName} (${u.role})`));
 
-    const chats = await Chat.find().populate("participants", "fullName role");
-    console.log("\n--- CHATS ---");
-    chats.forEach(c => {
-      console.log(`Chat ID: ${c._id}`);
-      console.log(`Participants: ${c.participants.map(p => p ? `${p.fullName} (${p.role})` : 'null').join(", ")}`);
-      console.log(`Last Message: "${c.lastMessage}" at ${c.lastMessageAt}`);
-    });
+    const cases = await Case.find();
+    console.log("\n=== CASES ===");
+    cases.forEach(c => console.log(`- ${c._id}: "${c.title}" | Status: ${c.status} | Client: ${c.client} | SelectedLawyer: ${c.selectedLawyer} | AssignedLawyer: ${c.assignedLawyer}`));
 
-    const messages = await Message.find().populate("sender", "fullName");
-    console.log("\n--- MESSAGES ---");
-    messages.forEach(m => {
-      console.log(`Msg ID: ${m._id}, Chat: ${m.chat}, Sender: ${m.sender ? m.sender.fullName : 'null'}, Content: "${m.content}"`);
-    });
-
+    const chats = await Chat.find();
+    console.log("\n=== CHATS ===");
+    chats.forEach(ch => console.log(`- ${ch._id}: Participants: [${ch.participants.join(", ")}] | LastMsg: "${ch.lastMessage}"`));
   } catch (err) {
-    console.error("Error inspecting DB:", err);
+    console.error(err);
   } finally {
-    await mongoose.disconnect();
-    console.log("Disconnected.");
+    await mongoose.connection.close();
   }
 }
 
-inspect();
+run();

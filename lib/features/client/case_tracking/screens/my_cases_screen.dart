@@ -734,7 +734,6 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
     final nextHearingStr = caseItem.nextHearing != null 
         ? DateFormat('dd MMM yyyy').format(caseItem.nextHearing!) 
         : "15 Jul 2026";
-    final claimVal = (caseItem.claimAmount != null && caseItem.claimAmount!.isNotEmpty) ? caseItem.claimAmount! : "₹25,000";
 
     final completedCount = caseItem.milestones.where((m) => m.isCompleted).length;
     final totalMilestones = caseItem.milestones.isNotEmpty ? caseItem.milestones.length : 4;

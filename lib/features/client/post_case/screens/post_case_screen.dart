@@ -3,8 +3,11 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
+=======
+>>>>>>> 2d96158805d74849ab6fad341c1a127c63d39f7a
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,11 +15,11 @@ import '../../../../core/config/env.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../models/document_model.dart';
-import '../../../../providers/issue_provider.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/document_provider.dart';
 import '../../../../providers/category_provider.dart';
 import 'package:file_picker/file_picker.dart';
+<<<<<<< HEAD
 import 'package:record/record.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
@@ -24,10 +27,11 @@ import 'package:http_parser/http_parser.dart';
 import '../widgets/voice_recording_visualizer.dart';
 import '../widgets/premium_audio_player.dart';
 import '../../../../core/widgets/location_picker_sheet.dart';
+=======
+>>>>>>> 2d96158805d74849ab6fad341c1a127c63d39f7a
 import '../../../../providers/auth_provider.dart';
 import '../../../../models/category_item.dart';
 import '../../../../models/place_model.dart';
-import '../../../../models/court_model.dart' as cmodel;
 import '../../../../providers/court_provider.dart';
 import '../../../../providers/place_provider.dart';
 import '../../../../models/lawyer_model.dart';
@@ -95,10 +99,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   String? _selectedCityName;
   String? _selectedDistrictName;
   String? _selectedStateName;
-  String? _selectedCountryName;
-  double? _selectedLatitude;
-  double? _selectedLongitude;
-  String? _selectedGooglePlaceId;
 
   List<PlaceSuggestionModel> _locationSuggestions = [];
   bool _isLocationLoading = false;
@@ -109,8 +109,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
   // Court Suggestions State
   String? _selectedCourtName;
-  String? _selectedCourtType;
-  String? _selectedCourtAddress;
   String _courtFilter = "";
   bool _showCourtSuggestions = false;
 
@@ -726,18 +724,12 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           _selectedCityName = details.city;
           _selectedDistrictName = details.district;
           _selectedStateName = details.state;
-          _selectedCountryName = details.country;
-          _selectedLatitude = details.latitude;
-          _selectedLongitude = details.longitude;
-          _selectedGooglePlaceId = details.placeId;
 
           _locationSuggestions = [];
           _isLocationLoading = false;
 
           _courtController.clear();
           _selectedCourtName = null;
-          _selectedCourtType = null;
-          _selectedCourtAddress = null;
           _courtFilter = "";
         });
 
@@ -760,12 +752,8 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     }
   }
 
-  Future<void> _simulateUpload() async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
-    );
 
+<<<<<<< HEAD
     if (result != null && result.files.single.path != null) {
       final filePath = result.files.single.path!;
       final fileName = result.files.single.name;
@@ -786,6 +774,8 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       }
     }
   }
+=======
+>>>>>>> 2d96158805d74849ab6fad341c1a127c63d39f7a
 
   Future<void> _submitCase() async {
     if (_selectedCategory == null ||
@@ -1263,11 +1253,28 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           ],
         ),
         const SizedBox(height: 8),
+<<<<<<< HEAD
         RawAutocomplete<PlaceSuggestionModel>(
           focusNode: _cityFocusNode,
           textEditingController: _cityController,
           optionsBuilder: (TextEditingValue textEditingValue) {
             return _locationSuggestions;
+=======
+        TextField(
+          controller: _cityController,
+          style: TextStyle(color: primaryTextColor),
+          onChanged: (val) {
+            setState(() {
+              _selectedCityName = null;
+              _selectedDistrictName = null;
+              _selectedStateName = null;
+              
+              _selectedCourtName = null;
+              _courtController.clear();
+              ref.read(courtsProvider.notifier).clear();
+            });
+            _onCitySearchChanged(val);
+>>>>>>> 2d96158805d74849ab6fad341c1a127c63d39f7a
           },
           optionsViewBuilder: (context, onSelected, options) {
             final listOptions = options.toList();
@@ -1491,8 +1498,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                         setState(() {
                           _courtController.text = court.courtName;
                           _selectedCourtName = court.courtName;
-                          _selectedCourtType = court.courtType;
-                          _selectedCourtAddress = court.courtAddress;
                           _showCourtSuggestions = false;
                         });
                         _saveDraft();
@@ -2313,7 +2318,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   }
 
   Widget _buildLawyerCard(LawyerModel lawyer, bool isSelected) {
-    final theme = Theme.of(context);
     final displayedTags = lawyer.languages.take(3).toList();
     final remainingTagsCount = lawyer.languages.length - displayedTags.length;
 

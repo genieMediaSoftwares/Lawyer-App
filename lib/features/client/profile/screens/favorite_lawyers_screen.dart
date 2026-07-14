@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/favorite_provider.dart';
-import '../../../../routes/route_names.dart';
 
 class FavoriteLawyersScreen extends ConsumerStatefulWidget {
   const FavoriteLawyersScreen({super.key});
