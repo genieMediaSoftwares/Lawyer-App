@@ -183,33 +183,6 @@ class CaseModel {
           (m) => MilestoneModel.fromJson(Map<String, dynamic>.from(m is Map ? m : {}))),
       createdAt: safeDate(json['createdAt']) ?? DateTime.now(),
       selectedLawyerId: selLawyerId.isNotEmpty ? selLawyerId : null,
-<<<<<<< HEAD
-      selectedLawyerName: selLawyerData['fullName'],
-      selectedLawyerImage: selLawyerData['profileImage'],
-      selectedLawyerSpecialization: selLawyerProfile['specialization'],
-      selectedLawyerExperience: selLawyerProfile['experience'],
-      selectedLawyerRating: (selLawyerProfile['rating'] as num?)?.toDouble(),
-      selectedLawyerFee: selLawyerProfile['consultationFee'],
-      selectedLawyerVerified: selLawyerData['isVerified'] ?? false,
-      assignedLawyerSpecialization: assignedLawyerProfile['specialization'],
-      assignedLawyerExperience: assignedLawyerProfile['experience'],
-      assignedLawyerRating: (assignedLawyerProfile['rating'] as num?)?.toDouble(),
-      assignedLawyerFee: assignedLawyerProfile['consultationFee'],
-      assignedLawyerVerified: lawyerData['isVerified'] ?? false,
-      assignedLawyerOnline: lawyerData['isActive'] ?? true,
-      caseOutcome: json['caseOutcome'] ?? '',
-      claimAmount: json['claimAmount'] ?? '',
-      consultationDate: json['consultationDate'] != null ? DateTime.parse(json['consultationDate']) : null,
-      nextHearing: json['nextHearing'] != null ? DateTime.parse(json['nextHearing']) : null,
-      closedDate: json['closedDate'] != null ? DateTime.parse(json['closedDate']) : null,
-      acceptedAt: json['acceptedAt'] != null ? DateTime.parse(json['acceptedAt']) : null,
-      startedAt: json['startedAt'] != null ? DateTime.parse(json['startedAt']) : null,
-      completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt']) : null,
-      rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
-      review: json['review'] ?? '',
-      voiceUrl: json['voiceUrl'],
-      voiceTranscript: json['voiceTranscript'],
-=======
       selectedLawyerName: selLawyerData['fullName']?.toString(),
       selectedLawyerImage: selLawyerData['profileImage']?.toString(),
       selectedLawyerSpecialization: selLawyerProfile['specialization']?.toString(),
@@ -233,7 +206,8 @@ class CaseModel {
       completedAt: safeDate(json['completedAt']),
       rating: safeDouble(json['rating']) ?? 0.0,
       review: json['review']?.toString() ?? '',
->>>>>>> 2d96158805d74849ab6fad341c1a127c63d39f7a
+      voiceUrl: json['voiceUrl']?.toString(),
+      voiceTranscript: json['voiceTranscript']?.toString(),
     );
   }
 }

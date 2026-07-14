@@ -5,12 +5,9 @@ import 'package:intl/intl.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/appointment_provider.dart';
 import '../../../../models/case_model.dart';
-<<<<<<< HEAD
 import '../../../../routes/route_names.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../post_case/widgets/premium_audio_player.dart';
-=======
->>>>>>> 2d96158805d74849ab6fad341c1a127c63d39f7a
 import '../../../../providers/chat_provider.dart';
 
 class CaseProgressScreen extends ConsumerWidget {
