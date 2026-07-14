@@ -48,6 +48,14 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     String? preferredCourt,
     List<DocumentModel>? documents,
     String? selectedLawyer,
+    String? voiceUrl,
+    String? voiceTranscript,
+    String? city,
+    String? district,
+    String? stateName,
+    String? country,
+    double? latitude,
+    double? longitude,
   }) async {
     try {
       final response = await DioClient.dio.post("/cases", data: {
@@ -61,6 +69,14 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
         "preferredCourt": preferredCourt ?? "",
         "documents": documents?.map((d) => d.toJson()).toList() ?? [],
         "selectedLawyer": selectedLawyer,
+        "voiceUrl": voiceUrl ?? "",
+        "voiceTranscript": voiceTranscript ?? "",
+        "city": city ?? "",
+        "district": district ?? "",
+        "state": stateName ?? "",
+        "country": country ?? "",
+        "latitude": latitude ?? 0.0,
+        "longitude": longitude ?? 0.0,
       });
 
       if (response.data != null && response.data['success'] == true) {

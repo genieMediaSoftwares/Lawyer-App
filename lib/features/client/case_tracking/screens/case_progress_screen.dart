@@ -8,6 +8,7 @@ import '../../../../providers/appointment_provider.dart';
 import '../../../../models/case_model.dart';
 import '../../../../routes/route_names.dart';
 import '../../../../core/widgets/app_drawer.dart';
+import '../../post_case/widgets/premium_audio_player.dart';
 import '../../../../providers/chat_provider.dart';
 
 class CaseProgressScreen extends ConsumerWidget {
@@ -192,6 +193,10 @@ class CaseProgressScreen extends ConsumerWidget {
             caseItem.description,
             style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
           ),
+          if (caseItem.voiceUrl != null && caseItem.voiceUrl!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            PremiumAudioPlayer(source: caseItem.voiceUrl!),
+          ],
         ],
       ),
     );
