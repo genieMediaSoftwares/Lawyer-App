@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/config/env.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../models/lawyer_model.dart';
@@ -14,6 +15,7 @@ import '../../../client/profile/screens/support_help_screen.dart';
 
 import '../../../../providers/review_provider.dart';
 import '../../../../providers/case_provider.dart';
+
 
 class LawyerProfileScreen extends ConsumerStatefulWidget {
   const LawyerProfileScreen({super.key});
@@ -319,9 +321,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
             radius: 28,
             backgroundColor: theme.colorScheme.outline,
             backgroundImage: lawyer.profileImage.isNotEmpty
-                ? NetworkImage(lawyer.profileImage.startsWith('http')
-                    ? lawyer.profileImage
-                    : 'http://localhost:5000/${lawyer.profileImage}')
+                ? NetworkImage(Environment.getAttachmentUrl(lawyer.profileImage))
                 : null,
             child: lawyer.profileImage.isEmpty
                 ? Text(

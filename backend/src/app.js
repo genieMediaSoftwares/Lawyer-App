@@ -27,7 +27,11 @@ const aiRoutes = require("./routes/ai.routes");
 const app = express();
 
 // Security
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+  })
+);
 
 // CORS – allow all origins for local development
 app.use(
