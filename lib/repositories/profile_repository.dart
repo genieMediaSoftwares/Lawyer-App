@@ -4,6 +4,7 @@ import '../models/client_profile_model.dart';
 import '../models/activity_model.dart';
 import '../models/client_stats_model.dart';
 
+
 class ProfileRepository {
   Future<ClientProfileModel> getClientProfile() async {
     final response = await DioClient.dio.get("/client/profile");
