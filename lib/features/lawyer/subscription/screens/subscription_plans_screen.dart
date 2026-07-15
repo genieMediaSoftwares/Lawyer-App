@@ -17,25 +17,25 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     {
       "name": "Starter",
       "price": "₹999 / month",
-      "features": ["20 Leads / Month", "Chat Support", "Basic Profile Listing"],
+      "features": ["Chat Support", "Basic Profile Listing"],
       "popular": false,
     },
     {
       "name": "Professional",
       "price": "₹2,999 / month",
-      "features": ["100 Leads / Month", "Priority Support", "Featured in Search"],
+      "features": ["Priority Support", "Featured in Search"],
       "popular": false,
     },
     {
       "name": "Premium",
       "price": "₹5,999 / month",
-      "features": ["Unlimited Leads", "Priority Support", "Featured Listing", "Profile Highlight"],
+      "features": ["Priority Support", "Featured Listing", "Profile Highlight"],
       "popular": true,
     },
     {
       "name": "Elite",
       "price": "₹12,999 / month",
-      "features": ["Unlimited Leads", "Top Ranking", "Featured Profile", "Dedicated Manager"],
+      "features": ["Top Ranking", "Featured Profile", "Dedicated Manager"],
       "popular": false,
     },
   ];

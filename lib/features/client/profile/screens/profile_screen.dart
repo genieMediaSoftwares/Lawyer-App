@@ -11,6 +11,7 @@ import '../../../../routes/route_names.dart';
 import '../../../../core/widgets/location_picker_sheet.dart';
 import '../../../../providers/notification_provider.dart';
 import '../../../../core/widgets/app_drawer.dart';
+import '../../../../core/widgets/app_circle_avatar.dart';
 
 import 'my_profile_screen.dart';
 import 'personal_information_screen.dart';
@@ -289,22 +290,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          CircleAvatar(
+          AppCircleAvatar(
             radius: 28,
             backgroundColor: const Color(0xFF2B2B2B),
-            backgroundImage: profile.profileImage.isNotEmpty
-                ? NetworkImage(Environment.getAttachmentUrl(profile.profileImage))
+            imageUrl: profile.profileImage.isNotEmpty
+                ? Environment.getAttachmentUrl(profile.profileImage)
                 : null,
-            child: profile.profileImage.isEmpty
-                ? Text(
-                    profile.fullName.isNotEmpty ? profile.fullName[0].toUpperCase() : 'C',
-                    style: const TextStyle(
-                      color: Color(0xFFD4AF37),
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  )
-                : null,
+            fallback: Text(
+              profile.fullName.isNotEmpty ? profile.fullName[0].toUpperCase() : 'C',
+              style: const TextStyle(
+                color: Color(0xFFD4AF37),
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(

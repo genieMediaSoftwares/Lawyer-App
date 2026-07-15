@@ -581,6 +581,108 @@ class LawyerController {
       next(error);
     }
   }
+
+  async getGoogleCalendarStatus(req, res, next) {
+    try {
+      const Lawyer = require("../../models/Lawyer");
+      const lawyer = await Lawyer.findOne({ user: req.user._id });
+      if (!lawyer) {
+        return ApiResponse.error(res, "Lawyer profile not found.", 404);
+      }
+      return ApiResponse.success(res, "Google Calendar status retrieved.", {
+        connected: lawyer.googleConnected || false,
+        email: lawyer.googleEmail || "",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async connectGoogleCalendar(req, res, next) {
+    try {
+      const { email, isSimulated, code } = req.body;
+      const Lawyer = require("../../models/Lawyer");
+      const lawyer = await Lawyer.findOne({ user: req.user._id });
+      if (!lawyer) {
+        return ApiResponse.error(res, "Lawyer profile not found.", 404);
+      }
+
+      const googleCalendarService = require("../../services/googleCalendarService");
+      const realMode = googleCalendarService.isRealMode() && !isSimulated;
+
+      if (realMode) {
+        const { google } = require("googleapis");
+        const oauth2Client = new google.auth.OAuth2(
+          process.env.GOOGLE_CLIENT_ID,
+          process.env.GOOGLE_CLIENT_SECRET,
+          process.env.GOOGLE_REDIRECT_URI || "urn:ietf:wg:oauth:2.0:oob"
+        );
+        
+        const { tokens } = await oauth2Client.getToken(code);
+        oauth2Client.setCredentials(tokens);
+
+        // Fetch user email from Google OAuth profile
+        const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
+        const userInfo = await oauth2.userinfo.get();
+
+        lawyer.googleConnected = true;
+        lawyer.googleEmail = userInfo.data.email || email;
+        lawyer.googleAccessToken = tokens.access_token;
+        if (tokens.refresh_token) {
+          lawyer.googleRefreshToken = tokens.refresh_token;
+        }
+        if (tokens.expiry_date) {
+          lawyer.googleTokenExpiry = new Date(tokens.expiry_date);
+        }
+      } else {
+        // Simulated Google Calendar integration
+        lawyer.googleConnected = true;
+        lawyer.googleEmail = email || "mock_advocate@gmail.com";
+        lawyer.googleAccessToken = "mock_access_token";
+        lawyer.googleRefreshToken = "mock_refresh_token";
+        lawyer.googleTokenExpiry = new Date(Date.now() + 3600 * 1000); // 1 hour mock
+      }
+
+      await lawyer.save();
+
+      // Trigger sync of existing future appointments in the background
+      googleCalendarService.syncExistingAppointments(req.user._id).catch(err => {
+        console.error("Failed to sync existing appointments on connect:", err);
+      });
+
+      return ApiResponse.success(res, "Google Calendar connected successfully.", {
+        connected: true,
+        email: lawyer.googleEmail,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async disconnectGoogleCalendar(req, res, next) {
+    try {
+      const Lawyer = require("../../models/Lawyer");
+      const lawyer = await Lawyer.findOne({ user: req.user._id });
+      if (!lawyer) {
+        return ApiResponse.error(res, "Lawyer profile not found.", 404);
+      }
+
+      lawyer.googleConnected = false;
+      lawyer.googleEmail = "";
+      lawyer.googleAccessToken = "";
+      lawyer.googleRefreshToken = "";
+      lawyer.googleTokenExpiry = null;
+
+      await lawyer.save();
+
+      return ApiResponse.success(res, "Google Calendar disconnected successfully.", {
+        connected: false,
+        email: "",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new LawyerController();

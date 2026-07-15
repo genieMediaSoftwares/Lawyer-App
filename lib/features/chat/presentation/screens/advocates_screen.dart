@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../providers/lawyer_provider.dart';
+import '../../../../core/widgets/app_circle_avatar.dart';
 import '../../../../core/config/env.dart';
 import '../widgets/filter_drawer.dart';
 import '../widgets/sort_by_sheet.dart';
@@ -279,16 +280,11 @@ class AdvocateCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // ── Avatar ──────────────────────────────────────
-          CircleAvatar(
+          AppCircleAvatar(
             radius: 36,
             backgroundColor: const Color(0xFF2A2A2A),
-            backgroundImage: imageProvider,
-            onBackgroundImageError: imageProvider != null
-                ? (Object exception, StackTrace? stack) {}
-                : null,
-            child: imageProvider == null
-                ? const Icon(Icons.person, color: Colors.white54, size: 36)
-                : null,
+            imageUrl: imageUrl.isNotEmpty ? Environment.getAttachmentUrl(imageUrl) : null,
+            fallback: const Icon(Icons.person, color: Colors.white54, size: 36),
           ),
 
           const SizedBox(width: 14),

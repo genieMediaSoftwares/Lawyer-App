@@ -40,6 +40,18 @@ const appointmentSchema = new mongoose.Schema(
       enum: ["pending", "confirmed", "completed", "cancelled"],
       default: "pending",
     },
+    googleCalendarEventId: {
+      type: String,
+      default: "",
+    },
+    meetingLink: {
+      type: String,
+      default: "",
+    },
+    notes: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,

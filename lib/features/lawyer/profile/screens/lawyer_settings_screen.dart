@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../providers/google_calendar_provider.dart';
+import '../../../../providers/auth_provider.dart';
 
 class LawyerSettingsScreen extends ConsumerStatefulWidget {
   const LawyerSettingsScreen({super.key});
@@ -96,6 +98,11 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
           ),
           const SizedBox(height: 16),
 
+          // Integrations
+          _buildSectionHeader("Integrations"),
+          _buildGoogleCalendarCard(),
+          const SizedBox(height: 16),
+
           // Security & Support
           _buildSectionHeader("Account & Support"),
           Card(
@@ -172,5 +179,157 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
     if (confirmed == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Account deletion simulated successfully.")));
     }
+  }
+
+  Widget _buildGoogleCalendarCard() {
+    final theme = Theme.of(context);
+    final googleCalState = ref.watch(googleCalendarProvider);
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: theme.colorScheme.outline),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: Colors.red.shade50.withOpacity(0.1),
+              radius: 20,
+              child: const Icon(Icons.calendar_month, color: AppColors.primaryGold, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Google Calendar",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    googleCalState.isConnected
+                        ? "Connected: ${googleCalState.email}"
+                        : "Sync your appointments with Google Calendar",
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: googleCalState.isConnected ? AppColors.success : theme.textTheme.bodySmall?.color,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (googleCalState.isLoading)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else if (googleCalState.isConnected)
+              TextButton(
+                onPressed: () => _disconnectGoogleCalendar(),
+                child: const Text("Disconnect", style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 12)),
+              )
+            else
+              ElevatedButton(
+                onPressed: () => _showConnectGoogleDialog(),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text("Connect", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _disconnectGoogleCalendar() async {
+    final notifier = ref.read(googleCalendarProvider.notifier);
+    final success = await notifier.disconnect();
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Google Calendar disconnected successfully.")),
+      );
+    }
+  }
+
+  void _showConnectGoogleDialog() {
+    final emailController = TextEditingController();
+    
+    final auth = ref.read(authProvider);
+    emailController.text = auth.userEmail ?? "";
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: const [
+            Icon(Icons.calendar_month, color: AppColors.primaryGold),
+            SizedBox(width: 10),
+            Text("Google Calendar"),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Sync Genie Law appointments to your Google Calendar. Choose/enter your Google account email to connect:",
+              style: TextStyle(fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              decoration: InputDecoration(
+                labelText: "Google Email Address",
+                hintText: "example@gmail.com",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+              if (email.isEmpty || !email.contains("@")) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Please enter a valid Google email address.")),
+                );
+                return;
+              }
+              
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.pop(context);
+              
+              final success = await ref.read(googleCalendarProvider.notifier).connect(email);
+              if (success && mounted) {
+                messenger.showSnackBar(
+                  SnackBar(content: Text("Successfully connected to Google Calendar for $email")),
+                );
+              } else if (mounted) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text("Failed to connect Google Calendar. Please try again.")),
+                );
+              }
+            },
+            child: const Text("Connect"),
+          ),
+        ],
+      ),
+    );
   }
 }

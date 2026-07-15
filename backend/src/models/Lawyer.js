@@ -91,6 +91,25 @@ const lawyerSchema = new mongoose.Schema(
       enum: ["Free", "Basic", "Premium", "Pro Hub"],
       default: "Free",
     },
+    googleConnected: {
+      type: Boolean,
+      default: false,
+    },
+    googleEmail: {
+      type: String,
+      default: "",
+    },
+    googleAccessToken: {
+      type: String,
+      default: "",
+    },
+    googleRefreshToken: {
+      type: String,
+      default: "",
+    },
+    googleTokenExpiry: {
+      type: Date,
+    },
     workingHours: {
       type: String,
       default: "9:00 AM - 6:00 PM",
