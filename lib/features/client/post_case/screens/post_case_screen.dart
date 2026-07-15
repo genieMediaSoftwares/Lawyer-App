@@ -3,15 +3,13 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
-=======
->>>>>>> 2d96158805d74849ab6fad341c1a127c63d39f7a
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/config/env.dart';
+import '../../../../core/widgets/app_circle_avatar.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../models/document_model.dart';
@@ -19,16 +17,12 @@ import '../../../../providers/case_provider.dart';
 import '../../../../providers/document_provider.dart';
 import '../../../../providers/category_provider.dart';
 import 'package:file_picker/file_picker.dart';
-<<<<<<< HEAD
 import 'package:record/record.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http_parser/http_parser.dart';
 import '../widgets/voice_recording_visualizer.dart';
 import '../widgets/premium_audio_player.dart';
-import '../../../../core/widgets/location_picker_sheet.dart';
-=======
->>>>>>> 2d96158805d74849ab6fad341c1a127c63d39f7a
 import '../../../../providers/auth_provider.dart';
 import '../../../../models/category_item.dart';
 import '../../../../models/place_model.dart';
@@ -99,6 +93,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   String? _selectedCityName;
   String? _selectedDistrictName;
   String? _selectedStateName;
+  String? _selectedCountryName;
+  double? _selectedLatitude;
+  double? _selectedLongitude;
+  String? _selectedGooglePlaceId;
 
   List<PlaceSuggestionModel> _locationSuggestions = [];
   bool _isLocationLoading = false;
@@ -724,6 +722,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           _selectedCityName = details.city;
           _selectedDistrictName = details.district;
           _selectedStateName = details.state;
+          _selectedCountryName = details.country;
+          _selectedLatitude = details.latitude;
+          _selectedLongitude = details.longitude;
+          _selectedGooglePlaceId = details.placeId;
 
           _locationSuggestions = [];
           _isLocationLoading = false;
@@ -753,29 +755,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   }
 
 
-<<<<<<< HEAD
-    if (result != null && result.files.single.path != null) {
-      final filePath = result.files.single.path!;
-      final fileName = result.files.single.name;
-      
-      final doc = await ref.read(documentsProvider.notifier).uploadDocument(filePath, fileName);
-      if (doc != null) {
-        setState(() {
-          _uploadedDocs.add(DocumentModel(
-            name: doc.originalName,
-            url: Environment.getAttachmentUrl(doc.filePath),
-            size: "${(doc.fileSize / 1024).toStringAsFixed(1)} KB",
-          ));
-        });
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Document uploaded and attached successfully!")),
-        );
-      }
-    }
-  }
-=======
->>>>>>> 2d96158805d74849ab6fad341c1a127c63d39f7a
+
 
   Future<void> _submitCase() async {
     if (_selectedCategory == null ||
@@ -1253,28 +1233,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           ],
         ),
         const SizedBox(height: 8),
-<<<<<<< HEAD
         RawAutocomplete<PlaceSuggestionModel>(
           focusNode: _cityFocusNode,
           textEditingController: _cityController,
           optionsBuilder: (TextEditingValue textEditingValue) {
             return _locationSuggestions;
-=======
-        TextField(
-          controller: _cityController,
-          style: TextStyle(color: primaryTextColor),
-          onChanged: (val) {
-            setState(() {
-              _selectedCityName = null;
-              _selectedDistrictName = null;
-              _selectedStateName = null;
-              
-              _selectedCourtName = null;
-              _courtController.clear();
-              ref.read(courtsProvider.notifier).clear();
-            });
-            _onCitySearchChanged(val);
->>>>>>> 2d96158805d74849ab6fad341c1a127c63d39f7a
           },
           optionsViewBuilder: (context, onSelected, options) {
             final listOptions = options.toList();
@@ -2354,7 +2317,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                       borderRadius: BorderRadius.circular(12),
                       child: lawyer.profileImage.isNotEmpty
                           ? Image.network(
-                              lawyer.profileImage,
+                              Environment.getAttachmentUrl(lawyer.profileImage),
                               width: 80,
                               height: 88,
                               fit: BoxFit.cover,
@@ -2655,14 +2618,12 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   ),
                   Row(
                     children: [
-                      CircleAvatar(
+                      AppCircleAvatar(
                         radius: 40,
-                        backgroundImage: lawyer.profileImage.isNotEmpty
-                            ? NetworkImage(lawyer.profileImage)
+                        imageUrl: lawyer.profileImage.isNotEmpty
+                            ? Environment.getAttachmentUrl(lawyer.profileImage)
                             : null,
-                        child: lawyer.profileImage.isEmpty
-                            ? const Icon(Icons.person, size: 40, color: Colors.grey)
-                            : null,
+                        fallback: const Icon(Icons.person, size: 40, color: Colors.grey),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -2869,14 +2830,12 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             ),
             child: Row(
               children: [
-                CircleAvatar(
+                AppCircleAvatar(
                   radius: 28,
-                  backgroundImage: _selectedLawyer!.profileImage.isNotEmpty
-                      ? NetworkImage(_selectedLawyer!.profileImage)
+                  imageUrl: _selectedLawyer!.profileImage.isNotEmpty
+                      ? Environment.getAttachmentUrl(_selectedLawyer!.profileImage)
                       : null,
-                  child: _selectedLawyer!.profileImage.isEmpty
-                      ? const Icon(Icons.person, color: Colors.grey)
-                      : null,
+                  fallback: const Icon(Icons.person, color: Colors.grey),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

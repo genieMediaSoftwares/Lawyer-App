@@ -73,8 +73,9 @@ app.get("/api", (req, res) => {
   });
 });
 
+const path = require("path");
 // Serve local uploads folder statically
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Routes
 app.use("/api/auth", authRoutes);

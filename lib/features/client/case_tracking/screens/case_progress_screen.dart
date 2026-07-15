@@ -5,13 +5,12 @@ import 'package:intl/intl.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/appointment_provider.dart';
 import '../../../../models/case_model.dart';
-<<<<<<< HEAD
 import '../../../../routes/route_names.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../post_case/widgets/premium_audio_player.dart';
-=======
->>>>>>> 2d96158805d74849ab6fad341c1a127c63d39f7a
 import '../../../../providers/chat_provider.dart';
+import '../../../../core/config/env.dart';
+import '../../../../core/widgets/app_circle_avatar.dart';
 
 class CaseProgressScreen extends ConsumerWidget {
   final String caseId;
@@ -322,15 +321,13 @@ class CaseProgressScreen extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
+          AppCircleAvatar(
             radius: 24,
             backgroundColor: const Color(0xFF2B2B2C),
-            backgroundImage: lawyerImage.isNotEmpty
-                ? NetworkImage(lawyerImage)
+            imageUrl: lawyerImage.isNotEmpty
+                ? Environment.getAttachmentUrl(lawyerImage)
                 : null,
-            child: lawyerImage.isEmpty
-                ? const Icon(Icons.person, color: Colors.grey)
-                : null,
+            fallback: const Icon(Icons.person, color: Colors.grey),
           ),
           const SizedBox(width: 14),
           Expanded(

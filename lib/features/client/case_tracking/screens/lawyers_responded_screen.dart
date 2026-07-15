@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../models/case_model.dart';
+import '../../../../core/config/env.dart';
+import '../../../../core/widgets/app_circle_avatar.dart';
 
 class LawyersRespondedScreen extends ConsumerWidget {
   final String caseId;
@@ -101,10 +103,10 @@ class LawyersRespondedScreen extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
+            AppCircleAvatar(
               radius: 30,
-              backgroundImage: proposal.profileImage.isNotEmpty ? NetworkImage(proposal.profileImage) : null,
-              child: proposal.profileImage.isEmpty ? const Icon(Icons.person, size: 30) : null,
+              imageUrl: proposal.profileImage.isNotEmpty ? Environment.getAttachmentUrl(proposal.profileImage) : null,
+              fallback: const Icon(Icons.person, size: 30),
             ),
             const SizedBox(width: 16),
             Expanded(
