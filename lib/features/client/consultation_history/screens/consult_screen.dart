@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/appointment_provider.dart';
 import '../../../../models/appointment_model.dart';
+import '../../../../core/config/env.dart';
+import '../../../../core/widgets/app_circle_avatar.dart';
 
 class ConsultScreen extends ConsumerStatefulWidget {
   const ConsultScreen({super.key});
@@ -123,10 +125,10 @@ class _ConsultScreenState extends ConsumerState<ConsultScreen> with SingleTicker
           children: [
             Row(
               children: [
-                CircleAvatar(
+                AppCircleAvatar(
                   radius: 28,
-                  backgroundImage: appointment.lawyerImage.isNotEmpty ? NetworkImage(appointment.lawyerImage) : null,
-                  child: appointment.lawyerImage.isEmpty ? const Icon(Icons.person) : null,
+                  imageUrl: appointment.lawyerImage.isNotEmpty ? Environment.getAttachmentUrl(appointment.lawyerImage) : null,
+                  fallback: const Icon(Icons.person),
                 ),
                 const SizedBox(width: 14),
                 Expanded(

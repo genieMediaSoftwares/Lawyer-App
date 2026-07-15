@@ -5,6 +5,8 @@ import '../../providers/auth_provider.dart';
 import '../../providers/lawyer_provider.dart';
 import '../../routes/route_names.dart';
 import '../../core/config/env.dart';
+import 'app_circle_avatar.dart';
+
 
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
@@ -58,16 +60,12 @@ class AppDrawer extends ConsumerWidget {
                     builder: (context) {
                       final resolvedPhotoUrl = (auth.userPhotoUrl != null && auth.userPhotoUrl!.isNotEmpty)
                           ? Environment.getAttachmentUrl(auth.userPhotoUrl)
-                          : '';
-                      return CircleAvatar(
+                          : null;
+                      return AppCircleAvatar(
                         radius: 28,
                         backgroundColor: theme.colorScheme.onSurface.withOpacity(0.12),
-                        backgroundImage: resolvedPhotoUrl.isNotEmpty
-                            ? NetworkImage(resolvedPhotoUrl)
-                            : null,
-                        child: resolvedPhotoUrl.isEmpty
-                            ? Icon(Icons.person, color: theme.colorScheme.onSurface, size: 28)
-                            : null,
+                        imageUrl: resolvedPhotoUrl,
+                        fallback: Icon(Icons.person, color: theme.colorScheme.onSurface, size: 28),
                       );
                     },
                   ),

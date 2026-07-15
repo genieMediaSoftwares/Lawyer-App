@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../providers/faq_provider.dart';
 import '../../../../routes/route_names.dart';
+import '../../../../core/config/env.dart';
+import '../../../../core/widgets/app_circle_avatar.dart';
 
 class CategoryDetailScreen extends ConsumerStatefulWidget {
   final String categoryName;
@@ -186,10 +188,10 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
                                 padding: const EdgeInsets.all(12),
                                 child: Row(
                                   children: [
-                                    CircleAvatar(
+                                    AppCircleAvatar(
                                       radius: 26,
-                                      backgroundImage: lawyer.profileImage.isNotEmpty ? NetworkImage(lawyer.profileImage) : null,
-                                      child: lawyer.profileImage.isEmpty ? const Icon(Icons.person) : null,
+                                      imageUrl: lawyer.profileImage.isNotEmpty ? Environment.getAttachmentUrl(lawyer.profileImage) : null,
+                                      fallback: const Icon(Icons.person),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(

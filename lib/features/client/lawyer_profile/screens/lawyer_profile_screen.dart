@@ -5,6 +5,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../models/lawyer_model.dart';
 import '../../../../providers/chat_provider.dart';
+import '../../../../core/config/env.dart';
+import '../../../../core/widgets/app_circle_avatar.dart';
 
 import '../../../../providers/favorite_provider.dart';
 
@@ -176,10 +178,10 @@ class LawyerProfileScreen extends ConsumerWidget {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          CircleAvatar(
+          AppCircleAvatar(
             radius: 45,
-            backgroundImage: lawyer.profileImage.isNotEmpty ? NetworkImage(lawyer.profileImage) : null,
-            child: lawyer.profileImage.isEmpty ? const Icon(Icons.person, size: 45) : null,
+            imageUrl: lawyer.profileImage.isNotEmpty ? Environment.getAttachmentUrl(lawyer.profileImage) : null,
+            fallback: const Icon(Icons.person, size: 45),
           ),
           const SizedBox(height: 16),
           Text(
