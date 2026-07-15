@@ -3,6 +3,8 @@ class ChatModel {
   final List<ChatParticipantModel> participants;
   final String lastMessage;
   final DateTime lastMessageAt;
+  final String lastMessageSender;
+  final bool isLastMessageRead;
   final int unreadCount;
   final ChatCaseInfoModel? caseInfo;
 
@@ -11,6 +13,8 @@ class ChatModel {
     required this.participants,
     required this.lastMessage,
     required this.lastMessageAt,
+    this.lastMessageSender = '',
+    this.isLastMessageRead = false,
     required this.unreadCount,
     this.caseInfo,
   });
@@ -26,6 +30,8 @@ class ChatModel {
       lastMessageAt: json['lastMessageAt'] != null
           ? DateTime.parse(json['lastMessageAt']).toLocal()
           : DateTime.now(),
+      lastMessageSender: json['lastMessageSender'] ?? '',
+      isLastMessageRead: json['isLastMessageRead'] ?? false,
       unreadCount: json['unreadCount'] ?? 0,
       caseInfo: json['caseInfo'] != null
           ? ChatCaseInfoModel.fromJson(json['caseInfo'])
@@ -38,6 +44,8 @@ class ChatModel {
     List<ChatParticipantModel>? participants,
     String? lastMessage,
     DateTime? lastMessageAt,
+    String? lastMessageSender,
+    bool? isLastMessageRead,
     int? unreadCount,
     ChatCaseInfoModel? caseInfo,
   }) {
@@ -46,6 +54,8 @@ class ChatModel {
       participants: participants ?? this.participants,
       lastMessage: lastMessage ?? this.lastMessage,
       lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+      lastMessageSender: lastMessageSender ?? this.lastMessageSender,
+      isLastMessageRead: isLastMessageRead ?? this.isLastMessageRead,
       unreadCount: unreadCount ?? this.unreadCount,
       caseInfo: caseInfo ?? this.caseInfo,
     );
@@ -57,20 +67,26 @@ class ChatParticipantModel {
   final String fullName;
   final String profileImage;
   final String role;
+  final bool isVerified;
+  final String specialization;
 
   ChatParticipantModel({
     required this.id,
     required this.fullName,
     required this.profileImage,
     required this.role,
+    this.isVerified = false,
+    this.specialization = '',
   });
 
   factory ChatParticipantModel.fromJson(Map<String, dynamic> json) {
     return ChatParticipantModel(
-      id: json['_id'] ?? '',
+      id: json['_id'] ?? json['id'] ?? '',
       fullName: json['fullName'] ?? '',
       profileImage: json['profileImage'] ?? '',
       role: json['role'] ?? 'client',
+      isVerified: json['isVerified'] ?? false,
+      specialization: json['specialization'] ?? '',
     );
   }
 }

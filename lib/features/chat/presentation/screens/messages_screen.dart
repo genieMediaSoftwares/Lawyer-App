@@ -42,10 +42,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
 
   ImageProvider? _resolveImage(String url) {
     if (url.isEmpty) return null;
-    if (url.startsWith('http')) return NetworkImage(url);
-    final base = Environment.baseUrl.replaceAll('/api', '');
-    final clean = url.startsWith('/') ? url : '/$url';
-    return NetworkImage('$base$clean');
+    return NetworkImage(Environment.getAttachmentUrl(url));
   }
 
   @override
@@ -116,8 +113,10 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
-              children: ['All', 'Unread', 'Clients'].map((filter) {
-                final isSelected = _selectedFilter == filter;
+              children: ['All', 'Unread', authState.role == UserRole.lawyer ? 'Clients' : 'Lawyers'].map((filter) {
+                final isSelected = _selectedFilter == filter || 
+                    (_selectedFilter == 'Clients' && filter == 'Lawyers' && authState.role != UserRole.lawyer) ||
+                    (_selectedFilter == 'Lawyers' && filter == 'Clients' && authState.role == UserRole.lawyer);
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: ChoiceChip(
@@ -171,7 +170,9 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                             .toLowerCase()
                             .contains(query) ??
                         false;
-                    return nameMatches || caseMatches;
+                    final msgMatches =
+                        chat.lastMessage.toLowerCase().contains(query);
+                    return nameMatches || caseMatches || msgMatches;
                   }).toList();
                 }
 
@@ -180,10 +181,10 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                   filtered = filtered
                       .where((chat) => chat.unreadCount > 0)
                       .toList();
-                } else if (_selectedFilter == 'Clients') {
+                } else if (_selectedFilter == 'Clients' || _selectedFilter == 'Lawyers') {
                   filtered = filtered.where((chat) {
                     final other = _getOtherParticipant(chat.participants, currentUserId);
-                    return other.role == 'client';
+                    return other.role == (authState.role == UserRole.lawyer ? 'client' : 'lawyer');
                   }).toList();
                 }
 
@@ -310,17 +311,27 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                           title: Row(
                             children: [
                               Expanded(
-                                child: Text(
-                                  otherParticipant.fullName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontWeight: isUnread
-                                        ? FontWeight.bold
-                                        : FontWeight.w600,
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                  ),
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        otherParticipant.fullName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontWeight: isUnread
+                                              ? FontWeight.bold
+                                              : FontWeight.w600,
+                                          fontSize: 16,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                    if (otherParticipant.role == 'lawyer' && otherParticipant.isVerified) ...[
+                                      const SizedBox(width: 4),
+                                      const Icon(Icons.verified, color: AppColors.primaryGold, size: 16),
+                                    ],
+                                  ],
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -344,6 +355,17 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                               crossAxisAlignment:
                                   CrossAxisAlignment.start,
                               children: [
+                                if (otherParticipant.role == 'lawyer' && otherParticipant.specialization.isNotEmpty) ...[
+                                  Text(
+                                    otherParticipant.specialization,
+                                    style: TextStyle(
+                                      color: Colors.grey.shade400,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                ],
                                 // Case title (if linked)
                                 Row(
                                   children: [
@@ -368,30 +390,44 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 // Last message or typing indicator
-                                Text(
-                                  typingUser != null
-                                      ? "typing..."
-                                      : (chat.lastMessage.isNotEmpty
-                                          ? chat.lastMessage
-                                          : "No messages yet."),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: typingUser != null
-                                        ? AppColors.success
-                                        : (isUnread
-                                            ? Colors.white
-                                            : Colors.grey.shade400),
-                                    fontStyle: typingUser != null
-                                        ? FontStyle.italic
-                                        : FontStyle.normal,
-                                    fontWeight: typingUser != null
-                                        ? FontWeight.bold
-                                        : (isUnread
-                                            ? FontWeight.w600
-                                            : FontWeight.normal),
-                                    fontSize: 13,
-                                  ),
+                                Row(
+                                  children: [
+                                    if (chat.lastMessageSender == currentUserId && chat.lastMessage.isNotEmpty && typingUser == null) ...[
+                                      Icon(
+                                        chat.isLastMessageRead ? Icons.done_all : Icons.done,
+                                        size: 16,
+                                        color: chat.isLastMessageRead ? AppColors.primaryGold : Colors.grey,
+                                      ),
+                                      const SizedBox(width: 4),
+                                    ],
+                                    Expanded(
+                                      child: Text(
+                                        typingUser != null
+                                            ? "typing..."
+                                            : (chat.lastMessage.isNotEmpty
+                                                ? chat.lastMessage
+                                                : "No messages yet."),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: typingUser != null
+                                              ? AppColors.success
+                                              : (isUnread
+                                                  ? Colors.white
+                                                  : Colors.grey.shade400),
+                                          fontStyle: typingUser != null
+                                              ? FontStyle.italic
+                                              : FontStyle.normal,
+                                          fontWeight: typingUser != null
+                                              ? FontWeight.bold
+                                              : (isUnread
+                                                  ? FontWeight.w600
+                                                  : FontWeight.normal),
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/config/env.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -389,12 +390,67 @@ class _EditProfileBottomSheetState extends ConsumerState<EditProfileBottomSheet>
 
   bool _isSaving = false;
 
+  DateTime? _parseDOB(String value) {
+    if (value.trim().isEmpty) return null;
+    try {
+      return DateFormat("dd/MM/yyyy").parseStrict(value.trim());
+    } catch (_) {}
+    try {
+      return DateFormat("dd MMM yyyy").parse(value.trim());
+    } catch (_) {}
+    try {
+      return DateTime.parse(value.trim());
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> _selectDate() async {
+    DateTime initial = DateTime.now().subtract(const Duration(days: 365 * 18));
+    if (_dobController.text.isNotEmpty) {
+      final parsed = _parseDOB(_dobController.text);
+      if (parsed != null) {
+        initial = parsed;
+      }
+    }
+
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: AppColors.primaryGold,
+              onPrimary: Colors.black,
+              surface: Color(0xFF1B1B1B),
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _dobController.text = DateFormat("dd/MM/yyyy").format(picked);
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.profile.fullName);
     _phoneController = TextEditingController(text: widget.profile.mobile);
-    _dobController = TextEditingController(text: widget.profile.dob);
+    
+    final parsed = _parseDOB(widget.profile.dob);
+    _dobController = TextEditingController(
+      text: parsed != null ? DateFormat("dd/MM/yyyy").format(parsed) : "",
+    );
+    
     _genderController = TextEditingController(text: widget.profile.gender);
     _languagesController = TextEditingController(text: widget.profile.languages.join(", "));
     _locationController = TextEditingController(text: widget.profile.location);
@@ -495,18 +551,100 @@ class _EditProfileBottomSheetState extends ConsumerState<EditProfileBottomSheet>
               const SizedBox(height: 12),
 
               // Date of Birth
-              _buildTextField(
+              TextFormField(
                 controller: _dobController,
-                labelText: "Date of Birth (e.g. 05 Aug 2003)",
-                validator: (val) => null,
+                readOnly: true,
+                onTap: _selectDate,
+                style: const TextStyle(color: Colors.white),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return "Date of Birth is required";
+                  }
+                  final parsed = _parseDOB(val);
+                  if (parsed == null) {
+                    return "Please select a valid date";
+                  }
+                  if (parsed.isAfter(DateTime.now())) {
+                    return "Date of Birth cannot be in the future";
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  labelText: "Date of Birth",
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  hintText: "dd/mm/yyyy",
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  suffixIcon: const Icon(Icons.calendar_today_outlined, color: AppColors.primaryGold),
+                  filled: true,
+                  fillColor: const Color(0xFF2B2B2B),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF3B3B3B)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.primaryGold),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
 
               // Gender
-              _buildTextField(
-                controller: _genderController,
-                labelText: "Gender (e.g. Male, Female)",
-                validator: (val) => null,
+              DropdownButtonFormField<String>(
+                value: ['Male', 'Female', 'Other', 'Prefer Not To Say'].contains(_genderController.text)
+                    ? _genderController.text
+                    : null,
+                dropdownColor: const Color(0xFF1B1B1B),
+                style: const TextStyle(color: Colors.white),
+                icon: const Icon(Icons.arrow_drop_down, color: AppColors.primaryGold),
+                hint: const Text(
+                  "Select Gender",
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+                decoration: InputDecoration(
+                  labelText: "Gender",
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  filled: true,
+                  fillColor: const Color(0xFF2B2B2B),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF3B3B3B)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.primaryGold),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red),
+                  ),
+                ),
+                items: const [
+                  DropdownMenuItem(value: "Male", child: Text("Male")),
+                  DropdownMenuItem(value: "Female", child: Text("Female")),
+                  DropdownMenuItem(value: "Other", child: Text("Other")),
+                  DropdownMenuItem(value: "Prefer Not To Say", child: Text("Prefer Not To Say")),
+                ],
+                validator: (val) => val == null || val.isEmpty ? "Gender is required" : null,
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      _genderController.text = val;
+                    });
+                  }
+                },
               ),
               const SizedBox(height: 12),
 
