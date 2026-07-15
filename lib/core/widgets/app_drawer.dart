@@ -57,17 +57,15 @@ class AppDrawer extends ConsumerWidget {
                   Builder(
                     builder: (context) {
                       final resolvedPhotoUrl = (auth.userPhotoUrl != null && auth.userPhotoUrl!.isNotEmpty)
-                          ? (auth.userPhotoUrl!.startsWith('http')
-                              ? auth.userPhotoUrl!
-                              : '${Environment.baseUrl.replaceAll('/api', '')}${auth.userPhotoUrl!.startsWith('/') ? auth.userPhotoUrl! : '/${auth.userPhotoUrl!}'}')
-                          : null;
+                          ? Environment.getAttachmentUrl(auth.userPhotoUrl)
+                          : '';
                       return CircleAvatar(
                         radius: 28,
                         backgroundColor: theme.colorScheme.onSurface.withOpacity(0.12),
-                        backgroundImage: resolvedPhotoUrl != null
+                        backgroundImage: resolvedPhotoUrl.isNotEmpty
                             ? NetworkImage(resolvedPhotoUrl)
                             : null,
-                        child: (resolvedPhotoUrl == null)
+                        child: resolvedPhotoUrl.isEmpty
                             ? Icon(Icons.person, color: theme.colorScheme.onSurface, size: 28)
                             : null,
                       );

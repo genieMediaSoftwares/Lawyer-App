@@ -6,6 +6,9 @@ import '../models/chat_model.dart';
 import '../models/message_model.dart';
 import '../core/config/env.dart';
 import 'auth_provider.dart';
+import 'notification_provider.dart';
+
+final activeChatIdProvider = StateProvider<String?>((ref) => null);
 
 final userOnlineStatusProvider =
     StateProvider.family<bool, String>((ref, userId) => false);
@@ -23,6 +26,8 @@ final chatsProvider =
 class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
   final Ref _ref;
   IO.Socket? _socket;
+
+  IO.Socket? get socket => _socket;
 
   ChatsNotifier(this._ref, {bool shouldFetch = true})
       : super(
@@ -119,12 +124,14 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
       final senderId = (data['senderId'] ?? '').toString();
       final currentUserId = _ref.read(authProvider).userId ?? '';
       final isMsgFromMe = senderId == currentUserId;
+      final activeChatId = _ref.read(activeChatIdProvider);
+      final isChatOpen = activeChatId == chatId;
 
       state.whenData((currentChats) {
         final hasChat = currentChats.any((c) => c.id == chatId);
         if (!hasChat) {
           // Completely new conversation — refresh list from backend
-          fetchChats();
+          fetchChats(silent: true);
           return;
         }
         final updatedChats = currentChats.map((c) {
@@ -135,14 +142,30 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
                   ? (DateTime.tryParse(lastMsgAtStr)?.toLocal() ??
                       DateTime.now())
                   : DateTime.now(),
-              // Only increment unread if the message is from someone else
-              unreadCount:
-                  isMsgFromMe ? c.unreadCount : (c.unreadCount + 1),
+              lastMessageSender: senderId,
+              // Only increment unread if the message is from someone else and chat is not open
+              unreadCount: isChatOpen
+                  ? 0
+                  : (isMsgFromMe ? c.unreadCount : (c.unreadCount + 1)),
             );
           }
           return c;
         }).toList();
         updatedChats.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+        state = AsyncValue.data(updatedChats);
+      });
+    });
+
+    _socket!.on('read', (data) {
+      if (data == null) return;
+      final readChatId = (data['chatId'] ?? '').toString();
+      state.whenData((currentChats) {
+        final updatedChats = currentChats.map((c) {
+          if (c.id == readChatId) {
+            return c.copyWith(isLastMessageRead: true);
+          }
+          return c;
+        }).toList();
         state = AsyncValue.data(updatedChats);
       });
     });
@@ -155,9 +178,11 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
     super.dispose();
   }
 
-  Future<void> fetchChats() async {
+  Future<void> fetchChats({bool silent = false}) async {
     try {
-      state = const AsyncValue.loading();
+      if (!silent) {
+        state = const AsyncValue.loading();
+      }
       final response = await DioClient.dio.get("/chats");
       if (response.data != null && response.data['success'] == true) {
         final list = response.data['data'] as List;
@@ -172,10 +197,14 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
           }
         }
       } else {
-        state = AsyncValue.error("Failed to load chats", StackTrace.current);
+        if (!silent) {
+          state = AsyncValue.error("Failed to load chats", StackTrace.current);
+        }
       }
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      if (!silent) {
+        state = AsyncValue.error(e, stack);
+      }
     }
   }
 
@@ -255,100 +284,59 @@ class ChatMessagesNotifier
   }
 
   void _initSocket() {
-    if (_socket != null && _socket!.connected) return;
+    final parentNotifier = _ref.read(chatsProvider.notifier);
+    _socket = parentNotifier.socket;
+    if (_socket == null) return;
 
-    final base = Environment.baseUrl.replaceAll('/api', '');
-    _socket = IO.io(
-      '$base/chat',
-      IO.OptionBuilder()
-          .setTransports(['websocket'])
-          .disableAutoConnect()
-          .build(),
-    );
+    _socket!.emit('join', {'chatId': chatId});
 
-    _socket!.connect();
+    _socket!.on('message', _onMessageReceived);
+    _socket!.on('read', _onReadReceiptReceived);
+    _socket!.on('typing', _onTypingReceived);
+  }
 
-    _socket!.onConnectError((data) {
-      print('🔌 [ChatMsgSocket:$chatId] Connect Error: $data');
-    });
+  void _onMessageReceived(dynamic data) {
+    if (data == null) return;
+    try {
+      final rawData = Map<String, dynamic>.from(data as Map);
+      final msgChatId = (rawData['chat'] ?? '').toString();
+      if (msgChatId != chatId) return;
 
-    _socket!.onError((data) {
-      print('🔌 [ChatMsgSocket:$chatId] Error: $data');
-    });
-
-    _socket!.onDisconnect((data) {
-      print('🔌 [ChatMsgSocket:$chatId] Disconnected: $data');
-    });
-
-    _socket!.onConnect((_) {
-      print('🔌 [ChatMsgSocket:$chatId] Connected');
-      final userId = _ref.read(authProvider).userId;
-      if (userId != null) {
-        _socket!.emit('register', {'userId': userId});
-      }
-      _socket!.emit('join', {'chatId': chatId});
-    });
-
-    // ── Online/offline status ──
-    _socket!.on('user_status', (data) {
-      if (data == null) return;
-      final userId = (data['userId'] ?? '').toString();
-      final status = (data['status'] ?? 'offline').toString();
-      if (userId.isNotEmpty) {
-        _ref.read(userOnlineStatusProvider(userId).notifier).state =
-            (status == 'online');
-      }
-    });
-
-    // ── Incoming message bubble ──
-    _socket!.on('message', (data) {
-      if (data == null) return;
-      try {
-        final rawData = Map<String, dynamic>.from(data as Map);
-        // Only process messages belonging to this chat
-        final msgChatId = (rawData['chat'] ?? '').toString();
-        if (msgChatId != chatId) return;
-
-        final message = MessageModel.fromJson(rawData);
-        state.whenData((currentMessages) {
-          if (!currentMessages.any((m) => m.id == message.id)) {
-            state = AsyncValue.data([...currentMessages, message]);
-            // User is viewing this chat — mark as read immediately
-            markAsRead();
-          }
-        });
-      } catch (e) {
-        print('🔌 [ChatMsgSocket:$chatId] message parse error: $e');
-      }
-    });
-
-    // ── Read receipts ──
-    _socket!.on('read', (data) {
-      if (data == null) return;
-      final readChatId = (data['chatId'] ?? '').toString();
-      if (readChatId != chatId) return;
-
+      final message = MessageModel.fromJson(rawData);
       state.whenData((currentMessages) {
-        final currentUserId = _ref.read(authProvider).userId;
-        final updatedMessages = currentMessages.map((m) {
-          // Mark our own outgoing messages as read
-          if (m.senderId == currentUserId) {
-            return m.copyWith(isRead: true);
-          }
-          return m;
-        }).toList();
-        state = AsyncValue.data(updatedMessages);
+        if (!currentMessages.any((m) => m.id == message.id)) {
+          state = AsyncValue.data([...currentMessages, message]);
+          markAsRead();
+        }
       });
-    });
+    } catch (e) {
+      print('🔌 [ChatMsgSocket:$chatId] message parse error: $e');
+    }
+  }
 
-    // ── Typing indicator ──
-    _socket!.on('typing', (data) {
-      if (data == null) return;
-      final userName = (data['userName'] ?? '').toString();
-      final isTyping = data['isTyping'] as bool? ?? false;
-      _ref.read(chatTypingProvider(chatId).notifier).state =
-          isTyping ? userName : null;
+  void _onReadReceiptReceived(dynamic data) {
+    if (data == null) return;
+    final readChatId = (data['chatId'] ?? '').toString();
+    if (readChatId != chatId) return;
+
+    state.whenData((currentMessages) {
+      final currentUserId = _ref.read(authProvider).userId;
+      final updatedMessages = currentMessages.map((m) {
+        if (m.senderId == currentUserId) {
+          return m.copyWith(isRead: true);
+        }
+        return m;
+      }).toList();
+      state = AsyncValue.data(updatedMessages);
     });
+  }
+
+  void _onTypingReceived(dynamic data) {
+    if (data == null) return;
+    final userName = (data['userName'] ?? '').toString();
+    final isTyping = data['isTyping'] as bool? ?? false;
+    _ref.read(chatTypingProvider(chatId).notifier).state =
+        isTyping ? userName : null;
   }
 
   void emitTyping(String userName, bool isTyping) {
@@ -361,8 +349,9 @@ class ChatMessagesNotifier
 
   @override
   void dispose() {
-    _socket?.disconnect();
-    _socket?.dispose();
+    _socket?.off('message', _onMessageReceived);
+    _socket?.off('read', _onReadReceiptReceived);
+    _socket?.off('typing', _onTypingReceived);
     super.dispose();
   }
 
@@ -370,8 +359,16 @@ class ChatMessagesNotifier
   Future<void> markAsRead() async {
     try {
       await DioClient.dio.put("/chats/$chatId/read");
-      // Update the parent list's unread badge to 0 — no full fetchChats needed
       _ref.read(chatsProvider.notifier).markChatAsRead(chatId);
+      
+      // Clear associated notifications
+      final notificationsNotifier = _ref.read(notificationsProvider.notifier);
+      final targetNotifications = _ref.read(notificationsProvider).notifications.where(
+        (n) => n.referenceId == chatId && n.type == 'chat_message' && !n.isRead
+      ).toList();
+      for (final n in targetNotifications) {
+        notificationsNotifier.markAsRead(n.id);
+      }
     } catch (e) {
       // Ignore — non-critical
     }

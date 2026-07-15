@@ -154,11 +154,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> updateLocalDetails({
     String? name,
+    String? email,
     String? mobile,
     String? location,
     String? photoUrl,
   }) async {
     final newName = name ?? state.userName ?? '';
+    final newEmail = email ?? state.userEmail ?? '';
     final newMobile = mobile ?? state.userMobile ?? '';
     final newLocation = location ?? state.userLocation ?? '';
     final newPhoto = photoUrl ?? state.userPhotoUrl ?? '';
@@ -166,7 +168,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await _tokenStorage.saveUserDetails(
       id: state.userId ?? '',
       name: newName,
-      email: state.userEmail ?? '',
+      email: newEmail,
       mobile: newMobile,
       photo: newPhoto,
       location: newLocation,
@@ -174,6 +176,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     state = state.copyWith(
       userName: newName,
+      userEmail: newEmail,
       userMobile: newMobile,
       userLocation: newLocation,
       userPhotoUrl: newPhoto,
@@ -241,7 +244,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
           location: userData['location'] ?? state.userLocation ?? '',
         );
         state = state.copyWith(
+          userName: userData['fullName'],
+          userEmail: userData['email'],
+          userMobile: userData['mobile'],
           userPhotoUrl: userData['profileImage'],
+          userLocation: userData['location'],
         );
         return true;
       }

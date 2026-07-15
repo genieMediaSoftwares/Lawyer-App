@@ -16,7 +16,7 @@ class ChatController {
       // Check if conversation already exists
       let chat = await Chat.findOne({
         participants: { $all: [currentUserId, otherUserId] }
-      }).populate("participants", "fullName email mobile profileImage role");
+      }).populate("participants", "fullName email mobile profileImage role isVerified");
 
       if (!chat) {
         chat = await Chat.create({
@@ -24,10 +24,19 @@ class ChatController {
           lastMessage: "",
           lastMessageAt: new Date()
         });
-        chat = await Chat.findById(chat._id).populate("participants", "fullName email mobile profileImage role");
+        chat = await Chat.findById(chat._id).populate("participants", "fullName email mobile profileImage role isVerified");
       }
 
       let chatObj = chat.toObject();
+      const Lawyer = require("../../models/Lawyer");
+      for (const p of chatObj.participants || []) {
+        if (p.role === "lawyer") {
+          const lawyerProfile = await Lawyer.findOne({ user: p._id });
+          p.specialization = lawyerProfile ? lawyerProfile.specialization : "";
+        } else {
+          p.specialization = "";
+        }
+      }
       const Case = require("../../models/Case");
       const linkedCase = await Case.findOne({
         $or: [
@@ -44,6 +53,9 @@ class ChatController {
           title: linkedCase.title
         };
       }
+
+      const lastMsgDoc = await Message.findOne({ chat: chat._id }).sort({ createdAt: -1 });
+      chatObj.isLastMessageRead = lastMsgDoc ? lastMsgDoc.isRead : false;
 
       return ApiResponse.success(res, "Chat conversation retrieved.", chatObj);
     } catch (error) {
@@ -74,9 +86,21 @@ class ChatController {
       }
 
       const chats = await Chat.find({ participants: currentUserId })
-        .populate("participants", "fullName email mobile profileImage role")
+        .populate("participants", "fullName email mobile profileImage role isVerified")
         .sort({ lastMessageAt: -1 })
         .lean();
+
+      const Lawyer = require("../../models/Lawyer");
+      for (const chat of chats) {
+        for (const p of chat.participants || []) {
+          if (p.role === "lawyer") {
+            const lawyerProfile = await Lawyer.findOne({ user: p._id });
+            p.specialization = lawyerProfile ? lawyerProfile.specialization : "";
+          } else {
+            p.specialization = "";
+          }
+        }
+      }
 
 
       if (chats.length === 0) {
@@ -139,12 +163,14 @@ class ChatController {
       }
 
       // ── Assemble response ──
-      const chatsWithData = chats.map(chat => {
+      const chatsWithData = await Promise.all(chats.map(async chat => {
         const unreadCount = unreadMap[chat._id.toString()] || 0;
         const otherId = chatToOtherMap[chat._id.toString()];
         const caseInfo = otherId ? (caseByOtherId[otherId] || null) : null;
-        return { ...chat, unreadCount, caseInfo };
-      });
+        const lastMsgDoc = await Message.findOne({ chat: chat._id }).sort({ createdAt: -1 });
+        const isLastMessageRead = lastMsgDoc ? lastMsgDoc.isRead : false;
+        return { ...chat, unreadCount, caseInfo, isLastMessageRead };
+      }));
 
       return ApiResponse.success(res, "Chats fetched successfully.", chatsWithData);
     } catch (error) {
@@ -173,6 +199,7 @@ class ChatController {
       if (chat) {
         chat.lastMessage = content || (attachments && attachments.length > 0 ? "Sent an attachment" : "");
         chat.lastMessageAt = new Date();
+        chat.lastMessageSender = sender;
         await chat.save();
 
         const io = req.app.get("io");

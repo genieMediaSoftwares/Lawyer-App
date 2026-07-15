@@ -257,11 +257,7 @@ class AdvocateCard extends StatelessWidget {
 
   ImageProvider? _resolveImage(String url) {
     if (url.isEmpty) return null;
-    if (url.startsWith('http')) return NetworkImage(url);
-    // Relative path from local uploads — prepend server root
-    final base = Environment.baseUrl.replaceAll('/api', '');
-    final clean = url.startsWith('/') ? url : '/$url';
-    return NetworkImage('$base$clean');
+    return NetworkImage(Environment.getAttachmentUrl(url));
   }
 
   @override

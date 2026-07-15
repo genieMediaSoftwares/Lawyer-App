@@ -36,10 +36,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _isUploading = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(activeChatIdProvider.notifier).state = widget.chatId;
+    });
+  }
+
+  @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
     _typingTimer?.cancel();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(activeChatIdProvider.notifier).state = null;
+    });
     super.dispose();
   }
 
@@ -146,11 +157,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   String _resolveImageUrl(String url) {
-    if (url.isEmpty) return '';
-    if (url.startsWith('http')) return url;
-    final base = Environment.baseUrl.replaceAll('/api', '');
-    final clean = url.startsWith('/') ? url : '/$url';
-    return '$base$clean';
+    return Environment.getAttachmentUrl(url);
   }
 
   Future<void> _launchUrl(String urlString) async {
@@ -314,6 +321,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     return const Center(child: Text("No messages in this chat. Start typing below!"));
                   }
 
+                  // Find the index of the last message sent by me
+                  int lastMeMsgIndex = -1;
+                  for (int i = messages.length - 1; i >= 0; i--) {
+                    if (messages[i].senderId == currentUserId) {
+                      lastMeMsgIndex = i;
+                      break;
+                    }
+                  }
+
                   // Build chronological list with date separators
                   final List<Widget> chatWidgets = [];
                   DateTime? lastDate;
@@ -328,7 +344,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     }
 
                     final isMe = message.senderId == currentUserId;
-                    chatWidgets.add(_buildMessageBubble(message, isMe));
+                    chatWidgets.add(_buildMessageBubble(message, isMe, i == lastMeMsgIndex));
                   }
 
                   return ListView.builder(
@@ -387,7 +403,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  Widget _buildMessageBubble(MessageModel message, bool isMe) {
+  Widget _buildMessageBubble(MessageModel message, bool isMe, bool isLastSentByMe) {
     final formattedTime = DateFormat('hh:mm a').format(message.createdAt);
     final theme = Theme.of(context);
 
@@ -522,12 +538,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 formattedTime,
                 style: TextStyle(color: Colors.grey.shade500, fontSize: 10),
               ),
-              if (isMe) ...[
-                const SizedBox(width: 4),
-                Icon(
-                  message.isRead ? Icons.done_all : Icons.done,
-                  color: message.isRead ? Colors.green : Colors.grey.shade500,
-                  size: 14,
+              if (isMe && isLastSentByMe && message.isRead) ...[
+                const SizedBox(width: 6),
+                const Text(
+                  "Seen",
+                  style: TextStyle(
+                    color: AppColors.primaryGold,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ],

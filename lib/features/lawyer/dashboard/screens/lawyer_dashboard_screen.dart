@@ -667,7 +667,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     radius: 28,
                     backgroundColor: AppColors.navyBlueLight,
                     backgroundImage: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
-                        ? NetworkImage(authState.userPhotoUrl!)
+                        ? NetworkImage(Environment.getAttachmentUrl(authState.userPhotoUrl))
                         : null,
                     child: (authState.userPhotoUrl == null || authState.userPhotoUrl!.isEmpty)
                         ? const Icon(Icons.person, color: Colors.white, size: 28)
@@ -716,7 +716,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     radius: 28,
                     backgroundColor: AppColors.navyBlueLight,
                     backgroundImage: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
-                        ? NetworkImage(authState.userPhotoUrl!)
+                        ? NetworkImage(Environment.getAttachmentUrl(authState.userPhotoUrl))
                         : null,
                     child: (authState.userPhotoUrl == null || authState.userPhotoUrl!.isEmpty)
                         ? const Icon(Icons.person, color: Colors.white, size: 28)

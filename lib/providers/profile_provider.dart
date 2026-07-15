@@ -70,6 +70,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
 
       _ref.read(authProvider.notifier).updateLocalDetails(
         name: profile.fullName,
+        email: profile.email,
         mobile: profile.mobile,
         location: profile.location,
         photoUrl: profile.profileImage,
@@ -103,9 +104,11 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       );
       
       _ref.read(authProvider.notifier).updateLocalDetails(
-        name: fullName,
-        mobile: mobile,
-        location: location,
+        name: updatedProfile.fullName,
+        email: updatedProfile.email,
+        mobile: updatedProfile.mobile,
+        location: updatedProfile.location,
+        photoUrl: updatedProfile.profileImage,
       );
       
       await fetchProfileData();
@@ -125,6 +128,10 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         isLoading: false,
       );
       _ref.read(authProvider.notifier).updateLocalDetails(
+        name: updatedProfile.fullName,
+        email: updatedProfile.email,
+        mobile: updatedProfile.mobile,
+        location: updatedProfile.location,
         photoUrl: updatedProfile.profileImage,
       );
       return true;
