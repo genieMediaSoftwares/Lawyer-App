@@ -37,7 +37,6 @@ class ProfileRepository {
     }
     throw Exception(response.data?['message'] ?? "Failed to update profile");
   }
-
   Future<List<ActivityModel>> getClientActivity() async {
     final response = await DioClient.dio.get("/client/activity");
     if (response.data != null && response.data['success'] == true) {
