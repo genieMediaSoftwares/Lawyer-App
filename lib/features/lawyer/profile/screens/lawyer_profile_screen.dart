@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/config/env.dart';
+import '../../../../core/widgets/app_circle_avatar.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../models/lawyer_model.dart';
@@ -165,12 +166,12 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
           ),
 
           // 4. Account Details Section
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: theme.cardTheme.color ?? theme.colorScheme.surface,
+          Material(
+            color: theme.cardTheme.color ?? theme.colorScheme.surface,
+            clipBehavior: Clip.antiAlias,
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: theme.colorScheme.outline, width: 1),
+              side: BorderSide(color: theme.colorScheme.outline, width: 1),
             ),
             child: Column(
               children: [
@@ -229,12 +230,12 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
           ),
 
           // 5. Operational Menu Section
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: theme.cardTheme.color ?? theme.colorScheme.surface,
+          Material(
+            color: theme.cardTheme.color ?? theme.colorScheme.surface,
+            clipBehavior: Clip.antiAlias,
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: theme.colorScheme.outline, width: 1),
+              side: BorderSide(color: theme.colorScheme.outline, width: 1),
             ),
             child: Column(
               children: [
@@ -317,22 +318,20 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          CircleAvatar(
+          AppCircleAvatar(
             radius: 28,
             backgroundColor: theme.colorScheme.outline,
-            backgroundImage: lawyer.profileImage.isNotEmpty
-                ? NetworkImage(Environment.getAttachmentUrl(lawyer.profileImage))
+            imageUrl: lawyer.profileImage.isNotEmpty
+                ? Environment.getAttachmentUrl(lawyer.profileImage)
                 : null,
-            child: lawyer.profileImage.isEmpty
-                ? Text(
-                    lawyer.fullName.isNotEmpty ? lawyer.fullName[0].toUpperCase() : 'A',
-                    style: TextStyle(
-                      color: theme.colorScheme.primary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  )
-                : null,
+            fallback: Text(
+              lawyer.fullName.isNotEmpty ? lawyer.fullName[0].toUpperCase() : 'A',
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(

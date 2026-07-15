@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/env.dart';
+import '../../../../core/widgets/app_circle_avatar.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../providers/case_provider.dart';
@@ -663,15 +664,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.gold, width: 2),
                   ),
-                  child: CircleAvatar(
+                  child: AppCircleAvatar(
                     radius: 28,
                     backgroundColor: AppColors.navyBlueLight,
-                    backgroundImage: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
-                        ? NetworkImage(Environment.getAttachmentUrl(authState.userPhotoUrl))
+                    imageUrl: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
+                        ? Environment.getAttachmentUrl(authState.userPhotoUrl)
                         : null,
-                    child: (authState.userPhotoUrl == null || authState.userPhotoUrl!.isEmpty)
-                        ? const Icon(Icons.person, color: Colors.white, size: 28)
-                        : null,
+                    fallback: const Icon(Icons.person, color: Colors.white, size: 28),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -712,15 +711,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.gold, width: 2),
                   ),
-                  child: CircleAvatar(
+                  child: AppCircleAvatar(
                     radius: 28,
                     backgroundColor: AppColors.navyBlueLight,
-                    backgroundImage: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
-                        ? NetworkImage(Environment.getAttachmentUrl(authState.userPhotoUrl))
+                    imageUrl: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
+                        ? Environment.getAttachmentUrl(authState.userPhotoUrl)
                         : null,
-                    child: (authState.userPhotoUrl == null || authState.userPhotoUrl!.isEmpty)
-                        ? const Icon(Icons.person, color: Colors.white, size: 28)
-                        : null,
+                    fallback: const Icon(Icons.person, color: Colors.white, size: 28),
                   ),
                 ),
                 const SizedBox(width: 14),

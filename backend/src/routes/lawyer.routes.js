@@ -14,6 +14,9 @@ router.get("/leads", lawyerController.getLeads);
 router.get("/clients", lawyerController.getClients);
 router.get("/schedule/today", lawyerController.getScheduleToday);
 router.get("/messages/unread", lawyerController.getUnreadMessages);
+router.get("/google-calendar/status", lawyerController.getGoogleCalendarStatus);
+router.post("/google-calendar/connect", lawyerController.connectGoogleCalendar);
+router.post("/google-calendar/disconnect", lawyerController.disconnectGoogleCalendar);
 router.get("/:id", lawyerController.getLawyerById);
 
 module.exports = router;

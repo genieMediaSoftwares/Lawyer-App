@@ -7,6 +7,7 @@ import '../../../../core/config/env.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../models/chat_model.dart';
+import '../../../../core/widgets/app_circle_avatar.dart';
 
 class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
@@ -277,17 +278,15 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                               horizontal: 16, vertical: 10),
                           leading: Stack(
                             children: [
-                              CircleAvatar(
+                              AppCircleAvatar(
                                 radius: 26,
                                 backgroundColor:
                                     AppColors.secondaryBackground,
-                                backgroundImage: _resolveImage(
-                                    otherParticipant.profileImage),
-                                child: otherParticipant
-                                        .profileImage.isEmpty
-                                    ? const Icon(Icons.person,
-                                        color: AppColors.primaryGold)
+                                imageUrl: otherParticipant.profileImage.isNotEmpty
+                                    ? Environment.getAttachmentUrl(otherParticipant.profileImage)
                                     : null,
+                                fallback: const Icon(Icons.person,
+                                    color: AppColors.primaryGold),
                               ),
                               if (isOnline)
                                 Positioned(

@@ -5,6 +5,7 @@ import '../../../../core/config/env.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/profile_provider.dart';
 import '../../../../models/client_profile_model.dart';
+import '../../../../core/widgets/app_circle_avatar.dart';
 import 'profile_screen.dart'; // To access EditProfileBottomSheet
 
 
@@ -101,22 +102,20 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                             shape: BoxShape.circle,
                             border: Border.all(color: const Color(0xFFD4AF37), width: 2),
                           ),
-                          child: CircleAvatar(
+                          child: AppCircleAvatar(
                             radius: 56,
                             backgroundColor: const Color(0xFF2B2B2B),
-                            backgroundImage: profile.profileImage.isNotEmpty
-                                ? NetworkImage(Environment.getAttachmentUrl(profile.profileImage))
+                            imageUrl: profile.profileImage.isNotEmpty
+                                ? Environment.getAttachmentUrl(profile.profileImage)
                                 : null,
-                            child: profile.profileImage.isEmpty
-                                ? Text(
-                                    profile.fullName.isNotEmpty ? profile.fullName[0].toUpperCase() : 'C',
-                                    style: const TextStyle(
-                                      color: Color(0xFFD4AF37),
-                                      fontSize: 36,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  )
-                                : null,
+                            fallback: Text(
+                              profile.fullName.isNotEmpty ? profile.fullName[0].toUpperCase() : 'C',
+                              style: const TextStyle(
+                                color: Color(0xFFD4AF37),
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                         if (_isSavingImage)
