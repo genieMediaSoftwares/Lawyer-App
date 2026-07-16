@@ -11,6 +11,9 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.10.0",
@@ -25,7 +28,7 @@
     "googleapis": "^173.0.0",
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.7.2",
+    "mongoose": "^8.18.2",
     "morgan": "^1.11.0",
     "multer": "^2.2.0",
     "razorpay": "^2.9.6",
