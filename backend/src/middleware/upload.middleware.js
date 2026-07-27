@@ -38,6 +38,9 @@ const fileFilter = (req, file, cb) => {
     "image/jpeg",
     "image/jpg",
     "image/png",
+    "image/webp",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "audio/mpeg",
     "audio/mp3",
     "audio/wav",
@@ -52,10 +55,10 @@ const fileFilter = (req, file, cb) => {
     "application/octet-stream"
   ];
   
-  if (allowedTypes.includes(file.mimetype)) {
+  if (allowedTypes.includes(file.mimetype) || file.originalname?.endsWith(".docx") || file.originalname?.endsWith(".doc")) {
     cb(null, true);
   } else {
-    cb(new Error("Only PDF, JPG, JPEG, PNG and standard Audio files are allowed."), false);
+    cb(new Error("Only PDF, PNG, JPG, JPEG, DOCX and Audio files are allowed."), false);
   }
 };
 

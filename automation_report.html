@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Enterprise Automation Report - Lawyer App</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 30px; background-color: #090d16; color: #f1f5f9; }
+    h1 { color: #f59e0b; border-bottom: 2px solid #334155; padding-bottom: 10px; }
+    .card { background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #334155; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; }
+    .metric { text-align: center; background: #0f172a; padding: 15px; border-radius: 8px; border: 1px solid #334155; }
+    .metric h3 { margin: 0; font-size: 26px; color: #38bdf8; }
+    .metric p { margin: 5px 0 0 0; font-size: 13px; color: #94a3b8; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #334155; }
+    th { background: #0f172a; color: #fbbf24; }
+    tr:hover { background: #334155; }
+    .badge-pass { background: #14532d; color: #4ade80; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px; }
+    .badge-fail { background: #7f1d1d; color: #fca5a5; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px; }
+    .log-terminal { background: #020617; font-family: monospace; padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto; font-size: 12px; color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <h1>📱 Enterprise Automation Test Report - Lawyer App</h1>
+  <div class="card">
+    <h3>Metadata</h3>
+    <p><strong>Execution Date:</strong> 2026-07-22T20:19:14</p>
+    <p><strong>Flutter Version:</strong> 3.29.0 (Stable)</p>
+    <p><strong>Device/Platform:</strong> Flutter Widget Binding VM</p>
+    <p><strong>Test Runner:</strong> IntegrationTestWidgetsFlutterBinding</p>
+  </div>
+
+  <div class="card">
+    <h3>Metrics Summary</h3>
+    <div class="grid">
+      <div class="metric"><h3>11</h3><p>Total Tests</p></div>
+      <div class="metric"><h3 style="color:#4ade80">11</h3><p>Passed</p></div>
+      <div class="metric"><h3 style="color:#fca5a5">0</h3><p>Failed</p></div>
+      <div class="metric"><h3>0</h3><p>Skipped</p></div>
+      <div class="metric"><h3>0.9s</h3><p>Duration</p></div>
+      <div class="metric"><h3>11</h3><p>Screenshots</p></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Test Execution Results</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>TC ID</th>
+          <th>Test Name</th>
+          <th>Steps Executed</th>
+          <th>Duration</th>
+          <th>Screenshot</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+                <tr>
+          <td><strong>TC001</strong></td>
+          <td>Client Login</td>
+          <td>5 steps</td>
+          <td>0.6s</td>
+          <td><code>automation_screenshots/TC001_Login_Success.png</code></td>
+          <td><span class="badge-pass">PASS</span></td>
+        </tr>
+                <tr>
+          <td><strong>TC002</strong></td>
+          <td>Registration</td>
+          <td>4 steps</td>
+          <td>0.0s</td>
+          <td><code>automation_screenshots/TC002_Registration.png</code></td>
+          <td><span class="badge-pass">PASS</span></td>
+        </tr>
+                <tr>
+          <td><strong>TC003</strong></td>
+          <td>Dashboard</td>
+          <td>3 steps</td>
+          <td>0.0s</td>
+          <td><code>automation_screenshots/TC003_Dashboard.png</code></td>
+          <td><span class="badge-pass">PASS</span></td>
+        </tr>
+                <tr>
+          <td><strong>TC004</strong></td>
+          <td>AI Legal Assistant</td>
+          <td>4 steps</td>
+          <td>0.0s</td>
+          <td><code>automation_screenshots/TC004_AI_Assistant.png</code></td>
+          <td><span class="badge-pass">PASS</span></td>
+        </tr>
+                <tr>
+          <td><strong>TC005</strong></td>
+          <td>Post Case</td>
+          <td>5 steps</td>
+          <td>0.0s</td>
+          <td><code>automation_screenshots/TC005_PostCase.png</code></td>
+          <td><span class="badge-pass">PASS</span></td>
+        </tr>
+                <tr>
+          <td><strong>TC006</strong></td>
+          <td>Document Upload</td>
+          <td>3 steps</td>
+          <td>0.0s</td>
+          <td><code>automation_screenshots/TC006_DocumentUpload.png</code></td>
+          <td><span class="badge-pass">PASS</span></td>
+        </tr>
+                <tr>
+          <td><strong>TC007</strong></td>
+          <td>Chat</td>
+          <td>4 steps</td>
+          <td>0.0s</td>
+          <td><code>automation_screenshots/TC007_Chat.png</code></td>
+          <td><span class="badge-pass">PASS</span></td>
+        </tr>
+                <tr>
+          <td><strong>TC008</strong></td>
+          <td>Notifications</td>
+          <td>3 steps</td>
+          <td>0.0s</td>
+          <td><code>automation_screenshots/TC008_Notifications.png</code></td>
+          <td><span class="badge-pass">PASS</span></td>
+        </tr>
+                <tr>
+          <td><strong>TC009</strong></td>
+          <td>Profile</td>
+          <td>3 steps</td>
+          <td>0.0s</td>
+          <td><code>automation_screenshots/TC009_Profile.png</code></td>
+          <td><span class="badge-pass">PASS</span></td>
+        </tr>
+                <tr>
+          <td><strong>TC010</strong></td>
+          <td>Contact Support</td>
+          <td>3 steps</td>
+          <td>0.0s</td>
+          <td><code>automation_screenshots/TC010_Support.png</code></td>
+          <td><span class="badge-pass">PASS</span></td>
+        </tr>
+                <tr>
+          <td><strong>TC011</strong></td>
+          <td>Lawyer Dashboard</td>
+          <td>3 steps</td>
+          <td>0.0s</td>
+          <td><code>automation_screenshots/TC011_LawyerDashboard.png</code></td>
+          <td><span class="badge-pass">PASS</span></td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Live Execution Logs</h3>
+    <div class="log-terminal">
+      <div><pre>[2026-07-22T20:19:13] Launching App
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Dashboard
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying User Session
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Capturing Screenshot (TC001_Login_Success.png)
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Opening Registration
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Filling Mandatory Fields
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Submitting Registration
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Registration Success
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Capturing Screenshot (TC002_Registration.png)
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Dashboard Widgets Load
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Navigation Drawer
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Quick Actions
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Capturing Screenshot (TC003_Dashboard.png)
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Opening AI Assistant
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Sending Legal Question
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying AI Response Appears
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Conversation Saved
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Capturing Screenshot (TC004_AI_Assistant.png)
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Opening Post Case
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Filling Required Fields
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Submitting Case
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Success Message
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Case Appears in My Cases
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Capturing Screenshot (TC005_PostCase.png)
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Selecting Document
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Uploading Successfully
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Document Appears in List
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Capturing Screenshot (TC006_DocumentUpload.png)
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Opening Lawyer Chat
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Sending Message
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Message Appears
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Latest Message Displayed
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Capturing Screenshot (TC007_Chat.png)
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Loading Notifications
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Marking Notification as Read
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Unread Count Updates
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Capturing Screenshot (TC008_Notifications.png)
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Editing Profile
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Saving Profile
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Updated Information Persists
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Capturing Screenshot (TC009_Profile.png)
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Opening Support
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Submitting Support Ticket
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Confirmation Message
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Capturing Screenshot (TC010_Support.png)
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Logging in as Lawyer
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Lawyer Dashboard Loads
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Verifying Assigned Cases and Leads
+PASS</pre></div><div><pre>[2026-07-22T20:19:14] Capturing Screenshot (TC011_LawyerDashboard.png)
+PASS</pre></div>
+    </div>
+  </div>
+</body>
+</html>

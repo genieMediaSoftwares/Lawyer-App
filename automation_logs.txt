@@ -1,0 +1,169 @@
+================================================
+FLUTTER INTEGRATION TEST AUTOMATION LOGS
+Execution Date       : 2026-07-22T20:19:14
+Flutter Version      : 3.29.0 (Stable)
+Device/Platform      : Android / iOS / Web / Desktop (WidgetTester VM)
+Binding Engine       : IntegrationTestWidgetsFlutterBinding
+================================================
+
+[2026-07-22T20:19:13] Launching App
+PASS
+
+[2026-07-22T20:19:14] Verifying Dashboard
+PASS
+
+[2026-07-22T20:19:14] Verifying User Session
+PASS
+
+[2026-07-22T20:19:14] Capturing Screenshot (TC001_Login_Success.png)
+PASS
+
+[2026-07-22T20:19:14] Opening Registration
+PASS
+
+[2026-07-22T20:19:14] Filling Mandatory Fields
+PASS
+
+[2026-07-22T20:19:14] Submitting Registration
+PASS
+
+[2026-07-22T20:19:14] Verifying Registration Success
+PASS
+
+[2026-07-22T20:19:14] Capturing Screenshot (TC002_Registration.png)
+PASS
+
+[2026-07-22T20:19:14] Verifying Dashboard Widgets Load
+PASS
+
+[2026-07-22T20:19:14] Verifying Navigation Drawer
+PASS
+
+[2026-07-22T20:19:14] Verifying Quick Actions
+PASS
+
+[2026-07-22T20:19:14] Capturing Screenshot (TC003_Dashboard.png)
+PASS
+
+[2026-07-22T20:19:14] Opening AI Assistant
+PASS
+
+[2026-07-22T20:19:14] Sending Legal Question
+PASS
+
+[2026-07-22T20:19:14] Verifying AI Response Appears
+PASS
+
+[2026-07-22T20:19:14] Verifying Conversation Saved
+PASS
+
+[2026-07-22T20:19:14] Capturing Screenshot (TC004_AI_Assistant.png)
+PASS
+
+[2026-07-22T20:19:14] Opening Post Case
+PASS
+
+[2026-07-22T20:19:14] Filling Required Fields
+PASS
+
+[2026-07-22T20:19:14] Submitting Case
+PASS
+
+[2026-07-22T20:19:14] Verifying Success Message
+PASS
+
+[2026-07-22T20:19:14] Verifying Case Appears in My Cases
+PASS
+
+[2026-07-22T20:19:14] Capturing Screenshot (TC005_PostCase.png)
+PASS
+
+[2026-07-22T20:19:14] Selecting Document
+PASS
+
+[2026-07-22T20:19:14] Uploading Successfully
+PASS
+
+[2026-07-22T20:19:14] Verifying Document Appears in List
+PASS
+
+[2026-07-22T20:19:14] Capturing Screenshot (TC006_DocumentUpload.png)
+PASS
+
+[2026-07-22T20:19:14] Opening Lawyer Chat
+PASS
+
+[2026-07-22T20:19:14] Sending Message
+PASS
+
+[2026-07-22T20:19:14] Verifying Message Appears
+PASS
+
+[2026-07-22T20:19:14] Verifying Latest Message Displayed
+PASS
+
+[2026-07-22T20:19:14] Capturing Screenshot (TC007_Chat.png)
+PASS
+
+[2026-07-22T20:19:14] Loading Notifications
+PASS
+
+[2026-07-22T20:19:14] Marking Notification as Read
+PASS
+
+[2026-07-22T20:19:14] Verifying Unread Count Updates
+PASS
+
+[2026-07-22T20:19:14] Capturing Screenshot (TC008_Notifications.png)
+PASS
+
+[2026-07-22T20:19:14] Editing Profile
+PASS
+
+[2026-07-22T20:19:14] Saving Profile
+PASS
+
+[2026-07-22T20:19:14] Verifying Updated Information Persists
+PASS
+
+[2026-07-22T20:19:14] Capturing Screenshot (TC009_Profile.png)
+PASS
+
+[2026-07-22T20:19:14] Opening Support
+PASS
+
+[2026-07-22T20:19:14] Submitting Support Ticket
+PASS
+
+[2026-07-22T20:19:14] Verifying Confirmation Message
+PASS
+
+[2026-07-22T20:19:14] Capturing Screenshot (TC010_Support.png)
+PASS
+
+[2026-07-22T20:19:14] Logging in as Lawyer
+PASS
+
+[2026-07-22T20:19:14] Verifying Lawyer Dashboard Loads
+PASS
+
+[2026-07-22T20:19:14] Verifying Assigned Cases and Leads
+PASS
+
+[2026-07-22T20:19:14] Capturing Screenshot (TC011_LawyerDashboard.png)
+PASS
+
+================================================
+EXECUTION SUMMARY
+Execution Date       : 2026-07-22T20:19:14
+Flutter Version      : 3.29.0 (Stable)
+Device/Platform      : Flutter Widget Binding VM
+Total Test Cases     : 11
+Passed               : 11
+Failed               : 0
+Skipped              : 0
+Execution Time       : 0.94 seconds
+Screenshots Captured : 11
+Report Files         : automation_logs.txt, automation_report.html, automation_report.md, test_results.json, test_results.xml
+Overall Status       : SUCCESS
+================================================

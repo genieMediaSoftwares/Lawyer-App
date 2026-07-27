@@ -126,171 +126,33 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Search & Filter Row + Stats
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Column(
-                children: [
-                  _buildSearchAndSortBar(),
-                  const SizedBox(height: 12),
-                  allCasesState.when(
-                    data: (cases) => _buildStatisticsRow(cases),
-                    loading: () => const ShimmerBox(width: double.infinity, height: 60),
-                    error: (e, s) => const SizedBox(),
-                  ),
-                ],
-              ),
-            ),
-
-            // Tab View Lists
-            Expanded(
-              child: filteredCasesState.when(
-                data: (cases) {
-                  return TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildCaseList(cases, 0, "No cases posted yet."),
-                      _buildCaseList(
-                        cases.where((c) => c.status == 'In Progress' || c.status == 'Awaiting Lawyer Acceptance').toList(),
-                        1,
-                        "No cases are currently in progress.",
-                      ),
-                      _buildCaseList(
-                        cases.where((c) => c.status == 'Closed').toList(),
-                        2,
-                        "No completed cases yet.",
-                      ),
-                    ],
-                  );
-                },
-                loading: () => _buildShimmerLoading(),
-                error: (err, stack) => _buildErrorWidget(err.toString()),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSearchAndSortBar() {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 46,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF181818),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF282828)),
-            ),
-            child: Row(
+        child: filteredCasesState.when(
+          data: (cases) {
+            return TabBarView(
+              controller: _tabController,
               children: [
-                const Icon(Icons.search, color: Colors.grey, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (val) {
-                      ref.read(caseSearchProvider.notifier).state = val;
-                    },
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                    decoration: const InputDecoration(
-                      hintText: "Search by case title, lawyer or ID...",
-                      hintStyle: TextStyle(color: Colors.grey, fontSize: 12),
-                      border: InputBorder.none,
-                      isDense: true,
-                    ),
-                  ),
+                _buildCaseList(cases, 0, "No cases posted yet."),
+                _buildCaseList(
+                  cases.where((c) => c.status == 'In Progress' || c.status == 'Awaiting Lawyer Acceptance').toList(),
+                  1,
+                  "No cases are currently in progress.",
                 ),
-                if (_searchController.text.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.clear, color: Colors.grey, size: 16),
-                    onPressed: () {
-                      _searchController.clear();
-                      ref.read(caseSearchProvider.notifier).state = "";
-                    },
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
+                _buildCaseList(
+                  cases.where((c) => c.status == 'Closed').toList(),
+                  2,
+                  "No completed cases yet.",
+                ),
               ],
-            ),
-          ),
+            );
+          },
+          loading: () => _buildShimmerLoading(),
+          error: (err, stack) => _buildErrorWidget(err.toString()),
         ),
-        const SizedBox(width: 10),
-        GestureDetector(
-          onTap: () => _showSortBottomSheet(context),
-          child: Container(
-            height: 46,
-            width: 46,
-            decoration: BoxDecoration(
-              color: const Color(0xFF181818),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF282828)),
-            ),
-            child: const Center(
-              child: Icon(Icons.tune, color: Color(0xFFE6B325), size: 20),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatisticsRow(List<CaseModel> cases) {
-    final total = cases.length;
-    final inProgress = cases.where((c) => c.status == 'In Progress').length;
-    final awaiting = cases.where((c) => c.status == 'Awaiting Lawyer Acceptance').length;
-    final closed = cases.where((c) => c.status == 'Closed').length;
-
-    String formatCount(int count) => count.toString().padLeft(2, '0');
-
-    return Row(
-      children: [
-        Expanded(child: _buildStatItem("Total Cases", formatCount(total))),
-        const SizedBox(width: 6),
-        Expanded(child: _buildStatItem("In Progress", formatCount(inProgress))),
-        const SizedBox(width: 6),
-        Expanded(child: _buildStatItem("Awaiting", formatCount(awaiting))),
-        const SizedBox(width: 6),
-        Expanded(child: _buildStatItem("Closed", formatCount(closed))),
-      ],
-    );
-  }
-
-  Widget _buildStatItem(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFF181818),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF282828)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(color: Colors.grey, fontSize: 9),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Color(0xFFE6B325),
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-        ],
       ),
     );
   }
+
+
 
   Widget _buildCaseList(List<CaseModel> casesList, int tabIndex, String emptyMessage) {
     if (casesList.isEmpty) {
@@ -974,65 +836,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
     return "Accused Acquitted";
   }
 
-  void _showSortBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF181818),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final currentSort = ref.watch(caseFilterProvider);
-            final options = ["Newest", "Oldest", "Status", "Issue", "Lawyer", "Location"];
-            
-            return Container(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Sort Cases By",
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  Flexible(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: options.length,
-                      itemBuilder: (context, index) {
-                        final option = options[index];
-                        final isSelected = option == currentSort;
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(
-                            option,
-                            style: TextStyle(
-                              color: isSelected ? const Color(0xFFE6B325) : Colors.white70,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                          trailing: isSelected 
-                              ? const Icon(Icons.check_circle, color: Color(0xFFE6B325)) 
-                              : null,
-                          onTap: () {
-                            ref.read(caseFilterProvider.notifier).state = option;
-                            Navigator.pop(context);
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+
 
   void _showReviewDialog(BuildContext context, String caseId) {
     int localRating = 5;

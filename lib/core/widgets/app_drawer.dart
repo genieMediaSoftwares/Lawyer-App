@@ -187,11 +187,6 @@ class AppDrawer extends ConsumerWidget {
         label: "My Profile",
         onTap: () => _safeNavigate(context, RouteNames.profile, isRoot: true),
       ),
-      _DrawerTile(
-        icon: Icons.settings_outlined,
-        label: "App Settings",
-        onTap: () => _safeNavigate(context, RouteNames.settings, isRoot: false),
-      ),
     ];
   }
 

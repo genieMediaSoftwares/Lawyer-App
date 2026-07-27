@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Environment {
@@ -5,8 +6,13 @@ class Environment {
 
   static String get baseUrl {
     final url = dotenv.env['BASE_URL'];
+    if (kIsWeb) {
+      if (url == null || url.isEmpty || url.contains('192.168.') || url.contains('10.0.2.2')) {
+        return 'http://localhost:5000/api';
+      }
+    }
     if (url == null || url.isEmpty) {
-      throw Exception('BASE_URL is not defined in the .env file. Please check your configuration.');
+      return 'http://localhost:5000/api';
     }
     return url;
   }

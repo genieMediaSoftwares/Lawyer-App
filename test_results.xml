@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="LawyerAppIntegrationTests" tests="11" failures="0" errors="0" skipped="0" time="0.94" timestamp="2026-07-22T20:19:14">
+  <testcase classname="integration_test.tc001" name="Client Login" time="0.59">
+  </testcase>
+  <testcase classname="integration_test.tc002" name="Registration" time="0.00">
+  </testcase>
+  <testcase classname="integration_test.tc003" name="Dashboard" time="0.01">
+  </testcase>
+  <testcase classname="integration_test.tc004" name="AI Legal Assistant" time="0.01">
+  </testcase>
+  <testcase classname="integration_test.tc005" name="Post Case" time="0.01">
+  </testcase>
+  <testcase classname="integration_test.tc006" name="Document Upload" time="0.00">
+  </testcase>
+  <testcase classname="integration_test.tc007" name="Chat" time="0.00">
+  </testcase>
+  <testcase classname="integration_test.tc008" name="Notifications" time="0.01">
+  </testcase>
+  <testcase classname="integration_test.tc009" name="Profile" time="0.00">
+  </testcase>
+  <testcase classname="integration_test.tc010" name="Contact Support" time="0.00">
+  </testcase>
+  <testcase classname="integration_test.tc011" name="Lawyer Dashboard" time="0.00">
+  </testcase>
+</testsuite>

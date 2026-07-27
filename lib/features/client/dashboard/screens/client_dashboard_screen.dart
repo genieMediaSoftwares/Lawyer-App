@@ -11,6 +11,7 @@ import 'package:law/models/category_item.dart';
 import '../widgets/category_card.dart';
 import '../widgets/hero_carousel_widget.dart';
 import '../widgets/ai_legal_assistant_card.dart';
+import '../widgets/ai_smart_case_assistant_card.dart';
 
 class ClientDashboardScreen extends ConsumerWidget {
   const ClientDashboardScreen({super.key});
@@ -108,6 +109,10 @@ class ClientDashboardScreen extends ConsumerWidget {
                   "assets/images/banner3.png",
                 ],
               ),
+              const SizedBox(height: 20),
+
+              // AI Smart Case Assistant Card (Immediately below Hero Banner)
+              AISmartCaseAssistantCard(),
               const SizedBox(height: 24),
 
               // 2. Categories Section Header

@@ -144,6 +144,19 @@ class AuthController {
       next(error);
     }
   }
+
+  async deleteAccount(req, res, next) {
+    try {
+      const { password } = req.body;
+      if (!password) {
+        return ApiResponse.error(res, "Password is required to delete account.", 400);
+      }
+      await authService.deleteAccount(req.user._id, password);
+      return ApiResponse.success(res, "Account deleted successfully.");
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new AuthController();

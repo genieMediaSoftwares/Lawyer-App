@@ -90,7 +90,10 @@ class _LoginScreenState
       global_auth.UserRole appRole;
       String dashboardRoute;
 
-      if (userRoleStr == 'lawyer') {
+      if (userRoleStr == 'admin') {
+        appRole = global_auth.UserRole.admin;
+        dashboardRoute = RouteNames.adminDashboard;
+      } else if (userRoleStr == 'lawyer') {
         appRole = global_auth.UserRole.lawyer;
         dashboardRoute = RouteNames.lawyerDashboard;
       } else {
@@ -396,17 +399,10 @@ class _LoginScreenState
                       "Don't have an account?",
                     ),
                     TextButton(
-                      onPressed:
-                          () {
-                        context.go(
-                          RouteNames
-                              .signup,
-                        );
+                      onPressed: () {
+                        context.go(RouteNames.signup);
                       },
-                      child:
-                      const Text(
-                        "Sign Up",
-                      ),
+                      child: const Text("Sign Up"),
                     ),
                   ],
                 ),

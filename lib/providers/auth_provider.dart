@@ -6,6 +6,7 @@ import '../core/network/dio_client.dart';
 enum UserRole {
   client,
   lawyer,
+  admin,
 }
 
 class AuthState {
@@ -81,6 +82,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       role = UserRole.client;
     } else if (roleStr == 'lawyer') {
       role = UserRole.lawyer;
+    } else if (roleStr == 'admin') {
+      role = UserRole.admin;
     }
 
     state = AuthState(

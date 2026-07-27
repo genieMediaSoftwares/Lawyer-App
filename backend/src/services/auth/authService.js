@@ -160,6 +160,31 @@ class AuthService {
 
     return true;
   }
+
+  async deleteAccount(userId, password) {
+    const User = require("../../models/User");
+    const Case = require("../../models/Case");
+    const Appointment = require("../../models/Appointment");
+    const Lawyer = require("../../models/Lawyer");
+
+    const user = await User.findById(userId).select("+password");
+    if (!user) {
+      throw new AppError("User not found.", 404);
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      throw new AppError("Incorrect password.", 400);
+    }
+
+    // Clean up associated records
+    await Case.deleteMany({ client: userId });
+    await Appointment.deleteMany({ $or: [{ client: userId }, { lawyer: userId }] });
+    await Lawyer.deleteOne({ user: userId });
+    await User.findByIdAndDelete(userId);
+
+    return true;
+  }
 }
 
 module.exports = new AuthService();

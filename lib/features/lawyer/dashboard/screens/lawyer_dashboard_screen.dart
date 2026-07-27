@@ -479,7 +479,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     title: "Today's Schedule",
                     subtitle: count > 0 ? "$count Events Today" : "No Events Today",
                     badgeCount: count == 0 ? null : "$count",
-                    onTap: () => setState(() => _currentIndex = 4),
+                    onTap: () => _showTodaysScheduleBottomSheet(context),
                   );
                 },
                 loading: () => _buildWorkspaceToolCard(
@@ -487,13 +487,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   title: "Today's Schedule",
                   subtitle: "Loading events...",
                   badgeCount: "...",
-                  onTap: () => setState(() => _currentIndex = 4),
+                  onTap: () => _showTodaysScheduleBottomSheet(context),
                 ),
                 error: (e, s) => _buildWorkspaceToolCard(
                   icon: Icons.calendar_month,
                   title: "Today's Schedule",
                   subtitle: "No Events Today",
-                  onTap: () => setState(() => _currentIndex = 4),
+                  onTap: () => _showTodaysScheduleBottomSheet(context),
                 ),
               ),
               ref.watch(unreadMessagesCountProvider).when(
@@ -831,6 +831,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   title: "Today's Consultations",
                   subtitle: "Scheduled for today",
                   provider: todayConsultationsCountProvider,
+                  onTap: () => _showTodaysScheduleBottomSheet(context),
                 ),
                 const Divider(height: 1, indent: 50, endIndent: 16, color: Colors.white10),
                 _buildOverviewRow(
@@ -838,6 +839,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   title: "Today's Hearings",
                   subtitle: "Court hearings schedule",
                   provider: todayHearingsCountProvider,
+                  onTap: () => _showTodaysScheduleBottomSheet(context),
                 ),
                 const Divider(height: 1, indent: 50, endIndent: 16, color: Colors.white10),
                 _buildOverviewRow(
@@ -866,6 +868,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     required String title,
     required String subtitle,
     required ProviderBase<AsyncValue<int>> provider,
+    VoidCallback? onTap,
   }) {
     return Consumer(
       builder: (context, ref, child) {
@@ -873,6 +876,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         return countState.when(
           data: (count) {
             return ListTile(
+              onTap: onTap,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               leading: CircleAvatar(
                 radius: 16,
@@ -932,6 +936,293 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
   // ═══════════════════════════════════════════════════════════
 
+
+  void _showTodaysScheduleBottomSheet(BuildContext context) {
+    final todayStr = DateFormat('EEEE, dd MMM yyyy').format(DateTime.now());
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF131211),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, child) {
+            final appointmentsAsync = ref.watch(appointmentsProvider);
+            final casesAsync = ref.watch(casesProvider);
+            final now = DateTime.now();
+
+            final todaysAppointments = appointmentsAsync.maybeWhen(
+              data: (list) => list.where((app) {
+                return app.date.year == now.year &&
+                    app.date.month == now.month &&
+                    app.date.day == now.day;
+              }).toList(),
+              orElse: () => <AppointmentModel>[],
+            );
+
+            final todaysHearings = casesAsync.maybeWhen(
+              data: (cases) => cases.where((c) {
+                if (c.nextHearing == null) return false;
+                return c.nextHearing!.year == now.year &&
+                    c.nextHearing!.month == now.month &&
+                    c.nextHearing!.day == now.day;
+              }).toList(),
+              orElse: () => <CaseModel>[],
+            );
+
+            return DraggableScrollableSheet(
+              initialChildSize: 0.65,
+              minChildSize: 0.4,
+              maxChildSize: 0.9,
+              expand: false,
+              builder: (context, scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Handle bar
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Title & Date Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Today's Schedule & Updates",
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  fontFamily: 'Outfit',
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                todayStr,
+                                style: const TextStyle(fontSize: 12, color: AppColors.gold),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.grey, size: 20),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      const Divider(color: Colors.white12, height: 1),
+                      const SizedBox(height: 16),
+
+                      // List of appointments & hearings
+                      Expanded(
+                        child: (todaysAppointments.isEmpty && todaysHearings.isEmpty)
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.gold.withValues(alpha: 0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.event_available_outlined,
+                                        color: AppColors.gold,
+                                        size: 40,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    const Text(
+                                      "No Schedule Updates for Today",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    const Text(
+                                      "All your consultations and hearings are up to date.",
+                                      style: TextStyle(fontSize: 12, color: Colors.white54),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView(
+                                controller: scrollController,
+                                children: [
+                                  if (todaysAppointments.isNotEmpty) ...[
+                                    const Text(
+                                      "Today's Consultations",
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.gold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    ...todaysAppointments.map((app) {
+                                      return Container(
+                                        margin: const EdgeInsets.only(bottom: 12),
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF1E2436),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: AppColors.gold.withValues(alpha: 0.3),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 20,
+                                              backgroundColor: AppColors.gold.withValues(alpha: 0.15),
+                                              child: const Icon(Icons.person, color: AppColors.gold, size: 20),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    app.clientName,
+                                                    style: const TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 14,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    "${app.mode} • ${app.timeSlot}",
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: Colors.white70,
+                                                    ),
+                                                  ),
+                                                  if (app.caseTitle != null) ...[
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      "Case: ${app.caseTitle}",
+                                                      style: const TextStyle(
+                                                        fontSize: 10,
+                                                        color: AppColors.gold,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.green.withValues(alpha: 0.2),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                app.status.toUpperCase(),
+                                                style: const TextStyle(
+                                                  color: Colors.green,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                    const SizedBox(height: 14),
+                                  ],
+                                  if (todaysHearings.isNotEmpty) ...[
+                                    const Text(
+                                      "Today's Court Hearings",
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.gold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    ...todaysHearings.map((c) {
+                                      return Container(
+                                        margin: const EdgeInsets.only(bottom: 12),
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF1E2436),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: Colors.blue.withValues(alpha: 0.3),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const CircleAvatar(
+                                              radius: 20,
+                                              backgroundColor: Colors.blueAccent,
+                                              child: Icon(Icons.gavel, color: Colors.white, size: 18),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    c.title,
+                                                    style: const TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 14,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    c.preferredCourt ?? c.location,
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: Colors.white70,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ],
+                                ],
+                              ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
 
   // ═══════════════════════════════════════════════════════════
   // 3. CLIENTS TAB (Figma Screen 7)
