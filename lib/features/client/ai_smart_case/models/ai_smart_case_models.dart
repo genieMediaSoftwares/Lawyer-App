@@ -40,8 +40,11 @@ class AISmartCaseAnalysis {
       documentType: json['documentType'] ?? 'Document',
       applicableLegalDomain: json['applicableLegalDomain'] ?? '',
       requiredSupportingDocuments: List<String>.from(json['requiredSupportingDocuments'] ?? []),
-      aiConfidenceScore: (json['aiConfidenceScore'] as num?)?.toInt() ?? 80,
-      readinessScore: (json['readinessScore'] as num?)?.toInt() ?? 85,
+      // Default to 0, not 80/85. An empty or malformed response used to render
+      // as "85% ready", telling the client the analysis had gone well when
+      // nothing had actually come back.
+      aiConfidenceScore: (json['aiConfidenceScore'] as num?)?.toInt() ?? 0,
+      readinessScore: (json['readinessScore'] as num?)?.toInt() ?? 0,
       detectedTimeline: List<String>.from(json['detectedTimeline'] ?? []),
       lawyerSpecializationRequired: json['lawyerSpecializationRequired'] ?? '',
       missingInformation: List<String>.from(json['missingInformation'] ?? []),
@@ -81,13 +84,20 @@ class RecommendedLawyer {
   final String email;
   final String avatar;
   final String specialization;
-  final int experience;
-  final double rating;
+
+  /// Null means "not recorded for this lawyer", which is different from zero.
+  /// These were previously defaulted to flattering values (4.8 rating, 88% win
+  /// rate, 90 cases) whenever the database had nothing — presenting invented
+  /// credentials to a client choosing legal representation. Render null as
+  /// "New" or omit the metric; never substitute a number.
+  final int? experience;
+  final double? rating;
   final int totalReviews;
-  final double consultationFee;
-  final double winPercentage;
+  final double? consultationFee;
+  final double? winPercentage;
   final int casesHandled;
   final String officeAddress;
+  final bool isVerified;
 
   RecommendedLawyer({
     required this.lawyerId,
@@ -103,6 +113,7 @@ class RecommendedLawyer {
     required this.winPercentage,
     required this.casesHandled,
     required this.officeAddress,
+    required this.isVerified,
   });
 
   factory RecommendedLawyer.fromJson(Map<String, dynamic> json) {
@@ -112,14 +123,16 @@ class RecommendedLawyer {
       name: json['name'] ?? 'Advocate',
       email: json['email'] ?? '',
       avatar: json['avatar'] ?? '',
-      specialization: json['specialization'] ?? 'Legal Advocate',
-      experience: (json['experience'] as num?)?.toInt() ?? 5,
-      rating: (json['rating'] as num?)?.toDouble() ?? 4.8,
-      totalReviews: (json['totalReviews'] as num?)?.toInt() ?? 15,
-      consultationFee: (json['consultationFee'] as num?)?.toDouble() ?? 1500.0,
-      winPercentage: (json['winPercentage'] as num?)?.toDouble() ?? 88.0,
-      casesHandled: (json['casesHandled'] as num?)?.toInt() ?? 90,
-      officeAddress: json['officeAddress'] ?? 'High Court Advocate',
+      specialization: json['specialization'] ?? '',
+      // Absent stays absent — see the field docs above.
+      experience: (json['experience'] as num?)?.toInt(),
+      rating: (json['rating'] as num?)?.toDouble(),
+      totalReviews: (json['totalReviews'] as num?)?.toInt() ?? 0,
+      consultationFee: (json['consultationFee'] as num?)?.toDouble(),
+      winPercentage: (json['winPercentage'] as num?)?.toDouble(),
+      casesHandled: (json['casesHandled'] as num?)?.toInt() ?? 0,
+      officeAddress: json['officeAddress'] ?? '',
+      isVerified: json['isVerified'] == true,
     );
   }
 }
@@ -133,6 +146,12 @@ class AISmartCaseSessionResponse {
   final List<dynamic> uploadedDocuments;
   final String voiceTranscript;
 
+  /// Documents whose text could not be extracted. The analysis did not see
+  /// their contents, so the review screen must say so rather than implying
+  /// everything was read.
+  final List<ExtractionWarning> extractionWarnings;
+  final bool voiceTranscriptionFailed;
+
   AISmartCaseSessionResponse({
     required this.sessionId,
     required this.status,
@@ -141,6 +160,8 @@ class AISmartCaseSessionResponse {
     required this.recommendedLawyers,
     required this.uploadedDocuments,
     required this.voiceTranscript,
+    this.extractionWarnings = const [],
+    this.voiceTranscriptionFailed = false,
   });
 
   factory AISmartCaseSessionResponse.fromJson(Map<String, dynamic> json) {
@@ -155,6 +176,25 @@ class AISmartCaseSessionResponse {
           .toList(),
       uploadedDocuments: data['uploadedDocuments'] as List? ?? [],
       voiceTranscript: data['voiceTranscript'] ?? '',
+      extractionWarnings: (data['extractionWarnings'] as List? ?? [])
+          .map((w) => ExtractionWarning.fromJson(w as Map<String, dynamic>))
+          .toList(),
+      voiceTranscriptionFailed: data['voiceTranscriptionFailed'] == true,
+    );
+  }
+}
+
+/// A document the OCR pipeline could not read.
+class ExtractionWarning {
+  final String name;
+  final String reason;
+
+  ExtractionWarning({required this.name, required this.reason});
+
+  factory ExtractionWarning.fromJson(Map<String, dynamic> json) {
+    return ExtractionWarning(
+      name: json['name'] ?? 'Document',
+      reason: json['reason'] ?? 'Could not be read',
     );
   }
 }

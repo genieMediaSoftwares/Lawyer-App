@@ -384,10 +384,14 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
 
     final lawyerName = caseItem.selectedLawyerName ?? caseItem.assignedLawyerName ?? "Advocate";
     final lawyerImage = caseItem.selectedLawyerImage ?? caseItem.assignedLawyerImage ?? "";
-    final lawyerSpec = caseItem.selectedLawyerSpecialization ?? caseItem.assignedLawyerSpecialization ?? "Legal Expert";
-    final lawyerRating = caseItem.selectedLawyerRating ?? caseItem.assignedLawyerRating ?? 4.8;
-    final isVerified = caseItem.selectedLawyerVerified ?? caseItem.assignedLawyerVerified ?? true;
-    final isOnline = caseItem.assignedLawyerOnline ?? true;
+    final lawyerSpec = caseItem.selectedLawyerSpecialization ?? caseItem.assignedLawyerSpecialization ?? "";
+    // Unknown rating stays unknown — `?? 4.8` invented a score for lawyers who
+    // had never been rated.
+    final lawyerRating = caseItem.selectedLawyerRating ?? caseItem.assignedLawyerRating;
+    // Critically, these must default to false, not true. `?? true` presented
+    // unverified lawyers as verified and offline lawyers as online.
+    final isVerified = caseItem.selectedLawyerVerified ?? caseItem.assignedLawyerVerified ?? false;
+    final isOnline = caseItem.assignedLawyerOnline ?? false;
 
     return Row(
       children: [
@@ -451,16 +455,19 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
-              Row(
-                children: [
-                  const Icon(Icons.star, color: Color(0xFFE6B325), size: 10),
-                  const SizedBox(width: 3),
-                  Text(
-                    lawyerRating.toStringAsFixed(1),
-                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
+              // Omit the star row entirely for an unrated lawyer rather than
+              // showing an invented score.
+              if (lawyerRating != null)
+                Row(
+                  children: [
+                    const Icon(Icons.star, color: Color(0xFFE6B325), size: 10),
+                    const SizedBox(width: 3),
+                    Text(
+                      lawyerRating.toStringAsFixed(1),
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -592,16 +599,23 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   }
 
   Widget _buildInProgressDetails(CaseModel caseItem) {
-    final fee = caseItem.selectedLawyerFee ?? caseItem.assignedLawyerFee ?? 1500;
-    final nextHearingStr = caseItem.nextHearing != null 
-        ? DateFormat('dd MMM yyyy').format(caseItem.nextHearing!) 
-        : "15 Jul 2026";
+    final fee = caseItem.selectedLawyerFee ?? caseItem.assignedLawyerFee;
+
+    // A court date must never be invented. This previously fell back to the
+    // literal string "15 Jul 2026" whenever no hearing was scheduled, which
+    // could send a client to court on a date that does not exist — or let them
+    // miss the real one.
+    final nextHearingStr = caseItem.nextHearing != null
+        ? DateFormat('dd MMM yyyy').format(caseItem.nextHearing!)
+        : "Not scheduled";
 
     final completedCount = caseItem.milestones.where((m) => m.isCompleted).length;
-    final totalMilestones = caseItem.milestones.isNotEmpty ? caseItem.milestones.length : 4;
-    final progressPct = caseItem.status == 'Closed' 
-        ? 1.0 
-        : (completedCount > 0 ? completedCount / totalMilestones : 0.4);
+    // Only compute progress from real milestones. The old `?? 4` denominator
+    // plus a 0.4 floor drew a progress bar for cases with no milestones at all.
+    final totalMilestones = caseItem.milestones.length;
+    final progressPct = caseItem.status == 'Closed'
+        ? 1.0
+        : (totalMilestones > 0 ? completedCount / totalMilestones : 0.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -649,7 +663,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "₹$fee",
+                      fee != null ? "₹$fee" : "Not set",
                       style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ],

@@ -308,9 +308,10 @@ class CaseProgressScreen extends ConsumerWidget {
 
     final lawyerName = caseItem.selectedLawyerName ?? caseItem.assignedLawyerName ?? "Advocate";
     final lawyerImage = caseItem.selectedLawyerImage ?? caseItem.assignedLawyerImage ?? "";
-    final lawyerSpec = caseItem.selectedLawyerSpecialization ?? caseItem.assignedLawyerSpecialization ?? "Legal Expert";
-    final isVerified = caseItem.selectedLawyerVerified ?? caseItem.assignedLawyerVerified ?? true;
-    final rating = caseItem.selectedLawyerRating ?? caseItem.assignedLawyerRating ?? 4.8;
+    final lawyerSpec = caseItem.selectedLawyerSpecialization ?? caseItem.assignedLawyerSpecialization ?? "";
+    // Must default to false: `?? true` badged unverified lawyers as verified.
+    final isVerified = caseItem.selectedLawyerVerified ?? caseItem.assignedLawyerVerified ?? false;
+    final rating = caseItem.selectedLawyerRating ?? caseItem.assignedLawyerRating;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -354,16 +355,18 @@ class CaseProgressScreen extends ConsumerWidget {
                   style: const TextStyle(color: Colors.grey, fontSize: 11),
                 ),
                 const SizedBox(height: 3),
-                Row(
-                  children: [
-                    const Icon(Icons.star, color: Color(0xFFE6B325), size: 12),
-                    const SizedBox(width: 3),
-                    Text(
-                      rating.toStringAsFixed(1),
-                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
+                // Hidden entirely when the lawyer has no rating yet.
+                if (rating != null)
+                  Row(
+                    children: [
+                      const Icon(Icons.star, color: Color(0xFFE6B325), size: 12),
+                      const SizedBox(width: 3),
+                      Text(
+                        rating.toStringAsFixed(1),
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),

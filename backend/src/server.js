@@ -13,10 +13,17 @@ connectDB();
 // Create HTTP Server
 const server = http.createServer(app);
 
-// Socket.IO
+// Socket.IO — origins allowlisted in production, matching the REST CORS policy.
+// Each namespace additionally installs socketAuth, so an allowed origin still
+// has to present a valid JWT at the handshake.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: process.env.NODE_ENV === "production" ? allowedOrigins : "*",
     methods: ["GET", "POST"],
   },
 });

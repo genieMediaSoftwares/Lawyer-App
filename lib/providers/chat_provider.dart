@@ -5,6 +5,7 @@ import '../core/network/dio_client.dart';
 import '../models/chat_model.dart';
 import '../models/message_model.dart';
 import '../core/config/env.dart';
+import '../core/storage/token_storage.dart';
 import 'auth_provider.dart';
 import 'notification_provider.dart';
 
@@ -40,15 +41,21 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
     }
   }
 
-  void _initSocket() {
+  Future<void> _initSocket() async {
     // Guard against creating duplicate sockets
     if (_socket != null && _socket!.connected) return;
+
+    // The server rejects the handshake without a valid JWT, so there is no
+    // point opening a socket before we have one.
+    final token = await TokenStorage().getToken();
+    if (token == null || token.isEmpty) return;
 
     final base = Environment.baseUrl.replaceAll('/api', '');
     _socket = IO.io(
       '$base/chat',
       IO.OptionBuilder()
           .setTransports(['websocket'])
+          .setAuth({'token': token})
           .disableAutoConnect()
           .build(),
     );
@@ -70,10 +77,8 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
     _socket!.onConnect((_) {
       print('🔌 [ChatsSocket] Connected');
       final userId = _ref.read(authProvider).userId;
-      if (userId != null) {
-        // Register personal user room to receive chat_updated events
-        _socket!.emit('register', {'userId': userId});
-      }
+      // The personal user room is joined server-side from the authenticated
+      // handshake — the client no longer names its own room.
 
       // Join every existing chat room
       state.whenData((chats) {

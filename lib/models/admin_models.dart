@@ -112,7 +112,8 @@ class AdminLawyerSummary {
   final int experience;
   final String barCouncilNumber;
   final String verificationStatus;
-  final double rating;
+  /// Null when the lawyer has never been rated.
+  final double? rating;
 
   AdminLawyerSummary({
     required this.id,
@@ -137,11 +138,12 @@ class AdminLawyerSummary {
       email: userMap['email'] ?? '',
       mobile: userMap['mobile'] ?? '',
       profileImage: userMap['profileImage'] ?? '',
-      specialization: json['specialization'] ?? 'Corporate Law',
+      specialization: json['specialization'] ?? '',
       experience: json['experience'] ?? 0,
       barCouncilNumber: json['barCouncilNumber'] ?? '',
       verificationStatus: json['verificationStatus'] ?? 'pending',
-      rating: (json['rating'] as num?)?.toDouble() ?? 4.8,
+      // Unrated stays unrated — no invented score.
+      rating: (json['rating'] as num?)?.toDouble(),
     );
   }
 }

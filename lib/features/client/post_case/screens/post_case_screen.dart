@@ -17,12 +17,9 @@ import '../../../../providers/case_provider.dart';
 import '../../../../providers/document_provider.dart';
 import '../../../../providers/category_provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:record/record.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:http_parser/http_parser.dart';
-import '../widgets/voice_recording_visualizer.dart';
 import '../widgets/premium_audio_player.dart';
+import '../../../../core/widgets/voice_recorder_button.dart';
 import '../../../../core/widgets/location_picker_sheet.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../models/category_item.dart';
@@ -66,13 +63,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   String? _expandedCategory;
   final Map<String, GlobalKey> _categoryKeys = {};
 
-  // Voice Recording & Transcription State
-  late final AudioRecorder _audioRecorder;
-  StreamSubscription<Amplitude>? _amplitudeSubscription;
+  // Voice Recording & Transcription State.
+  // The recorder itself (permission, encoder, timer, amplitude stream) lives
+  // in VoiceRecorderButton; this screen only tracks the result.
+  final GlobalKey _recorderKey = GlobalKey();
   bool _isRecording = false;
-  int _recordingSeconds = 0;
-  Timer? _recordingTimer;
-  List<double> _amplitudes = [];
   String? _recordedFilePath;
 
   // Transcription states
@@ -123,7 +118,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   @override
   void initState() {
     super.initState();
-    _audioRecorder = AudioRecorder();
     _cityFocusNode = FocusNode();
 
     _loadDraft().then((_) {
@@ -191,9 +185,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   @override
   void dispose() {
     _cityFocusNode.dispose();
-    _amplitudeSubscription?.cancel();
-    _recordingTimer?.cancel();
-    _audioRecorder.dispose();
     _descriptionController.dispose();
     _cityController.dispose();
     _courtController.dispose();
@@ -288,120 +279,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     }
   }
 
-  Future<void> _startRecording() async {
-    try {
-      final hasPermission = await Permission.microphone.request().isGranted;
-      if (!hasPermission) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Microphone permission is required to record audio.")),
-        );
-        return;
-      }
-
-      final tempDir = await getTemporaryDirectory();
-      final String path = "${tempDir.path}/case_desc_${DateTime.now().millisecondsSinceEpoch}.m4a";
-
-      setState(() {
-        _isRecording = true;
-        _recordingSeconds = 0;
-        _amplitudes = [];
-        _recordedFilePath = null;
-        _audioPlayerSource = null;
-        _transcribeError = null;
-      });
-
-      await _audioRecorder.start(
-        const RecordConfig(encoder: AudioEncoder.aacLc),
-        path: path,
-      );
-
-      _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (mounted) {
-          setState(() {
-            _recordingSeconds++;
-          });
-          _saveDraft();
-        }
-      });
-
-      _amplitudeSubscription = _audioRecorder
-          .onAmplitudeChanged(const Duration(milliseconds: 100))
-          .listen((amp) {
-        if (mounted) {
-          setState(() {
-            double val = (amp.current + 160.0) / 160.0;
-            if (val < 0.0) val = 0.0;
-            _amplitudes.add(val);
-            if (_amplitudes.length > 25) {
-              _amplitudes.removeAt(0);
-            }
-          });
-        }
-      });
-      _saveDraft();
-    } catch (e) {
-      debugPrint("Error starting recording: $e");
-      setState(() {
-        _isRecording = false;
-      });
-    }
-  }
-
-  Future<void> _stopRecording({bool cancel = false}) async {
-    _recordingTimer?.cancel();
-    _amplitudeSubscription?.cancel();
-
-    try {
-      final path = await _audioRecorder.stop();
-      if (cancel) {
-        if (path != null) {
-          final file = File(path);
-          if (await file.exists()) {
-            await file.delete();
-          }
-        }
-        setState(() {
-          _isRecording = false;
-          _recordingSeconds = 0;
-          _amplitudes = [];
-          _recordedFilePath = null;
-          _audioPlayerSource = null;
-        });
-        _saveDraft();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Recording cancelled")),
-          );
-        }
-        return;
-      }
-
-      if (path != null) {
-        setState(() {
-          _isRecording = false;
-          _recordedFilePath = path;
-          _audioPlayerSource = path;
-        });
-        _saveDraft();
-        _transcribeAudio(path);
-      } else {
-        setState(() {
-          _isRecording = false;
-        });
-        _saveDraft();
-      }
-    } catch (e) {
-      debugPrint("Error stopping recording: $e");
-      setState(() {
-        _isRecording = false;
-      });
-      _saveDraft();
-    }
-  }
-
-  Future<void> _cancelRecording() async {
-    await _stopRecording(cancel: true);
-  }
 
   Future<void> _transcribeAudio(String path) async {
     setState(() {
@@ -532,21 +409,27 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               ),
             ),
             Positioned(
-              bottom: 8,
-              right: 8,
-              child: _isRecording
-                  ? IconButton(
-                      onPressed: () => _stopRecording(),
-                      icon: const Icon(Icons.stop_circle_rounded, color: Colors.red, size: 28),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    )
-                  : IconButton(
-                      onPressed: () => _startRecording(),
-                      icon: const Icon(Icons.mic, color: AppColors.primaryGold, size: 28),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
+              bottom: 4,
+              right: 4,
+              // Small round mic button. Owns its own recording state, so the
+              // amplitude stream no longer rebuilds this entire screen.
+              child: VoiceRecorderButton(
+                key: _recorderKey,
+                filePrefix: 'case_desc',
+                onRecordingStateChanged: (recording) {
+                  setState(() => _isRecording = recording);
+                  if (!recording) _saveDraft();
+                },
+                onRecordingComplete: (file) {
+                  setState(() {
+                    _recordedFilePath = file.path;
+                    _audioPlayerSource = file.path;
+                    _transcribeError = null;
+                  });
+                  _saveDraft();
+                  _transcribeAudio(file.path);
+                },
+              ),
             ),
             if (_isTranscribing)
               Positioned.fill(
@@ -574,38 +457,19 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               ),
           ],
         ),
+        // The elapsed time, live waveform, discard and stop controls all live
+        // inside VoiceRecorderButton now, so there is no separate bar here.
         if (_isRecording) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.colorScheme.outline),
-            ),
-            child: Row(
-              children: [
-                const _PulsingRecordDot(),
-                const SizedBox(width: 8),
-                Text(
-                  "Recording: ${(_recordingSeconds ~/ 60).toString().padLeft(2, '0')}:${(_recordingSeconds % 60).toString().padLeft(2, '0')}",
-                  style: TextStyle(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: VoiceRecordingVisualizer(amplitudes: _amplitudes, isRecording: _isRecording),
-                ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: () => _cancelRecording(),
-                  child: const Text("Cancel", style: TextStyle(color: AppColors.mutedText, fontSize: 12)),
-                ),
-              ],
-            ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const _PulsingRecordDot(),
+              const SizedBox(width: 8),
+              Text(
+                "Recording — tap stop when you're done",
+                style: TextStyle(color: theme.colorScheme.primary, fontSize: 12),
+              ),
+            ],
           ),
         ],
         if (_transcribeError != null) ...[
@@ -647,13 +511,16 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               });
               _saveDraft();
             },
+            // Clearing the clip reveals the mic button again; the user taps it
+            // to record afresh. Driving the recorder from here would mean
+            // reaching into another widget's state.
             onReRecord: () {
               setState(() {
                 _audioPlayerSource = null;
                 _recordedFilePath = null;
+                _transcribeError = null;
               });
               _saveDraft();
-              _startRecording();
             },
           ),
         ],

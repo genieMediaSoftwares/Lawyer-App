@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../core/config/env.dart';
 import '../core/network/dio_client.dart';
+import '../core/storage/token_storage.dart';
 import '../models/case_model.dart';
 import '../models/document_model.dart';
 import 'auth_provider.dart';
@@ -229,7 +230,7 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     return false;
   }
 
-  void syncSocket(String? userId) {
+  Future<void> syncSocket(String? userId) async {
     if (userId == _currentUserId) return;
     _currentUserId = userId;
 
@@ -240,16 +241,20 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     if (userId == null || userId.isEmpty) return;
 
     try {
+      // The handshake is rejected without a valid JWT.
+      final token = await TokenStorage().getToken();
+      if (token == null || token.isEmpty) return;
+
       final base = Environment.baseSocketUrl;
       _socket = IO.io('$base/cases', IO.OptionBuilder()
         .setTransports(['websocket'])
+        .setAuth({'token': token})
         .build());
 
       _socket!.connect();
 
-      _socket!.onConnect((_) {
-        _socket!.emit('join', {'userId': userId});
-      });
+      // The user's case-update room is joined server-side from the
+      // authenticated handshake — no client-supplied userId is trusted.
 
       _socket!.on('case_updated', (_) {
         fetchCases();

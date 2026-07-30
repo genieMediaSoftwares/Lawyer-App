@@ -43,7 +43,8 @@ class _AISmartQuestionsScreenState extends ConsumerState<AISmartQuestionsScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(aiSmartCaseProvider);
     final analysis = state.sessionResponse?.aiAnalysis;
-    final readinessScore = analysis?.readinessScore ?? 85;
+    // 0 when the analysis produced nothing, rather than implying 85% ready.
+    final readinessScore = analysis?.readinessScore ?? 0;
     final questions = analysis?.followUpQuestions ?? [];
     final fraudFlags = analysis?.fraudFlags ?? [];
     final missingInfo = analysis?.missingInformation ?? [];

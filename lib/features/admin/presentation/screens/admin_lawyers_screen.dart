@@ -253,7 +253,9 @@ class _AdminLawyersScreenState extends ConsumerState<AdminLawyersScreen> {
                                           const Icon(Icons.star, color: AppColors.primaryGold, size: 14),
                                           const SizedBox(width: 4),
                                           Text(
-                                            '${lawyer.rating.toStringAsFixed(1)} Rating',
+                                            lawyer.rating != null
+                                                ? '${lawyer.rating!.toStringAsFixed(1)} Rating'
+                                                : 'Not yet rated',
                                             style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                                           ),
                                         ],

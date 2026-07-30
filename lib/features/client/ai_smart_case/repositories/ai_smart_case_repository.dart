@@ -4,6 +4,17 @@ import '../../../../core/network/dio_client.dart';
 import '../models/ai_smart_case_models.dart';
 
 class AISmartCaseRepository {
+  /// The AI intake pipeline runs OCR over every uploaded document, transcribes
+  /// the voice note, then does the legal analysis — measured at 40s+ for a
+  /// realistic submission. The client default of 15s guaranteed a timeout on
+  /// every request, so this flow could never succeed.
+  static const _aiTimeout = Duration(minutes: 3);
+
+  static Options get _aiOptions => Options(
+        receiveTimeout: _aiTimeout,
+        sendTimeout: _aiTimeout,
+      );
+
   /// Upload documents and optional voice recording to analyze with AI
   Future<AISmartCaseSessionResponse> analyzeSmartCase({
     required List<File> files,
@@ -49,6 +60,8 @@ class AISmartCaseRepository {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        receiveTimeout: _aiTimeout,
+        sendTimeout: _aiTimeout,
       ),
     );
 
@@ -64,12 +77,14 @@ class AISmartCaseRepository {
     required String sessionId,
     required List<Map<String, String>> answers,
   }) async {
+    // Re-runs the full analysis server-side, so it needs the same budget.
     final response = await DioClient.dio.post(
       '/ai/smart-case/answer-questions',
       data: {
         'sessionId': sessionId,
         'answers': answers,
       },
+      options: _aiOptions,
     );
 
     if (response.statusCode == 200 && response.data != null) {

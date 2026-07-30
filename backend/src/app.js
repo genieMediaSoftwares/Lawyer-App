@@ -4,6 +4,8 @@ const helmet = require("helmet");
 const compression = require("compression");
 const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
+const rateLimit = require("express-rate-limit");
+const fileAuthMiddleware = require("./middleware/fileAuthMiddleware");
 const errorMiddleware = require("./middleware/errorMiddleware");
 const authRoutes = require("./routes/authRoutes");
 const caseRoutes = require("./routes/case.routes");
@@ -34,14 +36,41 @@ app.use(
   })
 );
 
-// CORS – allow all origins for local development
+// CORS – unrestricted in development, allowlisted in production.
+// ALLOWED_ORIGINS is a comma-separated list, e.g. "https://app.genielaw.in".
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: "*",
+    origin:
+      process.env.NODE_ENV === "production" ? allowedOrigins : "*",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// Rate limiting. Without this, the login endpoint is open to credential
+// stuffing and the password-reset code is brute-forceable within its window.
+const authLimiter = (max, windowMinutes) =>
+  rateLimit({
+    windowMs: windowMinutes * 60 * 1000,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      success: false,
+      message: "Too many attempts. Please try again later.",
+    },
+  });
+
+app.use("/api/auth/login", authLimiter(5, 15));
+app.use("/api/auth/signup", authLimiter(3, 60));
+app.use("/api/auth/forgot-password", authLimiter(3, 15));
+app.use("/api/auth/reset-password", authLimiter(5, 15));
+app.use("/api", authLimiter(300, 15));
 
 // Compression
 app.use(compression());
@@ -75,8 +104,27 @@ app.get("/api", (req, res) => {
 });
 
 const path = require("path");
-// Serve local uploads folder statically
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
+// Uploaded files. fileAuthMiddleware lets /uploads/profiles through (public
+// avatars) and authorises every other folder per request — case evidence,
+// voice recordings and acknowledgement documents were previously downloadable
+// by anyone holding the URL.
+//
+// express.static is kept behind the guard rather than replaced by sendFile so
+// that Range requests keep working; audio playback seeking depends on them.
+app.use(
+  "/uploads",
+  fileAuthMiddleware,
+  express.static(path.join(__dirname, "../uploads"), {
+    // Never let an upload be interpreted as active content on our origin.
+    setHeaders: (res) => {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Content-Security-Policy", "default-src 'none'");
+    },
+    index: false,
+    dotfiles: "deny",
+  })
+);
 
 // Routes
 app.use("/api/auth", authRoutes);

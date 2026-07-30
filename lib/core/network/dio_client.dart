@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 import '../config/env.dart';
@@ -29,14 +30,23 @@ class DioClient {
       ApiInterceptor(),
       RetryInterceptor(dio: client),
       ErrorInterceptor(),
-      PrettyDioLogger(
-        requestBody: true,
-        requestHeader: true,
-        responseBody: true,
-        responseHeader: false,
-        error: true,
-      ),
     ]);
+
+    // Debug builds only. This logs full request headers and bodies, which
+    // includes the Authorization bearer token, plaintext passwords on
+    // login/signup, and privileged case and document payloads — none of which
+    // should reach the device log on a release build.
+    if (kDebugMode) {
+      client.interceptors.add(
+        PrettyDioLogger(
+          requestBody: true,
+          requestHeader: true,
+          responseBody: true,
+          responseHeader: false,
+          error: true,
+        ),
+      );
+    }
 
     return client;
   }
@@ -53,24 +63,44 @@ class RetryInterceptor extends Interceptor {
     this.retryDelay = const Duration(seconds: 2),
   });
 
+  /// Methods safe to replay. A retried POST/PUT/PATCH/DELETE can be applied
+  /// twice when the server processed the first attempt but the response was
+  /// lost — which is exactly what happened on `/ai/smart-case/analyze`: the
+  /// client gave up at its receive timeout while the server kept working, and
+  /// each retry created another session and another paid AI analysis.
+  static const _idempotentMethods = {'GET', 'HEAD', 'OPTIONS'};
+
   @override
   Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
     final requestOptions = err.requestOptions;
 
     // Check if the request is retryable (retry on timeouts or connection issues)
-    final isRetryable = err.type == DioExceptionType.connectionTimeout ||
+    final isRetryableError = err.type == DioExceptionType.connectionTimeout ||
         err.type == DioExceptionType.sendTimeout ||
         err.type == DioExceptionType.receiveTimeout ||
         err.type == DioExceptionType.connectionError ||
         (err.type == DioExceptionType.unknown && err.error is SocketException);
+
+    final isIdempotent =
+        _idempotentMethods.contains(requestOptions.method.toUpperCase());
+
+    // A connection timeout means the request never landed, so replaying a
+    // write is still safe. Any later-stage timeout might have been served.
+    final neverReachedServer =
+        err.type == DioExceptionType.connectionTimeout ||
+            (err.type == DioExceptionType.unknown && err.error is SocketException);
+
+    final isRetryable =
+        isRetryableError && (isIdempotent || neverReachedServer);
 
     final retryCount = requestOptions.extra['retry_count'] ?? 0;
 
     if (isRetryable && retryCount < maxRetries) {
       requestOptions.extra['retry_count'] = retryCount + 1;
 
-      // Wait before retry
-      await Future.delayed(retryDelay);
+      // Exponential backoff: 2s, 4s, 8s. A fixed delay hammers a service that
+      // is already struggling.
+      await Future.delayed(retryDelay * (1 << (retryCount as int)));
 
       try {
         final response = await dio.request(

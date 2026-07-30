@@ -353,20 +353,26 @@ class LawyerController {
           rating: lawyer.rating,
           reviewCount: lawyer.totalReviews,
           consultationFee: lawyer.consultationFee,
-          languages: lawyer.languages || ["English", "Hindi"],
+          // Report what the record holds. `casesHandled || 120` and
+          // `winPercentage || 85` invented a track record for every lawyer who
+          // had not filled these in — presented to clients choosing legal
+          // representation as if it were real. Same for a language list and
+          // working hours the lawyer never stated. Null means "not provided";
+          // the UI must omit the metric rather than substitute a number.
+          languages: lawyer.languages?.length ? lawyer.languages : [],
           practiceAreas: practiceAreas,
           verified: lawyer.user.isVerified,
           onlineStatus: lawyer.user.isActive,
           responseTime: responseTime,
           matchPercentage: matchPercentage,
-          casesHandled: lawyer.casesHandled || 120,
+          casesHandled: typeof lawyer.casesHandled === "number" ? lawyer.casesHandled : null,
           locationScore: locationScore, // helper for sorting
-          winPercentage: lawyer.winPercentage || 85,
+          winPercentage: lawyer.winPercentage > 0 ? lawyer.winPercentage : null,
           bio: lawyer.bio || "",
           education: lawyer.education || "",
           barCouncilNumber: lawyer.barCouncilNumber || "",
           officeAddress: lawyer.officeAddress || "",
-          workingHours: lawyer.workingHours || "9:00 AM - 6:00 PM",
+          workingHours: lawyer.workingHours || "",
         };
       });
 

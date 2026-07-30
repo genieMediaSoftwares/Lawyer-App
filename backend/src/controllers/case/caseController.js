@@ -184,25 +184,37 @@ class CaseController {
         return ApiResponse.error(res, "Case not found.", 404);
       }
 
+      // The fee is a commercial term the client will act on, so it must come
+      // from the lawyer. Defaulting a missing value to ₹1500 quoted a price no
+      // lawyer had agreed to. Require it explicitly instead.
+      const parsedFee = Number(feeProposal);
+      if (!Number.isFinite(parsedFee) || parsedFee < 0) {
+        return ApiResponse.error(
+          res,
+          "A consultation fee is required to submit a proposal.",
+          400
+        );
+      }
+
       // 1. Create or update in Proposal collection
       let proposal = await Proposal.findOne({ caseId: id, lawyerId });
       if (proposal) {
-        proposal.consultationFee = feeProposal || 1500;
+        proposal.consultationFee = parsedFee;
         proposal.proposalMessage = message || "";
-        proposal.estimatedResponseTime = estimatedResponseTime || "24 hours";
+        proposal.estimatedResponseTime = estimatedResponseTime || "";
         proposal.consultationMode = consultationMode || "Video";
-        proposal.availability = availability || "Mon-Fri 9AM-5PM";
+        proposal.availability = availability || "";
         await proposal.save();
       } else {
         proposal = await Proposal.create({
           caseId: id,
           lawyerId,
           clientId: caseItem.client,
-          consultationFee: feeProposal || 1500,
+          consultationFee: parsedFee,
           proposalMessage: message || "",
-          estimatedResponseTime: estimatedResponseTime || "24 hours",
+          estimatedResponseTime: estimatedResponseTime || "",
           consultationMode: consultationMode || "Video",
-          availability: availability || "Mon-Fri 9AM-5PM",
+          availability: availability || "",
           status: "Pending"
         });
       }
@@ -213,12 +225,12 @@ class CaseController {
       );
 
       if (existingProposalIndex > -1) {
-        caseItem.proposals[existingProposalIndex].feeProposal = feeProposal || 1500;
+        caseItem.proposals[existingProposalIndex].feeProposal = parsedFee;
         caseItem.proposals[existingProposalIndex].message = message || "";
       } else {
         caseItem.proposals.push({
           lawyer: lawyerId,
-          feeProposal: feeProposal || 1500,
+          feeProposal: parsedFee,
           message: message || ""
         });
       }

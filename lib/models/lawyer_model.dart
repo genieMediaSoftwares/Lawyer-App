@@ -84,14 +84,16 @@ class LawyerModel {
       location: json['location'] ?? (userData['location'] ?? ''),
       officeAddress: json['officeAddress'] ?? '',
       upiId: json['upiId'] ?? '',
-      workingHours: json['workingHours'] ?? '9:00 AM - 6:00 PM',
+      workingHours: json['workingHours'] ?? '',
       bankDetails: Map<String, dynamic>.from(json['bankDetails'] ?? {}),
       casesHandled: json['casesHandled'] ?? 0,
       winPercentage: json['winPercentage'] ?? 0,
       isVerified: json['verified'] ?? (userData['isVerified'] ?? false),
-      responseTime: json['responseTime'] ?? 'Responds in 15 mins',
-      matchPercentage: json['matchPercentage'] ?? 80,
-      onlineStatus: json['onlineStatus'] ?? (userData['isActive'] ?? true),
+      // No claim about response speed unless the server measured one.
+      responseTime: json['responseTime'] ?? '',
+      matchPercentage: json['matchPercentage'] ?? 0,
+      // Default offline, not online: an unknown presence was shown as live.
+      onlineStatus: json['onlineStatus'] ?? (userData['isActive'] ?? false),
     );
   }
 }

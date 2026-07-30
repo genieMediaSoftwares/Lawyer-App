@@ -1,6 +1,7 @@
 const Lawyer = require("../../models/Lawyer");
 const User = require("../../models/User");
 const Case = require("../../models/Case");
+const gemini = require("./geminiClient");
 
 class AiSmartIntakeService {
   /**
@@ -46,51 +47,13 @@ JSON SCHEMA:
   "fraudFlags": ["Any detected issues e.g. Unclear signature, Missing bank memo stamp, Unreadable page"]
 }`;
 
-    const candidateModels = [
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-flash-latest",
-      "gemini-3.5-flash"
-    ];
-
-    let rawAiResponse = null;
-    let lastError = null;
-
-    for (const model of candidateModels) {
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                {
-                  role: "user",
-                  parts: [
-                    { text: combinedText },
-                    { text: prompt },
-                  ],
-                },
-              ],
-            }),
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          rawAiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (rawAiResponse) break;
-        } else {
-          lastError = await response.text();
-        }
-      } catch (err) {
-        lastError = err.message;
-      }
-    }
+    const { text: rawAiResponse, error: aiError } = await gemini.generate(
+      [{ text: combinedText }, { text: prompt }],
+      { label: "smart-case:analyze" }
+    );
 
     if (!rawAiResponse) {
-      throw new Error(`Gemini AI analysis failed: ${lastError}`);
+      throw new Error(`Gemini AI analysis failed: ${aiError}`);
     }
 
     // Parse JSON cleanly
@@ -198,34 +161,62 @@ JSON SCHEMA:
    */
   async getRealLawyerRecommendations(category, specialization) {
     try {
-      // Find lawyers verified or with high rating from database
-      const lawyers = await Lawyer.find({
-        $or: [
-          { verificationStatus: "verified" },
-          { rating: { $gt: 0 } },
-          { experience: { $gt: 0 } }
-        ]
-      })
-        .populate("user", "name email phone avatar role profileImage")
-        .sort({ rating: -1, experience: -1, winPercentage: -1 })
-        .limit(10);
+      // Prefer lawyers matching the detected specialisation, then fall back to
+      // any active lawyer. The previous filter required verified status OR a
+      // non-zero rating OR non-zero experience, which excluded every
+      // newly-onboarded lawyer and returned an empty list on a fresh database —
+      // silently, because the caller swallows errors. An empty list meant no
+      // lawyer was ever selected, so no appointment and no notification was
+      // created when the case was filed.
+      const specialisationFilter = [category, specialization]
+        .filter(Boolean)
+        .map((term) => ({ specialization: new RegExp(term, "i") }));
 
+      let lawyers = [];
+
+      if (specialisationFilter.length > 0) {
+        lawyers = await Lawyer.find({ $or: specialisationFilter })
+          .populate("user", "fullName email mobile profileImage role isActive")
+          .sort({ verificationStatus: 1, rating: -1, experience: -1 })
+          .limit(10);
+      }
+
+      if (lawyers.length === 0) {
+        lawyers = await Lawyer.find({})
+          .populate("user", "fullName email mobile profileImage role isActive")
+          .sort({ rating: -1, experience: -1 })
+          .limit(10);
+      }
+
+      // Every field below reports what the database actually holds.
+      //
+      // The previous version substituted invented values when a field was
+      // absent — rating 4.8, winPercentage 88, casesHandled 95, 24 reviews,
+      // "High Court Advocate" — so an unrated, unverified lawyer was presented
+      // to a client as a highly-rated one. Fabricated credentials shown to
+      // someone choosing legal representation are a compliance problem, not a
+      // cosmetic one. Unknown values are now null; the UI must render them as
+      // "New" or omit the metric.
       const formatted = lawyers
-        .filter((l) => l.user != null)
+        .filter((l) => l.user != null && l.user.isActive !== false)
         .map((l) => ({
           lawyerId: l._id.toString(),
           userId: l.user._id.toString(),
-          name: l.user.name || "Advocate",
+          // The User schema field is `fullName`; `name` does not exist, so the
+          // old code fell through to "Advocate" for every single lawyer.
+          name: l.user.fullName || "Advocate",
           email: l.user.email || "",
-          avatar: l.user.avatar || l.user.profileImage || "",
-          specialization: l.specialization || specialization || category || "Legal Specialist",
-          experience: l.experience || 5,
-          rating: l.rating > 0 ? l.rating : 4.8,
-          totalReviews: l.totalReviews || 24,
-          consultationFee: l.consultationFee || 1500,
-          winPercentage: l.winPercentage || 88,
-          casesHandled: l.casesHandled || 95,
-          officeAddress: l.officeAddress || "High Court Advocate",
+          avatar: l.user.profileImage || "",
+          specialization: l.specialization || "",
+          experience: typeof l.experience === "number" ? l.experience : null,
+          rating: l.rating > 0 ? l.rating : null,
+          totalReviews: typeof l.totalReviews === "number" ? l.totalReviews : 0,
+          consultationFee:
+            typeof l.consultationFee === "number" ? l.consultationFee : null,
+          winPercentage: l.winPercentage > 0 ? l.winPercentage : null,
+          casesHandled: typeof l.casesHandled === "number" ? l.casesHandled : 0,
+          officeAddress: l.officeAddress || "",
+          isVerified: l.verificationStatus === "verified",
         }));
 
       return formatted;

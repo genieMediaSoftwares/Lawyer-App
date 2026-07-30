@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../core/config/env.dart';
 import '../core/network/dio_client.dart';
+import '../core/storage/token_storage.dart';
 import '../models/notification_model.dart';
 import 'auth_provider.dart';
 
@@ -80,14 +81,19 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     _initSocket();
   }
 
-  void _initSocket() {
+  Future<void> _initSocket() async {
     if (userId == null) return;
+
+    // The handshake is rejected without a valid JWT.
+    final token = await TokenStorage().getToken();
+    if (token == null || token.isEmpty) return;
 
     final base = Environment.baseUrl.replaceAll('/api', '');
     final socketUrl = '$base/notifications';
 
     _socket = IO.io(socketUrl, IO.OptionBuilder()
       .setTransports(['websocket'])
+      .setAuth({'token': token})
       .enableAutoConnect()
       .enableReconnection()
       .setReconnectionDelay(2000)
@@ -98,7 +104,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     _socket?.connect();
 
     _socket?.onConnect((_) {
-      _socket?.emit('register', {'userId': userId});
+      // The personal alert room is joined server-side from the authenticated
+      // handshake; emitting a client-chosen userId is no longer honoured.
       if (!_isDisposed) {
         state = state.copyWith(isOffline: false);
       }

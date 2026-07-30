@@ -5,7 +5,9 @@ const Appointment = require("../../models/Appointment");
 const ocrSanitizationService = require("../../services/ai/ocrSanitizationService");
 const aiSmartIntakeService = require("../../services/ai/aiSmartIntakeService");
 const notificationService = require("../../services/notification/notificationService");
+const gemini = require("../../services/ai/geminiClient");
 const fs = require("fs");
+const path = require("path");
 
 class AiSmartCaseController {
   /**
@@ -24,18 +26,55 @@ class AiSmartCaseController {
       const documentMetadata = [];
       const allFraudFlags = [];
       const uploadedDocsForDb = [];
+      const extractionFailures = [];
 
       // 1. Process Documents (OCR & Sanitization)
+      //
+      // Run in parallel. OCR takes 13-45s per file against Gemini, so the
+      // original sequential loop meant 10 documents could take six minutes and
+      // exceed any sane client timeout. Order is preserved because
+      // Promise.all resolves positionally.
       if (documentFiles && documentFiles.length > 0) {
-        for (const file of documentFiles) {
-          const fileUrl = `/uploads/${file.filename}`;
-          const ocrResult = await ocrSanitizationService.extractText(
-            file.path,
-            file.mimetype,
-            file.originalname
-          );
+        const ocrResults = await Promise.all(
+          documentFiles.map((file) =>
+            ocrSanitizationService
+              .extractText(file.path, file.mimetype, file.originalname)
+              .catch((err) => ({
+                // A single unreadable document must not fail the whole intake.
+                extractedText: "",
+                ocrQuality: "Extraction Unavailable",
+                fraudFlags: [],
+                charCount: 0,
+                extractionFailed: true,
+                extractionError: err.message,
+              }))
+          )
+        );
 
-          aggregatedOcrText += `\n\n--- DOCUMENT: ${file.originalname} ---\n` + ocrResult.extractedText;
+        documentFiles.forEach((file, index) => {
+          const ocrResult = ocrResults[index];
+
+          // Must include the sub-folder. upload.middleware routes /api/ai/*
+          // uploads to uploads/cases/, so the old `/uploads/${filename}` URL
+          // pointed at a path that does not exist and every stored document
+          // link 404'd. Derived from file.path so the two can't drift again.
+          const fileUrl =
+            "/" + path.relative(path.join(__dirname, "../../.."), file.path).replace(/\\/g, "/");
+
+          // Only feed real extracted text to the model. Appending an empty or
+          // placeholder body used to leave the AI inferring case details from
+          // the filename alone.
+          if (ocrResult.extractedText && ocrResult.extractedText.trim()) {
+            aggregatedOcrText +=
+              `\n\n--- DOCUMENT: ${file.originalname} ---\n` + ocrResult.extractedText;
+          }
+
+          if (ocrResult.extractionFailed) {
+            extractionFailures.push({
+              name: file.originalname,
+              reason: ocrResult.extractionError || "OCR service unavailable",
+            });
+          }
 
           if (ocrResult.fraudFlags && ocrResult.fraudFlags.length > 0) {
             allFraudFlags.push(...ocrResult.fraudFlags);
@@ -46,6 +85,7 @@ class AiSmartCaseController {
             size: `${(file.size / 1024).toFixed(1)} KB`,
             type: file.mimetype,
             ocrQuality: ocrResult.ocrQuality,
+            charactersExtracted: ocrResult.charCount,
           });
 
           uploadedDocsForDb.push({
@@ -57,50 +97,73 @@ class AiSmartCaseController {
             documentType: file.mimetype,
             ocrQuality: ocrResult.ocrQuality,
           });
-        }
+        });
       }
 
       // 2. Transcribe Voice if provided
       let voiceTranscript = req.body.voiceTranscript || "";
+      let voiceTranscriptionFailed = false;
+
       if (voiceFile && !voiceTranscript) {
         try {
-          const apiKey = process.env.GEMINI_API_KEY;
-          if (apiKey) {
-            const audioBuffer = fs.readFileSync(voiceFile.path);
-            const audioBase64 = audioBuffer.toString("base64");
-            let mimeType = voiceFile.mimetype || "audio/mp4";
-
-            const transcribeRes = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+          const audioBase64 = fs.readFileSync(voiceFile.path).toString("base64");
+          // Routed through geminiClient so a model outage falls back instead of
+          // failing outright, as it did when this was pinned to gemini-2.0-flash.
+          const { text } = await gemini.generate(
+            [
               {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  contents: [
-                    {
-                      role: "user",
-                      parts: [
-                        { inlineData: { mimeType, data: audioBase64 } },
-                        { text: "Transcribe this voice audio description of a legal issue verbatim into English text. Return ONLY plain English transcript." },
-                      ],
-                    },
-                  ],
-                }),
-              }
-            );
+                inlineData: {
+                  mimeType: voiceFile.mimetype || "audio/mp4",
+                  data: audioBase64,
+                },
+              },
+              {
+                text:
+                  "Transcribe this voice description of a legal issue verbatim into English. " +
+                  "Return ONLY the plain transcript, with no commentary.",
+              },
+            ],
+            { label: "smart-case:transcribe" }
+          );
 
-            if (transcribeRes.ok) {
-              const trData = await transcribeRes.json();
-              voiceTranscript = trData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-            }
-          }
+          voiceTranscript = text || "";
+          voiceTranscriptionFailed = !text;
         } catch (vErr) {
           console.error("Voice transcription failed in intake:", vErr.message);
+          voiceTranscriptionFailed = true;
         }
       }
 
+      const typedDescription = (req.body.issueDescription || "").trim();
+
+      // Fall back to whatever the client typed. Never substitute a synthetic
+      // sentence like "General legal intake submission." — the model treated
+      // that as the client's actual account of their problem and generated a
+      // case title and legal category from it.
       if (!aggregatedOcrText.trim() && !voiceTranscript.trim()) {
-        voiceTranscript = req.body.issueDescription || "General legal intake submission.";
+        voiceTranscript = typedDescription;
+      }
+
+      // With no document text, no transcript and nothing typed there is
+      // nothing to analyse. Record the failure so the session history shows
+      // what happened rather than leaving an invented case behind.
+      if (!aggregatedOcrText.trim() && !voiceTranscript.trim()) {
+        await AiSmartCaseSession.create({
+          client: clientId,
+          status: "failed",
+          uploadedDocuments: uploadedDocsForDb,
+          voiceTranscript: "",
+        });
+
+        const reason = extractionFailures.length
+          ? "We could not read any text from the uploaded document(s)."
+          : "No document text, voice recording or description was provided.";
+
+        return ApiResponse.error(
+          res,
+          `${reason} Please add a short description of your issue, or upload a clearer document, and try again.`,
+          422
+        );
       }
 
       // 3. AI Intake Processing via Gemini Pro
@@ -138,9 +201,26 @@ class AiSmartCaseController {
         recommendedLawyers: analysisResult.recommendedLawyers,
         uploadedDocuments: uploadedDocsForDb,
         voiceTranscript,
+        // Told to the client so the review screen can say which documents were
+        // not read, instead of implying the analysis covered everything.
+        extractionWarnings: extractionFailures,
+        voiceTranscriptionFailed,
       });
     } catch (error) {
       console.error("Analyze Smart Case Error:", error);
+
+      // Leave a trace of the failure. The "failed" status existed in the
+      // session enum but nothing ever set it, so a crashed analysis vanished.
+      try {
+        await AiSmartCaseSession.create({
+          client: req.user?._id,
+          status: "failed",
+          voiceTranscript: "",
+        });
+      } catch {
+        // Session bookkeeping must not mask the original error.
+      }
+
       next(error);
     }
   }
@@ -243,18 +323,32 @@ class AiSmartCaseController {
       });
 
       // 2. Create Appointment Request if lawyer is selected
+      //
+      // These field names must match the Appointment schema exactly. They did
+      // not: `appointmentDate` (schema: `date`, and required), `type` (schema:
+      // `mode`), `status: "Pending"` (enum is lowercase) and `type: "Online"`
+      // (enum is Chat | In-Person). Mongoose rejected every insert, so
+      // selecting a lawyer made the whole confirm-create request fail with a
+      // 500 — after the Case had already been written.
       let appointment = null;
       if (selectedLawyerId) {
-        appointment = await Appointment.create({
-          client: clientId,
-          lawyer: selectedLawyerId,
-          case: newCase._id,
-          appointmentDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-          timeSlot: "10:00 AM - 11:00 AM",
-          type: "Online",
-          status: "Pending",
-          notes: `AI Smart Case Intake: ${caseTitle}`,
-        });
+        // Non-fatal: the Case is already persisted at this point, so throwing
+        // here would leave the client with a 500 and an orphaned case they
+        // cannot see. Report the case as created and log the shortfall.
+        try {
+          appointment = await Appointment.create({
+            client: clientId,
+            lawyer: selectedLawyerId,
+            case: newCase._id,
+            date: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+            timeSlot: "10:00 AM - 11:00 AM",
+            mode: "Chat",
+            status: "pending",
+            notes: `AI Smart Case Intake: ${caseTitle}`,
+          });
+        } catch (aErr) {
+          console.error("Appointment creation failed for case", newCase._id.toString(), aErr.message);
+        }
 
         // 3. Emit Real-time Socket.io Notifications to Lawyer & Client
         const io = req.app.get("io");
@@ -277,14 +371,21 @@ class AiSmartCaseController {
           }
         }
 
-        // Send in-app notification record
+        // Send in-app notification record.
+        //
+        // Was calling a non-existent `sendNotification` with the wrong keys
+        // (`userId`/`body`/`relatedId`), so it threw
+        // "sendNotification is not a function" into a swallowing catch and the
+        // lawyer was never notified that a case had been assigned to them.
         try {
-          await notificationService.sendNotification({
-            userId: selectedLawyerId,
+          await notificationService.createAndSendNotification({
+            senderId: clientId,
+            receiverId: selectedLawyerId,
             title: "New Case Received",
-            body: `Client assigned case "${caseTitle}" to you via AI Assistant.`,
-            type: "case_update",
-            relatedId: newCase._id.toString(),
+            message: `A client assigned the case "${caseTitle}" to you via the AI Assistant.`,
+            type: "case_posted",
+            priority: "high",
+            referenceId: newCase._id.toString(),
           });
         } catch (nErr) {
           console.error("Notification service error:", nErr.message);

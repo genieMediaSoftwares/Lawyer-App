@@ -9,6 +9,20 @@ class TokenStorage {
   static const String _roleKey = 'user_role';
   static const String _onboardingKey = 'onboarding_completed';
 
+  /// In-memory mirror of the stored JWT.
+  ///
+  /// Secure storage is async, but two call sites need the token synchronously:
+  /// [Environment.getAttachmentUrl], which runs inside `build()` while
+  /// constructing image URLs, and the socket handshake. The cache is populated
+  /// on save and on every read, so it is warm from app start (AuthNotifier
+  /// reads the token during initialize()).
+  static String? _cachedToken;
+
+  /// Last known JWT, or null when signed out. May be null before the first
+  /// [getToken] call completes — callers that can afford to wait should await
+  /// [getToken] instead.
+  static String? get cachedToken => _cachedToken;
+
   static const String _idKey = 'user_id';
   static const String _nameKey = 'user_name';
   static const String _emailKey = 'user_email';
@@ -17,6 +31,7 @@ class TokenStorage {
   static const String _locationKey = 'user_location';
 
   Future<void> saveToken(String token) async {
+    _cachedToken = token;
     try {
       await _secureStorage.write(key: _tokenKey, value: token);
     } catch (_) {}
@@ -24,13 +39,16 @@ class TokenStorage {
 
   Future<String?> getToken() async {
     try {
-      return await _secureStorage.read(key: _tokenKey);
+      final token = await _secureStorage.read(key: _tokenKey);
+      _cachedToken = token;
+      return token;
     } catch (_) {
       return null;
     }
   }
 
   Future<void> deleteToken() async {
+    _cachedToken = null;
     try {
       await _secureStorage.delete(key: _tokenKey);
     } catch (_) {}
@@ -130,6 +148,7 @@ class TokenStorage {
   }
 
   Future<void> clearAll() async {
+    _cachedToken = null;
     try {
       await _secureStorage.delete(key: _tokenKey);
       await _secureStorage.delete(key: _roleKey);

@@ -91,8 +91,15 @@ class AuthController {
       if (!email) {
         return ApiResponse.error(res, "Email is required.", 400);
       }
-      const result = await authService.forgotPassword(email);
-      return ApiResponse.success(res, "Password reset code generated.", result);
+      await authService.forgotPassword(email);
+
+      // Deliberately neutral, and carries no payload: the reset code goes out
+      // by email only. Returning it here (or varying the response for unknown
+      // addresses) is what made account takeover trivial.
+      return ApiResponse.success(
+        res,
+        "If that email is registered, a reset code has been sent."
+      );
     } catch (error) {
       next(error);
     }

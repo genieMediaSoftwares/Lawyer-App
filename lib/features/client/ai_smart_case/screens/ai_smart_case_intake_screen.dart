@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
-import 'package:record/record.dart';
-import 'package:path_provider/path_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/voice_recorder_button.dart';
 import '../providers/ai_smart_case_provider.dart';
 import 'ai_smart_case_processing_screen.dart';
 
@@ -18,15 +17,20 @@ class AISmartCaseIntakeScreen extends ConsumerStatefulWidget {
 
 class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScreen> {
   final TextEditingController _descController = TextEditingController();
-  final AudioRecorder _audioRecorder = AudioRecorder();
   bool _isRecording = false;
 
   @override
   void dispose() {
     _descController.dispose();
-    _audioRecorder.dispose();
     super.dispose();
   }
+
+  /// Mirrors the server limits: multer caps each file at 10 MB and the
+  /// analyze route accepts at most 10 documents. Without these checks an
+  /// oversized or eleventh file failed the entire upload server-side with an
+  /// unhandled MulterError and no usable message.
+  static const _maxFileBytes = 10 * 1024 * 1024;
+  static const _maxFileCount = 10;
 
   Future<void> _pickFiles() async {
     try {
@@ -36,13 +40,46 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
         allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg', 'docx', 'doc'],
       );
 
-      if (result != null && result.files.isNotEmpty) {
-        final newFiles = result.files
-            .where((f) => f.path != null)
-            .map((f) => File(f.path!))
-            .toList();
+      if (result == null || result.files.isEmpty) return;
 
-        ref.read(aiSmartCaseProvider.notifier).addFiles(newFiles);
+      final notifier = ref.read(aiSmartCaseProvider.notifier);
+      final alreadySelected = ref.read(aiSmartCaseProvider).selectedFiles.length;
+
+      final accepted = <File>[];
+      final oversized = <String>[];
+      var overflowed = false;
+
+      for (final picked in result.files) {
+        if (picked.path == null) continue;
+
+        final file = File(picked.path!);
+        if (await file.length() > _maxFileBytes) {
+          oversized.add(picked.name);
+          continue;
+        }
+
+        if (alreadySelected + accepted.length >= _maxFileCount) {
+          overflowed = true;
+          break;
+        }
+
+        accepted.add(file);
+      }
+
+      if (accepted.isNotEmpty) notifier.addFiles(accepted);
+
+      if (!mounted) return;
+
+      final problems = <String>[
+        if (oversized.isNotEmpty)
+          'Skipped (over 10 MB): ${oversized.join(', ')}',
+        if (overflowed) 'You can attach up to $_maxFileCount documents.',
+      ];
+
+      if (problems.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(problems.join('\n'))),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -53,58 +90,6 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
     }
   }
 
-  Future<void> _toggleRecording() async {
-    try {
-      if (_isRecording) {
-        final path = await _audioRecorder.stop();
-        if (mounted) {
-          setState(() {
-            _isRecording = false;
-          });
-        }
-
-        if (path != null) {
-          ref.read(aiSmartCaseProvider.notifier).setVoiceFile(File(path));
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Voice note recorded successfully!')),
-            );
-          }
-        }
-      } else {
-        if (await _audioRecorder.hasPermission()) {
-          final tempDir = await getTemporaryDirectory();
-          final path = '${tempDir.path}/voice_case_${DateTime.now().millisecondsSinceEpoch}.m4a';
-
-          await _audioRecorder.start(
-            const RecordConfig(encoder: AudioEncoder.aacLc),
-            path: path,
-          );
-
-          if (mounted) {
-            setState(() {
-              _isRecording = true;
-            });
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Microphone permission required for voice recording.')),
-            );
-          }
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isRecording = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Recording error: $e')),
-        );
-      }
-    }
-  }
 
   void _onProceed() async {
     final notifier = ref.read(aiSmartCaseProvider.notifier);
@@ -309,29 +294,22 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
                 ),
                 child: Row(
                   children: [
-                    GestureDetector(
-                      onTap: _toggleRecording,
-                      child: Container(
-                        width: 54,
-                        height: 54,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _isRecording ? Colors.red : AppColors.primaryGold,
-                          boxShadow: [
-                            BoxShadow(
-                              color: (_isRecording ? Colors.red : AppColors.primaryGold).withValues(alpha: 0.4),
-                              blurRadius: 10,
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          _isRecording ? Icons.stop : Icons.mic,
-                          color: _isRecording ? Colors.white : Colors.black,
-                          size: 28,
-                        ),
-                      ),
+                    // Same shared recorder as the post-case screen: small round
+                    // mic, live waveform while recording, no parent rebuilds.
+                    VoiceRecorderButton(
+                      filePrefix: 'voice_case',
+                      onRecordingStateChanged: (recording) =>
+                          setState(() => _isRecording = recording),
+                      onRecordingComplete: (file) {
+                        ref.read(aiSmartCaseProvider.notifier).setVoiceFile(file);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Voice note recorded.')),
+                          );
+                        }
+                      },
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

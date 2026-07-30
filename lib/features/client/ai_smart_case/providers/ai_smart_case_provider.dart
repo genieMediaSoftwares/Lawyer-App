@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/ai_smart_case_models.dart';
 import '../repositories/ai_smart_case_repository.dart';
@@ -38,9 +40,15 @@ class AISmartCaseState {
     this.errorMessage,
   });
 
+  /// Nullable fields use explicit sentinel flags rather than `x ?? this.x`.
+  ///
+  /// With the `??` form, passing null meant "leave unchanged", so
+  /// `setVoiceFile(null)` and `selectLawyer(null)` silently did nothing — there
+  /// was no way to remove a recording or deselect a lawyer.
   AISmartCaseState copyWith({
     List<File>? selectedFiles,
     File? voiceFile,
+    bool clearVoiceFile = false,
     String? voiceTranscript,
     bool? isRecording,
     bool? isAnalyzing,
@@ -48,6 +56,7 @@ class AISmartCaseState {
     String? processingStepMessage,
     AISmartCaseSessionResponse? sessionResponse,
     RecommendedLawyer? selectedLawyer,
+    bool clearSelectedLawyer = false,
     Map<String, String>? userAnswers,
     bool? isCreatingCase,
     Map<String, dynamic>? createdCaseData,
@@ -55,14 +64,15 @@ class AISmartCaseState {
   }) {
     return AISmartCaseState(
       selectedFiles: selectedFiles ?? this.selectedFiles,
-      voiceFile: voiceFile ?? this.voiceFile,
+      voiceFile: clearVoiceFile ? null : (voiceFile ?? this.voiceFile),
       voiceTranscript: voiceTranscript ?? this.voiceTranscript,
       isRecording: isRecording ?? this.isRecording,
       isAnalyzing: isAnalyzing ?? this.isAnalyzing,
       processingStepIndex: processingStepIndex ?? this.processingStepIndex,
       processingStepMessage: processingStepMessage ?? this.processingStepMessage,
       sessionResponse: sessionResponse ?? this.sessionResponse,
-      selectedLawyer: selectedLawyer ?? this.selectedLawyer,
+      selectedLawyer:
+          clearSelectedLawyer ? null : (selectedLawyer ?? this.selectedLawyer),
       userAnswers: userAnswers ?? this.userAnswers,
       isCreatingCase: isCreatingCase ?? this.isCreatingCase,
       createdCaseData: createdCaseData ?? this.createdCaseData,
@@ -87,7 +97,7 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
   }
 
   void setVoiceFile(File? file) {
-    state = state.copyWith(voiceFile: file);
+    state = state.copyWith(voiceFile: file, clearVoiceFile: file == null);
   }
 
   void setVoiceTranscript(String text) {
@@ -99,7 +109,10 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
   }
 
   void selectLawyer(RecommendedLawyer? lawyer) {
-    state = state.copyWith(selectedLawyer: lawyer);
+    state = state.copyWith(
+      selectedLawyer: lawyer,
+      clearSelectedLawyer: lawyer == null,
+    );
   }
 
   void updateAnswer(String question, String answer) {
@@ -121,57 +134,101 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
     state = state.copyWith(
       isAnalyzing: true,
       processingStepIndex: 0,
-      processingStepMessage: "Uploading Documents...",
+      processingStepMessage: _progressStages.first,
       errorMessage: null,
     );
 
+    // Advances the status text while the single backend call is in flight.
+    //
+    // These used to be `await`ed delays interleaved with the request, which
+    // added ~3.5s to an already slow flow and announced stages ("Google Cloud
+    // Vision OCR Processing…") before the files had even been uploaded. The
+    // ticker now runs alongside the real work and is cancelled when it
+    // finishes, so the request is never held up by the animation.
+    final ticker = _startProgressTicker();
+
     try {
-      // Step simulation for animated progress UI
-      await Future.delayed(const Duration(milliseconds: 600));
-      state = state.copyWith(processingStepIndex: 1, processingStepMessage: "Google Cloud Vision OCR Processing...");
-      
-      await Future.delayed(const Duration(milliseconds: 700));
-      state = state.copyWith(processingStepIndex: 2, processingStepMessage: "AI Legal Domain Understanding...");
-
-      await Future.delayed(const Duration(milliseconds: 600));
-      state = state.copyWith(processingStepIndex: 3, processingStepMessage: "Document Classification (FIR, Sale Deed, Notice)...");
-
-      await Future.delayed(const Duration(milliseconds: 600));
-      state = state.copyWith(processingStepIndex: 4, processingStepMessage: "Generating Case Title & Description...");
-
       final response = await _repository.analyzeSmartCase(
         files: state.selectedFiles,
         voiceFile: state.voiceFile,
         issueDescription: state.voiceTranscript,
       );
 
-      state = state.copyWith(processingStepIndex: 5, processingStepMessage: "Checking Duplicate Cases in MongoDB...");
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      state = state.copyWith(processingStepIndex: 6, processingStepMessage: "Finding Top Recommended Verified Lawyers...");
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      RecommendedLawyer? defaultLawyer;
-      if (response.recommendedLawyers.isNotEmpty) {
-        defaultLawyer = response.recommendedLawyers.first;
-      }
+      ticker.cancel();
 
       state = state.copyWith(
         isAnalyzing: false,
-        processingStepIndex: 7,
-        processingStepMessage: "AI Analysis Ready!",
+        processingStepIndex: _progressStages.length,
+        processingStepMessage: "Analysis ready",
         sessionResponse: response,
-        selectedLawyer: defaultLawyer,
+        // Pre-select the top recommendation, if there is one. When the list is
+        // empty the review screen must prompt the user to pick a lawyer —
+        // creating a case with no lawyer skips the appointment and the
+        // notification entirely.
+        selectedLawyer: response.recommendedLawyers.isNotEmpty
+            ? response.recommendedLawyers.first
+            : null,
+        clearSelectedLawyer: response.recommendedLawyers.isEmpty,
       );
 
       return true;
     } catch (e) {
+      ticker.cancel();
       state = state.copyWith(
         isAnalyzing: false,
-        errorMessage: e.toString().replaceAll("Exception: ", ""),
+        errorMessage: _friendlyError(e),
       );
       return false;
     }
+  }
+
+  static const _progressStages = [
+    "Uploading documents…",
+    "Reading document text…",
+    "Transcribing voice note…",
+    "Identifying the legal issue…",
+    "Drafting case title and summary…",
+    "Checking for duplicate cases…",
+    "Matching you with advocates…",
+  ];
+
+  Timer _startProgressTicker() {
+    return Timer.periodic(const Duration(seconds: 4), (timer) {
+      final next = state.processingStepIndex + 1;
+      if (next >= _progressStages.length) {
+        // Hold on the last stage rather than looping or claiming completion.
+        return;
+      }
+      state = state.copyWith(
+        processingStepIndex: next,
+        processingStepMessage: _progressStages[next],
+      );
+    });
+  }
+
+  /// Turns transport failures into something a client can act on.
+  String _friendlyError(Object e) {
+    final raw = e.toString().replaceAll("Exception: ", "");
+
+    if (e is DioException) {
+      switch (e.type) {
+        case DioExceptionType.receiveTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.connectionTimeout:
+          return "The analysis is taking longer than expected. "
+              "Please check your connection and try again.";
+        case DioExceptionType.connectionError:
+          return "Could not reach the server. Please check your connection.";
+        default:
+          final message = e.response?.data is Map
+              ? e.response?.data['message']
+              : null;
+          if (message is String && message.isNotEmpty) return message;
+          return "Something went wrong while analysing your case. Please try again.";
+      }
+    }
+
+    return raw;
   }
 
   Future<bool> submitFollowUpAnswers() async {
@@ -198,7 +255,7 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
     } catch (e) {
       state = state.copyWith(
         isAnalyzing: false,
-        errorMessage: e.toString().replaceAll("Exception: ", ""),
+        errorMessage: _friendlyError(e),
       );
       return false;
     }
@@ -233,7 +290,7 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
     } catch (e) {
       state = state.copyWith(
         isCreatingCase: false,
-        errorMessage: e.toString().replaceAll("Exception: ", ""),
+        errorMessage: _friendlyError(e),
       );
       return false;
     }

@@ -73,17 +73,36 @@ class _AICaseReviewScreenState extends ConsumerState<AICaseReviewScreen> {
       priority: _selectedPriority,
     );
 
-    if (mounted && success) {
+    if (!mounted) return;
+
+    if (success) {
+      // Only claim a lawyer was notified when one was actually selected —
+      // without a lawyer the case is filed and nobody is contacted.
+      final notified = ref.read(aiSmartCaseProvider).selectedLawyer != null;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("🎉 Case created successfully! Lawyer has been notified."),
+        SnackBar(
+          content: Text(
+            notified
+                ? "Case created. Your selected advocate has been notified."
+                : "Case created. Advocates can now review and respond to it.",
+          ),
           backgroundColor: Colors.green,
         ),
       );
 
       // Navigate to My Cases
       context.go(RouteNames.myCases);
+      return;
     }
+
+    // Surface the reason instead of failing silently.
+    final error = ref.read(aiSmartCaseProvider).errorMessage;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error ?? "Could not create the case. Please try again."),
+        backgroundColor: AppColors.error,
+      ),
+    );
   }
 
   @override
@@ -156,18 +175,26 @@ class _AICaseReviewScreenState extends ConsumerState<AICaseReviewScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
+                          // "Merge Docs" was removed: it only showed a snackbar
+                          // claiming documents would be merged, while no merge
+                          // was implemented anywhere. Continuing with the new
+                          // case is the one action that actually works.
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Documents will be merged with your new case.")),
+                                  const SnackBar(
+                                    content: Text(
+                                      "Continuing with a new case. Review the details below before confirming.",
+                                    ),
+                                  ),
                                 );
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.amber,
                                 foregroundColor: Colors.black,
                               ),
-                              child: const Text("Merge Docs", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                              child: const Text("Continue Anyway", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                             ),
                           ),
                         ],
@@ -197,7 +224,7 @@ class _AICaseReviewScreenState extends ConsumerState<AICaseReviewScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "AI Case Profile Generated (Confidence: ${analysis?.aiConfidenceScore ?? 85}%)",
+                            "AI Case Profile Generated (Confidence: ${analysis?.aiConfidenceScore ?? 0}%)",
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                           const SizedBox(height: 2),
@@ -429,25 +456,47 @@ class _AICaseReviewScreenState extends ConsumerState<AICaseReviewScreen> {
                                 ],
                               ),
                               const Spacer(),
+                              // Metrics the database does not hold are omitted
+                              // rather than filled with plausible numbers.
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
                                     children: [
-                                      const Icon(Icons.star, color: AppColors.primaryGold, size: 14),
+                                      Icon(
+                                        lawyer.rating != null ? Icons.star : Icons.star_border,
+                                        color: AppColors.primaryGold,
+                                        size: 14,
+                                      ),
                                       const SizedBox(width: 3),
-                                      Text("${lawyer.rating} (${lawyer.totalReviews})", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                      Text(
+                                        lawyer.rating != null
+                                            ? "${lawyer.rating!.toStringAsFixed(1)} (${lawyer.totalReviews})"
+                                            : "Not yet rated",
+                                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                      ),
                                     ],
                                   ),
-                                  Text("${lawyer.experience} Yrs Exp", style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                                  if (lawyer.experience != null)
+                                    Text("${lawyer.experience} Yrs Exp", style: const TextStyle(color: Colors.white70, fontSize: 11)),
                                 ],
                               ),
                               const SizedBox(height: 4),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text("Win Rate: ${lawyer.winPercentage.toInt()}%", style: const TextStyle(color: Colors.greenAccent, fontSize: 10.5, fontWeight: FontWeight.bold)),
-                                  Text("₹${lawyer.consultationFee.toInt()}", style: const TextStyle(color: AppColors.primaryGold, fontSize: 12, fontWeight: FontWeight.bold)),
+                                  if (lawyer.winPercentage != null)
+                                    Text("Win Rate: ${lawyer.winPercentage!.toInt()}%", style: const TextStyle(color: Colors.greenAccent, fontSize: 10.5, fontWeight: FontWeight.bold))
+                                  else if (lawyer.isVerified)
+                                    const Text("Verified", style: TextStyle(color: Colors.greenAccent, fontSize: 10.5, fontWeight: FontWeight.bold))
+                                  else
+                                    const SizedBox.shrink(),
+                                  Text(
+                                    lawyer.consultationFee != null
+                                        ? "₹${lawyer.consultationFee!.toInt()}"
+                                        : "Fee on request",
+                                    style: const TextStyle(color: AppColors.primaryGold, fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
                                 ],
                               ),
                             ],

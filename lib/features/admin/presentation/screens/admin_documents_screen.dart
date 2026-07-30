@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/config/env.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../models/document_model.dart';
 import '../../../../providers/admin_provider.dart';
 
 class AdminDocumentsScreen extends ConsumerStatefulWidget {
@@ -18,6 +21,24 @@ class _AdminDocumentsScreenState extends ConsumerState<AdminDocumentsScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openDocument(DocumentModel doc) async {
+    if (doc.url.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This document has no file attached.')),
+      );
+      return;
+    }
+
+    final uri = Uri.parse(Environment.getAttachmentUrl(doc.url));
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open ${doc.fileName}.')),
+      );
+    }
   }
 
   @override
@@ -139,11 +160,12 @@ class _AdminDocumentsScreenState extends ConsumerState<AdminDocumentsScreen> {
                             ),
                             IconButton(
                               icon: const Icon(Icons.download, color: AppColors.primaryGold),
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Downloading ${doc.fileName}...')),
-                                );
-                              },
+                              tooltip: 'Open document',
+                              // Previously this only showed a "Downloading…"
+                              // message and did nothing. It now opens the real
+                              // file; getAttachmentUrl attaches the auth token
+                              // the protected /uploads route requires.
+                              onPressed: () => _openDocument(doc),
                             ),
                           ],
                         ),
