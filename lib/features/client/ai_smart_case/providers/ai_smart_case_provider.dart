@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../models/ai_smart_case_models.dart';
 import '../repositories/ai_smart_case_repository.dart';
 
@@ -9,57 +12,62 @@ final aiSmartCaseRepositoryProvider = Provider<AISmartCaseRepository>((ref) {
   return AISmartCaseRepository();
 });
 
+/// State for the document-intake step.
+///
+/// Extraction hands its result to the Post Case form, which owns everything
+/// from that point on — there is no separate questions, review or lawyer
+/// screen in this feature.
 class AISmartCaseState {
-  final List<File> selectedFiles;
+  /// Picked documents, held as [PlatformFile] rather than `dart:io` `File`.
+  ///
+  /// `File` is not implemented on Flutter web — constructing one throws
+  /// `Unsupported operation: _Namespace`. file_picker's web backend returns a
+  /// `blob:` URL in `PlatformFile.path` (not null), so a `path != null` guard
+  /// does not protect you.
+  final List<PlatformFile> selectedFiles;
+
   final File? voiceFile;
   final String voiceTranscript;
   final bool isRecording;
-  final bool isAnalyzing;
-  final int processingStepIndex;
-  final String processingStepMessage;
-  final AISmartCaseSessionResponse? sessionResponse;
-  final RecommendedLawyer? selectedLawyer;
-  final Map<String, String> userAnswers;
-  final bool isCreatingCase;
-  final Map<String, dynamic>? createdCaseData;
+  final bool isExtracting;
+
+  /// The id of the run in flight, so the screen can resubscribe after a
+  /// rebuild instead of starting a second analysis.
+  final String? sessionId;
+
+  /// The latest position reported by the backend. Never advanced locally.
+  final AnalysisProgress progress;
+
+  final ExtractionResult? result;
   final String? errorMessage;
 
-  AISmartCaseState({
+  const AISmartCaseState({
     this.selectedFiles = const [],
     this.voiceFile,
     this.voiceTranscript = '',
     this.isRecording = false,
-    this.isAnalyzing = false,
-    this.processingStepIndex = 0,
-    this.processingStepMessage = '',
-    this.sessionResponse,
-    this.selectedLawyer,
-    this.userAnswers = const {},
-    this.isCreatingCase = false,
-    this.createdCaseData,
+    this.isExtracting = false,
+    this.sessionId,
+    this.progress = const AnalysisProgress(),
+    this.result,
     this.errorMessage,
   });
 
   /// Nullable fields use explicit sentinel flags rather than `x ?? this.x`.
   ///
   /// With the `??` form, passing null meant "leave unchanged", so
-  /// `setVoiceFile(null)` and `selectLawyer(null)` silently did nothing — there
-  /// was no way to remove a recording or deselect a lawyer.
+  /// `setVoiceFile(null)` silently did nothing — there was no way to remove a
+  /// recording.
   AISmartCaseState copyWith({
-    List<File>? selectedFiles,
+    List<PlatformFile>? selectedFiles,
     File? voiceFile,
     bool clearVoiceFile = false,
     String? voiceTranscript,
     bool? isRecording,
-    bool? isAnalyzing,
-    int? processingStepIndex,
-    String? processingStepMessage,
-    AISmartCaseSessionResponse? sessionResponse,
-    RecommendedLawyer? selectedLawyer,
-    bool clearSelectedLawyer = false,
-    Map<String, String>? userAnswers,
-    bool? isCreatingCase,
-    Map<String, dynamic>? createdCaseData,
+    bool? isExtracting,
+    String? sessionId,
+    AnalysisProgress? progress,
+    ExtractionResult? result,
     String? errorMessage,
   }) {
     return AISmartCaseState(
@@ -67,34 +75,35 @@ class AISmartCaseState {
       voiceFile: clearVoiceFile ? null : (voiceFile ?? this.voiceFile),
       voiceTranscript: voiceTranscript ?? this.voiceTranscript,
       isRecording: isRecording ?? this.isRecording,
-      isAnalyzing: isAnalyzing ?? this.isAnalyzing,
-      processingStepIndex: processingStepIndex ?? this.processingStepIndex,
-      processingStepMessage:
-          processingStepMessage ?? this.processingStepMessage,
-      sessionResponse: sessionResponse ?? this.sessionResponse,
-      selectedLawyer: clearSelectedLawyer
-          ? null
-          : (selectedLawyer ?? this.selectedLawyer),
-      userAnswers: userAnswers ?? this.userAnswers,
-      isCreatingCase: isCreatingCase ?? this.isCreatingCase,
-      createdCaseData: createdCaseData ?? this.createdCaseData,
+      isExtracting: isExtracting ?? this.isExtracting,
+      sessionId: sessionId ?? this.sessionId,
+      progress: progress ?? this.progress,
+      result: result ?? this.result,
       errorMessage: errorMessage,
     );
   }
 }
 
 class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
+  AISmartCaseNotifier(this._repository) : super(const AISmartCaseState());
+
   final AISmartCaseRepository _repository;
 
-  AISmartCaseNotifier(this._repository) : super(AISmartCaseState());
+  StreamSubscription<AnalysisEvent>? _subscription;
 
-  void addFiles(List<File> newFiles) {
-    final updated = List<File>.from(state.selectedFiles)..addAll(newFiles);
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  void addFiles(List<PlatformFile> newFiles) {
+    final updated = List<PlatformFile>.from(state.selectedFiles)..addAll(newFiles);
     state = state.copyWith(selectedFiles: updated);
   }
 
-  void removeFile(File file) {
-    final updated = List<File>.from(state.selectedFiles)..remove(file);
+  void removeFile(PlatformFile file) {
+    final updated = List<PlatformFile>.from(state.selectedFiles)..remove(file);
     state = state.copyWith(selectedFiles: updated);
   }
 
@@ -110,199 +119,127 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
     state = state.copyWith(isRecording: recording);
   }
 
-  void selectLawyer(RecommendedLawyer? lawyer) {
-    state = state.copyWith(
-      selectedLawyer: lawyer,
-      clearSelectedLawyer: lawyer == null,
-    );
-  }
-
-  void updateAnswer(String question, String answer) {
-    final updated = Map<String, String>.from(state.userAnswers);
-    updated[question] = answer;
-    state = state.copyWith(userAnswers: updated);
-  }
-
+  /// Clears everything, including any run in flight.
+  ///
+  /// Called when the intake screen is opened. Without it the screen came back
+  /// still holding the previous run's files, voice note and result, and a
+  /// second analysis re-uploaded the first run's documents alongside the new
+  /// ones.
   void reset() {
-    state = AISmartCaseState();
+    _subscription?.cancel();
+    _subscription = null;
+    state = const AISmartCaseState();
   }
 
-  Future<bool> startIntakeAnalysis() async {
-    if (state.selectedFiles.isEmpty &&
-        state.voiceFile == null &&
-        state.voiceTranscript.isEmpty) {
+  /// Uploads the intake and follows the backend pipeline to completion.
+  ///
+  /// Returns true when there is a result to pre-fill the Post Case form with.
+  /// Progress reaches the UI only through backend events — there is no timer
+  /// and no simulated advancement anywhere in this flow.
+  Future<bool> startExtraction() async {
+    if (state.selectedFiles.isEmpty) {
       state = state.copyWith(
         errorMessage:
-            "Please upload at least one document or record a voice note.",
+            'Please upload at least one document. A voice note or written notes can add extra detail.',
       );
       return false;
     }
 
+    await _subscription?.cancel();
+    _subscription = null;
+
     state = state.copyWith(
-      isAnalyzing: true,
-      processingStepIndex: 0,
-      processingStepMessage: _progressStages.first,
+      isExtracting: true,
+      progress: const AnalysisProgress(
+        stage: 'uploading',
+        message: 'Uploading your documents…',
+      ),
+      result: null,
       errorMessage: null,
     );
 
-    // Advances the status text while the single backend call is in flight.
-    //
-    // These used to be `await`ed delays interleaved with the request, which
-    // added ~3.5s to an already slow flow and announced stages ("Google Cloud
-    // Vision OCR Processing…") before the files had even been uploaded. The
-    // ticker now runs alongside the real work and is cancelled when it
-    // finishes, so the request is never held up by the animation.
-    final ticker = _startProgressTicker();
+    final completer = Completer<bool>();
 
     try {
-      final response = await _repository.analyzeSmartCase(
+      final sessionId = await _repository.startAnalysis(
         files: state.selectedFiles,
         voiceFile: state.voiceFile,
         issueDescription: state.voiceTranscript,
       );
 
-      ticker.cancel();
+      if (!mounted) return false;
+      state = state.copyWith(sessionId: sessionId);
 
-      state = state.copyWith(
-        isAnalyzing: false,
-        processingStepIndex: _progressStages.length,
-        processingStepMessage: "Analysis ready",
-        sessionResponse: response,
-        // Pre-select the top recommendation, if there is one. When the list is
-        // empty the review screen must prompt the user to pick a lawyer —
-        // creating a case with no lawyer skips the appointment and the
-        // notification entirely.
-        selectedLawyer: response.recommendedLawyers.isNotEmpty
-            ? response.recommendedLawyers.first
-            : null,
-        clearSelectedLawyer: response.recommendedLawyers.isEmpty,
+      _subscription = _repository.watch(sessionId).listen(
+        (event) {
+          if (!mounted) return;
+
+          if (event.progress != null) {
+            state = state.copyWith(progress: event.progress);
+            return;
+          }
+
+          if (event.result != null) {
+            state = state.copyWith(
+              isExtracting: false,
+              progress: const AnalysisProgress(
+                stage: 'completed',
+                message: 'Analysis complete',
+                percent: 100,
+              ),
+              result: event.result,
+            );
+            if (!completer.isCompleted) completer.complete(true);
+            return;
+          }
+
+          if (event.error != null) {
+            state = state.copyWith(isExtracting: false, errorMessage: event.error);
+            if (!completer.isCompleted) completer.complete(false);
+          }
+        },
+        onError: (Object e) {
+          if (mounted) {
+            state = state.copyWith(isExtracting: false, errorMessage: _friendlyError(e));
+          }
+          if (!completer.isCompleted) completer.complete(false);
+        },
+        onDone: () {
+          if (!completer.isCompleted) completer.complete(state.result != null);
+        },
       );
 
-      return true;
+      return completer.future;
     } catch (e) {
-      ticker.cancel();
-      state = state.copyWith(
-        isAnalyzing: false,
-        errorMessage: _friendlyError(e),
-      );
+      if (mounted) {
+        state = state.copyWith(isExtracting: false, errorMessage: _friendlyError(e));
+      }
       return false;
     }
   }
 
-  static const _progressStages = [
-    "Uploading documents…",
-    "Reading document text…",
-    "Transcribing voice note…",
-    "Identifying the legal issue…",
-    "Drafting case title and summary…",
-    "Checking for duplicate cases…",
-    "Matching you with advocates…",
-  ];
-
-  Timer _startProgressTicker() {
-    return Timer.periodic(const Duration(seconds: 4), (timer) {
-      final next = state.processingStepIndex + 1;
-      if (next >= _progressStages.length) {
-        // Hold on the last stage rather than looping or claiming completion.
-        return;
-      }
-      state = state.copyWith(
-        processingStepIndex: next,
-        processingStepMessage: _progressStages[next],
-      );
-    });
-  }
-
   /// Turns transport failures into something a client can act on.
   String _friendlyError(Object e) {
-    final raw = e.toString().replaceAll("Exception: ", "");
-
     if (e is DioException) {
       switch (e.type) {
         case DioExceptionType.receiveTimeout:
         case DioExceptionType.sendTimeout:
         case DioExceptionType.connectionTimeout:
-          return "The analysis is taking longer than expected. "
-              "Please check your connection and try again.";
+          return 'Uploading your documents took too long. '
+              'Please check your connection and try again.';
         case DioExceptionType.connectionError:
-          return "Could not reach the server. Please check your connection.";
+          return 'Could not reach the server. Please check your connection.';
         default:
-          final message = e.response?.data is Map
-              ? e.response?.data['message']
-              : null;
+          final message = e.response?.data is Map ? e.response?.data['message'] : null;
           if (message is String && message.isNotEmpty) return message;
-          return "Something went wrong while analysing your case. Please try again.";
+          return 'Something went wrong while uploading your documents. Please try again.';
       }
     }
-
-    return raw;
-  }
-
-  Future<bool> submitFollowUpAnswers() async {
-    final session = state.sessionResponse;
-    if (session == null) return false;
-
-    state = state.copyWith(isAnalyzing: true, errorMessage: null);
-
-    try {
-      final answersList = state.userAnswers.entries
-          .map((e) => {'question': e.key, 'answer': e.value})
-          .toList();
-
-      final updatedSession = await _repository.answerQuestions(
-        sessionId: session.sessionId,
-        answers: answersList,
-      );
-
-      state = state.copyWith(
-        isAnalyzing: false,
-        sessionResponse: updatedSession,
-      );
-      return true;
-    } catch (e) {
-      state = state.copyWith(
-        isAnalyzing: false,
-        errorMessage: _friendlyError(e),
-      );
-      return false;
-    }
-  }
-
-  Future<bool> confirmAndCreateCase({
-    required String title,
-    required String description,
-    required String category,
-    required String priority,
-  }) async {
-    final session = state.sessionResponse;
-    if (session == null) return false;
-
-    state = state.copyWith(isCreatingCase: true, errorMessage: null);
-
-    try {
-      final result = await _repository.confirmCreateCase(
-        sessionId: session.sessionId,
-        title: title,
-        description: description,
-        category: category,
-        priority: priority,
-        selectedLawyerId: state.selectedLawyer?.userId,
-      );
-
-      state = state.copyWith(isCreatingCase: false, createdCaseData: result);
-      return true;
-    } catch (e) {
-      state = state.copyWith(
-        isCreatingCase: false,
-        errorMessage: _friendlyError(e),
-      );
-      return false;
-    }
+    return e.toString().replaceAll('Exception: ', '');
   }
 }
 
 final aiSmartCaseProvider =
     StateNotifierProvider<AISmartCaseNotifier, AISmartCaseState>((ref) {
-      final repo = ref.watch(aiSmartCaseRepositoryProvider);
-      return AISmartCaseNotifier(repo);
-    });
+  return AISmartCaseNotifier(ref.watch(aiSmartCaseRepositoryProvider));
+});

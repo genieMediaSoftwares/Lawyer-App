@@ -10,8 +10,7 @@ class AdminDocumentsScreen extends ConsumerStatefulWidget {
   const AdminDocumentsScreen({super.key});
 
   @override
-  ConsumerState<AdminDocumentsScreen> createState() =>
-      _AdminDocumentsScreenState();
+  ConsumerState<AdminDocumentsScreen> createState() => _AdminDocumentsScreenState();
 }
 
 class _AdminDocumentsScreenState extends ConsumerState<AdminDocumentsScreen> {
@@ -65,50 +64,37 @@ class _AdminDocumentsScreenState extends ConsumerState<AdminDocumentsScreen> {
               children: [
                 TextField(
                   controller: _searchController,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.primaryText),
                   onChanged: (val) => setState(() {}),
                   decoration: const InputDecoration(
                     hintText: 'Search uploaded legal documents...',
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: AppColors.primaryGold,
-                    ),
+                    prefixIcon: Icon(Icons.search, color: AppColors.primaryGold),
                   ),
                 ),
                 const SizedBox(height: 12),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children:
-                        [
-                          'all',
-                          'Property',
-                          'Civil',
-                          'Criminal',
-                          'Corporate',
-                        ].map((cat) {
-                          final isSelected = _selectedCategory == cat;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ChoiceChip(
-                              label: Text(cat == 'all' ? 'All' : cat),
-                              selected: isSelected,
-                              onSelected: (sel) {
-                                if (sel)
-                                  setState(() => _selectedCategory = cat);
-                              },
-                              selectedColor: AppColors.primaryGold,
-                              backgroundColor: AppColors.cardBackground,
-                              labelStyle: TextStyle(
-                                color: isSelected
-                                    ? Colors.black
-                                    : AppColors.primaryGold,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                    children: ['all', 'Property', 'Civil', 'Criminal', 'Corporate'].map((cat) {
+                      final isSelected = _selectedCategory == cat;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(cat == 'all' ? 'All' : cat),
+                          selected: isSelected,
+                          onSelected: (sel) {
+                            if (sel) setState(() => _selectedCategory = cat);
+                          },
+                          selectedColor: AppColors.primaryGold,
+                          backgroundColor: AppColors.cardBackground,
+                          labelStyle: TextStyle(
+                            color: isSelected ? AppColors.onGold : AppColors.primaryGold,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
               ],
@@ -122,35 +108,21 @@ class _AdminDocumentsScreenState extends ConsumerState<AdminDocumentsScreen> {
               child: docsAsync.when(
                 data: (docs) {
                   final filteredDocs = docs.where((doc) {
-                    final matchesSearch =
-                        _searchController.text.isEmpty ||
-                        doc.title.toLowerCase().contains(
-                          _searchController.text.toLowerCase(),
-                        ) ||
-                        doc.fileName.toLowerCase().contains(
-                          _searchController.text.toLowerCase(),
-                        );
-                    final matchesCat =
-                        _selectedCategory == 'all' ||
-                        doc.docCategory.toLowerCase() ==
-                            _selectedCategory.toLowerCase();
+                    final matchesSearch = _searchController.text.isEmpty ||
+                        doc.title.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+                        doc.fileName.toLowerCase().contains(_searchController.text.toLowerCase());
+                    final matchesCat = _selectedCategory == 'all' || doc.docCategory.toLowerCase() == _selectedCategory.toLowerCase();
                     return matchesSearch && matchesCat;
                   }).toList();
 
                   if (filteredDocs.isEmpty) {
                     return const Center(
-                      child: Text(
-                        'No documents found in vault',
-                        style: TextStyle(color: AppColors.secondaryText),
-                      ),
+                      child: Text('No documents found in vault', style: TextStyle(color: AppColors.secondaryText)),
                     );
                   }
 
                   return ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemCount: filteredDocs.length,
                     itemBuilder: (context, index) {
                       final doc = filteredDocs[index];
@@ -167,57 +139,27 @@ class _AdminDocumentsScreenState extends ConsumerState<AdminDocumentsScreen> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF7F1D1D).withOpacity(0.2),
+                                color: AppColors.statusErrorBg.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: const Color(
-                                    0xFFFCA5A5,
-                                  ).withOpacity(0.4),
-                                ),
+                                border: Border.all(color: AppColors.statusErrorFg.withValues(alpha: 0.4)),
                               ),
-                              child: const Icon(
-                                Icons.picture_as_pdf,
-                                color: Color(0xFFFCA5A5),
-                                size: 24,
-                              ),
+                              child: const Icon(Icons.picture_as_pdf, color: AppColors.statusErrorFg, size: 24),
                             ),
                             const SizedBox(width: 14),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    doc.title,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  Text(doc.title, style: const TextStyle(color: AppColors.primaryText, fontSize: 15, fontWeight: FontWeight.bold)),
                                   const SizedBox(height: 2),
-                                  Text(
-                                    '${doc.fileSize} • Uploaded by ${doc.docUploadedBy}',
-                                    style: const TextStyle(
-                                      color: AppColors.mutedText,
-                                      fontSize: 12,
-                                    ),
-                                  ),
+                                  Text('${doc.fileSize} • Uploaded by ${doc.docUploadedBy}', style: const TextStyle(color: AppColors.mutedText, fontSize: 12)),
                                   const SizedBox(height: 2),
-                                  Text(
-                                    'Category: ${doc.docCategory}',
-                                    style: const TextStyle(
-                                      color: AppColors.primaryGold,
-                                      fontSize: 11,
-                                    ),
-                                  ),
+                                  Text('Category: ${doc.docCategory}', style: const TextStyle(color: AppColors.primaryGold, fontSize: 11)),
                                 ],
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(
-                                Icons.download,
-                                color: AppColors.primaryGold,
-                              ),
+                              icon: const Icon(Icons.download, color: AppColors.primaryGold),
                               tooltip: 'Open document',
                               // Previously this only showed a "Downloading…"
                               // message and did nothing. It now opens the real
@@ -231,17 +173,8 @@ class _AdminDocumentsScreenState extends ConsumerState<AdminDocumentsScreen> {
                     },
                   );
                 },
-                loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primaryGold,
-                  ),
-                ),
-                error: (err, stack) => Center(
-                  child: Text(
-                    'Error loading documents: $err',
-                    style: const TextStyle(color: AppColors.error),
-                  ),
-                ),
+                loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryGold)),
+                error: (err, stack) => Center(child: Text('Error loading documents: $err', style: const TextStyle(color: AppColors.error))),
               ),
             ),
           ),

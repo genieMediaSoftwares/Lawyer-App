@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'contact_support_screen.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class HelpCenterScreen extends StatefulWidget {
   const HelpCenterScreen({super.key});
@@ -33,10 +34,8 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   List<_FAQItem> _getFilteredFaqs() {
     final query = _searchController.text.toLowerCase().trim();
     return _faqs.where((faq) {
-      final matchesCategory =
-          _selectedCategory == "All" || faq.category == _selectedCategory;
-      final matchesSearch =
-          query.isEmpty ||
+      final matchesCategory = _selectedCategory == "All" || faq.category == _selectedCategory;
+      final matchesSearch = query.isEmpty ||
           faq.question.toLowerCase().contains(query) ||
           faq.answer.toLowerCase().contains(query);
       return matchesCategory && matchesSearch;
@@ -47,7 +46,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1B1B1B),
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -65,7 +64,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 height: 4,
                 width: 40,
                 decoration: BoxDecoration(
-                  color: Colors.grey[700],
+                  color: AppColors.disabledText,
                   borderRadius: BorderRadius.circular(2),
                 ),
                 margin: const EdgeInsets.only(bottom: 24),
@@ -74,29 +73,26 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFD4AF37).withOpacity(0.15),
+                    color: AppColors.primaryGold.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     article.tag.toUpperCase(),
                     style: const TextStyle(
-                      color: Color(0xFFD4AF37),
+                      color: AppColors.primaryGold,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                Icon(Icons.timer_outlined, size: 14, color: Colors.grey[400]),
+                Icon(Icons.timer_outlined, size: 14, color: AppColors.mutedText),
                 const SizedBox(width: 4),
                 Text(
                   article.readTime,
-                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                  style: TextStyle(color: AppColors.mutedText, fontSize: 12),
                 ),
               ],
             ),
@@ -104,16 +100,16 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             Text(
               article.title,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.primaryText,
                 fontWeight: FontWeight.bold,
                 fontSize: 20,
               ),
             ),
-            const Divider(color: Color(0xFF2B2B2B), height: 32),
+            const Divider(color: AppColors.border, height: 32),
             Text(
               article.content,
               style: TextStyle(
-                color: Colors.grey[300],
+                color: AppColors.secondaryText,
                 fontSize: 14,
                 height: 1.6,
               ),
@@ -130,18 +126,18 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     final filteredFaqs = _getFilteredFaqs();
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.primaryBackground,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primaryText),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           "Help Center",
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.primaryText,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -152,30 +148,21 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           // Search & Filters Panel
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 8.0,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextField(
                     controller: _searchController,
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                    style: const TextStyle(color: AppColors.primaryText, fontSize: 15),
                     onChanged: (val) => setState(() {}),
                     decoration: InputDecoration(
                       hintText: "Search guides, FAQs, and topics...",
-                      hintStyle: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.search,
-                        color: Color(0xFFD4AF37),
-                      ),
+                      hintStyle: const TextStyle(color: AppColors.mutedText, fontSize: 14),
+                      prefixIcon: const Icon(Icons.search, color: AppColors.primaryGold),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear, color: Colors.grey),
+                              icon: const Icon(Icons.clear, color: AppColors.mutedText),
                               onPressed: () {
                                 setState(() {
                                   _searchController.clear();
@@ -184,15 +171,15 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                             )
                           : null,
                       filled: true,
-                      fillColor: const Color(0xFF1B1B1B),
+                      fillColor: AppColors.surface,
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF2B2B2B)),
+                        borderSide: const BorderSide(color: AppColors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFD4AF37)),
+                        borderSide: const BorderSide(color: AppColors.primaryGold),
                       ),
                     ),
                   ),
@@ -211,25 +198,17 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                             showCheckmark: false,
                             label: Text(cat),
                             selected: isSelected,
-                            selectedColor: const Color(
-                              0xFFD4AF37,
-                            ).withOpacity(0.15),
-                            backgroundColor: const Color(0xFF1B1B1B),
+                            selectedColor: AppColors.primaryGold.withValues(alpha: 0.15),
+                            backgroundColor: AppColors.surface,
                             labelStyle: TextStyle(
-                              color: isSelected
-                                  ? const Color(0xFFD4AF37)
-                                  : Colors.grey,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
+                              color: isSelected ? AppColors.primaryGold : AppColors.mutedText,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                               fontSize: 13,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                               side: BorderSide(
-                                color: isSelected
-                                    ? const Color(0xFFD4AF37)
-                                    : const Color(0xFF2B2B2B),
+                                color: isSelected ? AppColors.primaryGold : AppColors.border,
                                 width: 1,
                               ),
                             ),
@@ -257,15 +236,11 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Padding(
-                    padding: EdgeInsets.only(
-                      left: 20.0,
-                      top: 20.0,
-                      bottom: 12.0,
-                    ),
+                    padding: EdgeInsets.only(left: 20.0, top: 20.0, bottom: 12.0),
                     child: Text(
                       "POPULAR HELP ARTICLES",
                       style: TextStyle(
-                        color: Colors.grey,
+                        color: AppColors.mutedText,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                         letterSpacing: 0.5,
@@ -288,34 +263,26 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                             margin: const EdgeInsets.symmetric(horizontal: 6),
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1B1B1B),
+                              color: AppColors.surface,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: const Color(0xFF2B2B2B),
-                              ),
+                              border: Border.all(color: AppColors.border),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: const Color(
-                                          0xFFD4AF37,
-                                        ).withOpacity(0.15),
+                                        color: AppColors.primaryGold.withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
                                         article.tag,
                                         style: const TextStyle(
-                                          color: Color(0xFFD4AF37),
+                                          color: AppColors.primaryGold,
                                           fontSize: 9,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -323,10 +290,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                     ),
                                     Text(
                                       article.readTime,
-                                      style: const TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 10,
-                                      ),
+                                      style: const TextStyle(color: AppColors.mutedText, fontSize: 10),
                                     ),
                                   ],
                                 ),
@@ -336,7 +300,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                    color: Colors.white,
+                                    color: AppColors.primaryText,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
@@ -346,20 +310,12 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                   children: const [
                                     Text(
                                       "Read Guide",
-                                      style: TextStyle(
-                                        color: Color(0xFFD4AF37),
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: TextStyle(color: AppColors.primaryGold, fontSize: 11, fontWeight: FontWeight.bold),
                                     ),
                                     SizedBox(width: 4),
-                                    Icon(
-                                      Icons.arrow_forward,
-                                      color: Color(0xFFD4AF37),
-                                      size: 12,
-                                    ),
+                                    Icon(Icons.arrow_forward, color: AppColors.primaryGold, size: 12),
                                   ],
-                                ),
+                                )
                               ],
                             ),
                           ),
@@ -375,17 +331,11 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           // FAQs Title
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.only(
-                left: 20.0,
-                top: 28.0,
-                bottom: 12.0,
-              ),
+              padding: const EdgeInsets.only(left: 20.0, top: 28.0, bottom: 12.0),
               child: Text(
-                _selectedCategory == "All"
-                    ? "ALL FREQUENTLY ASKED QUESTIONS"
-                    : "${_selectedCategory.toUpperCase()} FAQS",
+                _selectedCategory == "All" ? "ALL FREQUENTLY ASKED QUESTIONS" : "${_selectedCategory.toUpperCase()} FAQS",
                 style: const TextStyle(
-                  color: Colors.grey,
+                  color: AppColors.mutedText,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                   letterSpacing: 0.5,
@@ -400,66 +350,63 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               : SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final faq = filteredFaqs[index];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1B1B1B),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: const Color(0xFF2B2B2B),
-                            width: 1,
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final faq = filteredFaqs[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.border, width: 1),
                           ),
-                        ),
-                        child: Theme(
-                          data: Theme.of(
-                            context,
-                          ).copyWith(dividerColor: Colors.transparent),
-                          child: ExpansionTile(
-                            iconColor: const Color(0xFFD4AF37),
-                            collapsedIconColor: Colors.grey,
-                            tilePadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 4,
+                          child: Theme(
+                            data: Theme.of(context).copyWith(
+                              dividerColor: Colors.transparent,
                             ),
-                            title: Text(
-                              faq.question,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 20.0,
-                                  right: 20.0,
-                                  bottom: 20.0,
+                            child: ExpansionTile(
+                              iconColor: AppColors.primaryGold,
+                              collapsedIconColor: AppColors.mutedText,
+                              tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                              title: Text(
+                                faq.question,
+                                style: const TextStyle(
+                                  color: AppColors.primaryText,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
                                 ),
-                                child: Text(
-                                  faq.answer,
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 13,
-                                    height: 1.5,
+                              ),
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0),
+                                  child: Text(
+                                    faq.answer,
+                                    style: const TextStyle(
+                                      color: AppColors.mutedText,
+                                      fontSize: 13,
+                                      height: 1.5,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    }, childCount: filteredFaqs.length),
+                        );
+                      },
+                      childCount: filteredFaqs.length,
+                    ),
                   ),
                 ),
 
           // Bottom Spacing for Scroll View
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 24),
+          ),
 
           // Still Need Help? Bottom Panel
-          SliverToBoxAdapter(child: _buildStillNeedHelpSection(context)),
+          SliverToBoxAdapter(
+            child: _buildStillNeedHelpSection(context),
+          ),
         ],
       ),
     );
@@ -474,20 +421,20 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: const BoxDecoration(
-              color: Color(0xFF1B1B1B),
+              color: AppColors.surface,
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.search_off_outlined,
               size: 48,
-              color: Color(0xFFD4AF37),
+              color: AppColors.primaryGold,
             ),
           ),
           const SizedBox(height: 16),
           const Text(
             "No Matches Found",
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.primaryText,
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
@@ -496,7 +443,11 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           const Text(
             "We couldn't find any FAQs matching your exact query. Try another search or category filter.",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.45),
+            style: TextStyle(
+              color: AppColors.mutedText,
+              fontSize: 13,
+              height: 1.45,
+            ),
           ),
         ],
       ),
@@ -507,8 +458,10 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 28.0),
       decoration: const BoxDecoration(
-        color: Color(0xFF111111),
-        border: Border(top: BorderSide(color: Color(0xFF2B2B2B), width: 1)),
+        color: AppColors.secondaryBackground,
+        border: Border(
+          top: BorderSide(color: AppColors.border, width: 1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -516,7 +469,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           const Text(
             "STILL NEED HELP?",
             style: TextStyle(
-              color: Colors.grey,
+              color: AppColors.mutedText,
               fontWeight: FontWeight.bold,
               fontSize: 12,
               letterSpacing: 0.5,
@@ -525,7 +478,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           const SizedBox(height: 6),
           const Text(
             "If you can't find answers in our guides, reach out to our dedicated support channels.",
-            style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
+            style: TextStyle(color: AppColors.mutedText, fontSize: 13, height: 1.4),
           ),
           const SizedBox(height: 20),
           Row(
@@ -537,9 +490,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   subtitle: "Create a support ticket",
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const ContactSupportScreen(),
-                      ),
+                      MaterialPageRoute(builder: (context) => const ContactSupportScreen()),
                     );
                   },
                 ),
@@ -552,9 +503,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   subtitle: "Instant 24/7 assistance",
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Launching live chat assistant..."),
-                      ),
+                      const SnackBar(content: Text("Launching live chat assistant...")),
                     );
                   },
                 ),
@@ -578,19 +527,19 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1B1B1B),
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2B2B2B)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: const Color(0xFFD4AF37), size: 22),
+            Icon(icon, color: AppColors.primaryGold, size: 22),
             const SizedBox(height: 12),
             Text(
               title,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.primaryText,
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
               ),
@@ -598,7 +547,10 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: const TextStyle(color: Colors.grey, fontSize: 11),
+              style: const TextStyle(
+                color: AppColors.mutedText,
+                fontSize: 11,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -640,22 +592,19 @@ const List<_PopularArticle> _popularArticles = [
     tag: "Advocate Search",
     readTime: "3 min read",
     title: "How to hire a verified advocate",
-    content:
-        "When choosing an advocate on GenieLaw, look for the gold verification badge. This badge signifies that the advocate has submitted and verified their Bar Council registration credentials, experience logs, and educational background. You can review detailed client reviews, success percentages, and specialize areas directly in their profile before initiating a consultation booking.",
+    content: "When choosing an advocate on GenieLaw, look for the gold verification badge. This badge signifies that the advocate has submitted and verified their Bar Council registration credentials, experience logs, and educational background. You can review detailed client reviews, success percentages, and specialize areas directly in their profile before initiating a consultation booking.",
   ),
   _PopularArticle(
     tag: "Billing",
     readTime: "5 min read",
     title: "Understanding fees and payouts",
-    content:
-        "GenieLaw ensures complete payment security. All consultation bookings require flat, upfront fee deposits processed through PCI-compliant gateways. Fees remain secure and are only transferred to the advocate after successful consultation summary delivery. If a session is cancelled by an advocate, the fee is fully refunded to the client's original payment source.",
+    content: "GenieLaw ensures complete payment security. All consultation bookings require flat, upfront fee deposits processed through PCI-compliant gateways. Fees remain secure and are only transferred to the advocate after successful consultation summary delivery. If a session is cancelled by an advocate, the fee is fully refunded to the client's original payment source.",
   ),
   _PopularArticle(
     tag: "Legal Documents",
     readTime: "4 min read",
     title: "Preparing your case files",
-    content:
-        "To get the most out of your consultation, organize your case files before the session. Go to 'Post a Case' and upload details under relevant categories (like Property, Criminal, or Civil). Supported formats include PDF and JPG/PNG up to 25MB. Uploaded case files are securely encrypted and only accessible to you and your selected counsel.",
+    content: "To get the most out of your consultation, organize your case files before the session. Go to 'Post a Case' and upload details under relevant categories (like Property, Criminal, or Civil). Supported formats include PDF and JPG/PNG up to 25MB. Uploaded case files are securely encrypted and only accessible to you and your selected counsel.",
   ),
 ];
 
@@ -663,103 +612,86 @@ const List<_FAQItem> _faqs = [
   _FAQItem(
     category: "Getting Started",
     question: "How do I register a client account?",
-    answer:
-        "You can sign up directly on the login screen using your email address and mobile number. A verification link or OTP will be sent to complete registration.",
+    answer: "You can sign up directly on the login screen using your email address and mobile number. A verification link or OTP will be sent to complete registration.",
   ),
   _FAQItem(
     category: "Getting Started",
     question: "Is there any subscription fee for clients?",
-    answer:
-        "No, client registration and posting legal cases on GenieLaw is completely free. You only pay for the individual consultation services you book.",
+    answer: "No, client registration and posting legal cases on GenieLaw is completely free. You only pay for the individual consultation services you book.",
   ),
   _FAQItem(
     category: "Getting Started",
     question: "Is my personal legal case information private?",
-    answer:
-        "Absolutely. GenieLaw uses advanced AES-256 encryption. Only you and the lawyer you choose to interact with can view your case documents and chat details.",
+    answer: "Absolutely. GenieLaw uses advanced AES-256 encryption. Only you and the lawyer you choose to interact with can view your case documents and chat details.",
   ),
   _FAQItem(
     category: "Posting a Case",
     question: "How do I post a new legal case?",
-    answer:
-        "Navigate to your Dashboard, tap 'Post a Case', select a legal category, describe the issue, specify your location, and upload any relevant files. Tap submit to publish it.",
+    answer: "Navigate to your Dashboard, tap 'Post a Case', select a legal category, describe the issue, specify your location, and upload any relevant files. Tap submit to publish it.",
   ),
   _FAQItem(
     category: "Posting a Case",
     question: "Can I edit or close a posted case?",
-    answer:
-        "Yes, you can edit case details or withdraw your post directly from the 'My Cases' section on your profile as long as you haven't hired an advocate.",
+    answer: "Yes, you can edit case details or withdraw your post directly from the 'My Cases' section on your profile as long as you haven't hired an advocate.",
   ),
   _FAQItem(
     category: "Finding Lawyers",
     question: "How can I find the right lawyer for my issue?",
-    answer:
-        "You can browse verified lawyers by their specialization, rating, and location, or utilize our 'Get Matched' smart feature to find the best match for your case category.",
+    answer: "You can browse verified lawyers by their specialization, rating, and location, or utilize our 'Get Matched' smart feature to find the best match for your case category.",
   ),
   _FAQItem(
     category: "Finding Lawyers",
     question: "How are advocates on GenieLaw verified?",
-    answer:
-        "Every advocate must submit their State Bar Council registration details, educational credentials, and identity verification before being approved to practice on our platform.",
+    answer: "Every advocate must submit their State Bar Council registration details, educational credentials, and identity verification before being approved to practice on our platform.",
   ),
   _FAQItem(
     category: "Consultations",
     question: "How do I book a consultation with an advocate?",
-    answer:
-        "Open the advocate's profile, click on 'Schedule Consultation', choose a preferred date and time slot from their calendar, write a brief note about your request, and confirm.",
+    answer: "Open the advocate's profile, click on 'Schedule Consultation', choose a preferred date and time slot from their calendar, write a brief note about your request, and confirm.",
   ),
   _FAQItem(
     category: "Consultations",
     question: "Can I cancel or reschedule a consultation?",
-    answer:
-        "Yes, you can cancel or reschedule up to 12 hours before the scheduled time under the 'Consultations' tab in your Profile menu.",
+    answer: "Yes, you can cancel or reschedule up to 12 hours before the scheduled time under the 'Consultations' tab in your Profile menu.",
   ),
   _FAQItem(
     category: "Payments",
     question: "What payment methods are supported?",
-    answer:
-        "We support major credit/debit cards, net banking, UPI, and digital wallets. All transactions are securely processed through integrated gateways.",
+    answer: "We support major credit/debit cards, net banking, UPI, and digital wallets. All transactions are securely processed through integrated gateways.",
   ),
   _FAQItem(
     category: "Payments",
     question: "Can I get a refund if my consultation is cancelled?",
-    answer:
-        "If the consultation is cancelled by the advocate or cancelled by you within the eligible time frame (12 hours prior), a full refund will be initiated to your source payment method.",
+    answer: "If the consultation is cancelled by the advocate or cancelled by you within the eligible time frame (12 hours prior), a full refund will be initiated to your source payment method.",
   ),
   _FAQItem(
     category: "Documents",
     question: "Where are my legal documents stored?",
-    answer:
-        "All your uploaded files and consultation summaries are securely saved under Profile > Documents. You can access or download them anytime.",
+    answer: "All your uploaded files and consultation summaries are securely saved under Profile > Documents. You can access or download them anytime.",
   ),
   _FAQItem(
     category: "Documents",
     question: "What formats and file sizes are supported for uploads?",
-    answer:
-        "You can upload PDF, DOC/DOCX, and JPG/PNG files up to 25MB per document directly into your case details or secure chat workspace.",
+    answer: "You can upload PDF, DOC/DOCX, and JPG/PNG files up to 25MB per document directly into your case details or secure chat workspace.",
   ),
   _FAQItem(
     category: "Privacy & Security",
     question: "How is my personal data protected?",
-    answer:
-        "Our systems are fully compliant with ISO 27001 standards and standard data protection regulations. We use end-to-end encryption for all real-time communications.",
+    answer: "Our systems are fully compliant with ISO 27001 standards and standard data protection regulations. We use end-to-end encryption for all real-time communications.",
   ),
   _FAQItem(
     category: "Privacy & Security",
     question: "How do I delete my account?",
-    answer:
-        "To delete your client account, go to Profile > Settings > Account Management and select 'Delete Account'. All non-essential personal information will be purged from our servers.",
+    answer: "To delete your client account, go to Profile > Settings > Account Management and select 'Delete Account'. All non-essential personal information will be purged from our servers.",
   ),
   _FAQItem(
     category: "Account Management",
     question: "How do I update my email or phone number?",
-    answer:
-        "Go to Profile > My Profile to update your contact details. Changes to your mobile number or email will require standard OTP verification for security.",
+    answer: "Go to Profile > My Profile to update your contact details. Changes to your mobile number or email will require standard OTP verification for security.",
   ),
   _FAQItem(
     category: "Account Management",
     question: "What should I do if my account is locked?",
-    answer:
-        "If you experience multiple failed login attempts, your account may be temporarily locked for security. Tap 'Forgot Password' to reset or contact our support desk.",
+    answer: "If you experience multiple failed login attempts, your account may be temporarily locked for security. Tap 'Forgot Password' to reset or contact our support desk.",
   ),
 ];

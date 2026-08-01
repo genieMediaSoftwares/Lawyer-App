@@ -9,8 +9,7 @@ class ChangePasswordScreen extends ConsumerStatefulWidget {
   const ChangePasswordScreen({super.key});
 
   @override
-  ConsumerState<ChangePasswordScreen> createState() =>
-      _ChangePasswordScreenState();
+  ConsumerState<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
 }
 
 class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
@@ -50,8 +49,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
   bool get _hasUppercase => RegExp(r'[A-Z]').hasMatch(_newPassController.text);
   bool get _hasLowercase => RegExp(r'[a-z]').hasMatch(_newPassController.text);
   bool get _hasNumber => RegExp(r'[0-9]').hasMatch(_newPassController.text);
-  bool get _hasSpecialChar =>
-      RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(_newPassController.text);
+  bool get _hasSpecialChar => RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(_newPassController.text);
 
   bool get _isNewPassDifferent =>
       _newPassController.text.isNotEmpty &&
@@ -85,8 +83,8 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
   Color get _strengthColor {
     final score = _passwordStrengthScore;
     if (score <= 0.4) return AppColors.error;
-    if (score <= 0.8) return Colors.orange;
-    return Colors.green;
+    if (score <= 0.8) return AppColors.warning;
+    return AppColors.success;
   }
 
   Future<void> _submitChangePassword() async {
@@ -113,15 +111,14 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(loc.translate('password_changed_success')),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
             ),
           );
           context.pop();
         }
       } else {
         setState(() {
-          _errorMessage =
-              response.data?['message'] ?? 'Failed to change password.';
+          _errorMessage = response.data?['message'] ?? 'Failed to change password.';
         });
       }
     } catch (e) {
@@ -149,10 +146,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
         ),
         title: Text(
           loc.translate('change_password'),
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Outfit',
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Outfit'),
         ),
       ),
       body: SafeArea(
@@ -166,11 +160,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 // Field 1: Current Password
                 Text(
                   loc.translate('current_password'),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13.5,
-                    color: theme.textTheme.titleMedium?.color,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: theme.textTheme.titleMedium?.color),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
@@ -180,18 +170,10 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                     hintText: "••••••••",
                     prefixIcon: const Icon(Icons.lock_outline, size: 20),
                     suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureCurrent
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        size: 20,
-                      ),
-                      onPressed: () =>
-                          setState(() => _obscureCurrent = !_obscureCurrent),
+                      icon: Icon(_obscureCurrent ? Icons.visibility_off : Icons.visibility, size: 20),
+                      onPressed: () => setState(() => _obscureCurrent = !_obscureCurrent),
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
                 const SizedBox(height: 18),
@@ -199,11 +181,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 // Field 2: New Password
                 Text(
                   loc.translate('new_password'),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13.5,
-                    color: theme.textTheme.titleMedium?.color,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: theme.textTheme.titleMedium?.color),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
@@ -213,16 +191,10 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                     hintText: "••••••••",
                     prefixIcon: const Icon(Icons.lock_reset, size: 20),
                     suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureNew ? Icons.visibility_off : Icons.visibility,
-                        size: 20,
-                      ),
-                      onPressed: () =>
-                          setState(() => _obscureNew = !_obscureNew),
+                      icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility, size: 20),
+                      onPressed: () => setState(() => _obscureNew = !_obscureNew),
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -234,7 +206,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                     child: LinearProgressIndicator(
                       value: _passwordStrengthScore,
                       color: _strengthColor,
-                      backgroundColor: Colors.white12,
+                      backgroundColor: AppColors.primaryText.withValues(alpha: 0.12),
                       minHeight: 6,
                     ),
                   ),
@@ -247,45 +219,22 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                   decoration: BoxDecoration(
                     color: theme.cardColor,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                    ),
+                    border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         loc.translate('password_requirements'),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12.5,
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
                       ),
                       const SizedBox(height: 8),
-                      _RuleCheckItem(
-                        label: loc.translate('rule_min_chars'),
-                        isMet: _hasMinLength,
-                      ),
-                      _RuleCheckItem(
-                        label: loc.translate('rule_uppercase'),
-                        isMet: _hasUppercase,
-                      ),
-                      _RuleCheckItem(
-                        label: loc.translate('rule_lowercase'),
-                        isMet: _hasLowercase,
-                      ),
-                      _RuleCheckItem(
-                        label: loc.translate('rule_number'),
-                        isMet: _hasNumber,
-                      ),
-                      _RuleCheckItem(
-                        label: loc.translate('rule_special'),
-                        isMet: _hasSpecialChar,
-                      ),
-                      _RuleCheckItem(
-                        label: "New password cannot match old password",
-                        isMet: _isNewPassDifferent,
-                      ),
+                      _RuleCheckItem(label: loc.translate('rule_min_chars'), isMet: _hasMinLength),
+                      _RuleCheckItem(label: loc.translate('rule_uppercase'), isMet: _hasUppercase),
+                      _RuleCheckItem(label: loc.translate('rule_lowercase'), isMet: _hasLowercase),
+                      _RuleCheckItem(label: loc.translate('rule_number'), isMet: _hasNumber),
+                      _RuleCheckItem(label: loc.translate('rule_special'), isMet: _hasSpecialChar),
+                      _RuleCheckItem(label: "New password cannot match old password", isMet: _isNewPassDifferent),
                     ],
                   ),
                 ),
@@ -294,11 +243,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 // Field 3: Confirm New Password
                 Text(
                   loc.translate('confirm_new_password'),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13.5,
-                    color: theme.textTheme.titleMedium?.color,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: theme.textTheme.titleMedium?.color),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
@@ -308,29 +253,17 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                     hintText: "••••••••",
                     prefixIcon: const Icon(Icons.lock_outline, size: 20),
                     suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureConfirm
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        size: 20,
-                      ),
-                      onPressed: () =>
-                          setState(() => _obscureConfirm = !_obscureConfirm),
+                      icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility, size: 20),
+                      onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
-                if (_confirmPassController.text.isNotEmpty &&
-                    !_isConfirmMatching) ...[
+                if (_confirmPassController.text.isNotEmpty && !_isConfirmMatching) ...[
                   const SizedBox(height: 4),
                   Text(
                     loc.translate('password_match_error'),
-                    style: const TextStyle(
-                      color: AppColors.error,
-                      fontSize: 12,
-                    ),
+                    style: const TextStyle(color: AppColors.error, fontSize: 12),
                   ),
                 ],
                 const SizedBox(height: 24),
@@ -348,10 +281,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                     ),
                     child: Text(
                       _errorMessage!,
-                      style: const TextStyle(
-                        color: AppColors.error,
-                        fontSize: 12.5,
-                      ),
+                      style: const TextStyle(color: AppColors.error, fontSize: 12.5),
                     ),
                   ),
                 ],
@@ -361,33 +291,22 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: (_isFormValid && !_isLoading)
-                        ? _submitChangePassword
-                        : null,
+                    onPressed: (_isFormValid && !_isLoading) ? _submitChangePassword : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryGold,
-                      foregroundColor: Colors.black,
-                      disabledBackgroundColor: Colors.grey.shade800,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      foregroundColor: AppColors.onGold,
+                      disabledBackgroundColor: AppColors.disabledText,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: _isLoading
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.black,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onGold),
                           )
                         : Text(
                             loc.translate('save_password'),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Outfit',
-                            ),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, fontFamily: 'Outfit'),
                           ),
                   ),
                 ),
@@ -415,7 +334,7 @@ class _RuleCheckItem extends StatelessWidget {
           Icon(
             isMet ? Icons.check_circle : Icons.circle_outlined,
             size: 14,
-            color: isMet ? Colors.green : Colors.grey,
+            color: isMet ? AppColors.success : AppColors.mutedText,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -423,7 +342,7 @@ class _RuleCheckItem extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 11.5,
-                color: isMet ? Colors.white : Colors.grey,
+                color: isMet ? AppColors.primaryText : AppColors.mutedText,
                 fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
               ),
             ),

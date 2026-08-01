@@ -9,8 +9,7 @@ class LawyerDocumentsScreen extends ConsumerStatefulWidget {
   const LawyerDocumentsScreen({super.key});
 
   @override
-  ConsumerState<LawyerDocumentsScreen> createState() =>
-      _LawyerDocumentsScreenState();
+  ConsumerState<LawyerDocumentsScreen> createState() => _LawyerDocumentsScreenState();
 }
 
 class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
@@ -23,36 +22,29 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
       withData: true,
     );
 
-    if (result != null &&
-        (result.files.single.path != null ||
-            result.files.single.bytes != null)) {
+    if (result != null && (result.files.single.path != null || result.files.single.bytes != null)) {
       setState(() => _isUploading = true);
       try {
         final file = result.files.single;
-
-        final newDoc = await ref
-            .read(documentsProvider.notifier)
-            .uploadDocument(
+        
+        final newDoc = await ref.read(documentsProvider.notifier).uploadDocument(
               kIsWeb ? null : file.path,
               file.name,
               bytes: file.bytes,
             );
-        if (newDoc != null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Document uploaded successfully!")),
-          );
+        // Guarded once, before either branch. The mounted check used to sit
+        // only on the success condition, so an upload that succeeded after the
+        // screen closed fell through to the `else` and reported failure — and
+        // that branch touched context with no guard at all.
+        if (!mounted) return;
+        if (newDoc != null) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Document uploaded successfully!")));
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Upload failed. Unsupported type or size limit."),
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Upload failed. Unsupported type or size limit.")));
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Upload error occurred.")),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Upload error occurred.")));
         }
       } finally {
         if (mounted) setState(() => _isUploading = false);
@@ -85,18 +77,11 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
         onPressed: _isUploading ? null : _pickAndUploadFile,
         backgroundColor: theme.colorScheme.primary,
         icon: _isUploading
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.cloud_upload, color: Colors.black),
+            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+            : const Icon(Icons.cloud_upload, color: AppColors.onGold),
         label: Text(
           _isUploading ? "Uploading..." : "Upload Document",
-          style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(color: AppColors.onGold, fontWeight: FontWeight.bold),
         ),
       ),
       body: documentsState.when(
@@ -108,29 +93,17 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.folder_open_outlined,
-                      size: 72,
-                      color: theme.colorScheme.outline,
-                    ),
+                    Icon(Icons.folder_open_outlined, size: 72, color: theme.colorScheme.outline),
                     const SizedBox(height: 16),
                     Text(
                       "No Documents Found",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: theme.textTheme.titleMedium?.color,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       "Upload credentials, bar registration certificates, or identity verifications.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: theme.textTheme.bodyMedium?.color?.withOpacity(
-                          0.6,
-                        ),
-                      ),
+                      style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                     ),
                   ],
                 ),
@@ -153,39 +126,21 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
                   side: BorderSide(color: theme.colorScheme.outline),
                 ),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   leading: CircleAvatar(
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                    child: Icon(
-                      _getFileIcon(doc.mimeType),
-                      color: theme.colorScheme.primary,
-                    ),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    child: Icon(_getFileIcon(doc.mimeType), color: theme.colorScheme.primary),
                   ),
                   title: Text(
                     doc.originalName,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: theme.textTheme.titleMedium?.color,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.titleMedium?.color),
                   ),
                   subtitle: Text(
                     "$sizeInKb KB | Uploaded: ${_formatDate(doc.uploadedAt)}",
-                    style: TextStyle(
-                      color: theme.textTheme.bodyMedium?.color?.withOpacity(
-                        0.6,
-                      ),
-                      fontSize: 11,
-                    ),
+                    style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), fontSize: 11),
                   ),
                   trailing: IconButton(
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      color: AppColors.error,
-                    ),
+                    icon: const Icon(Icons.delete_outline, color: AppColors.error),
                     onPressed: () => _deleteDocument(doc.id),
                   ),
                 ),
@@ -194,8 +149,7 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) =>
-            Center(child: Text("Error loading documents: $err")),
+        error: (err, stack) => Center(child: Text("Error loading documents: $err")),
       ),
     );
   }
@@ -218,33 +172,21 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Delete Document"),
-        content: const Text(
-          "Are you sure you want to permanently delete this document?",
-        ),
+        content: const Text("Are you sure you want to permanently delete this document?"),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              "Delete",
-              style: TextStyle(color: AppColors.error),
-            ),
+            child: const Text("Delete", style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
     );
 
     if (confirmed == true) {
-      final success = await ref
-          .read(documentsProvider.notifier)
-          .deleteDocument(id);
+      final success = await ref.read(documentsProvider.notifier).deleteDocument(id);
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Document deleted successfully.")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Document deleted successfully.")));
       }
     }
   }

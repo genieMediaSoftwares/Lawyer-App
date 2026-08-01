@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui' show FontFeature;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
@@ -97,6 +97,21 @@ class _VoiceRecorderButtonState extends State<VoiceRecorderButton> {
     _isBusy = true;
 
     try {
+      // This widget writes the clip to a temp file and hands back a
+      // `dart:io` File. Neither `getTemporaryDirectory()` nor `File` exists on
+      // web, so recording there would throw
+      // `Unsupported operation: _Namespace` from inside the try below and
+      // surface as an opaque failure. Say so plainly instead.
+      //
+      // Supporting web properly means carrying the clip as bytes rather than a
+      // File, the same change already made for document uploads — worth doing
+      // if browser support becomes a requirement.
+      if (kIsWeb) {
+        if (!mounted) return;
+        _showMessage('Voice recording is only available in the mobile app.');
+        return;
+      }
+
       // Ask the recorder itself rather than going through permission_handler:
       // it resolves the correct permission per platform and reflects the
       // actual capture capability.
@@ -128,12 +143,11 @@ class _VoiceRecorderButtonState extends State<VoiceRecorderButton> {
       _amplitudeSub = _recorder
           .onAmplitudeChanged(const Duration(milliseconds: 100))
           .listen((amp) {
-            // Notifier update only — no setState, so the host screen is untouched.
-            final next = List<double>.of(_levels.value)
-              ..add(_normalise(amp.current));
-            if (next.length > _barCount) next.removeAt(0);
-            _levels.value = next;
-          });
+        // Notifier update only — no setState, so the host screen is untouched.
+        final next = List<double>.of(_levels.value)..add(_normalise(amp.current));
+        if (next.length > _barCount) next.removeAt(0);
+        _levels.value = next;
+      });
 
       _timer = Timer.periodic(const Duration(seconds: 1), (_) {
         _elapsedSeconds.value++;
@@ -236,7 +250,7 @@ class _VoiceRecorderButtonState extends State<VoiceRecorderButton> {
                 ),
                 child: Icon(
                   Icons.mic_rounded,
-                  color: Colors.black,
+                  color: AppColors.onGold,
                   size: widget.size * 0.55,
                 ),
               ),
@@ -252,9 +266,9 @@ class _VoiceRecorderButtonState extends State<VoiceRecorderButton> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
+        color: AppColors.shadow.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.6)),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.6)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -267,24 +281,20 @@ class _VoiceRecorderButtonState extends State<VoiceRecorderButton> {
               child: InkWell(
                 onTap: () => _stop(discard: true),
                 customBorder: const CircleBorder(),
-                child: const SizedBox(
+                child: SizedBox(
                   width: 40,
                   height: 40,
-                  child: Icon(
-                    Icons.delete_outline,
-                    color: Colors.white70,
-                    size: 20,
-                  ),
+                  child: Icon(Icons.delete_outline, color: AppColors.primaryText.withValues(alpha: 0.7), size: 20),
                 ),
               ),
             ),
           ),
           ValueListenableBuilder<int>(
             valueListenable: _elapsedSeconds,
-            builder: (_, seconds, __) => Text(
+            builder: (_, seconds, _) => Text(
               _format(seconds),
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.primaryText,
                 fontSize: 12,
                 fontFeatures: [FontFeature.tabularFigures()],
               ),
@@ -294,8 +304,7 @@ class _VoiceRecorderButtonState extends State<VoiceRecorderButton> {
           // Only these bars rebuild on each amplitude sample.
           ValueListenableBuilder<List<double>>(
             valueListenable: _levels,
-            builder: (_, levels, __) =>
-                _Waveform(levels: levels, barCount: _barCount),
+            builder: (_, levels, _) => _Waveform(levels: levels, barCount: _barCount),
           ),
           const SizedBox(width: 8),
           Semantics(
@@ -315,11 +324,11 @@ class _VoiceRecorderButtonState extends State<VoiceRecorderButton> {
                       height: widget.size,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.redAccent,
+                        color: AppColors.error,
                       ),
                       child: Icon(
                         Icons.stop_rounded,
-                        color: Colors.white,
+                        color: AppColors.primaryText,
                         size: widget.size * 0.6,
                       ),
                     ),
@@ -345,10 +354,7 @@ class _Waveform extends StatelessWidget {
   Widget build(BuildContext context) {
     // Pad on the left so bars fill from the right as samples arrive.
     final padded = <double>[
-      ...List<double>.filled(
-        (barCount - levels.length).clamp(0, barCount),
-        0.04,
-      ),
+      ...List<double>.filled((barCount - levels.length).clamp(0, barCount), 0.04),
       ...levels,
     ];
 

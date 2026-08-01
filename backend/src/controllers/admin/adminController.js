@@ -353,14 +353,21 @@ exports.getSupportTickets = async (req, res, next) => {
 
     if (status && status !== "all") query.status = status;
     if (search) {
+      // Against the Issue schema's real fields. This searched `subject` and
+      // `ticketId`, neither of which exists on Issue, so two thirds of the
+      // filter silently matched nothing.
       query.$or = [
-        { subject: { $regex: search, $options: "i" } },
+        { title: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
-        { ticketId: { $regex: search, $options: "i" } },
+        { category: { $regex: search, $options: "i" } },
       ];
     }
 
-    const tickets = await Issue.find(query).populate("user", "fullName email mobile role").sort({ createdAt: -1 });
+    // The raiser is stored as `clientId`; populating "user" produced null on
+    // every ticket, so the admin queue showed no requester at all.
+    const tickets = await Issue.find(query)
+      .populate("clientId", "fullName email mobile role")
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,

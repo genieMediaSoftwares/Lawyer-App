@@ -5,6 +5,7 @@ import '../../../../providers/auth_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/review_provider.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class LawyerReviewsScreen extends ConsumerWidget {
   const LawyerReviewsScreen({super.key});
@@ -37,46 +38,25 @@ class LawyerReviewsScreen extends ConsumerWidget {
       ),
       body: lawyerState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) =>
-            Center(child: Text("Error loading reviews: $err")),
+        error: (err, stack) => Center(child: Text("Error loading reviews: $err")),
         data: (lawyer) {
           return combinedReviewsState.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) =>
-                Center(child: Text("Error loading reviews: $err")),
+            error: (err, stack) => Center(child: Text("Error loading reviews: $err")),
             data: (reviews) {
               final int totalReviewsCount = reviews.length;
-
+              
               // Calculate dynamic average rating
               final double averageRating = totalReviewsCount == 0
                   ? 0.0
-                  : double.parse(
-                      (reviews.map((r) => r.rating).reduce((a, b) => a + b) /
-                              totalReviewsCount)
-                          .toStringAsFixed(1),
-                    );
+                  : double.parse((reviews.map((r) => r.rating).reduce((a, b) => a + b) / totalReviewsCount).toStringAsFixed(1));
 
               // Calculate star percentages
-              final double pct5 = totalReviewsCount == 0
-                  ? 0.0
-                  : reviews.where((r) => r.rating.round() == 5).length /
-                        totalReviewsCount;
-              final double pct4 = totalReviewsCount == 0
-                  ? 0.0
-                  : reviews.where((r) => r.rating.round() == 4).length /
-                        totalReviewsCount;
-              final double pct3 = totalReviewsCount == 0
-                  ? 0.0
-                  : reviews.where((r) => r.rating.round() == 3).length /
-                        totalReviewsCount;
-              final double pct2 = totalReviewsCount == 0
-                  ? 0.0
-                  : reviews.where((r) => r.rating.round() == 2).length /
-                        totalReviewsCount;
-              final double pct1 = totalReviewsCount == 0
-                  ? 0.0
-                  : reviews.where((r) => r.rating.round() == 1).length /
-                        totalReviewsCount;
+              final double pct5 = totalReviewsCount == 0 ? 0.0 : reviews.where((r) => r.rating.round() == 5).length / totalReviewsCount;
+              final double pct4 = totalReviewsCount == 0 ? 0.0 : reviews.where((r) => r.rating.round() == 4).length / totalReviewsCount;
+              final double pct3 = totalReviewsCount == 0 ? 0.0 : reviews.where((r) => r.rating.round() == 3).length / totalReviewsCount;
+              final double pct2 = totalReviewsCount == 0 ? 0.0 : reviews.where((r) => r.rating.round() == 2).length / totalReviewsCount;
+              final double pct1 = totalReviewsCount == 0 ? 0.0 : reviews.where((r) => r.rating.round() == 1).length / totalReviewsCount;
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(20.0),
@@ -89,13 +69,9 @@ class LawyerReviewsScreen extends ConsumerWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color:
-                            theme.cardTheme.color ?? theme.colorScheme.surface,
+                        color: theme.cardTheme.color ?? theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: theme.colorScheme.outline,
-                          width: 1,
-                        ),
+                        border: Border.all(color: theme.colorScheme.outline, width: 1),
                       ),
                       child: Row(
                         children: [
@@ -104,9 +80,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                totalReviewsCount == 0
-                                    ? "0.0"
-                                    : "$averageRating",
+                                totalReviewsCount == 0 ? "0.0" : "$averageRating",
                                 style: TextStyle(
                                   fontSize: 48,
                                   fontWeight: FontWeight.w800,
@@ -119,9 +93,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
                                   final isGold = index < averageRating.round();
                                   return Icon(
                                     Icons.star,
-                                    color: isGold
-                                        ? Colors.amber
-                                        : theme.colorScheme.outline,
+                                    color: isGold ? AppColors.warning : theme.colorScheme.outline,
                                     size: 16,
                                   );
                                 }),
@@ -131,8 +103,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
                                 "Based on $totalReviewsCount reviews",
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: theme.textTheme.bodyMedium?.color
-                                      ?.withOpacity(0.6),
+                                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                                 ),
                               ),
                             ],
@@ -163,11 +134,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
                     Text(
                       "CLIENT FEEDBACKS ($totalReviewsCount)",
                       style: TextStyle(
-                        color:
-                            theme.textTheme.bodyMedium?.color?.withOpacity(
-                              0.6,
-                            ) ??
-                            Colors.grey,
+                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? AppColors.mutedText,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                         letterSpacing: 0.8,
@@ -179,36 +146,21 @@ class LawyerReviewsScreen extends ConsumerWidget {
                     if (reviews.isEmpty)
                       Center(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 48,
-                            horizontal: 24,
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                Icons.rate_review_outlined,
-                                size: 64,
-                                color: theme.colorScheme.outline,
-                              ),
+                              Icon(Icons.rate_review_outlined, size: 64, color: theme.colorScheme.outline),
                               const SizedBox(height: 16),
                               Text(
                                 "No Reviews Yet",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: theme.textTheme.titleMedium?.color,
-                                ),
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 "Client reviews will appear here once your cases or consultations are resolved.",
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: theme.textTheme.bodyMedium?.color
-                                      ?.withOpacity(0.6),
-                                  fontSize: 13,
-                                ),
+                                style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), fontSize: 13),
                               ),
                             ],
                           ),
@@ -220,63 +172,44 @@ class LawyerReviewsScreen extends ConsumerWidget {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: reviews.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 16),
+                        separatorBuilder: (context, index) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           final rev = reviews[index];
-                          final dateStr = DateFormat(
-                            'dd MMM yyyy',
-                          ).format(rev.createdAt);
+                          final dateStr = DateFormat('dd MMM yyyy').format(rev.createdAt);
 
                           // Find matching case to show case category type
                           final matchingCase = casesState.maybeWhen(
                             data: (casesList) => casesList.firstWhere(
-                              (c) =>
-                                  (c.assignedLawyerId == userId ||
-                                      c.selectedLawyerId == userId) &&
-                                  c.clientId == rev.clientId,
-                              orElse: () =>
-                                  null as dynamic, // Safe null return cast
+                              (c) => (c.assignedLawyerId == userId || c.selectedLawyerId == userId) && c.clientId == rev.clientId,
+                              orElse: () => null as dynamic, // Safe null return cast
                             ),
                             orElse: () => null,
                           );
-                          final caseType = matchingCase != null
-                              ? matchingCase.category
-                              : "Consultation";
+                          final caseType = matchingCase != null ? matchingCase.category : "Consultation";
 
                           return Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color:
-                                  theme.cardTheme.color ??
-                                  theme.colorScheme.surface,
+                              color: theme.cardTheme.color ?? theme.colorScheme.surface,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: theme.colorScheme.outline,
-                                width: 1,
-                              ),
+                              border: Border.all(color: theme.colorScheme.outline, width: 1),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       rev.clientName,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                                     ),
                                     Text(
                                       dateStr,
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: theme.textTheme.bodyMedium?.color
-                                            ?.withOpacity(0.5),
+                                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                                       ),
                                     ),
                                   ],
@@ -296,9 +229,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
                                     final isGold = starIdx < rev.rating.round();
                                     return Icon(
                                       Icons.star,
-                                      color: isGold
-                                          ? Colors.amber
-                                          : theme.colorScheme.outline,
+                                      color: isGold ? AppColors.warning : theme.colorScheme.outline,
                                       size: 14,
                                     );
                                   }),
@@ -335,7 +266,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
         ),
         const SizedBox(width: 4),
-        const Icon(Icons.star, color: Colors.amber, size: 10),
+        const Icon(Icons.star, color: AppColors.warning, size: 10),
         const SizedBox(width: 8),
         Expanded(
           child: ClipRRect(
@@ -344,9 +275,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
               value: pct,
               minHeight: 6,
               backgroundColor: theme.colorScheme.outline,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                theme.colorScheme.primary,
-              ),
+              valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
             ),
           ),
         ),
@@ -357,7 +286,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
             "${(pct * 100).toInt()}%",
             style: TextStyle(
               fontSize: 10,
-              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.end,
           ),

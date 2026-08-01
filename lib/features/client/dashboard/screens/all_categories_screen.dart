@@ -5,6 +5,7 @@ import '../../../../routes/route_names.dart';
 import '../../../../models/category_item.dart';
 import '../../../../providers/category_provider.dart';
 import '../widgets/category_card.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class AllCategoriesScreen extends ConsumerStatefulWidget {
   const AllCategoriesScreen({super.key});
@@ -83,7 +84,7 @@ class _AllCategoriesScreenState extends ConsumerState<AllCategoriesScreen> {
                   ),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear, color: Colors.grey),
+                          icon: const Icon(Icons.clear, color: AppColors.mutedText),
                           onPressed: () => _searchController.clear(),
                         )
                       : null,

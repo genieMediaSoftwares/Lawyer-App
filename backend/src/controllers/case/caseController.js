@@ -8,7 +8,15 @@ const notificationService = require("../../services/notification/notificationSer
 class CaseController {
   async createCase(req, res, next) {
     try {
-      const { title, description, category, subcategory, location, budgetRange, urgency, preferredCourt, documents, selectedLawyer, voiceUrl, voiceTranscript, city, district, state, country, latitude, longitude } = req.body;
+      const {
+        title, description, category, subcategory, location, budgetRange,
+        urgency, preferredCourt, documents, selectedLawyer, voiceUrl,
+        voiceTranscript, city, district, state, country, latitude, longitude,
+        // Structured detail, AI-extracted then client-edited on the Post Case
+        // form. All optional.
+        incidentDate, opposingParty, firNumber, policeStation, bailDetails,
+        claimAmount,
+      } = req.body;
       const client = req.user._id;
 
       const hasSelectedLawyer = !!selectedLawyer;
@@ -49,6 +57,18 @@ class CaseController {
         locationCountry: country || "",
         locationLatitude: latitude ? Number(latitude) : 0.0,
         locationLongitude: longitude ? Number(longitude) : 0.0,
+
+        // Reject an unparseable date rather than storing Invalid Date.
+        incidentDate: incidentDate && !Number.isNaN(Date.parse(incidentDate))
+          ? new Date(incidentDate)
+          : null,
+        opposingParty: opposingParty || "",
+        firNumber: firNumber || "",
+        policeStation: policeStation || "",
+        bailDetails: bailDetails || "",
+        claimAmount: claimAmount != null && Number.isFinite(Number(claimAmount))
+          ? Number(claimAmount)
+          : 0,
       });
 
       // Trigger notifications for new case posted

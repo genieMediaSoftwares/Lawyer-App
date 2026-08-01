@@ -89,27 +89,27 @@
 //         foreground: cs.primary,
 //         border: BorderSide(color: cs.primary, width: 1.5),
 //         loaderColor: cs.primary,
-//         pressedBackground: cs.primary.withOpacity(0.08),
+//         pressedBackground: cs.primary.withValues(alpha: 0.08),
 //       ),
 //       ButtonVariant.ghost => _ButtonStyle(
 //         background: Colors.transparent,
 //         foreground: cs.onSurface,
 //         border: null,
 //         loaderColor: cs.onSurface,
-//         pressedBackground: cs.onSurface.withOpacity(0.06),
+//         pressedBackground: cs.onSurface.withValues(alpha: 0.06),
 //       ),
 //       ButtonVariant.danger => _ButtonStyle(
 //         background: AppColors.error,
-//         foreground: Colors.white,
+//         foreground: AppColors.primaryText,
 //         border: null,
-//         loaderColor: Colors.white,
+//         loaderColor: AppColors.primaryText,
 //         pressedBackground: AppColors.errorDark,
 //       ),
 //       ButtonVariant.success => _ButtonStyle(
 //         background: AppColors.success,
-//         foreground: Colors.white,
+//         foreground: AppColors.primaryText,
 //         border: null,
-//         loaderColor: Colors.white,
+//         loaderColor: AppColors.primaryText,
 //         pressedBackground: AppColors.successDark,
 //       ),
 //     };
@@ -128,7 +128,7 @@
 //     final buttonStyle = ButtonStyle(
 //       backgroundColor: WidgetStateProperty.resolveWith((states) {
 //         if (states.contains(WidgetState.disabled)) {
-//           return Theme.of(context).colorScheme.onSurface.withOpacity(0.12);
+//           return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12);
 //         }
 //         if (states.contains(WidgetState.pressed)) {
 //           return style.pressedBackground;
@@ -137,11 +137,11 @@
 //       }),
 //       foregroundColor: WidgetStateProperty.resolveWith((states) {
 //         if (states.contains(WidgetState.disabled)) {
-//           return Theme.of(context).colorScheme.onSurface.withOpacity(0.38);
+//           return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38);
 //         }
 //         return style.foreground;
 //       }),
-//       overlayColor: WidgetStateProperty.all(style.foreground.withOpacity(0.08)),
+//       overlayColor: WidgetStateProperty.all(style.foreground.withValues(alpha: 0.08)),
 //       elevation: WidgetStateProperty.all(0),
 //       shadowColor: WidgetStateProperty.all(Colors.transparent),
 //       minimumSize: WidgetStateProperty.all(
@@ -156,7 +156,7 @@
 //             color: Theme.of(context)
 //                 .colorScheme
 //                 .onSurface
-//                 .withOpacity(0.12),
+//                 .withValues(alpha: 0.12),
 //             width: 1.5,
 //           );
 //         }
@@ -231,8 +231,8 @@
 //       ButtonVariant.gold => (AppColors.goldPrimary, AppColors.navyDeep),
 //       ButtonVariant.outlined => (Colors.transparent, cs.primary),
 //       ButtonVariant.ghost => (Colors.transparent, cs.onSurface),
-//       ButtonVariant.danger => (AppColors.error, Colors.white),
-//       ButtonVariant.success => (AppColors.success, Colors.white),
+//       ButtonVariant.danger => (AppColors.error, AppColors.primaryText),
+//       ButtonVariant.success => (AppColors.success, AppColors.primaryText),
 //     };
 //
 //     final radius = borderRadius ?? (size == ButtonSize.sm ? 8.0 : 12.0);
@@ -249,8 +249,8 @@
 //         child: InkWell(
 //           onTap: onPressed,
 //           borderRadius: BorderRadius.circular(radius),
-//           splashColor: fg.withOpacity(0.12),
-//           highlightColor: fg.withOpacity(0.06),
+//           splashColor: fg.withValues(alpha: 0.12),
+//           highlightColor: fg.withValues(alpha: 0.06),
 //           child: Icon(icon, color: fg, size: _iconSize),
 //         ),
 //       ),

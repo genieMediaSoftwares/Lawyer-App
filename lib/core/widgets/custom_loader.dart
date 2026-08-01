@@ -141,7 +141,7 @@
 //               duration: const Duration(milliseconds: 200),
 //               child: ColoredBox(
 //                 color: barrierColor ??
-//                     Theme.of(context).colorScheme.scrim.withOpacity(0.5),
+//                     Theme.of(context).colorScheme.scrim.withValues(alpha: 0.5),
 //                 child: Center(
 //                   child: _LoaderCard(message: message),
 //                 ),
@@ -167,7 +167,7 @@
 //         borderRadius: BorderRadius.circular(20),
 //         boxShadow: [
 //           BoxShadow(
-//             color: Colors.black.withOpacity(0.15),
+//             color: AppColors.shadow.withValues(alpha: 0.15),
 //             blurRadius: 24,
 //             offset: const Offset(0, 8),
 //           ),
@@ -526,7 +526,7 @@
 //             borderRadius: BorderRadius.circular(18),
 //             boxShadow: [
 //               BoxShadow(
-//                 color: AppColors.navyPrimary.withOpacity(0.4),
+//                 color: AppColors.navyPrimary.withValues(alpha: 0.4),
 //                 blurRadius: 20,
 //                 offset: const Offset(0, 8),
 //               ),

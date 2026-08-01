@@ -35,6 +35,7 @@ app.set("io", io);
 require("./sockets/chat.socket")(io);
 require("./sockets/notification.socket")(io);
 require("./sockets/case.socket")(io);
+require("./sockets/ai.socket")(io);
 
 // Start Server
 server.listen(PORT, "0.0.0.0", () => {

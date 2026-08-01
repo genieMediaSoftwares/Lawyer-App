@@ -50,31 +50,22 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
 
   Future<void> _submitFeedback(String lawyerId) async {
     if (_feedbackController.text.trim().isEmpty) return;
-
+    
     setState(() => _isSubmittingFeedback = true);
     try {
-      final response = await DioClient.dio.post(
-        "/reviews",
-        data: {
-          "lawyerId": lawyerId,
-          "rating": _rating.toInt(),
-          "review": _feedbackController.text,
-        },
-      );
+      final response = await DioClient.dio.post("/reviews", data: {
+        "lawyerId": lawyerId,
+        "rating": _rating.toInt(),
+        "review": _feedbackController.text,
+      });
 
-      if (response.data != null &&
-          response.data['success'] == true &&
-          mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Feedback submitted successfully!")),
-        );
+      if (response.data != null && response.data['success'] == true && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Feedback submitted successfully!")));
         _feedbackController.clear();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Failed to submit feedback.")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to submit feedback.")));
       }
     } finally {
       if (mounted) setState(() => _isSubmittingFeedback = false);
@@ -91,14 +82,10 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
     casesState.whenData((cases) {
       if (cases.isNotEmpty) {
         final matchingCase = cases.firstWhere(
-          (c) =>
-              c.status == 'In Progress' ||
-              c.status == 'Closed' ||
-              c.status == 'Completed',
+          (c) => c.status == 'In Progress' || c.status == 'Closed' || c.status == 'Completed',
           orElse: () => cases.first,
         );
-        associatedLawyerId =
-            matchingCase.assignedLawyerId ?? matchingCase.selectedLawyerId;
+        associatedLawyerId = matchingCase.assignedLawyerId ?? matchingCase.selectedLawyerId;
       }
     });
 
@@ -109,10 +96,7 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
-          "Resolve / Tracking",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text("Resolve / Tracking", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: issuesState.when(
         data: (issues) {
@@ -123,31 +107,16 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.track_changes,
-                      size: 72,
-                      color: theme.colorScheme.outline,
-                    ),
+                    Icon(Icons.track_changes, size: 72, color: theme.colorScheme.outline),
                     const SizedBox(height: 16),
-                    Text(
-                      "No Issues for Tracking",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: theme.textTheme.titleMedium?.color,
-                      ),
-                    ),
+                    Text("No Issues for Tracking", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color)),
                     const SizedBox(height: 8),
-                    Text(
-                      "Post a new legal issue to track its resolution timeline in real-time.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: theme.textTheme.bodySmall?.color),
-                    ),
+                    Text("Post a new legal issue to track its resolution timeline in real-time.", textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodySmall?.color)),
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: () => context.push('/post-case'),
                       child: const Text("Post Issue Now"),
-                    ),
+                    )
                   ],
                 ),
               ),
@@ -180,65 +149,32 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              activeIssue.title,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                                color: theme.textTheme.titleMedium?.color,
-                              ),
-                            ),
+                            Text(activeIssue.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color)),
                             const SizedBox(height: 4),
-                            Text(
-                              "Category: ${activeIssue.category}",
-                              style: TextStyle(
-                                color: theme.textTheme.bodyMedium?.color,
-                                fontSize: 13,
-                              ),
-                            ),
+                            Text("Category: ${activeIssue.category}", style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 13)),
                             const SizedBox(height: 2),
-                            Text(
-                              "Posted on ${DateFormat('dd MMM yyyy').format(activeIssue.createdAt)}",
-                              style: TextStyle(
-                                color: theme.textTheme.bodySmall?.color,
-                                fontSize: 11,
-                              ),
-                            ),
+                            Text("Posted on ${DateFormat('dd MMM yyyy').format(activeIssue.createdAt)}", style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 11)),
                           ],
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withOpacity(0.1),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           activeIssue.status,
-                          style: TextStyle(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
-                      ),
+                      )
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
 
                 // Progress Bar
-                Text(
-                  "Resolution Progress",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: theme.textTheme.titleMedium?.color,
-                  ),
-                ),
+                Text("Resolution Progress", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.titleMedium?.color)),
                 const SizedBox(height: 10),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
@@ -246,22 +182,13 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                     value: progressPercent,
                     minHeight: 12,
                     backgroundColor: theme.colorScheme.surface,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      theme.colorScheme.primary,
-                    ),
+                    valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
                   ),
                 ),
                 const SizedBox(height: 24),
 
                 // Vertical Timeline
-                Text(
-                  "Resolution Milestone Tracking",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: theme.textTheme.titleMedium?.color,
-                  ),
-                ),
+                Text("Resolution Milestone Tracking", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.titleMedium?.color)),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -287,31 +214,16 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                                   height: 24,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: isCompleted
-                                        ? AppColors.success
-                                        : theme.colorScheme.surface,
-                                    border: Border.all(
-                                      color: isCompleted
-                                          ? AppColors.success
-                                          : theme.colorScheme.outline,
-                                      width: 2,
-                                    ),
+                                    color: isCompleted ? AppColors.success : theme.colorScheme.surface,
+                                    border: Border.all(color: isCompleted ? AppColors.success : theme.colorScheme.outline, width: 2),
                                   ),
-                                  child: isCompleted
-                                      ? const Icon(
-                                          Icons.check,
-                                          color: Colors.white,
-                                          size: 14,
-                                        )
-                                      : null,
+                                  child: isCompleted ? const Icon(Icons.check, color: AppColors.primaryText, size: 14) : null,
                                 ),
                                 if (!isLast)
                                   Expanded(
                                     child: Container(
                                       width: 2,
-                                      color: isCompleted
-                                          ? AppColors.success
-                                          : theme.colorScheme.outline,
+                                      color: isCompleted ? AppColors.success : theme.colorScheme.outline,
                                     ),
                                   ),
                               ],
@@ -323,13 +235,11 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                                 stepTitle,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: isCompleted
-                                      ? theme.colorScheme.onSurface
-                                      : theme.textTheme.bodySmall?.color,
+                                  color: isCompleted ? theme.colorScheme.onSurface : theme.textTheme.bodySmall?.color,
                                   fontSize: 14,
                                 ),
                               ),
-                            ),
+                            )
                           ],
                         ),
                       );
@@ -339,14 +249,7 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                 const SizedBox(height: 24),
 
                 // Feedback Form (Only show if issue status is closed/resolved, or show for general rating)
-                Text(
-                  "Submit Case Feedback",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: theme.textTheme.titleMedium?.color,
-                  ),
-                ),
+                Text("Submit Case Feedback", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.titleMedium?.color)),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -358,13 +261,7 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Rate your experience:",
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const Text("Rate your experience:", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       Row(
                         children: List.generate(5, (index) {
@@ -385,27 +282,22 @@ class _ResolveScreenState extends ConsumerState<ResolveScreen> {
                         controller: _feedbackController,
                         maxLines: 3,
                         decoration: InputDecoration(
-                          hintText:
-                              "Write your feedback or notes regarding the issue resolution process...",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          hintText: "Write your feedback or notes regarding the issue resolution process...",
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed:
-                            (_isSubmittingFeedback ||
-                                associatedLawyerId == null)
+                        onPressed: (_isSubmittingFeedback || associatedLawyerId == null)
                             ? null
                             : () => _submitFeedback(associatedLawyerId!),
                         child: _isSubmittingFeedback
                             ? const CircularProgressIndicator()
                             : const Text("Submit Review"),
-                      ),
+                      )
                     ],
                   ),
-                ),
+                )
               ],
             ),
           );

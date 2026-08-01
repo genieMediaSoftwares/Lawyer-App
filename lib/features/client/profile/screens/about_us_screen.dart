@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class AboutUsScreen extends StatelessWidget {
   const AboutUsScreen({super.key});
@@ -6,18 +7,18 @@ class AboutUsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.primaryBackground,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primaryText),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           "About Us",
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.primaryText,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -36,24 +37,21 @@ class AboutUsScreen extends StatelessWidget {
                     height: 80,
                     width: 80,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFD4AF37).withOpacity(0.1),
+                      color: AppColors.primaryGold.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFFD4AF37),
-                        width: 1.5,
-                      ),
+                      border: Border.all(color: AppColors.primaryGold, width: 1.5),
                     ),
                     child: const Icon(
                       Icons.gavel_rounded,
                       size: 40,
-                      color: Color(0xFFD4AF37),
+                      color: AppColors.primaryGold,
                     ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
                     "GenieLaw",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.primaryText,
                       fontWeight: FontWeight.bold,
                       fontSize: 24,
                       letterSpacing: 0.5,
@@ -62,7 +60,10 @@ class AboutUsScreen extends StatelessWidget {
                   const SizedBox(height: 6),
                   const Text(
                     "Version 1.4.2",
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                    style: TextStyle(
+                      color: AppColors.mutedText,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
@@ -73,7 +74,7 @@ class AboutUsScreen extends StatelessWidget {
             const Text(
               "WHO WE ARE",
               style: TextStyle(
-                color: Colors.grey,
+                color: AppColors.mutedText,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
                 letterSpacing: 0.5,
@@ -83,14 +84,14 @@ class AboutUsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: const Color(0xFF1B1B1B),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2B2B2B)),
+                border: Border.all(color: AppColors.border),
               ),
               child: const Text(
                 "GenieLaw is a premier digital legal-tech platform connecting clients with top-tier verified advocates for virtual consultations, document drafting, and case tracking.",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.primaryText,
                   fontSize: 13.5,
                   height: 1.5,
                 ),
@@ -105,16 +106,14 @@ class AboutUsScreen extends StatelessWidget {
                 Expanded(
                   child: _buildInfoCard(
                     title: "Our Mission",
-                    description:
-                        "To democratize access to legal counsel, making professional representation affordable, transparent, and accessible to everyone, everywhere.",
+                    description: "To democratize access to legal counsel, making professional representation affordable, transparent, and accessible to everyone, everywhere.",
                   ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: _buildInfoCard(
                     title: "Our Vision",
-                    description:
-                        "To build the world's most trusted legal service ecosystem powered by state-of-the-art secure collaboration technology.",
+                    description: "To build the world's most trusted legal service ecosystem powered by state-of-the-art secure collaboration technology.",
                   ),
                 ),
               ],
@@ -125,7 +124,7 @@ class AboutUsScreen extends StatelessWidget {
             const Text(
               "OUR SERVICES",
               style: TextStyle(
-                color: Colors.grey,
+                color: AppColors.mutedText,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
                 letterSpacing: 0.5,
@@ -135,31 +134,19 @@ class AboutUsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFF1B1B1B),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2B2B2B)),
+                border: Border.all(color: AppColors.border),
               ),
               child: Column(
                 children: [
-                  _buildBulletRow(
-                    "Expert Legal Consultations",
-                    "Virtual case review and advisory",
-                  ),
-                  const Divider(color: Color(0xFF2B2B2B), height: 1),
-                  _buildBulletRow(
-                    "Secure Document Workspace",
-                    "File storage and digital drafting",
-                  ),
-                  const Divider(color: Color(0xFF2B2B2B), height: 1),
-                  _buildBulletRow(
-                    "Advocate Matchmaking",
-                    "Direct matching based on specialty",
-                  ),
-                  const Divider(color: Color(0xFF2B2B2B), height: 1),
-                  _buildBulletRow(
-                    "Real-Time Case Progress",
-                    "Milestone tracking and task logs",
-                  ),
+                  _buildBulletRow("Expert Legal Consultations", "Virtual case review and advisory"),
+                  const Divider(color: AppColors.border, height: 1),
+                  _buildBulletRow("Secure Document Workspace", "File storage and digital drafting"),
+                  const Divider(color: AppColors.border, height: 1),
+                  _buildBulletRow("Advocate Matchmaking", "Direct matching based on specialty"),
+                  const Divider(color: AppColors.border, height: 1),
+                  _buildBulletRow("Real-Time Case Progress", "Milestone tracking and task logs"),
                 ],
               ),
             ),
@@ -169,7 +156,7 @@ class AboutUsScreen extends StatelessWidget {
             const Text(
               "WHY CHOOSE US",
               style: TextStyle(
-                color: Colors.grey,
+                color: AppColors.mutedText,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
                 letterSpacing: 0.5,
@@ -179,9 +166,9 @@ class AboutUsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: const Color(0xFF1B1B1B),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2B2B2B)),
+                border: Border.all(color: AppColors.border),
               ),
               child: Column(
                 children: [
@@ -189,9 +176,7 @@ class AboutUsScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   _buildCheckmarkRow("End-to-End Encryption for Case Files"),
                   const SizedBox(height: 8),
-                  _buildCheckmarkRow(
-                    "Transparent Billing & Flat Consultation Fees",
-                  ),
+                  _buildCheckmarkRow("Transparent Billing & Flat Consultation Fees"),
                   const SizedBox(height: 8),
                   _buildCheckmarkRow("24/7 Priority Support Panel"),
                 ],
@@ -203,7 +188,7 @@ class AboutUsScreen extends StatelessWidget {
             const Text(
               "LEGAL COMPLIANCE",
               style: TextStyle(
-                color: Colors.grey,
+                color: AppColors.mutedText,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
                 letterSpacing: 0.5,
@@ -213,14 +198,14 @@ class AboutUsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: const Color(0xFF1B1B1B),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2B2B2B)),
+                border: Border.all(color: AppColors.border),
               ),
               child: const Text(
                 "GenieLaw strictly complies with all national legal practice acts and Bar Council guidelines regarding online directories and advisory services. Our platform is a listing and secure communication directory, not a direct law firm.",
                 style: TextStyle(
-                  color: Colors.grey,
+                  color: AppColors.mutedText,
                   fontSize: 12.5,
                   height: 1.5,
                 ),
@@ -232,7 +217,7 @@ class AboutUsScreen extends StatelessWidget {
             const Text(
               "CONTACT INFORMATION",
               style: TextStyle(
-                color: Colors.grey,
+                color: AppColors.mutedText,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
                 letterSpacing: 0.5,
@@ -242,16 +227,13 @@ class AboutUsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: const Color(0xFF1B1B1B),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2B2B2B)),
+                border: Border.all(color: AppColors.border),
               ),
               child: Column(
                 children: [
-                  _buildContactRow(
-                    Icons.location_on_outlined,
-                    "12, Justice Chambers, High Court Road, Hyderabad, Telangana - 500066",
-                  ),
+                  _buildContactRow(Icons.location_on_outlined, "12, Justice Chambers, High Court Road, Hyderabad, Telangana - 500066"),
                   const SizedBox(height: 14),
                   _buildContactRow(Icons.email_outlined, "info@genielaw.com"),
                   const SizedBox(height: 14),
@@ -286,9 +268,9 @@ class AboutUsScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       height: 175,
       decoration: BoxDecoration(
-        color: const Color(0xFF1B1B1B),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2B2B2B)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,7 +278,7 @@ class AboutUsScreen extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
-              color: Color(0xFFD4AF37),
+              color: AppColors.primaryGold,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
@@ -306,7 +288,7 @@ class AboutUsScreen extends StatelessWidget {
             child: Text(
               description,
               style: const TextStyle(
-                color: Colors.grey,
+                color: AppColors.mutedText,
                 fontSize: 12,
                 height: 1.45,
               ),
@@ -326,7 +308,7 @@ class AboutUsScreen extends StatelessWidget {
         children: [
           const Padding(
             padding: EdgeInsets.only(top: 3.0),
-            child: Icon(Icons.lens, size: 6, color: Color(0xFFD4AF37)),
+            child: Icon(Icons.lens, size: 6, color: AppColors.primaryGold),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -335,16 +317,12 @@ class AboutUsScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   description,
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
                 ),
               ],
             ),
@@ -358,12 +336,12 @@ class AboutUsScreen extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.check, color: Color(0xFFD4AF37), size: 16),
+        const Icon(Icons.check, color: AppColors.primaryGold, size: 16),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(color: Colors.white, fontSize: 13),
+            style: const TextStyle(color: AppColors.primaryText, fontSize: 13),
           ),
         ),
       ],
@@ -374,16 +352,12 @@ class AboutUsScreen extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: const Color(0xFFD4AF37), size: 20),
+        Icon(icon, color: AppColors.primaryGold, size: 20),
         const SizedBox(width: 14),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              height: 1.4,
-            ),
+            style: const TextStyle(color: AppColors.primaryText, fontSize: 13, height: 1.4),
           ),
         ),
       ],
@@ -394,11 +368,15 @@ class AboutUsScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B1B1B),
+        color: AppColors.surface,
         shape: BoxShape.circle,
-        border: Border.all(color: const Color(0xFF2B2B2B)),
+        border: Border.all(color: AppColors.border),
       ),
-      child: Icon(icon, color: const Color(0xFFD4AF37), size: 20),
+      child: Icon(
+        icon,
+        color: AppColors.primaryGold,
+        size: 20,
+      ),
     );
   }
 }

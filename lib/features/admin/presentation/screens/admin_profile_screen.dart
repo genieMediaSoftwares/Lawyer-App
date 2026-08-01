@@ -16,24 +16,21 @@ class AdminProfileScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
-        title: const Text(
-          'Change Admin Password',
-          style: TextStyle(color: Colors.white, fontSize: 16),
-        ),
+        title: const Text('Change Admin Password', style: TextStyle(color: AppColors.primaryText, fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: oldPassCtrl,
               obscureText: true,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.primaryText),
               decoration: const InputDecoration(labelText: 'Current Password'),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: newPassCtrl,
               obscureText: true,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.primaryText),
               decoration: const InputDecoration(labelText: 'New Password'),
             ),
           ],
@@ -41,7 +38,7 @@ class AdminProfileScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.mutedText)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -50,10 +47,7 @@ class AdminProfileScreen extends ConsumerWidget {
                 const SnackBar(content: Text('Password updated successfully!')),
               );
             },
-            child: const Text(
-              'Save Password',
-              style: TextStyle(color: Colors.black),
-            ),
+            child: const Text('Save Password', style: TextStyle(color: AppColors.onGold)),
           ),
         ],
       ),
@@ -66,7 +60,9 @@ class AdminProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
-      appBar: AppBar(title: const Text('Administrator Profile')),
+      appBar: AppBar(
+        title: const Text('Administrator Profile'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -77,53 +73,36 @@ class AdminProfileScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: AppColors.cardBackground,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: AppColors.primaryGold.withOpacity(0.4),
-                ),
+                border: Border.all(color: AppColors.primaryGold.withValues(alpha: 0.4)),
               ),
               child: Column(
                 children: [
                   const CircleAvatar(
                     radius: 36,
                     backgroundColor: AppColors.primaryGold,
-                    child: Icon(Icons.shield, color: Colors.black, size: 36),
+                    child: Icon(Icons.shield, color: AppColors.onGold, size: 36),
                   ),
                   const SizedBox(height: 14),
                   Text(
                     authState.userName ?? 'Super Administrator',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(color: AppColors.primaryText, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     authState.userEmail ?? 'admin@lawyer.com',
-                    style: const TextStyle(
-                      color: AppColors.mutedText,
-                      fontSize: 13,
-                    ),
+                    style: const TextStyle(color: AppColors.mutedText, fontSize: 13),
                   ),
                   const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryGold.withOpacity(0.15),
+                      color: AppColors.primaryGold.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppColors.primaryGold),
                     ),
                     child: const Text(
                       'SYSTEM ADMINISTRATOR',
-                      style: TextStyle(
-                        color: AppColors.primaryGold,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
+                      style: TextStyle(color: AppColors.primaryGold, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                     ),
                   ),
                 ],
@@ -147,24 +126,15 @@ class AdminProfileScreen extends ConsumerWidget {
                   context: context,
                   builder: (ctx) => AlertDialog(
                     backgroundColor: AppColors.cardBackground,
-                    title: const Text(
-                      'Recent Login Activity',
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    title: const Text('Recent Login Activity', style: TextStyle(color: AppColors.primaryText)),
                     content: const Text(
                       '• Today 10:45 AM - Windows Desktop Admin Session (Active)\n• Yesterday 04:20 PM - Mobile Admin Binding VM\n• 21 May 2025 - Initial System Admin Setup',
-                      style: TextStyle(
-                        color: AppColors.secondaryText,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: AppColors.secondaryText, fontSize: 12),
                     ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text(
-                          'Close',
-                          style: TextStyle(color: AppColors.primaryGold),
-                        ),
+                        child: const Text('Close', style: TextStyle(color: AppColors.primaryGold)),
                       ),
                     ],
                   ),
@@ -186,18 +156,10 @@ class AdminProfileScreen extends ConsumerWidget {
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.error,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
-                icon: const Icon(Icons.logout, color: Colors.white),
-                label: const Text(
-                  'Logout Admin Session',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                icon: const Icon(Icons.logout, color: AppColors.primaryText),
+                label: const Text('Logout Admin Session', style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold)),
                 onPressed: () async {
                   await ref.read(authProvider.notifier).logout();
                   if (context.mounted) {
@@ -227,23 +189,9 @@ class AdminProfileScreen extends ConsumerWidget {
       ),
       child: ListTile(
         leading: Icon(icon, color: AppColors.primaryGold),
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
-        ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          color: AppColors.mutedText,
-          size: 14,
-        ),
+        title: Text(title, style: const TextStyle(color: AppColors.primaryText, fontSize: 15, fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle, style: const TextStyle(color: AppColors.mutedText, fontSize: 12)),
+        trailing: const Icon(Icons.arrow_forward_ios, color: AppColors.mutedText, size: 14),
         onTap: onTap,
       ),
     );

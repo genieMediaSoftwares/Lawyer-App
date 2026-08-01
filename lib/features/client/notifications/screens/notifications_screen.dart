@@ -8,8 +8,7 @@ class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  ConsumerState<NotificationsScreen> createState() =>
-      _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
@@ -30,8 +29,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
       ref.read(notificationsProvider.notifier).fetchNotifications();
     }
   }
@@ -109,13 +107,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 child: Text(
                   "${state.unreadCount}",
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.primaryText,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            ],
+              )
+            ]
           ],
         ),
         actions: [
@@ -123,16 +121,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             IconButton(
               icon: const Icon(Icons.done_all_outlined),
               tooltip: "Mark all as read",
-              onPressed: () =>
-                  ref.read(notificationsProvider.notifier).markAllAsRead(),
+              onPressed: () => ref.read(notificationsProvider.notifier).markAllAsRead(),
             ),
             IconButton(
               icon: const Icon(Icons.delete_sweep_outlined),
               tooltip: "Clear all",
-              onPressed: () =>
-                  ref.read(notificationsProvider.notifier).clearAll(),
+              onPressed: () => ref.read(notificationsProvider.notifier).clearAll(),
             ),
-          ],
+          ]
         ],
       ),
       body: Column(
@@ -141,21 +137,17 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           if (state.isOffline)
             Container(
               width: double.infinity,
-              color: AppColors.warning.withOpacity(0.9),
+              color: AppColors.warning.withValues(alpha: 0.9),
               padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.wifi_off_outlined,
-                    size: 16,
-                    color: Colors.black,
-                  ),
+                  const Icon(Icons.wifi_off_outlined, size: 16, color: AppColors.onGold),
                   const SizedBox(width: 8),
                   Text(
                     "Connection lost. Trying to reconnect...",
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.black,
+                      color: AppColors.onGold,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -166,15 +158,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           // Main notification list / states
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => ref
-                  .read(notificationsProvider.notifier)
-                  .fetchNotifications(refresh: true),
-              child: _buildBody(
-                state,
-                theme,
-                primaryTextColor,
-                secondaryTextColor,
-              ),
+              onRefresh: () => ref.read(notificationsProvider.notifier).fetchNotifications(refresh: true),
+              child: _buildBody(state, theme, primaryTextColor, secondaryTextColor),
             ),
           ),
         ],
@@ -207,11 +192,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => ref
-                    .read(notificationsProvider.notifier)
-                    .fetchNotifications(refresh: true),
+                onPressed: () => ref.read(notificationsProvider.notifier).fetchNotifications(refresh: true),
                 child: const Text("Retry"),
-              ),
+              )
             ],
           ),
         ),
@@ -223,11 +206,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.notifications_none_outlined,
-              size: 64,
-              color: AppColors.mutedText,
-            ),
+            Icon(Icons.notifications_none_outlined, size: 64, color: AppColors.mutedText),
             SizedBox(height: 16),
             Text(
               "No notifications yet",
@@ -240,7 +219,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             SizedBox(height: 8),
             Text(
               "We'll notify you when something important happens",
-              style: TextStyle(color: AppColors.disabledText, fontSize: 13),
+              style: TextStyle(
+                color: AppColors.disabledText,
+                fontSize: 13,
+              ),
             ),
           ],
         ),
@@ -267,14 +249,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           key: Key(item.id),
           direction: DismissDirection.endToStart,
           onDismissed: (_) {
-            ref
-                .read(notificationsProvider.notifier)
-                .deleteNotification(item.id);
+            ref.read(notificationsProvider.notifier).deleteNotification(item.id);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Notification deleted"),
-                duration: Duration(seconds: 2),
-              ),
+              const SnackBar(content: Text("Notification deleted"), duration: Duration(seconds: 2)),
             );
           },
           background: Container(
@@ -284,7 +261,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               color: AppColors.error,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.delete_outline, color: Colors.white),
+            child: const Icon(Icons.delete_outline, color: AppColors.primaryText),
           ),
           child: AnimatedSize(
             duration: const Duration(milliseconds: 250),
@@ -293,15 +270,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             child: Card(
               elevation: 0,
               margin: EdgeInsets.zero,
-              color: item.isRead
-                  ? theme.cardColor
-                  : theme.cardColor.withOpacity(0.7),
+              color: item.isRead ? theme.cardColor : theme.cardColor.withValues(alpha: 0.7),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
                   color: item.isRead
                       ? theme.colorScheme.outline
-                      : theme.colorScheme.primary.withOpacity(0.5),
+                      : theme.colorScheme.primary.withValues(alpha: 0.5),
                   width: item.isRead ? 1.0 : 1.5,
                 ),
               ),
@@ -309,9 +284,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 borderRadius: BorderRadius.circular(12),
                 onTap: () {
                   if (!item.isRead) {
-                    ref
-                        .read(notificationsProvider.notifier)
-                        .markAsRead(item.id);
+                    ref.read(notificationsProvider.notifier).markAsRead(item.id);
                   }
                   setState(() {
                     _expandedNotificationId = isExpanded ? null : item.id;
@@ -326,18 +299,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color:
-                              (item.isRead
-                                      ? AppColors.primaryGold
-                                      : theme.colorScheme.primary)
-                                  .withOpacity(0.12),
+                          color: (item.isRead ? AppColors.primaryGold : theme.colorScheme.primary)
+                              .withValues(alpha: 0.12),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           _getIconForType(item.type),
-                          color: item.isRead
-                              ? AppColors.primaryGold
-                              : theme.colorScheme.primary,
+                          color: item.isRead ? AppColors.primaryGold : theme.colorScheme.primary,
                           size: 20,
                         ),
                       ),
@@ -355,9 +323,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                   child: Text(
                                     item.title,
                                     style: TextStyle(
-                                      fontWeight: item.isRead
-                                          ? FontWeight.w500
-                                          : FontWeight.bold,
+                                      fontWeight: item.isRead ? FontWeight.w500 : FontWeight.bold,
                                       fontSize: 14.5,
                                       color: primaryTextColor,
                                     ),
@@ -384,9 +350,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                 height: 1.4,
                               ),
                               maxLines: isExpanded ? null : 2,
-                              overflow: isExpanded
-                                  ? TextOverflow.visible
-                                  : TextOverflow.ellipsis,
+                              overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
                             ),
                           ],
                         ),

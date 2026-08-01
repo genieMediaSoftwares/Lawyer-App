@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../models/lawyer_model.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class GetMatchedScreen extends ConsumerStatefulWidget {
   const GetMatchedScreen({super.key});
@@ -46,9 +47,8 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
       final response = await DioClient.dio.get("/lawyers");
       if (response.data != null && response.data['success'] == true) {
         final list = response.data['data'] as List;
-        final allLawyers = list
-            .map((item) => LawyerModel.fromJson(item))
-            .toList();
+        final allLawyers =
+            list.map((item) => LawyerModel.fromJson(item)).toList();
 
         // Build dynamic specialization list
         final specSet = <String>{};
@@ -101,16 +101,13 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
         queryParams['language'] = _selectedLanguage;
       }
 
-      final response = await DioClient.dio.get(
-        "/lawyers/match",
-        queryParameters: queryParams,
-      );
+      final response = await DioClient.dio
+          .get("/lawyers/match", queryParameters: queryParams);
       if (response.data != null && response.data['success'] == true) {
         final list = response.data['data'] as List;
         setState(() {
-          _matchedLawyers = list
-              .map((item) => LawyerModel.fromJson(item))
-              .toList();
+          _matchedLawyers =
+              list.map((item) => LawyerModel.fromJson(item)).toList();
           _isLoading = false;
         });
       } else {
@@ -178,7 +175,8 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
               setState(() => _selectedSpecialization = val);
               _fetchMatches();
             },
-            onExperienceChanged: (val) => setState(() => _minExperience = val),
+            onExperienceChanged: (val) =>
+                setState(() => _minExperience = val),
             onExperienceChangeEnd: (_) => _fetchMatches(),
             onFeeChanged: (val) => setState(() => _maxFee = val),
             onFeeChangeEnd: (_) => _fetchMatches(),
@@ -193,14 +191,12 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
           if (!_isLoading && _errorMessage == null)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 14,
-                    color: theme.textTheme.bodySmall?.color,
-                  ),
+                  Icon(Icons.people_outline,
+                      size: 14, color: theme.textTheme.bodySmall?.color),
                   const SizedBox(width: 4),
                   Text(
                     _matchedLawyers.isEmpty
@@ -244,35 +240,34 @@ class _GetMatchedScreenState extends ConsumerState<GetMatchedScreen> {
                         Text(
                           "Matching lawyers for you...",
                           style: TextStyle(
-                            color: theme.textTheme.bodySmall?.color,
-                          ),
+                              color: theme.textTheme.bodySmall?.color),
                         ),
                       ],
                     ),
                   )
                 : _errorMessage != null
-                ? _ErrorState(
-                    message: _errorMessage!,
-                    onRetry: _loadAllAndBuildFilters,
-                  )
-                : _matchedLawyers.isEmpty
-                ? _EmptyState(onClearFilters: _resetFilters)
-                : RefreshIndicator(
-                    color: gold,
-                    onRefresh: _fetchMatches,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                      itemCount: _matchedLawyers.length,
-                      itemBuilder: (context, index) {
-                        return _MatchedLawyerCard(
-                          lawyer: _matchedLawyers[index],
-                          onBook: () => context.push(
-                            '/lawyer-profile/${_matchedLawyers[index].userId}',
+                    ? _ErrorState(
+                        message: _errorMessage!,
+                        onRetry: _loadAllAndBuildFilters,
+                      )
+                    : _matchedLawyers.isEmpty
+                        ? _EmptyState(onClearFilters: _resetFilters)
+                        : RefreshIndicator(
+                            color: gold,
+                            onRefresh: _fetchMatches,
+                            child: ListView.builder(
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                              itemCount: _matchedLawyers.length,
+                              itemBuilder: (context, index) {
+                                return _MatchedLawyerCard(
+                                  lawyer: _matchedLawyers[index],
+                                  onBook: () => context.push(
+                                      '/lawyer-profile/${_matchedLawyers[index].userId}'),
+                                );
+                              },
+                            ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
           ),
         ],
       ),
@@ -334,7 +329,8 @@ class _FilterPanel extends StatelessWidget {
           InkWell(
             onTap: onToggleExpand,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
                   Icon(Icons.tune, color: gold, size: 20),
@@ -398,7 +394,7 @@ class _FilterPanel extends StatelessWidget {
                             ),
                             labelStyle: TextStyle(
                               color: isSelected
-                                  ? Colors.black
+                                  ? AppColors.onGold
                                   : theme.textTheme.bodySmall?.color,
                               fontWeight: isSelected
                                   ? FontWeight.bold
@@ -429,13 +425,11 @@ class _FilterPanel extends StatelessWidget {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 2,
-                        ),
+                            horizontal: 10, vertical: 2),
                         decoration: BoxDecoration(
-                          color: gold.withOpacity(0.12),
+                          color: gold.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: gold.withOpacity(0.35)),
+                          border: Border.all(color: gold.withValues(alpha: 0.35)),
                         ),
                         child: Text(
                           "$minExperience yrs",
@@ -456,7 +450,8 @@ class _FilterPanel extends StatelessWidget {
                     activeColor: gold,
                     label: "$minExperience Years",
                     onChanged: (val) => onExperienceChanged(val.toInt()),
-                    onChangeEnd: (val) => onExperienceChangeEnd(val.toInt()),
+                    onChangeEnd: (val) =>
+                        onExperienceChangeEnd(val.toInt()),
                   ),
 
                   // Fee slider
@@ -473,13 +468,11 @@ class _FilterPanel extends StatelessWidget {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 2,
-                        ),
+                            horizontal: 10, vertical: 2),
                         decoration: BoxDecoration(
-                          color: gold.withOpacity(0.12),
+                          color: gold.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: gold.withOpacity(0.35)),
+                          border: Border.all(color: gold.withValues(alpha: 0.35)),
                         ),
                         child: Text(
                           "₹$maxFee",
@@ -536,7 +529,7 @@ class _FilterPanel extends StatelessWidget {
                             ),
                             labelStyle: TextStyle(
                               color: isSelected
-                                  ? Colors.black
+                                  ? AppColors.onGold
                                   : theme.textTheme.bodySmall?.color,
                               fontWeight: isSelected
                                   ? FontWeight.bold
@@ -585,12 +578,12 @@ class _MatchedLawyerCard extends StatelessWidget {
 
     final initials = lawyer.fullName.trim().isNotEmpty
         ? lawyer.fullName
-              .trim()
-              .split(" ")
-              .where((w) => w.isNotEmpty)
-              .map((w) => w[0])
-              .take(2)
-              .join()
+            .trim()
+            .split(" ")
+            .where((w) => w.isNotEmpty)
+            .map((w) => w[0])
+            .take(2)
+            .join()
         : "A";
 
     return Container(
@@ -601,7 +594,7 @@ class _MatchedLawyerCard extends StatelessWidget {
         border: Border.all(color: borderColor, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: AppColors.shadow.withValues(alpha: 0.15),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -629,21 +622,19 @@ class _MatchedLawyerCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
-                          colors: [gold.withOpacity(0.6), gold],
+                          colors: [gold.withValues(alpha: 0.6), gold],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         border: Border.all(
-                          color: gold.withOpacity(0.5),
-                          width: 2,
-                        ),
+                            color: gold.withValues(alpha: 0.5), width: 2),
                       ),
                       child: lawyer.profileImage.isNotEmpty
                           ? ClipOval(
                               child: Image.network(
                                 lawyer.profileImage,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
+                                errorBuilder: (_, _, _) =>
                                     _InitialsWidget(initials: initials),
                               ),
                             )
@@ -669,19 +660,19 @@ class _MatchedLawyerCard extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              Icon(Icons.verified, color: gold, size: 16),
+                              Icon(Icons.verified,
+                                  color: gold, size: 16),
                             ],
                           ),
                           const SizedBox(height: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: gold.withOpacity(0.12),
+                              color: gold.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: gold.withOpacity(0.35)),
+                              border: Border.all(
+                                  color: gold.withValues(alpha: 0.35)),
                             ),
                             child: Text(
                               lawyer.specialization.isNotEmpty
@@ -698,20 +689,16 @@ class _MatchedLawyerCard extends StatelessWidget {
                             const SizedBox(height: 5),
                             Row(
                               children: [
-                                Icon(
-                                  Icons.location_on_outlined,
-                                  color: gold,
-                                  size: 13,
-                                ),
+                                Icon(Icons.location_on_outlined,
+                                    color: gold, size: 13),
                                 const SizedBox(width: 2),
                                 Expanded(
                                   child: Text(
                                     lawyer.location,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      fontSize: 11,
-                                      color: subtitleColor,
-                                    ),
+                                        fontSize: 11,
+                                        color: subtitleColor),
                                   ),
                                 ),
                               ],
@@ -724,18 +711,18 @@ class _MatchedLawyerCard extends StatelessWidget {
                     // Rating
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: gold.withOpacity(0.12),
+                        color: gold.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: gold.withOpacity(0.35)),
+                        border:
+                            Border.all(color: gold.withValues(alpha: 0.35)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.star_rounded, color: gold, size: 14),
+                          Icon(Icons.star_rounded,
+                              color: gold, size: 14),
                           const SizedBox(width: 3),
                           Text(
                             lawyer.rating > 0
@@ -762,9 +749,7 @@ class _MatchedLawyerCard extends StatelessWidget {
                     children: lawyer.languages.take(4).map((lang) {
                       return Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: theme.scaffoldBackgroundColor,
                           borderRadius: BorderRadius.circular(6),
@@ -772,7 +757,8 @@ class _MatchedLawyerCard extends StatelessWidget {
                         ),
                         child: Text(
                           lang,
-                          style: TextStyle(fontSize: 10, color: subtitleColor),
+                          style: TextStyle(
+                              fontSize: 10, color: subtitleColor),
                         ),
                       );
                     }).toList(),
@@ -815,7 +801,8 @@ class _MatchedLawyerCard extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: onBook,
-                    icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                    icon: const Icon(Icons.calendar_month_outlined,
+                        size: 18),
                     label: const Text(
                       "Book Consultation",
                       style: TextStyle(
@@ -825,7 +812,7 @@ class _MatchedLawyerCard extends StatelessWidget {
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: gold,
-                      foregroundColor: Colors.black,
+                      foregroundColor: AppColors.onGold,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -857,7 +844,7 @@ class _InitialsWidget extends StatelessWidget {
       child: Text(
         initials.toUpperCase(),
         style: const TextStyle(
-          color: Colors.black,
+          color: AppColors.onGold,
           fontWeight: FontWeight.bold,
           fontSize: 20,
         ),
@@ -906,9 +893,8 @@ class _StatBox extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 10,
-                color: theme.textTheme.bodySmall?.color,
-              ),
+                  fontSize: 10,
+                  color: theme.textTheme.bodySmall?.color),
             ),
           ],
         ),
@@ -930,11 +916,8 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.people_outline,
-              size: 72,
-              color: theme.colorScheme.outline,
-            ),
+            Icon(Icons.people_outline,
+                size: 72, color: theme.colorScheme.outline),
             const SizedBox(height: 16),
             Text(
               "No Lawyers Matched",
@@ -980,11 +963,8 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.wifi_off_rounded,
-              size: 64,
-              color: theme.colorScheme.outline,
-            ),
+            Icon(Icons.wifi_off_rounded,
+                size: 64, color: theme.colorScheme.outline),
             const SizedBox(height: 16),
             Text(
               "Connection Error",

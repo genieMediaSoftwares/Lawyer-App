@@ -7,8 +7,7 @@ class SubscriptionPlansScreen extends StatefulWidget {
   const SubscriptionPlansScreen({super.key});
 
   @override
-  State<SubscriptionPlansScreen> createState() =>
-      _SubscriptionPlansScreenState();
+  State<SubscriptionPlansScreen> createState() => _SubscriptionPlansScreenState();
 }
 
 class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
@@ -100,18 +99,12 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
             color: isSelected
                 ? theme.colorScheme.primary
                 : isPopular
-                ? theme.colorScheme.primary.withOpacity(0.5)
-                : theme.colorScheme.outline,
+                    ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                    : theme.colorScheme.outline,
             width: isSelected ? 2.5 : 1,
           ),
           boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withOpacity(0.15),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
+              ? [BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.15), blurRadius: 10, offset: const Offset(0, 4))]
               : null,
         ),
         child: Stack(
@@ -126,19 +119,11 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                     children: [
                       Text(
                         plan["name"],
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: theme.textTheme.titleMedium?.color,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color),
                       ),
                       Text(
                         plan["price"],
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: theme.textTheme.titleMedium?.color,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color),
                       ),
                     ],
                   ),
@@ -149,18 +134,11 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
                         children: [
-                          const Icon(
-                            Icons.check_circle,
-                            color: AppColors.success,
-                            size: 16,
-                          ),
+                          const Icon(Icons.check_circle, color: AppColors.success, size: 16),
                           const SizedBox(width: 8),
                           Text(
                             plan["features"][index],
-                            style: TextStyle(
-                              color: theme.textTheme.bodySmall?.color,
-                              fontSize: 13,
-                            ),
+                            style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13),
                           ),
                         ],
                       ),
@@ -174,10 +152,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                 top: 0,
                 right: 20,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary,
                     borderRadius: const BorderRadius.only(
@@ -187,11 +162,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                   ),
                   child: const Text(
                     "Most Popular",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(color: AppColors.onGold, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -211,10 +182,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
           // Proceed to lawyer dashboard
           context.go('/lawyer-dashboard');
         },
-        child: const Text(
-          "Continue",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        child: const Text("Continue", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }

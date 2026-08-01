@@ -48,18 +48,14 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              "Access Denied: This portal is restricted to System Administrators only.",
-            ),
+            content: Text("Access Denied: This portal is restricted to System Administrators only."),
             backgroundColor: AppColors.error,
           ),
         );
         return;
       }
 
-      await ref
-          .read(global_auth.authProvider.notifier)
-          .login(
+      await ref.read(global_auth.authProvider.notifier).login(
             response.token,
             global_auth.UserRole.admin,
             id: response.user.id,
@@ -100,17 +96,14 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.primaryText, size: 20),
           onPressed: () => context.go(RouteNames.login),
         ),
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24.0,
-              vertical: 16.0,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
             child: Form(
               key: _formKey,
               child: Column(
@@ -121,12 +114,9 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryGold.withOpacity(0.15),
+                      color: AppColors.primaryGold.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.primaryGold,
-                        width: 2,
-                      ),
+                      border: Border.all(color: AppColors.primaryGold, width: 2),
                     ),
                     child: const Icon(
                       Icons.shield_outlined,
@@ -149,7 +139,7 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                   const Text(
                     "Secure System Sign In",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.primaryText,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
@@ -158,7 +148,10 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                   const Text(
                     "Authorized access for system control & management",
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.mutedText, fontSize: 13),
+                    style: TextStyle(
+                      color: AppColors.mutedText,
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 32),
 
@@ -168,79 +161,55 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.cardBackground,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: AppColors.primaryGold.withOpacity(0.3),
-                      ),
+                      border: Border.all(color: AppColors.primaryGold.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
                           "Administrator Email",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: TextStyle(color: AppColors.primaryText, fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          style: const TextStyle(color: Colors.white),
+                          style: const TextStyle(color: AppColors.primaryText),
                           validator: (val) {
-                            if (val == null || val.trim().isEmpty)
-                              return "Please enter admin email";
-                            if (!val.contains("@"))
-                              return "Invalid email address";
+                            if (val == null || val.trim().isEmpty) return "Please enter admin email";
+                            if (!val.contains("@")) return "Invalid email address";
                             return null;
                           },
                           decoration: const InputDecoration(
                             hintText: "admin@lawyer.com",
-                            prefixIcon: Icon(
-                              Icons.admin_panel_settings_outlined,
-                              color: AppColors.primaryGold,
-                            ),
+                            prefixIcon: Icon(Icons.admin_panel_settings_outlined, color: AppColors.primaryGold),
                           ),
                         ),
                         const SizedBox(height: 20),
 
                         const Text(
                           "Master Password",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: TextStyle(color: AppColors.primaryText, fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
-                          style: const TextStyle(color: Colors.white),
+                          style: const TextStyle(color: AppColors.primaryText),
                           validator: (val) {
-                            if (val == null || val.isEmpty)
-                              return "Please enter password";
-                            if (val.length < 6)
-                              return "Password must be at least 6 characters";
+                            if (val == null || val.isEmpty) return "Please enter password";
+                            if (val.length < 6) return "Password must be at least 6 characters";
                             return null;
                           },
                           decoration: InputDecoration(
                             hintText: "••••••••",
-                            prefixIcon: const Icon(
-                              Icons.lock_outline,
-                              color: AppColors.primaryGold,
-                            ),
+                            prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primaryGold),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: Colors.grey,
+                                _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                color: AppColors.mutedText,
                               ),
-                              onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              ),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                             ),
                           ),
                         ),
@@ -257,14 +226,14 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                                     width: 22,
                                     height: 22,
                                     child: CircularProgressIndicator(
-                                      color: Colors.black,
+                                      color: AppColors.onGold,
                                       strokeWidth: 2.5,
                                     ),
                                   )
                                 : const Text(
                                     "Sign In to Admin Console",
                                     style: TextStyle(
-                                      color: Colors.black,
+                                      color: AppColors.onGold,
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -279,18 +248,10 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                   // Return to Regular Sign In
                   TextButton.icon(
                     onPressed: () => context.go(RouteNames.login),
-                    icon: const Icon(
-                      Icons.swap_horiz,
-                      color: AppColors.primaryGold,
-                      size: 18,
-                    ),
+                    icon: const Icon(Icons.swap_horiz, color: AppColors.primaryGold, size: 18),
                     label: const Text(
                       "Client / Lawyer Sign In",
-                      style: TextStyle(
-                        color: AppColors.primaryGold,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: TextStyle(color: AppColors.primaryGold, fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],

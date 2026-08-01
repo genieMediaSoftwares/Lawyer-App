@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 /// Individual day cell for the calendar grid.
 /// Matches the reference image exactly:
@@ -45,7 +46,7 @@ class CalendarDayCell extends StatelessWidget {
                     ? theme.colorScheme.primary
                     : Colors.transparent,
                 border: isSelected
-                    ? Border.all(color: Colors.black12, width: 1.5)
+                    ? Border.all(color: AppColors.onGold.withValues(alpha: 0.12), width: 1.5)
                     : null,
               ),
               alignment: Alignment.center,
@@ -55,7 +56,7 @@ class CalendarDayCell extends StatelessWidget {
                   fontSize: 14,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                   color: isSelected
-                      ? Colors.black
+                      ? AppColors.onGold
                       : isDisabled
                       ? theme.disabledColor
                       : theme.textTheme.bodyMedium?.color,

@@ -41,11 +41,6 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     super.dispose();
   }
 
-  ImageProvider? _resolveImage(String url) {
-    if (url.isEmpty) return null;
-    return NetworkImage(Environment.getAttachmentUrl(url));
-  }
-
   @override
   Widget build(BuildContext context) {
     final chatsState = ref.watch(chatsProvider);
@@ -56,20 +51,15 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text(
-          "Messages",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text("Messages",
+            style: TextStyle(fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: theme.appBarTheme.iconTheme?.color,
-            size: 24,
-          ),
+          icon: Icon(Icons.arrow_back,
+              color: theme.appBarTheme.iconTheme?.color, size: 24),
           onPressed: () => context.pop(),
         ),
         elevation: 0,
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
       ),
       body: Column(
         children: [
@@ -78,42 +68,37 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: TextField(
               controller: _searchController,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.primaryText),
               decoration: InputDecoration(
                 hintText: "Search conversations...",
-                hintStyle: TextStyle(color: Colors.grey.shade500),
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: AppColors.primaryGold,
-                ),
+                hintStyle: TextStyle(color: AppColors.mutedText),
+                prefixIcon:
+                    const Icon(Icons.search, color: AppColors.primaryGold),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        icon:
+                            const Icon(Icons.clear, color: AppColors.mutedText),
                         onPressed: () => _searchController.clear(),
                       )
                     : null,
                 filled: true,
                 fillColor: AppColors.secondaryBackground,
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 0,
-                  horizontal: 16,
-                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide(color: theme.colorScheme.outline),
+                  borderSide:
+                      BorderSide(color: theme.colorScheme.outline),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide(
-                    color: theme.colorScheme.outline.withAlpha(128),
-                  ),
+                      color: theme.colorScheme.outline.withAlpha(128)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: const BorderSide(
-                    color: AppColors.primaryGold,
-                    width: 1,
-                  ),
+                      color: AppColors.primaryGold, width: 1),
                 ),
               ),
             ),
@@ -121,55 +106,46 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
 
           // ── Filter Chips ──
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
-              children:
-                  [
-                    'All',
-                    'Unread',
-                    authState.role == UserRole.lawyer ? 'Clients' : 'Lawyers',
-                  ].map((filter) {
-                    final isSelected =
-                        _selectedFilter == filter ||
-                        (_selectedFilter == 'Clients' &&
-                            filter == 'Lawyers' &&
-                            authState.role != UserRole.lawyer) ||
-                        (_selectedFilter == 'Lawyers' &&
-                            filter == 'Clients' &&
-                            authState.role == UserRole.lawyer);
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(filter),
-                        selected: isSelected,
-                        onSelected: (val) {
-                          if (val) {
-                            setState(() => _selectedFilter = filter);
-                          }
-                        },
-                        selectedColor: AppColors.primaryGold,
-                        backgroundColor: AppColors.secondaryBackground,
-                        labelStyle: TextStyle(
-                          color: isSelected
-                              ? Colors.black
-                              : Colors.grey.shade400,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(
-                            color: isSelected
-                                ? AppColors.primaryGold
-                                : theme.colorScheme.outline.withAlpha(77),
-                            width: 0.8,
-                          ),
-                        ),
-                        showCheckmark: false,
+              children: ['All', 'Unread', authState.role == UserRole.lawyer ? 'Clients' : 'Lawyers'].map((filter) {
+                final isSelected = _selectedFilter == filter || 
+                    (_selectedFilter == 'Clients' && filter == 'Lawyers' && authState.role != UserRole.lawyer) ||
+                    (_selectedFilter == 'Lawyers' && filter == 'Clients' && authState.role == UserRole.lawyer);
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(filter),
+                    selected: isSelected,
+                    onSelected: (val) {
+                      if (val) {
+                        setState(() => _selectedFilter = filter);
+                      }
+                    },
+                    selectedColor: AppColors.primaryGold,
+                    backgroundColor: AppColors.secondaryBackground,
+                    labelStyle: TextStyle(
+                      color: isSelected
+                          ? AppColors.onGold
+                          : AppColors.secondaryText,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(
+                        color: isSelected
+                            ? AppColors.primaryGold
+                            : theme.colorScheme.outline.withAlpha(77),
+                        width: 0.8,
                       ),
-                    );
-                  }).toList(),
+                    ),
+                    showCheckmark: false,
+                  ),
+                );
+              }).toList(),
             ),
           ),
 
@@ -179,22 +155,19 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
               data: (chats) {
                 // Apply search query
                 var filtered = chats;
-                final query = _searchController.text.trim().toLowerCase();
+                final query =
+                    _searchController.text.trim().toLowerCase();
                 if (query.isNotEmpty) {
                   filtered = filtered.where((chat) {
-                    final other = _getOtherParticipant(
-                      chat.participants,
-                      currentUserId,
-                    );
-                    final nameMatches = other.fullName.toLowerCase().contains(
-                      query,
-                    );
-                    final caseMatches =
-                        chat.caseInfo?.title.toLowerCase().contains(query) ??
+                    final other = _getOtherParticipant(chat.participants, currentUserId);
+                    final nameMatches =
+                        other.fullName.toLowerCase().contains(query);
+                    final caseMatches = chat.caseInfo?.title
+                            .toLowerCase()
+                            .contains(query) ??
                         false;
-                    final msgMatches = chat.lastMessage.toLowerCase().contains(
-                      query,
-                    );
+                    final msgMatches =
+                        chat.lastMessage.toLowerCase().contains(query);
                     return nameMatches || caseMatches || msgMatches;
                   }).toList();
                 }
@@ -204,17 +177,10 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                   filtered = filtered
                       .where((chat) => chat.unreadCount > 0)
                       .toList();
-                } else if (_selectedFilter == 'Clients' ||
-                    _selectedFilter == 'Lawyers') {
+                } else if (_selectedFilter == 'Clients' || _selectedFilter == 'Lawyers') {
                   filtered = filtered.where((chat) {
-                    final other = _getOtherParticipant(
-                      chat.participants,
-                      currentUserId,
-                    );
-                    return other.role ==
-                        (authState.role == UserRole.lawyer
-                            ? 'client'
-                            : 'lawyer');
+                    final other = _getOtherParticipant(chat.participants, currentUserId);
+                    return other.role == (authState.role == UserRole.lawyer ? 'client' : 'lawyer');
                   }).toList();
                 }
 
@@ -228,31 +194,29 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
                         SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.5,
+                          height:
+                              MediaQuery.of(context).size.height * 0.5,
                           child: Center(
                             child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisAlignment:
+                                  MainAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.chat_bubble_outline,
-                                  size: 48,
-                                  color: Colors.grey.shade600,
-                                ),
+                                Icon(Icons.chat_bubble_outline,
+                                    size: 48,
+                                    color: AppColors.disabledText),
                                 const SizedBox(height: 16),
                                 Text(
                                   "No conversations found",
                                   style: TextStyle(
-                                    color: Colors.grey.shade500,
-                                    fontSize: 16,
-                                  ),
+                                      color: AppColors.mutedText,
+                                      fontSize: 16),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   "Accept a client case to start messaging",
                                   style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 13,
-                                  ),
+                                      color: AppColors.disabledText,
+                                      fontSize: 13),
                                 ),
                               ],
                             ),
@@ -276,16 +240,15 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                         const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final chat = filtered[index];
-                      final otherParticipant = _getOtherParticipant(
-                        chat.participants,
-                        currentUserId,
-                      );
+                      final otherParticipant =
+                          _getOtherParticipant(chat.participants, currentUserId);
 
                       final isOnline = ref.watch(
-                        userOnlineStatusProvider(otherParticipant.id),
-                      );
-                      final typingUser = ref.watch(chatTypingProvider(chat.id));
-                      final formattedTime = _formatTime(chat.lastMessageAt);
+                          userOnlineStatusProvider(otherParticipant.id));
+                      final typingUser =
+                          ref.watch(chatTypingProvider(chat.id));
+                      final formattedTime =
+                          _formatTime(chat.lastMessageAt);
                       final isUnread = chat.unreadCount > 0;
 
                       return Card(
@@ -296,35 +259,29 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                           side: BorderSide(
                             color: isUnread
                                 ? AppColors.primaryGold.withAlpha(102)
-                                : theme.colorScheme.outline.withAlpha(128),
+                                : theme.colorScheme.outline
+                                    .withAlpha(128),
                             width: isUnread ? 1.2 : 0.8,
                           ),
                         ),
                         child: ListTile(
                           onTap: () {
                             context.push(
-                              '/chat/${chat.id}/${Uri.encodeComponent(otherParticipant.fullName)}',
-                            );
+                                '/chat/${chat.id}/${Uri.encodeComponent(otherParticipant.fullName)}');
                           },
                           contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
+                              horizontal: 16, vertical: 10),
                           leading: Stack(
                             children: [
                               AppCircleAvatar(
                                 radius: 26,
-                                backgroundColor: AppColors.secondaryBackground,
-                                imageUrl:
-                                    otherParticipant.profileImage.isNotEmpty
-                                    ? Environment.getAttachmentUrl(
-                                        otherParticipant.profileImage,
-                                      )
+                                backgroundColor:
+                                    AppColors.secondaryBackground,
+                                imageUrl: otherParticipant.profileImage.isNotEmpty
+                                    ? Environment.getAttachmentUrl(otherParticipant.profileImage)
                                     : null,
-                                fallback: const Icon(
-                                  Icons.person,
-                                  color: AppColors.primaryGold,
-                                ),
+                                fallback: const Icon(Icons.person,
+                                    color: AppColors.primaryGold),
                               ),
                               if (isOnline)
                                 Positioned(
@@ -334,12 +291,12 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                     width: 13,
                                     height: 13,
                                     decoration: BoxDecoration(
-                                      color: Colors.green,
+                                      color: AppColors.success,
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                        color: AppColors.cardBackground,
-                                        width: 2,
-                                      ),
+                                          color:
+                                              AppColors.cardBackground,
+                                          width: 2),
                                     ),
                                   ),
                                 ),
@@ -360,18 +317,13 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                               ? FontWeight.bold
                                               : FontWeight.w600,
                                           fontSize: 16,
-                                          color: Colors.white,
+                                          color: AppColors.primaryText,
                                         ),
                                       ),
                                     ),
-                                    if (otherParticipant.role == 'lawyer' &&
-                                        otherParticipant.isVerified) ...[
+                                    if (otherParticipant.role == 'lawyer' && otherParticipant.isVerified) ...[
                                       const SizedBox(width: 4),
-                                      const Icon(
-                                        Icons.verified,
-                                        color: AppColors.primaryGold,
-                                        size: 16,
-                                      ),
+                                      const Icon(Icons.verified, color: AppColors.primaryGold, size: 16),
                                     ],
                                   ],
                                 ),
@@ -382,7 +334,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                 style: TextStyle(
                                   color: isUnread
                                       ? AppColors.primaryGold
-                                      : Colors.grey.shade500,
+                                      : AppColors.mutedText,
                                   fontSize: 11,
                                   fontWeight: isUnread
                                       ? FontWeight.bold
@@ -394,16 +346,14 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
-                                if (otherParticipant.role == 'lawyer' &&
-                                    otherParticipant
-                                        .specialization
-                                        .isNotEmpty) ...[
+                                if (otherParticipant.role == 'lawyer' && otherParticipant.specialization.isNotEmpty) ...[
                                   Text(
                                     otherParticipant.specialization,
                                     style: TextStyle(
-                                      color: Colors.grey.shade400,
+                                      color: AppColors.secondaryText,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -413,11 +363,9 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                 // Case title (if linked)
                                 Row(
                                   children: [
-                                    const Icon(
-                                      Icons.folder_open,
-                                      size: 12,
-                                      color: AppColors.primaryGold,
-                                    ),
+                                    const Icon(Icons.folder_open,
+                                        size: 12,
+                                        color: AppColors.primaryGold),
                                     const SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
@@ -438,18 +386,11 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                 // Last message or typing indicator
                                 Row(
                                   children: [
-                                    if (chat.lastMessageSender ==
-                                            currentUserId &&
-                                        chat.lastMessage.isNotEmpty &&
-                                        typingUser == null) ...[
+                                    if (chat.lastMessageSender == currentUserId && chat.lastMessage.isNotEmpty && typingUser == null) ...[
                                       Icon(
-                                        chat.isLastMessageRead
-                                            ? Icons.done_all
-                                            : Icons.done,
+                                        chat.isLastMessageRead ? Icons.done_all : Icons.done,
                                         size: 16,
-                                        color: chat.isLastMessageRead
-                                            ? AppColors.primaryGold
-                                            : Colors.grey,
+                                        color: chat.isLastMessageRead ? AppColors.primaryGold : AppColors.mutedText,
                                       ),
                                       const SizedBox(width: 4),
                                     ],
@@ -458,24 +399,24 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                         typingUser != null
                                             ? "typing..."
                                             : (chat.lastMessage.isNotEmpty
-                                                  ? chat.lastMessage
-                                                  : "No messages yet."),
+                                                ? chat.lastMessage
+                                                : "No messages yet."),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           color: typingUser != null
                                               ? AppColors.success
                                               : (isUnread
-                                                    ? Colors.white
-                                                    : Colors.grey.shade400),
+                                                  ? AppColors.primaryText
+                                                  : AppColors.secondaryText),
                                           fontStyle: typingUser != null
                                               ? FontStyle.italic
                                               : FontStyle.normal,
                                           fontWeight: typingUser != null
                                               ? FontWeight.bold
                                               : (isUnread
-                                                    ? FontWeight.w600
-                                                    : FontWeight.normal),
+                                                  ? FontWeight.w600
+                                                  : FontWeight.normal),
                                           fontSize: 13,
                                         ),
                                       ),
@@ -500,7 +441,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                     child: Text(
                                       "${chat.unreadCount}",
                                       style: const TextStyle(
-                                        color: Colors.black,
+                                        color: AppColors.onGold,
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -516,18 +457,21 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
               },
               loading: () => RefreshIndicator(
                 // Wrap shimmer in RefreshIndicator so users can retry
-                onRefresh: () => ref.read(chatsProvider.notifier).fetchChats(),
+                onRefresh: () =>
+                    ref.read(chatsProvider.notifier).fetchChats(),
                 color: AppColors.primaryGold,
                 backgroundColor: AppColors.cardBackground,
                 child: ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
                   itemCount: 5,
-                  itemBuilder: (context, index) => const _MessageShimmerTile(),
+                  itemBuilder: (context, index) =>
+                      const _MessageShimmerTile(),
                 ),
               ),
               error: (err, stack) => RefreshIndicator(
-                onRefresh: () => ref.read(chatsProvider.notifier).fetchChats(),
+                onRefresh: () =>
+                    ref.read(chatsProvider.notifier).fetchChats(),
                 color: AppColors.primaryGold,
                 backgroundColor: AppColors.cardBackground,
                 child: ListView(
@@ -539,18 +483,14 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.wifi_off,
-                              size: 48,
-                              color: Colors.grey.shade600,
-                            ),
+                            Icon(Icons.wifi_off,
+                                size: 48, color: AppColors.disabledText),
                             const SizedBox(height: 16),
                             Text(
                               "Could not load conversations",
                               style: TextStyle(
-                                color: Colors.grey.shade400,
-                                fontSize: 16,
-                              ),
+                                  color: AppColors.secondaryText,
+                                  fontSize: 16),
                             ),
                             const SizedBox(height: 8),
                             Text(
@@ -558,20 +498,20 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                   ? "Session expired. Please log in again."
                                   : "Pull down to retry",
                               style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 13,
-                              ),
+                                  color: AppColors.disabledText,
+                                  fontSize: 13),
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 20),
                             ElevatedButton.icon(
-                              onPressed: () =>
-                                  ref.read(chatsProvider.notifier).fetchChats(),
+                              onPressed: () => ref
+                                  .read(chatsProvider.notifier)
+                                  .fetchChats(),
                               icon: const Icon(Icons.refresh, size: 18),
                               label: const Text("Retry"),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primaryGold,
-                                foregroundColor: Colors.black,
+                                foregroundColor: AppColors.onGold,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                 ),
@@ -605,22 +545,12 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     }
   }
 
-  ChatParticipantModel _getOtherParticipant(
-    List<ChatParticipantModel> participants,
-    String currentUserId,
-  ) {
+  ChatParticipantModel _getOtherParticipant(List<ChatParticipantModel> participants, String currentUserId) {
     if (participants.isEmpty) {
-      return ChatParticipantModel(
-        id: '',
-        fullName: 'Unknown',
-        profileImage: '',
-        role: 'client',
-      );
+      return ChatParticipantModel(id: '', fullName: 'Unknown', profileImage: '', role: 'client');
     }
     for (final p in participants) {
-      if (p.id.isNotEmpty &&
-          currentUserId.isNotEmpty &&
-          p.id.toLowerCase() != currentUserId.toLowerCase()) {
+      if (p.id.isNotEmpty && currentUserId.isNotEmpty && p.id.toLowerCase() != currentUserId.toLowerCase()) {
         return p;
       }
     }
@@ -673,7 +603,8 @@ class _MessageShimmerTileState extends State<_MessageShimmerTile>
         margin: const EdgeInsets.symmetric(vertical: 6),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: theme.colorScheme.outline.withAlpha(77)),
+          side: BorderSide(
+              color: theme.colorScheme.outline.withAlpha(77)),
         ),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -682,7 +613,8 @@ class _MessageShimmerTileState extends State<_MessageShimmerTile>
             children: [
               CircleAvatar(
                 radius: 26,
-                backgroundColor: theme.colorScheme.onSurface.withAlpha(20),
+                backgroundColor:
+                    theme.colorScheme.onSurface.withAlpha(20),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -694,7 +626,8 @@ class _MessageShimmerTileState extends State<_MessageShimmerTile>
                       width: 120,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurface.withAlpha(20),
+                        color:
+                            theme.colorScheme.onSurface.withAlpha(20),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -703,7 +636,8 @@ class _MessageShimmerTileState extends State<_MessageShimmerTile>
                       width: 180,
                       height: 12,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurface.withAlpha(13),
+                        color:
+                            theme.colorScheme.onSurface.withAlpha(13),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -712,7 +646,8 @@ class _MessageShimmerTileState extends State<_MessageShimmerTile>
                       width: double.infinity,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurface.withAlpha(8),
+                        color:
+                            theme.colorScheme.onSurface.withAlpha(8),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),

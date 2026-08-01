@@ -39,7 +39,7 @@
 //     return showDialog<bool>(
 //       context: context,
 //       barrierDismissible: barrierDismissible,
-//       barrierColor: Theme.of(context).colorScheme.scrim.withOpacity(0.5),
+//       barrierColor: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.5),
 //       builder: (_) => _AppDialog(
 //         icon: icon ?? (isDangerous ? Icons.warning_rounded : Icons.help_outline_rounded),
 //         iconColor: isDangerous ? AppColors.error : AppColors.navyPrimary,
@@ -66,7 +66,7 @@
 //   }) {
 //     return showDialog<void>(
 //       context: context,
-//       barrierColor: Theme.of(context).colorScheme.scrim.withOpacity(0.5),
+//       barrierColor: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.5),
 //       builder: (_) => _AppDialog(
 //         icon: icon ?? Icons.info_outline_rounded,
 //         iconColor: AppColors.info,
@@ -92,7 +92,7 @@
 //     return showDialog<void>(
 //       context: context,
 //       barrierDismissible: false,
-//       barrierColor: Theme.of(context).colorScheme.scrim.withOpacity(0.5),
+//       barrierColor: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.5),
 //       builder: (_) => _AppDialog(
 //         icon: icon ?? Icons.check_circle_outline_rounded,
 //         iconColor: AppColors.success,
@@ -121,7 +121,7 @@
 //   }) {
 //     return showDialog<void>(
 //       context: context,
-//       barrierColor: Theme.of(context).colorScheme.scrim.withOpacity(0.5),
+//       barrierColor: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.5),
 //       builder: (_) => _AppDialog(
 //         icon: Icons.error_outline_rounded,
 //         iconColor: AppColors.error,
@@ -151,7 +151,7 @@
 //     return showDialog<void>(
 //       context: context,
 //       barrierDismissible: false,
-//       barrierColor: Theme.of(context).colorScheme.scrim.withOpacity(0.4),
+//       barrierColor: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.4),
 //       builder: (_) => PopScope(
 //         canPop: false,
 //         child: _LoadingDialog(message: message),
@@ -178,7 +178,7 @@
 //       context: context,
 //       barrierDismissible: barrierDismissible,
 //       useRootNavigator: useRootNavigator,
-//       barrierColor: Theme.of(context).colorScheme.scrim.withOpacity(0.5),
+//       barrierColor: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.5),
 //       builder: (_) => Dialog(
 //         backgroundColor: Theme.of(context).colorScheme.surface,
 //         surfaceTintColor: Colors.transparent,
@@ -251,7 +251,7 @@
 //                     : isSuccess
 //                     ? Icons.check_circle_outline_rounded
 //                     : Icons.info_outline_rounded,
-//                 color: Colors.white,
+//                 color: AppColors.primaryText,
 //                 size: 18,
 //               ),
 //               const SizedBox(width: 10),
@@ -260,7 +260,7 @@
 //                   message,
 //                   style: const TextStyle(
 //                     fontSize: 14,
-//                     color: Colors.white,
+//                     color: AppColors.primaryText,
 //                     fontWeight: FontWeight.w400,
 //                   ),
 //                 ),

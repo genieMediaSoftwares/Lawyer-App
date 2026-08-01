@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class HeroCarouselWidget extends StatefulWidget {
   final List<String> assetPaths;
@@ -69,7 +70,7 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> {
             borderRadius: BorderRadius.circular(22),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.4),
+                color: AppColors.shadow.withValues(alpha: 0.4),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -109,7 +110,7 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> {
               height: 8,
               width: isActive ? 20 : 8,
               decoration: BoxDecoration(
-                color: isActive ? goldColor : Colors.grey.shade600,
+                color: isActive ? goldColor : AppColors.disabledText,
                 borderRadius: BorderRadius.circular(4),
               ),
             );

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/profile_provider.dart';
-import '../../../../core/widgets/location_picker_sheet.dart';
+import '../../../../core/widgets/manual_location_field.dart';
 
 class PersonalInformationScreen extends ConsumerStatefulWidget {
   const PersonalInformationScreen({super.key});
@@ -72,10 +72,10 @@ class _PersonalInformationScreenState
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.dark(
-              primary: Color(0xFFD4AF37),
-              onPrimary: Colors.black,
-              surface: Color(0xFF1B1B1B),
-              onSurface: Colors.white,
+              primary: AppColors.primaryGold,
+              onPrimary: AppColors.onGold,
+              surface: AppColors.surface,
+              onSurface: AppColors.primaryText,
             ),
           ),
           child: child!,
@@ -140,28 +140,28 @@ class _PersonalInformationScreenState
 
     if (profile == null) {
       return const Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
         body: Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4AF37)),
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGold),
           ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.primaryBackground,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primaryText),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           "Personal Information",
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.primaryText,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -176,7 +176,11 @@ class _PersonalInformationScreenState
             children: [
               const Text(
                 "Verify and update your personal details below to keep your legal records up to date.",
-                style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
+                style: TextStyle(
+                  color: AppColors.mutedText,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -189,7 +193,7 @@ class _PersonalInformationScreenState
                     labelText: "Date of Birth",
                     suffixIcon: const Icon(
                       Icons.calendar_today_outlined,
-                      color: Color(0xFFD4AF37),
+                      color: AppColors.primaryGold,
                       size: 20,
                     ),
                   ),
@@ -222,33 +226,20 @@ class _PersonalInformationScreenState
               ),
               const SizedBox(height: 16),
 
-              // Address / Location
-              GestureDetector(
-                onTap: () async {
-                  final loc = await LocationPickerSheet.show(
-                    context,
-                    initialLocation: _locationController.text,
-                  );
-                  if (loc != null) {
-                    setState(() {
-                      _locationController.text = loc;
-                    });
-                  }
-                },
-                child: AbsorbPointer(
-                  child: _buildTextField(
-                    controller: _locationController,
-                    labelText: "Address / Location",
-                    suffixIcon: const Icon(
-                      Icons.my_location,
-                      color: Color(0xFFD4AF37),
-                      size: 20,
-                    ),
-                    validator: (val) => val == null || val.trim().isEmpty
-                        ? "Location is required"
-                        : null,
-                  ),
-                ),
+              // Address / Location — manual free-text entry.
+              //
+              // Previously this was an AbsorbPointer over a read-only field
+              // that opened an autocomplete picker sheet, so the user could not
+              // type their own address at all. Profile addresses are free-form
+              // (flat numbers, building names, landmarks) and must not be
+              // forced through a places API. The autocomplete field is used
+              // only on the Post-a-Case screen.
+              ManualLocationField(
+                controller: _locationController,
+                labelText: "Address / Location",
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? "Location is required"
+                    : null,
               ),
               const SizedBox(height: 36),
 
@@ -258,8 +249,8 @@ class _PersonalInformationScreenState
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD4AF37),
-                    foregroundColor: Colors.black,
+                    backgroundColor: AppColors.primaryGold,
+                    foregroundColor: AppColors.onGold,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -272,7 +263,7 @@ class _PersonalInformationScreenState
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.black,
+                              AppColors.onGold,
                             ),
                           ),
                         )
@@ -302,29 +293,29 @@ class _PersonalInformationScreenState
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: AppColors.primaryText),
       validator: validator,
       decoration: InputDecoration(
         labelText: labelText,
-        labelStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+        labelStyle: const TextStyle(color: AppColors.mutedText, fontSize: 14),
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: const Color(0xFF1B1B1B),
+        fillColor: AppColors.surface,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF2B2B2B)),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFD4AF37)),
+          borderSide: const BorderSide(color: AppColors.primaryGold),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.red),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.red),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
       ),
     );
@@ -332,21 +323,21 @@ class _PersonalInformationScreenState
 
   Widget _buildGenderDropdown() {
     return DropdownButtonFormField<String>(
-      value: _genderController.text.isNotEmpty ? _genderController.text : null,
-      dropdownColor: const Color(0xFF1B1B1B),
-      style: const TextStyle(color: Colors.white),
+      initialValue: _genderController.text.isNotEmpty ? _genderController.text : null,
+      dropdownColor: AppColors.surface,
+      style: const TextStyle(color: AppColors.primaryText),
       decoration: InputDecoration(
         labelText: "Gender",
-        labelStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+        labelStyle: const TextStyle(color: AppColors.mutedText, fontSize: 14),
         filled: true,
-        fillColor: const Color(0xFF1B1B1B),
+        fillColor: AppColors.surface,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF2B2B2B)),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFD4AF37)),
+          borderSide: const BorderSide(color: AppColors.primaryGold),
         ),
       ),
       items: const [

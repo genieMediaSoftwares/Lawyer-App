@@ -1,41 +1,74 @@
+const mongoose = require("mongoose");
 const Payment = require("../../models/Payment");
 const notificationService = require("../../services/notification/notificationService");
 const Transaction = require("../../models/Transaction");
-const Appointment = require("../../models/Appointment");
-const Lawyer = require("../../models/Lawyer");
 const ApiResponse = require("../../config/ApiResponse");
+
+/**
+ * A lawyer's balance, derived from the transaction ledger and nothing else.
+ *
+ * Both endpoints below used to compute this as
+ * `completedAppointments.length * lawyer.consultationFee`, falling back to a
+ * hardcoded ₹1500 when the lawyer had not set a fee. That figure was never
+ * money that had actually moved: it counted appointments rather than payments,
+ * it re-priced historic consultations whenever a lawyer edited their fee, and
+ * it credited consultations that were never paid for. Withdrawals were then
+ * authorised against it.
+ */
+const walletSummary = async (userId) => {
+  const ledger = await Transaction.aggregate([
+    {
+      $match: {
+        user: new mongoose.Types.ObjectId(String(userId)),
+        // A withdrawal reserves funds the moment it is requested, so pending
+        // ones count against the balance too. Counting only "completed" would
+        // let a lawyer request their full balance repeatedly while earlier
+        // payouts were still in flight.
+        status: { $in: ["pending", "completed"] },
+      },
+    },
+    {
+      $group: {
+        _id: "$type",
+        total: { $sum: "$amount" },
+        // Earnings and the consultation count are what has actually settled.
+        settled: {
+          $sum: { $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0] },
+        },
+        settledCount: {
+          $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
+        },
+      },
+    },
+  ]);
+
+  const row = (type) => ledger.find((entry) => entry._id === type);
+
+  const totalEarnings = row("credit")?.settled ?? 0;
+  const settledWithdrawals = row("withdrawal")?.settled ?? 0;
+  const reservedWithdrawals = row("withdrawal")?.total ?? 0;
+
+  return {
+    totalEarnings,
+    totalWithdrawals: settledWithdrawals,
+    pendingWithdrawals: reservedWithdrawals - settledWithdrawals,
+    walletBalance: Math.max(0, totalEarnings - reservedWithdrawals),
+    creditCount: row("credit")?.settledCount ?? 0,
+  };
+};
 
 class PaymentController {
   async getEarnings(req, res, next) {
     try {
-      const lawyerId = req.user._id;
-
-      // Calculate total earnings from completed appointments
-      const lawyerProfile = await Lawyer.findOne({ user: lawyerId });
-      const fee = lawyerProfile ? lawyerProfile.consultationFee : 1500;
-
-      const completedAppointments = await Appointment.find({
-        lawyer: lawyerId,
-        status: "completed",
-      });
-
-      const totalCredits = completedAppointments.length * fee;
-
-      // Find total withdrawals
-      const withdrawals = await Transaction.find({
-        user: lawyerId,
-        type: "withdrawal",
-        status: "completed",
-      });
-
-      const totalWithdrawals = withdrawals.reduce((sum, w) => sum + w.amount, 0);
-      const walletBalance = totalCredits - totalWithdrawals;
+      const summary = await walletSummary(req.user._id);
 
       return ApiResponse.success(res, "Earnings summary fetched.", {
-        totalEarnings: totalCredits,
-        walletBalance: walletBalance >= 0 ? walletBalance : 0,
-        totalWithdrawals,
-        completedConsultationsCount: completedAppointments.length,
+        totalEarnings: summary.totalEarnings,
+        walletBalance: summary.walletBalance,
+        totalWithdrawals: summary.totalWithdrawals,
+        // The number of consultations actually paid for, which is what the
+        // earnings figure is built from.
+        completedConsultationsCount: summary.creditCount,
       });
     } catch (error) {
       next(error);
@@ -47,43 +80,34 @@ class PaymentController {
       const { amount } = req.body;
       const userId = req.user._id;
 
-      if (!amount || amount <= 0) {
+      if (!amount || !Number.isFinite(Number(amount)) || Number(amount) <= 0) {
         return ApiResponse.error(res, "Invalid withdrawal amount.", 400);
       }
 
-      // Calculate balance
-      const lawyerProfile = await Lawyer.findOne({ user: userId });
-      const fee = lawyerProfile ? lawyerProfile.consultationFee : 1500;
+      const { walletBalance } = await walletSummary(userId);
 
-      const completedAppointments = await Appointment.find({
-        lawyer: userId,
-        status: "completed",
-      });
-
-      const totalCredits = completedAppointments.length * fee;
-
-      const withdrawals = await Transaction.find({
-        user: userId,
-        type: "withdrawal",
-        status: "completed",
-      });
-
-      const totalWithdrawals = withdrawals.reduce((sum, w) => sum + w.amount, 0);
-      const walletBalance = totalCredits - totalWithdrawals;
-
-      if (amount > walletBalance) {
+      if (Number(amount) > walletBalance) {
         return ApiResponse.error(res, "Insufficient wallet balance.", 400);
       }
 
+      // Recorded as pending: the money has not left the platform until a payout
+      // is actually executed and confirmed. Marking it "completed" on creation
+      // meant the balance dropped for a transfer that had not happened, and
+      // there was no state left to represent a payout that later failed.
       const withdrawalTx = await Transaction.create({
         user: userId,
-        amount,
+        amount: Number(amount),
         type: "withdrawal",
         description: "Withdrawal to bank account",
-        status: "completed", // Instantly approve for simplicity/demo
+        status: "pending",
       });
 
-      return ApiResponse.success(res, "Withdrawal request processed.", withdrawalTx, 201);
+      return ApiResponse.success(
+        res,
+        "Withdrawal requested. It will be credited to your bank account once processed.",
+        withdrawalTx,
+        201
+      );
     } catch (error) {
       next(error);
     }
@@ -93,32 +117,20 @@ class PaymentController {
     try {
       const userId = req.user._id;
 
-      // Pull Mongoose transactions
-      const dbTx = await Transaction.find({ user: userId }).sort({ createdAt: -1 });
+      // Only real Transaction records, always.
+      //
+      // A lawyer with no transactions used to be served a synthesised history
+      // instead: one fabricated "credit" per completed appointment, priced at
+      // their current consultation fee (or a hardcoded ₹1500 if they had not
+      // set one), carrying the appointment's id as a transaction id and its
+      // updatedAt as a settlement date. None of it existed in the ledger, so
+      // the earnings shown never reconciled against a withdrawal, and the
+      // figures changed retroactively whenever a lawyer edited their fee.
+      const transactions = await Transaction.find({ user: userId }).sort({
+        createdAt: -1,
+      });
 
-      if (dbTx.length === 0 && req.user.role === "lawyer") {
-        // Build mock history based on appointments if no transaction records exist
-        const lawyerProfile = await Lawyer.findOne({ user: userId });
-        const fee = lawyerProfile ? lawyerProfile.consultationFee : 1500;
-
-        const completedAppointments = await Appointment.find({
-          lawyer: userId,
-          status: "completed",
-        }).populate("client", "fullName");
-
-        const transactionsList = completedAppointments.map((appt) => ({
-          _id: appt._id,
-          amount: fee,
-          type: "credit",
-          description: `Consultation fee from ${appt.client ? appt.client.fullName : "Client"}`,
-          status: "completed",
-          createdAt: appt.updatedAt,
-        }));
-
-        return ApiResponse.success(res, "Transactions fetched.", transactionsList);
-      }
-
-      return ApiResponse.success(res, "Transactions fetched.", dbTx);
+      return ApiResponse.success(res, "Transactions fetched.", transactions);
     } catch (error) {
       next(error);
     }
@@ -137,12 +149,27 @@ class PaymentController {
         paymentMethod: paymentMethod || "Card",
       });
 
-      // Create transaction record for client
+      // Double-entry: the client is debited and the lawyer credited, in one
+      // place, for the same payment.
+      //
+      // Only the debit used to be written. With no matching credit, a lawyer's
+      // ledger was permanently empty, which is why the earnings and withdrawal
+      // endpoints reconstructed a balance from `completedAppointments.length *
+      // currentConsultationFee` instead. That estimate drifted from what was
+      // actually paid the moment a lawyer changed their fee.
       await Transaction.create({
         user: client,
         amount,
         type: "debit",
         description: "Consultation Booking Payment",
+        status: "completed",
+      });
+
+      await Transaction.create({
+        user: lawyerId,
+        amount,
+        type: "credit",
+        description: "Consultation booking payment received",
         status: "completed",
       });
 

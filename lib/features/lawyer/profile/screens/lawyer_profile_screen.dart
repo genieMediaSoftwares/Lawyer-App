@@ -17,12 +17,12 @@ import '../../../client/profile/screens/support_help_screen.dart';
 import '../../../../providers/review_provider.dart';
 import '../../../../providers/case_provider.dart';
 
+
 class LawyerProfileScreen extends ConsumerStatefulWidget {
   const LawyerProfileScreen({super.key});
 
   @override
-  ConsumerState<LawyerProfileScreen> createState() =>
-      _LawyerProfileScreenState();
+  ConsumerState<LawyerProfileScreen> createState() => _LawyerProfileScreenState();
 }
 
 class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
@@ -40,47 +40,26 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
     double dynamicRating = 0.0;
 
     casesState.whenData((cases) {
-      final lawyerCases = cases
-          .where(
-            (c) => c.assignedLawyerId == userId || c.selectedLawyerId == userId,
-          )
-          .toList();
-      dynamicCasesHandled = lawyerCases
-          .where(
-            (c) =>
-                c.status == 'Accepted' ||
-                c.status == 'In Progress' ||
-                c.status == 'Closed' ||
-                c.status == 'Completed',
-          )
-          .length;
-
-      final completedCases = lawyerCases
-          .where((c) => c.status == 'Closed' || c.status == 'Completed')
-          .toList();
-      final wonCases = completedCases
-          .where(
-            (c) =>
-                c.caseOutcome != null &&
-                c.caseOutcome!.isNotEmpty &&
-                !c.caseOutcome!.toLowerCase().contains('lost') &&
-                !c.caseOutcome!.toLowerCase().contains('defeat'),
-          )
-          .toList();
-
-      dynamicWinPercentage = completedCases.isEmpty
-          ? 0
-          : ((wonCases.length / completedCases.length) * 100).round();
+      final lawyerCases = cases.where((c) => c.assignedLawyerId == userId || c.selectedLawyerId == userId).toList();
+      dynamicCasesHandled = lawyerCases.where((c) => 
+        c.status == 'Accepted' || c.status == 'In Progress' || c.status == 'Closed' || c.status == 'Completed'
+      ).length;
+      
+      final completedCases = lawyerCases.where((c) => c.status == 'Closed' || c.status == 'Completed').toList();
+      final wonCases = completedCases.where((c) => 
+        c.caseOutcome != null && 
+        c.caseOutcome!.isNotEmpty && 
+        !c.caseOutcome!.toLowerCase().contains('lost') && 
+        !c.caseOutcome!.toLowerCase().contains('defeat')
+      ).toList();
+      
+      dynamicWinPercentage = completedCases.isEmpty ? 0 : ((wonCases.length / completedCases.length) * 100).round();
     });
 
     reviewsState.whenData((reviews) {
-      dynamicRating = reviews.isEmpty
-          ? 0.0
-          : double.parse(
-              (reviews.map((r) => r.rating).reduce((a, b) => a + b) /
-                      reviews.length)
-                  .toStringAsFixed(1),
-            );
+      dynamicRating = reviews.isEmpty 
+          ? 0.0 
+          : double.parse((reviews.map((r) => r.rating).reduce((a, b) => a + b) / reviews.length).toStringAsFixed(1));
     });
 
     return Scaffold(
@@ -97,7 +76,9 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
         color: theme.colorScheme.primary,
         backgroundColor: theme.cardTheme.color ?? theme.colorScheme.surface,
         child: lawyerState.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(
+            child: CircularProgressIndicator(),
+          ),
           error: (error, stackTrace) => Center(
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -106,26 +87,18 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.error_outline,
-                      color: AppColors.error,
-                      size: 48,
-                    ),
+                    const Icon(Icons.error_outline, color: AppColors.error, size: 48),
                     const SizedBox(height: 16),
                     Text(
                       "Failed to load profile details.",
-                      style: TextStyle(
-                        color: theme.textTheme.bodyMedium?.color,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 16),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
                     ElevatedButton(
-                      onPressed: () =>
-                          ref.invalidate(lawyerDetailsProvider(userId)),
+                      onPressed: () => ref.invalidate(lawyerDetailsProvider(userId)),
                       child: const Text("Retry"),
-                    ),
+                    )
                   ],
                 ),
               ),
@@ -160,9 +133,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
           // 1. Premium Minimal Profile Summary (Tapping navigates to My Profile)
           GestureDetector(
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const LawyerMyProfileScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => const LawyerMyProfileScreen()),
             ),
             child: _buildMinimalProfileHeader(lawyer),
           ),
@@ -186,9 +157,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
             child: Text(
               "ACCOUNT & PROFESSIONAL DETAILS",
               style: TextStyle(
-                color:
-                    theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ??
-                    Colors.grey,
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? AppColors.mutedText,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
                 letterSpacing: 0.8,
@@ -211,9 +180,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                   title: "My Profile",
                   subtitle: "Photo, name, location, contacts",
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const LawyerMyProfileScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const LawyerMyProfileScreen()),
                   ),
                 ),
                 Divider(color: theme.colorScheme.outline, height: 1),
@@ -222,10 +189,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                   title: "Professional Information",
                   subtitle: "Specialization, education, Bar Council details",
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const LawyerProfessionalDetailsScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const LawyerProfessionalDetailsScreen()),
                   ),
                 ),
                 Divider(color: theme.colorScheme.outline, height: 1),
@@ -234,10 +198,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                   title: "Consultation Settings",
                   subtitle: "Fee, hours, settlement & bank details",
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const LawyerConsultationSettingsScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const LawyerConsultationSettingsScreen()),
                   ),
                 ),
                 Divider(color: theme.colorScheme.outline, height: 1),
@@ -246,9 +207,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                   title: "Support & Help",
                   subtitle: "Help center, privacy, terms, support",
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const SupportHelpScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const SupportHelpScreen()),
                   ),
                 ),
               ],
@@ -262,9 +221,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
             child: Text(
               "LEGAL WORKSPACE & PREFERENCES",
               style: TextStyle(
-                color:
-                    theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ??
-                    Colors.grey,
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? AppColors.mutedText,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
                 letterSpacing: 0.8,
@@ -287,9 +244,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                   title: "My Documents",
                   subtitle: "Your credentials and case records",
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const LawyerDocumentsScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const LawyerDocumentsScreen()),
                   ),
                 ),
                 Divider(color: theme.colorScheme.outline, height: 1),
@@ -298,9 +253,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                   title: "Reviews & Feedback",
                   subtitle: "Client ratings and testimonials",
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const LawyerReviewsScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const LawyerReviewsScreen()),
                   ),
                 ),
                 Divider(color: theme.colorScheme.outline, height: 1),
@@ -309,9 +262,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                   title: "Settings",
                   subtitle: "Notification and system preferences",
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const LawyerSettingsScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const LawyerSettingsScreen()),
                   ),
                 ),
               ],
@@ -374,9 +325,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                 ? Environment.getAttachmentUrl(lawyer.profileImage)
                 : null,
             fallback: Text(
-              lawyer.fullName.isNotEmpty
-                  ? lawyer.fullName[0].toUpperCase()
-                  : 'A',
+              lawyer.fullName.isNotEmpty ? lawyer.fullName[0].toUpperCase() : 'A',
               style: TextStyle(
                 color: theme.colorScheme.primary,
                 fontSize: 22,
@@ -392,7 +341,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                 Text(
                   "Adv. ${lawyer.fullName}",
                   style: TextStyle(
-                    color: theme.textTheme.bodyLarge?.color ?? Colors.white,
+                    color: theme.textTheme.bodyLarge?.color ?? AppColors.primaryText,
                     fontWeight: FontWeight.bold,
                     fontSize: 17,
                   ),
@@ -403,23 +352,15 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                 Row(
                   children: [
                     Icon(
-                      lawyer.isVerified
-                          ? Icons.verified
-                          : Icons.pending_actions,
-                      color: lawyer.isVerified
-                          ? theme.colorScheme.primary
-                          : Colors.grey,
+                      lawyer.isVerified ? Icons.verified : Icons.pending_actions,
+                      color: lawyer.isVerified ? theme.colorScheme.primary : AppColors.mutedText,
                       size: 14,
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      lawyer.isVerified
-                          ? "Verified Advocate"
-                          : "Verification Pending",
+                      lawyer.isVerified ? "Verified Advocate" : "Verification Pending",
                       style: TextStyle(
-                        color: lawyer.isVerified
-                            ? theme.colorScheme.primary
-                            : Colors.grey,
+                        color: lawyer.isVerified ? theme.colorScheme.primary : AppColors.mutedText,
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),
@@ -442,12 +383,9 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.05),
+        color: theme.colorScheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.2),
-          width: 1.2,
-        ),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2), width: 1.2),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -481,9 +419,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
               value: percentage,
               minHeight: 8,
               backgroundColor: theme.colorScheme.outline,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                theme.colorScheme.primary,
-              ),
+              valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
             ),
           ),
           const SizedBox(height: 10),
@@ -493,7 +429,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                 : "💡 Tip: Complete your professional and bank settings to receive inquiries and consultation bookings.",
             style: TextStyle(
               fontSize: 11.5,
-              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8),
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
               height: 1.3,
             ),
           ),
@@ -530,7 +466,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
             label: "Rating",
             value: rating == 0.0 ? "N/A" : "$rating",
             icon: Icons.star,
-            iconColor: Colors.amber,
+            iconColor: AppColors.warning,
           ),
         ),
       ],
@@ -568,7 +504,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
             label,
             style: TextStyle(
               fontSize: 10,
-              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.center,
           ),
@@ -590,24 +526,13 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
       leading: Icon(icon, color: theme.colorScheme.primary, size: 24),
       title: Text(
         title,
-        style: TextStyle(
-          color: theme.textTheme.bodyLarge?.color,
-          fontWeight: FontWeight.bold,
-          fontSize: 15,
-        ),
+        style: TextStyle(color: theme.textTheme.bodyLarge?.color, fontWeight: FontWeight.bold, fontSize: 15),
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
-          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
-          fontSize: 12,
-        ),
+        style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), fontSize: 12),
       ),
-      trailing: Icon(
-        Icons.chevron_right,
-        color: theme.colorScheme.primary,
-        size: 20,
-      ),
+      trailing: Icon(Icons.chevron_right, color: theme.colorScheme.primary, size: 20),
     );
   }
 
@@ -631,8 +556,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
 
     // check bank details
     final bank = lawyer.bankDetails;
-    final hasBank =
-        bank['bankName']?.toString().isNotEmpty == true ||
+    final hasBank = bank['bankName']?.toString().isNotEmpty == true ||
         bank['accountNumber']?.toString().isNotEmpty == true;
     if (hasBank) filled++;
 

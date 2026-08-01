@@ -21,7 +21,10 @@ class OnboardingPage extends StatelessWidget {
     final iconSize = math.min(maxDim * 0.18, 72.0);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 24,
+        vertical: 20,
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -30,7 +33,10 @@ class OnboardingPage extends StatelessWidget {
             height: containerSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              color: Theme.of(context)
+                  .colorScheme
+                  .primary
+                  .withValues(alpha: 0.1),
             ),
             child: Icon(
               icon,
@@ -44,9 +50,12 @@ class OnboardingPage extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context)
+                .textTheme
+                .headlineMedium
+                ?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
 
           const SizedBox(height: 20),
@@ -54,7 +63,12 @@ class OnboardingPage extends StatelessWidget {
           Text(
             description,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.6),
+            style: Theme.of(context)
+                .textTheme
+                .bodyLarge
+                ?.copyWith(
+              height: 1.6,
+            ),
           ),
         ],
       ),

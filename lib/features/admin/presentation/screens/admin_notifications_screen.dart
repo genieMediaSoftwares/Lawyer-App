@@ -7,12 +7,10 @@ class AdminNotificationsScreen extends ConsumerStatefulWidget {
   const AdminNotificationsScreen({super.key});
 
   @override
-  ConsumerState<AdminNotificationsScreen> createState() =>
-      _AdminNotificationsScreenState();
+  ConsumerState<AdminNotificationsScreen> createState() => _AdminNotificationsScreenState();
 }
 
-class _AdminNotificationsScreenState
-    extends ConsumerState<AdminNotificationsScreen> {
+class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScreen> {
   final _titleController = TextEditingController();
   final _messageController = TextEditingController();
   String _targetRole = 'all';
@@ -28,9 +26,7 @@ class _AdminNotificationsScreenState
   void _sendNotification() async {
     if (_titleController.text.isEmpty || _messageController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter both title and message text'),
-        ),
+        const SnackBar(content: Text('Please enter both title and message text')),
       );
       return;
     }
@@ -46,9 +42,7 @@ class _AdminNotificationsScreenState
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Broadcast Notification sent successfully! 🚀'),
-        ),
+        const SnackBar(content: Text('Broadcast Notification sent successfully! 🚀')),
       );
       _titleController.clear();
       _messageController.clear();
@@ -59,7 +53,9 @@ class _AdminNotificationsScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
-      appBar: AppBar(title: const Text('Broadcast Push Notifications')),
+      appBar: AppBar(
+        title: const Text('Broadcast Push Notifications'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -75,18 +71,11 @@ class _AdminNotificationsScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Compose Announcement / Broadcast',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  const Text('Compose Announcement / Broadcast', style: TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 14),
                   TextField(
                     controller: _titleController,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: AppColors.primaryText),
                     decoration: const InputDecoration(
                       hintText: 'Notification Title',
                       labelText: 'Title',
@@ -95,22 +84,15 @@ class _AdminNotificationsScreenState
                   const SizedBox(height: 12),
                   TextField(
                     controller: _messageController,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: AppColors.primaryText),
                     maxLines: 3,
                     decoration: const InputDecoration(
-                      hintText:
-                          'Enter push message details to broadcast to active users...',
+                      hintText: 'Enter push message details to broadcast to active users...',
                       labelText: 'Message Body',
                     ),
                   ),
                   const SizedBox(height: 14),
-                  const Text(
-                    'Target Audience / Role:',
-                    style: TextStyle(
-                      color: AppColors.secondaryText,
-                      fontSize: 12,
-                    ),
-                  ),
+                  const Text('Target Audience / Role:', style: TextStyle(color: AppColors.secondaryText, fontSize: 12)),
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -127,20 +109,9 @@ class _AdminNotificationsScreenState
                     height: 48,
                     child: ElevatedButton.icon(
                       icon: _isSending
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.black,
-                              ),
-                            )
-                          : const Icon(Icons.send, color: Colors.black),
-                      label: Text(
-                        _isSending
-                            ? 'Sending...'
-                            : 'Send Broadcast Push Notification',
-                      ),
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onGold))
+                          : const Icon(Icons.send, color: AppColors.onGold),
+                      label: Text(_isSending ? 'Sending...' : 'Send Broadcast Push Notification'),
                       onPressed: _isSending ? null : _sendNotification,
                     ),
                   ),
@@ -164,7 +135,7 @@ class _AdminNotificationsScreenState
       selectedColor: AppColors.primaryGold,
       backgroundColor: AppColors.secondaryBackground,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.black : AppColors.primaryGold,
+        color: isSelected ? AppColors.onGold : AppColors.primaryGold,
         fontWeight: FontWeight.bold,
         fontSize: 11,
       ),

@@ -23,7 +23,7 @@ class AppCircleAvatar extends StatelessWidget {
         fallback ??
         Icon(Icons.person, color: theme.colorScheme.primary, size: radius);
 
-    final bg = backgroundColor ?? theme.colorScheme.outline.withOpacity(0.2);
+    final bg = backgroundColor ?? theme.colorScheme.outline.withValues(alpha: 0.2);
 
     return Container(
       width: size,

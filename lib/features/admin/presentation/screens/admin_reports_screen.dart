@@ -32,12 +32,8 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
       }
     } else {
       buffer.writeln('========================================');
-      buffer.writeln(
-        'LAWYER CONSULTATION PLATFORM $reportType REPORT ($format)',
-      );
-      buffer.writeln(
-        'Generated Date: ${DateTime.now().toIso8601String().split('T').first}',
-      );
+      buffer.writeln('LAWYER CONSULTATION PLATFORM $reportType REPORT ($format)');
+      buffer.writeln('Generated Date: ${DateTime.now().toIso8601String().split('T').first}');
       buffer.writeln('========================================\n');
       buffer.writeln(headers.join(' | '));
       buffer.writeln('----------------------------------------');
@@ -49,9 +45,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     try {
       final dir = await getApplicationDocumentsDirectory();
       final ext = format.toLowerCase();
-      final file = File(
-        '${dir.path}/law_report_${reportType}_${DateTime.now().millisecondsSinceEpoch}.$ext',
-      );
+      final file = File('${dir.path}/law_report_${reportType}_${DateTime.now().millisecondsSinceEpoch}.$ext');
       await file.writeAsString(buffer.toString());
 
       if (mounted) {
@@ -63,37 +57,22 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
               children: [
                 const Icon(Icons.check_circle, color: AppColors.success),
                 const SizedBox(width: 8),
-                Text(
-                  '$format Export Generated',
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
-                ),
+                Text('$format Export Generated', style: const TextStyle(color: AppColors.primaryText, fontSize: 16)),
               ],
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Exported ${rows.length} data records for $reportType report successfully.',
-                  style: const TextStyle(color: AppColors.secondaryText),
-                ),
+                Text('Exported ${rows.length} data records for $reportType report successfully.', style: const TextStyle(color: AppColors.secondaryText)),
                 const SizedBox(height: 12),
-                Text(
-                  'File Location:\n${file.path}',
-                  style: const TextStyle(
-                    color: AppColors.primaryGold,
-                    fontSize: 11,
-                  ),
-                ),
+                Text('File Location:\n${file.path}', style: const TextStyle(color: AppColors.primaryGold, fontSize: 11)),
               ],
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text(
-                  'OK',
-                  style: TextStyle(color: AppColors.primaryGold),
-                ),
+                child: const Text('OK', style: TextStyle(color: AppColors.primaryGold)),
               ),
             ],
           ),
@@ -102,9 +81,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Exported ${rows.length} rows to report output.'),
-          ),
+          SnackBar(content: Text('Exported ${rows.length} rows to report output.')),
         );
       }
     }
@@ -114,7 +91,9 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
-      appBar: AppBar(title: const Text('Reports & Data Export')),
+      appBar: AppBar(
+        title: const Text('Reports & Data Export'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -122,30 +101,22 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
           children: [
             const Text(
               'DYNAMIC SYSTEM REPORTS',
-              style: TextStyle(
-                color: AppColors.primaryGold,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
+              style: TextStyle(color: AppColors.primaryGold, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2),
             ),
             const SizedBox(height: 12),
             _buildReportCard(
               title: 'Client Directory Report',
-              description:
-                  'Export all registered client user details, contact info, and activity status.',
+              description: 'Export all registered client user details, contact info, and activity status.',
               reportType: 'clients',
             ),
             _buildReportCard(
               title: 'Lawyer Registry Report',
-              description:
-                  'Export advocate details, bar council numbers, specializations, and verification statuses.',
+              description: 'Export advocate details, bar council numbers, specializations, and verification statuses.',
               reportType: 'lawyers',
             ),
             _buildReportCard(
               title: 'Case History & Metrics',
-              description:
-                  'Export legal case listings, timeline statuses, categories, and priority ratings.',
+              description: 'Export legal case listings, timeline statuses, categories, and priority ratings.',
               reportType: 'cases',
             ),
           ],
@@ -175,36 +146,19 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryGold.withOpacity(0.15),
+                  color: AppColors.primaryGold.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
-                  Icons.picture_as_pdf_outlined,
-                  color: AppColors.primaryGold,
-                  size: 22,
-                ),
+                child: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.primaryGold, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text(title, style: const TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 2),
-                    Text(
-                      description,
-                      style: const TextStyle(
-                        color: AppColors.mutedText,
-                        fontSize: 12,
-                      ),
-                    ),
+                    Text(description, style: const TextStyle(color: AppColors.mutedText, fontSize: 12)),
                   ],
                 ),
               ),
@@ -214,26 +168,14 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Export Format:',
-                style: TextStyle(color: AppColors.secondaryText, fontSize: 12),
-              ),
+              const Text('Export Format:', style: TextStyle(color: AppColors.secondaryText, fontSize: 12)),
               Row(
                 children: [
-                  _buildFormatBtn(
-                    'PDF',
-                    () => _exportReport(reportType, 'PDF'),
-                  ),
+                  _buildFormatBtn('PDF', () => _exportReport(reportType, 'PDF')),
                   const SizedBox(width: 6),
-                  _buildFormatBtn(
-                    'Excel',
-                    () => _exportReport(reportType, 'XLSX'),
-                  ),
+                  _buildFormatBtn('Excel', () => _exportReport(reportType, 'XLSX')),
                   const SizedBox(width: 6),
-                  _buildFormatBtn(
-                    'CSV',
-                    () => _exportReport(reportType, 'CSV'),
-                  ),
+                  _buildFormatBtn('CSV', () => _exportReport(reportType, 'CSV')),
                 ],
               ),
             ],
@@ -253,14 +195,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
       onPressed: _isExporting ? null : onPressed,
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: AppColors.primaryGold,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      child: Text(label, style: const TextStyle(color: AppColors.primaryGold, fontSize: 11, fontWeight: FontWeight.bold)),
     );
   }
 }

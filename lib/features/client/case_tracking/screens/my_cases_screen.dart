@@ -54,34 +54,24 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
 
     allCasesState.whenData((cases) {
       allCount = cases.length;
-      progressCount = cases
-          .where(
-            (c) =>
-                c.status == 'In Progress' ||
-                c.status == 'Awaiting Lawyer Acceptance',
-          )
-          .length;
+      progressCount = cases.where((c) => c.status == 'In Progress' || c.status == 'Awaiting Lawyer Acceptance').length;
       closedCount = cases.where((c) => c.status == 'Closed').length;
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0B0B),
+      backgroundColor: AppColors.primaryBackground,
       drawer: const AppDrawer(),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0B0B0B),
+        backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         title: const Text(
           "My Cases",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            fontSize: 20,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryText, fontSize: 20),
         ),
         centerTitle: true,
         leading: Builder(
           builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white, size: 24),
+            icon: const Icon(Icons.menu, color: AppColors.primaryText, size: 24),
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
@@ -90,7 +80,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
             alignment: Alignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_none, color: Colors.white),
+                icon: const Icon(Icons.notifications_none, color: AppColors.primaryText),
                 onPressed: () => context.push(RouteNames.notifications),
               ),
               if (unreadCount > 0)
@@ -110,23 +100,23 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                     child: Text(
                       '$unreadCount',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.primaryText,
                         fontSize: 8,
                         fontWeight: FontWeight.bold,
                       ),
                       textAlign: TextAlign.center,
                     ),
                   ),
-                ),
+                )
             ],
           ),
           const SizedBox(width: 8),
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: const Color(0xFFE6B325),
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: const Color(0xFFE6B325),
+          labelColor: AppColors.primaryGold,
+          unselectedLabelColor: AppColors.mutedText,
+          indicatorColor: AppColors.primaryGold,
           indicatorWeight: 2.0,
           tabs: [
             Tab(text: "All Cases ($allCount)"),
@@ -136,67 +126,35 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Search & Filter Row + Stats
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Column(
-                children: [
-                  _buildSearchAndSortBar(),
-                  const SizedBox(height: 12),
-                  allCasesState.when(
-                    data: (cases) => _buildStatisticsRow(cases),
-                    loading: () =>
-                        const ShimmerBox(width: double.infinity, height: 60),
-                    error: (e, s) => const SizedBox(),
-                  ),
-                ],
-              ),
-            ),
-
-            // Tab View Lists
-            Expanded(
-              child: filteredCasesState.when(
-                data: (cases) {
-                  return TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildCaseList(cases, 0, "No cases posted yet."),
-                      _buildCaseList(
-                        cases
-                            .where(
-                              (c) =>
-                                  c.status == 'In Progress' ||
-                                  c.status == 'Awaiting Lawyer Acceptance',
-                            )
-                            .toList(),
-                        1,
-                        "No cases are currently in progress.",
-                      ),
-                      _buildCaseList(
-                        cases.where((c) => c.status == 'Closed').toList(),
-                        2,
-                        "No completed cases yet.",
-                      ),
-                    ],
-                  );
-                },
-                loading: () => _buildShimmerLoading(),
-                error: (err, stack) => _buildErrorWidget(err.toString()),
-              ),
-            ),
-          ],
+        child: filteredCasesState.when(
+          data: (cases) {
+            return TabBarView(
+              controller: _tabController,
+              children: [
+                _buildCaseList(cases, 0, "No cases posted yet."),
+                _buildCaseList(
+                  cases.where((c) => c.status == 'In Progress' || c.status == 'Awaiting Lawyer Acceptance').toList(),
+                  1,
+                  "No cases are currently in progress.",
+                ),
+                _buildCaseList(
+                  cases.where((c) => c.status == 'Closed').toList(),
+                  2,
+                  "No completed cases yet.",
+                ),
+              ],
+            );
+          },
+          loading: () => _buildShimmerLoading(),
+          error: (err, stack) => _buildErrorWidget(err.toString()),
         ),
       ),
     );
   }
 
-  Widget _buildCaseList(
-    List<CaseModel> casesList,
-    int tabIndex,
-    String emptyMessage,
-  ) {
+
+
+  Widget _buildCaseList(List<CaseModel> casesList, int tabIndex, String emptyMessage) {
     if (casesList.isEmpty) {
       return _buildEmptyState();
     }
@@ -215,18 +173,18 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   Widget _buildCaseCard(CaseModel caseItem, int tabIndex) {
     final formattedDate = DateFormat('dd MMM yyyy').format(caseItem.createdAt);
     final statusColor = _getStatusColor(caseItem.status);
-    final caseId = caseItem.id.length > 6
-        ? caseItem.id.substring(caseItem.id.length - 6).toUpperCase()
+    final caseId = caseItem.id.length > 6 
+        ? caseItem.id.substring(caseItem.id.length - 6).toUpperCase() 
         : caseItem.id.toUpperCase();
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF282828), width: 1.0),
+        border: Border.all(color: AppColors.border, width: 1.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: AppColors.shadow.withValues(alpha: 0.4),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -248,43 +206,30 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF282828),
+                        color: AppColors.border,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         caseItem.category.toUpperCase(),
                         style: const TextStyle(
-                          color: Color(0xFFE6B325),
+                          color: AppColors.primaryGold,
                           fontWeight: FontWeight.bold,
                           fontSize: 9,
                         ),
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.08),
+                        color: statusColor.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: statusColor.withOpacity(0.3),
-                          width: 1,
-                        ),
+                        border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1),
                       ),
                       child: Text(
                         caseItem.status,
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(color: statusColor, fontSize: 9, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -301,7 +246,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: Colors.white,
+                          color: AppColors.primaryText,
                         ),
                       ),
                     ),
@@ -309,7 +254,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                     Text(
                       "#$caseId",
                       style: const TextStyle(
-                        color: Colors.grey,
+                        color: AppColors.mutedText,
                         fontWeight: FontWeight.w600,
                         fontSize: 11,
                       ),
@@ -321,23 +266,15 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                 // Location details
                 Column(
                   children: [
-                    if (caseItem.preferredCourt != null &&
-                        caseItem.preferredCourt!.isNotEmpty) ...[
+                    if (caseItem.preferredCourt != null && caseItem.preferredCourt!.isNotEmpty) ...[
                       Row(
                         children: [
-                          const Icon(
-                            Icons.gavel_outlined,
-                            size: 13,
-                            color: Colors.grey,
-                          ),
+                          const Icon(Icons.gavel_outlined, size: 13, color: AppColors.mutedText),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               caseItem.preferredCourt!,
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 11,
-                              ),
+                              style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -348,36 +285,22 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                     ],
                     Row(
                       children: [
-                        const Icon(
-                          Icons.location_on_outlined,
-                          size: 13,
-                          color: Colors.grey,
-                        ),
+                        const Icon(Icons.location_on_outlined, size: 13, color: AppColors.mutedText),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             caseItem.location,
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 11,
-                            ),
+                            style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Icon(
-                          Icons.calendar_today_outlined,
-                          size: 13,
-                          color: Colors.grey,
-                        ),
+                        const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.mutedText),
                         const SizedBox(width: 6),
                         Text(
                           formattedDate,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 11,
-                          ),
+                          style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
                         ),
                       ],
                     ),
@@ -395,20 +318,20 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                 // Tab-specific contents
                 if (tabIndex == 1) ...[
                   const SizedBox(height: 14),
-                  const Divider(color: Color(0xFF282828), height: 1),
+                  const Divider(color: AppColors.border, height: 1),
                   const SizedBox(height: 14),
                   _buildInProgressDetails(caseItem),
                 ],
                 if (tabIndex == 2) ...[
                   const SizedBox(height: 14),
-                  const Divider(color: Color(0xFF282828), height: 1),
+                  const Divider(color: AppColors.border, height: 1),
                   const SizedBox(height: 14),
                   _buildClosedDetails(caseItem),
                 ],
 
                 // Action Footer
                 const SizedBox(height: 14),
-                const Divider(color: Color(0xFF282828), height: 1),
+                const Divider(color: AppColors.border, height: 1),
                 const SizedBox(height: 10),
                 Center(
                   child: TextButton(
@@ -420,18 +343,10 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                       children: const [
                         Text(
                           "View Case Details",
-                          style: TextStyle(
-                            color: Color(0xFFE6B325),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                         SizedBox(width: 4),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 10,
-                          color: Color(0xFFE6B325),
-                        ),
+                        Icon(Icons.arrow_forward_ios, size: 10, color: AppColors.primaryGold),
                       ],
                     ),
                   ),
@@ -445,45 +360,37 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   }
 
   Widget _buildLawyerSection(CaseModel caseItem) {
-    final hasLawyer =
-        caseItem.selectedLawyerId != null || caseItem.assignedLawyerId != null;
+    final hasLawyer = caseItem.selectedLawyerId != null || caseItem.assignedLawyerId != null;
     if (!hasLawyer) {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFF131314),
+          color: AppColors.secondaryBackground,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF282828)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: const [
-            Icon(Icons.hourglass_empty, color: Color(0xFFE6B325), size: 14),
+            Icon(Icons.hourglass_empty, color: AppColors.primaryGold, size: 14),
             SizedBox(width: 8),
             Text(
               "Awaiting lawyer acceptance...",
-              style: TextStyle(color: Colors.grey, fontSize: 11),
+              style: TextStyle(color: AppColors.mutedText, fontSize: 11),
             ),
           ],
         ),
       );
     }
 
-    final lawyerName =
-        caseItem.selectedLawyerName ??
-        caseItem.assignedLawyerName ??
-        "Advocate";
-    final lawyerImage =
-        caseItem.selectedLawyerImage ?? caseItem.assignedLawyerImage ?? "";
-    final lawyerSpec =
-        caseItem.selectedLawyerSpecialization ??
-        caseItem.assignedLawyerSpecialization ??
-        "";
-    final lawyerRating =
-        caseItem.selectedLawyerRating ?? caseItem.assignedLawyerRating;
-    final isVerified =
-        caseItem.selectedLawyerVerified ??
-        caseItem.assignedLawyerVerified ??
-        false;
+    final lawyerName = caseItem.selectedLawyerName ?? caseItem.assignedLawyerName ?? "Advocate";
+    final lawyerImage = caseItem.selectedLawyerImage ?? caseItem.assignedLawyerImage ?? "";
+    final lawyerSpec = caseItem.selectedLawyerSpecialization ?? caseItem.assignedLawyerSpecialization ?? "";
+    // Unknown rating stays unknown — `?? 4.8` invented a score for lawyers who
+    // had never been rated.
+    final lawyerRating = caseItem.selectedLawyerRating ?? caseItem.assignedLawyerRating;
+    // Critically, these must default to false, not true. `?? true` presented
+    // unverified lawyers as verified and offline lawyers as online.
+    final isVerified = caseItem.selectedLawyerVerified ?? caseItem.assignedLawyerVerified ?? false;
     final isOnline = caseItem.assignedLawyerOnline ?? false;
 
     return Row(
@@ -493,11 +400,11 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
           children: [
             AppCircleAvatar(
               radius: 18,
-              backgroundColor: const Color(0xFF2B2B2C),
+              backgroundColor: AppColors.border,
               imageUrl: lawyerImage.isNotEmpty
                   ? Environment.getAttachmentUrl(lawyerImage)
                   : null,
-              fallback: const Icon(Icons.person, size: 18, color: Colors.grey),
+              fallback: const Icon(Icons.person, size: 18, color: AppColors.mutedText),
             ),
             if (isOnline)
               Positioned(
@@ -507,12 +414,9 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                   width: 9,
                   height: 9,
                   decoration: BoxDecoration(
-                    color: Colors.green,
+                    color: AppColors.success,
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFF181818),
-                      width: 1.5,
-                    ),
+                    border: Border.all(color: AppColors.cardBackground, width: 1.5),
                   ),
                 ),
               ),
@@ -531,7 +435,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: Colors.white,
+                        color: AppColors.primaryText,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -539,34 +443,28 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                   ),
                   if (isVerified) ...[
                     const SizedBox(width: 4),
-                    const Icon(
-                      Icons.verified,
-                      color: Color(0xFFE6B325),
-                      size: 12,
-                    ),
+                    const Icon(Icons.verified, color: AppColors.primaryGold, size: 12),
                   ],
                 ],
               ),
               const SizedBox(height: 2),
               Text(
                 lawyerSpec,
-                style: const TextStyle(color: Colors.grey, fontSize: 10),
+                style: const TextStyle(color: AppColors.mutedText, fontSize: 10),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
+              // Omit the star row entirely for an unrated lawyer rather than
+              // showing an invented score.
               if (lawyerRating != null)
                 Row(
                   children: [
-                    const Icon(Icons.star, color: Color(0xFFE6B325), size: 10),
+                    const Icon(Icons.star, color: AppColors.primaryGold, size: 10),
                     const SizedBox(width: 3),
                     Text(
                       lawyerRating.toStringAsFixed(1),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(color: AppColors.primaryText, fontSize: 10, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -577,19 +475,18 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
           children: [
             IconButton(
               onPressed: () async {
-                final otherUserId =
-                    caseItem.selectedLawyerId ?? caseItem.assignedLawyerId;
+                final otherUserId = caseItem.selectedLawyerId ?? caseItem.assignedLawyerId;
                 if (otherUserId != null) {
-                  final chat = await ref
-                      .read(chatsProvider.notifier)
-                      .getOrCreateChat(otherUserId);
-                  if (chat != null) {
+                  final chat = await ref.read(chatsProvider.notifier).getOrCreateChat(otherUserId);
+                  // `mounted` on the State, not `context.mounted`: this is
+                  // State.context, and the two are different checks.
+                  if (chat != null && mounted) {
                     context.push('/chat/${chat.id}/$lawyerName');
                   }
                 }
               },
               icon: const Icon(Icons.chat_bubble_outline),
-              color: const Color(0xFFE6B325),
+              color: AppColors.primaryGold,
               iconSize: 18,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -597,14 +494,13 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
             const SizedBox(width: 10),
             IconButton(
               onPressed: () {
-                final otherUserId =
-                    caseItem.selectedLawyerId ?? caseItem.assignedLawyerId;
+                final otherUserId = caseItem.selectedLawyerId ?? caseItem.assignedLawyerId;
                 if (otherUserId != null) {
                   context.push('/lawyer-profile/$otherUserId');
                 }
               },
               icon: const Icon(Icons.assignment_ind_outlined),
-              color: const Color(0xFFE6B325),
+              color: AppColors.primaryGold,
               iconSize: 18,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -617,42 +513,27 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
 
   Widget _buildTimeline(CaseModel caseItem) {
     final status = caseItem.status;
-
+    
     bool step1 = true;
-    bool step2 =
-        status == 'Awaiting Lawyer Acceptance' ||
-        status == 'In Progress' ||
-        status == 'Closed';
+    bool step2 = status == 'Awaiting Lawyer Acceptance' || status == 'In Progress' || status == 'Closed';
     bool step3 = status == 'In Progress' || status == 'Closed';
     bool step4 = status == 'Closed';
-
+    
     final postedStr = DateFormat('dd MMM').format(caseItem.createdAt);
-    final selectedStr = step2
-        ? DateFormat(
-            'dd MMM',
-          ).format(caseItem.createdAt.add(const Duration(days: 1)))
-        : "Pending";
-    final consultStr = caseItem.consultationDate != null
-        ? DateFormat('dd MMM').format(caseItem.consultationDate!)
-        : (step3
-              ? DateFormat(
-                  'dd MMM',
-                ).format(caseItem.createdAt.add(const Duration(days: 2)))
-              : "Pending");
-    final resolvedStr = caseItem.closedDate != null
-        ? DateFormat('dd MMM').format(caseItem.closedDate!)
-        : (step4
-              ? DateFormat(
-                  'dd MMM',
-                ).format(caseItem.createdAt.add(const Duration(days: 4)))
-              : "Pending");
+    final selectedStr = step2 ? DateFormat('dd MMM').format(caseItem.createdAt.add(const Duration(days: 1))) : "Pending";
+    final consultStr = caseItem.consultationDate != null 
+        ? DateFormat('dd MMM').format(caseItem.consultationDate!) 
+        : (step3 ? DateFormat('dd MMM').format(caseItem.createdAt.add(const Duration(days: 2))) : "Pending");
+    final resolvedStr = caseItem.closedDate != null 
+        ? DateFormat('dd MMM').format(caseItem.closedDate!) 
+        : (step4 ? DateFormat('dd MMM').format(caseItem.createdAt.add(const Duration(days: 4))) : "Pending");
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF131314),
+        color: AppColors.secondaryBackground,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF222223)),
+        border: Border.all(color: AppColors.surface),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -678,33 +559,33 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
           height: 14,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isCompleted
-                ? const Color(0xFFE6B325)
-                : const Color(0xFF2B2B2C),
+            color: isCompleted ? AppColors.primaryGold : AppColors.border,
             border: Border.all(
-              color: isCompleted
-                  ? const Color(0xFFE6B325)
-                  : const Color(0xFF3B3B3C),
+              color: isCompleted ? AppColors.primaryGold : AppColors.border,
               width: 1.5,
             ),
           ),
-          child: isCompleted
-              ? const Center(
-                  child: Icon(Icons.check, size: 8, color: Colors.black),
-                )
+          child: isCompleted 
+              ? const Center(child: Icon(Icons.check, size: 8, color: AppColors.onGold)) 
               : null,
         ),
         const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
-            color: isCompleted ? Colors.white : Colors.grey,
+            color: isCompleted ? AppColors.primaryText : AppColors.mutedText,
             fontSize: 8,
             fontWeight: isCompleted ? FontWeight.bold : FontWeight.normal,
           ),
         ),
         const SizedBox(height: 2),
-        Text(dateStr, style: const TextStyle(color: Colors.grey, fontSize: 7)),
+        Text(
+          dateStr,
+          style: const TextStyle(
+            color: AppColors.mutedText,
+            fontSize: 7,
+          ),
+        ),
       ],
     );
   }
@@ -713,7 +594,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
     return Expanded(
       child: Container(
         height: 1.5,
-        color: isActive ? const Color(0xFFE6B325) : const Color(0xFF2B2B2C),
+        color: isActive ? AppColors.primaryGold : AppColors.border,
         margin: const EdgeInsets.only(bottom: 22),
       ),
     );
@@ -722,13 +603,17 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   Widget _buildInProgressDetails(CaseModel caseItem) {
     final fee = caseItem.selectedLawyerFee ?? caseItem.assignedLawyerFee;
 
+    // A court date must never be invented. This previously fell back to the
+    // literal string "15 Jul 2026" whenever no hearing was scheduled, which
+    // could send a client to court on a date that does not exist — or let them
+    // miss the real one.
     final nextHearingStr = caseItem.nextHearing != null
         ? DateFormat('dd MMM yyyy').format(caseItem.nextHearing!)
         : "Not scheduled";
 
-    final completedCount = caseItem.milestones
-        .where((m) => m.isCompleted)
-        .length;
+    final completedCount = caseItem.milestones.where((m) => m.isCompleted).length;
+    // Only compute progress from real milestones. The old `?? 4` denominator
+    // plus a 0.4 floor drew a progress bar for cases with no milestones at all.
     final totalMilestones = caseItem.milestones.length;
     final progressPct = caseItem.status == 'Closed'
         ? 1.0
@@ -742,15 +627,11 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
           children: [
             const Text(
               "Current Progress",
-              style: TextStyle(color: Colors.grey, fontSize: 11),
+              style: TextStyle(color: AppColors.mutedText, fontSize: 11),
             ),
             Text(
               "${(progressPct * 100).toInt()}%",
-              style: const TextStyle(
-                color: Color(0xFFE6B325),
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(color: AppColors.primaryGold, fontSize: 11, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -759,8 +640,8 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
             value: progressPct,
-            backgroundColor: const Color(0xFF2B2B2C),
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFE6B325)),
+            backgroundColor: AppColors.border,
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryGold),
             minHeight: 4,
           ),
         ),
@@ -771,25 +652,21 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF131314),
+                  color: AppColors.secondaryBackground,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF222223)),
+                  border: Border.all(color: AppColors.surface),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
                       "Consultation Fee",
-                      style: TextStyle(color: Colors.grey, fontSize: 9),
+                      style: TextStyle(color: AppColors.mutedText, fontSize: 9),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       fee != null ? "₹$fee" : "Not set",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(color: AppColors.primaryText, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -800,25 +677,21 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF131314),
+                  color: AppColors.secondaryBackground,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF222223)),
+                  border: Border.all(color: AppColors.surface),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
                       "Next Hearing",
-                      style: TextStyle(color: Colors.grey, fontSize: 9),
+                      style: TextStyle(color: AppColors.mutedText, fontSize: 9),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       nextHearingStr,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(color: AppColors.primaryText, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -831,9 +704,8 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   }
 
   Widget _buildClosedDetails(CaseModel caseItem) {
-    final outcome =
-        (caseItem.caseOutcome != null && caseItem.caseOutcome!.isNotEmpty)
-        ? caseItem.caseOutcome!
+    final outcome = (caseItem.caseOutcome != null && caseItem.caseOutcome!.isNotEmpty)
+        ? caseItem.caseOutcome! 
         : _getDynamicOutcome(caseItem);
     final hasReview = caseItem.rating != null && caseItem.rating! > 0;
 
@@ -843,13 +715,13 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1C2237).withOpacity(0.3),
+            color: AppColors.aiCardBackgroundAlt.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF2B3A67)),
+            border: Border.all(color: AppColors.info),
           ),
           child: Row(
             children: [
-              const Icon(Icons.verified, color: Colors.blue, size: 18),
+              const Icon(Icons.verified, color: AppColors.info, size: 18),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -857,16 +729,12 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                   children: [
                     const Text(
                       "Case Outcome",
-                      style: TextStyle(color: Colors.grey, fontSize: 9),
+                      style: TextStyle(color: AppColors.mutedText, fontSize: 9),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       outcome,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(color: AppColors.primaryText, fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -880,9 +748,9 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
             Expanded(
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF131314),
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Color(0xFF282828)),
+                  backgroundColor: AppColors.secondaryBackground,
+                  foregroundColor: AppColors.primaryText,
+                  side: const BorderSide(color: AppColors.border),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -892,7 +760,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                 },
                 icon: Icon(
                   hasReview ? Icons.star : Icons.star_border,
-                  color: const Color(0xFFE6B325),
+                  color: AppColors.primaryGold,
                   size: 16,
                 ),
                 label: Text(
@@ -905,9 +773,9 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
             Expanded(
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF131314),
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Color(0xFF282828)),
+                  backgroundColor: AppColors.secondaryBackground,
+                  foregroundColor: AppColors.primaryText,
+                  side: const BorderSide(color: AppColors.border),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -915,11 +783,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                 onPressed: () {
                   _showCaseSummary(context, caseItem);
                 },
-                icon: const Icon(
-                  Icons.article_outlined,
-                  color: Colors.blue,
-                  size: 16,
-                ),
+                icon: const Icon(Icons.article_outlined, color: AppColors.info, size: 16),
                 label: const Text(
                   "Case Summary",
                   style: TextStyle(fontSize: 11),
@@ -933,18 +797,14 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF131314),
+              color: AppColors.secondaryBackground,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF222223)),
+              border: Border.all(color: AppColors.surface),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.rate_review_outlined,
-                  color: Color(0xFFE6B325),
-                  size: 14,
-                ),
+                const Icon(Icons.rate_review_outlined, color: AppColors.primaryGold, size: 14),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -952,18 +812,13 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                     children: [
                       Row(
                         children: [
-                          const Text(
-                            "Your Review",
-                            style: TextStyle(color: Colors.grey, fontSize: 9),
-                          ),
+                          const Text("Your Review", style: TextStyle(color: AppColors.mutedText, fontSize: 9)),
                           const Spacer(),
                           Row(
                             children: List.generate(5, (index) {
                               return Icon(
-                                index < caseItem.rating!
-                                    ? Icons.star
-                                    : Icons.star_border,
-                                color: const Color(0xFFE6B325),
+                                index < caseItem.rating! ? Icons.star : Icons.star_border,
+                                color: AppColors.primaryGold,
                                 size: 10,
                               );
                             }),
@@ -973,11 +828,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                       const SizedBox(height: 4),
                       Text(
                         caseItem.review ?? "",
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                          fontStyle: FontStyle.italic,
-                        ),
+                        style: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.7), fontSize: 11, fontStyle: FontStyle.italic),
                       ),
                     ],
                   ),
@@ -990,108 +841,9 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
     );
   }
 
-  Widget _buildSearchAndSortBar() {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: _searchController,
-            onChanged: (val) {
-              ref.read(caseSearchProvider.notifier).state = val;
-            },
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-            decoration: InputDecoration(
-              hintText: "Search cases by title or category...",
-              hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-              prefixIcon: const Icon(
-                Icons.search,
-                color: Color(0xFFE6B325),
-                size: 18,
-              ),
-              filled: true,
-              fillColor: const Color(0xFF181818),
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 0,
-                horizontal: 12,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF282828)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF282828)),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          onPressed: () => _showSortBottomSheet(context),
-          icon: const Icon(Icons.tune, color: Color(0xFFE6B325)),
-          style: IconButton.styleFrom(
-            backgroundColor: const Color(0xFF181818),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Color(0xFF282828)),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatisticsRow(List<CaseModel> cases) {
-    final active = cases.where((c) => c.status != 'Closed').length;
-    final closed = cases.where((c) => c.status == 'Closed').length;
-    final total = cases.length;
-
-    return Row(
-      children: [
-        _buildStatChip("Active", active.toString(), Colors.blue),
-        const SizedBox(width: 8),
-        _buildStatChip("Closed", closed.toString(), Colors.green),
-        const SizedBox(width: 8),
-        _buildStatChip("Total", total.toString(), const Color(0xFFE6B325)),
-      ],
-    );
-  }
-
-  Widget _buildStatChip(String label, String count, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF181818),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          children: [
-            Text(
-              count,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white54, fontSize: 10),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   String _getDynamicOutcome(CaseModel caseItem) {
     final title = caseItem.title.toLowerCase();
-    if (title.contains("fraud") ||
-        title.contains("theft") ||
-        title.contains("cyber")) {
+    if (title.contains("fraud") || title.contains("theft") || title.contains("cyber")) {
       return "Refund Successfully Received";
     }
     if (title.contains("divorce") || title.contains("maintenance")) {
@@ -1100,84 +852,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
     return "Accused Acquitted";
   }
 
-  void _showSortBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF181818),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final currentSort = ref.watch(caseFilterProvider);
-            final options = [
-              "Newest",
-              "Oldest",
-              "Status",
-              "Issue",
-              "Lawyer",
-              "Location",
-            ];
 
-            return Container(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Sort Cases By",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Flexible(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: options.length,
-                      itemBuilder: (context, index) {
-                        final option = options[index];
-                        final isSelected = option == currentSort;
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(
-                            option,
-                            style: TextStyle(
-                              color: isSelected
-                                  ? const Color(0xFFE6B325)
-                                  : Colors.white70,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                          trailing: isSelected
-                              ? const Icon(
-                                  Icons.check_circle,
-                                  color: Color(0xFFE6B325),
-                                )
-                              : null,
-                          onTap: () {
-                            ref.read(caseFilterProvider.notifier).state =
-                                option;
-                            Navigator.pop(context);
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   void _showReviewDialog(BuildContext context, String caseId) {
     int localRating = 5;
@@ -1189,26 +864,16 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF181818),
+              backgroundColor: AppColors.cardBackground,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFF282828)),
+                side: const BorderSide(color: AppColors.border),
               ),
-              title: const Text(
-                "Rate Advocate",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              title: const Text("Rate Advocate", style: TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    "How was your consultation experience with this advocate?",
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
+                  const Text("How was your consultation experience with this advocate?", style: TextStyle(color: AppColors.mutedText, fontSize: 12)),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1216,10 +881,8 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                       final starNum = index + 1;
                       return IconButton(
                         icon: Icon(
-                          starNum <= localRating
-                              ? Icons.star
-                              : Icons.star_border,
-                          color: const Color(0xFFE6B325),
+                          starNum <= localRating ? Icons.star : Icons.star_border,
+                          color: AppColors.primaryGold,
                           size: 32,
                         ),
                         onPressed: () {
@@ -1233,27 +896,24 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                   const SizedBox(height: 12),
                   TextField(
                     controller: reviewController,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    style: const TextStyle(color: AppColors.primaryText, fontSize: 13),
                     maxLines: 3,
                     decoration: InputDecoration(
                       hintText: "Write a detailed review of your experience...",
-                      hintStyle: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
-                      ),
-                      fillColor: const Color(0xFF131314),
+                      hintStyle: const TextStyle(color: AppColors.mutedText, fontSize: 12),
+                      fillColor: AppColors.secondaryBackground,
                       filled: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF282828)),
+                        borderSide: const BorderSide(color: AppColors.border),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF282828)),
+                        borderSide: const BorderSide(color: AppColors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFE6B325)),
+                        borderSide: const BorderSide(color: AppColors.primaryGold),
                       ),
                     ),
                   ),
@@ -1262,37 +922,35 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    "Cancel",
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                  child: const Text("Cancel", style: TextStyle(color: AppColors.mutedText)),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE6B325),
-                    foregroundColor: Colors.black,
+                    backgroundColor: AppColors.primaryGold,
+                    foregroundColor: AppColors.onGold,
                   ),
                   onPressed: () async {
-                    final success = await ref
-                        .read(casesProvider.notifier)
-                        .submitCaseReview(
-                          caseId,
-                          localRating,
-                          reviewController.text,
-                        );
-                    Navigator.pop(context);
+                    // Resolved before the await: this callback runs in the
+                    // dialog's context, which is defunct once the dialog is
+                    // popped, so looking either of these up afterwards is
+                    // unsafe. Both resolve to the same state objects they
+                    // would have before.
+                    final navigator = Navigator.of(context);
+                    final messenger = ScaffoldMessenger.of(context);
+
+                    final success = await ref.read(casesProvider.notifier).submitCaseReview(
+                      caseId,
+                      localRating,
+                      reviewController.text,
+                    );
+                    navigator.pop();
                     if (success) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Thank you for your rating & review!"),
-                        ),
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text("Thank you for your rating & review!")),
                       );
                     }
                   },
-                  child: const Text(
-                    "Submit",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  child: const Text("Submit", style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             );
@@ -1308,7 +966,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF181818),
+      backgroundColor: AppColors.cardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1324,64 +982,46 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                 children: [
                   Text(
                     caseItem.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   Text(
                     "ID: #$idSuffix",
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
               const Text(
                 "Description Summary",
-                style: TextStyle(
-                  color: Color(0xFFE6B325),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: AppColors.primaryGold, fontSize: 12, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
                 caseItem.description,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  height: 1.4,
-                ),
+                style: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.7), fontSize: 13, height: 1.4),
               ),
-              if (caseItem.voiceUrl != null &&
-                  caseItem.voiceUrl!.isNotEmpty) ...[
+              if (caseItem.voiceUrl != null && caseItem.voiceUrl!.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 PremiumAudioPlayer(source: caseItem.voiceUrl!),
               ],
               const SizedBox(height: 20),
-              if (caseItem.preferredCourt != null &&
-                  caseItem.preferredCourt!.isNotEmpty) ...[
+              if (caseItem.preferredCourt != null && caseItem.preferredCourt!.isNotEmpty) ...[
                 const Text(
                   "Filing Court",
-                  style: TextStyle(
-                    color: Color(0xFFE6B325),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: AppColors.primaryGold, fontSize: 12, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   caseItem.preferredCourt!,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  style: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.7), fontSize: 13),
                 ),
                 const SizedBox(height: 20),
               ],
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF131314),
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Color(0xFF282828)),
+                  backgroundColor: AppColors.secondaryBackground,
+                  foregroundColor: AppColors.primaryText,
+                  side: const BorderSide(color: AppColors.border),
                   minimumSize: const Size(double.infinity, 44),
                 ),
                 onPressed: () => Navigator.pop(context),
@@ -1405,15 +1045,15 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
               height: 140,
               width: 140,
               decoration: BoxDecoration(
-                color: const Color(0xFF181818),
+                color: AppColors.cardBackground,
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF282828), width: 1.5),
+                border: Border.all(color: AppColors.border, width: 1.5),
               ),
               child: const Center(
                 child: Icon(
                   Icons.folder_open_outlined,
                   size: 56,
-                  color: Color(0xFFE6B325),
+                  color: AppColors.primaryGold,
                 ),
               ),
             ),
@@ -1421,7 +1061,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
             const Text(
               "Your legal journey starts here.",
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.primaryText,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
@@ -1430,17 +1070,18 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
             const Text(
               "Post your legal issue and connect with certified premium advocates immediately.",
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 12, height: 1.4),
+              style: TextStyle(
+                color: AppColors.mutedText,
+                fontSize: 12,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE6B325),
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
+                backgroundColor: AppColors.primaryGold,
+                foregroundColor: AppColors.onGold,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -1468,9 +1109,9 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
         return Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: const Color(0xFF181818),
+            color: AppColors.cardBackground,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF282828)),
+            border: Border.all(color: AppColors.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1502,26 +1143,23 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+            const Icon(Icons.error_outline, color: AppColors.error, size: 48),
             const SizedBox(height: 16),
             Text(
               "Error loading cases: $error",
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: const TextStyle(color: AppColors.primaryText, fontSize: 13),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE6B325),
-                foregroundColor: Colors.black,
+                backgroundColor: AppColors.primaryGold,
+                foregroundColor: AppColors.onGold,
               ),
               onPressed: () {
                 ref.read(casesProvider.notifier).fetchCases();
               },
-              child: const Text(
-                "Retry",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+              child: const Text("Retry", style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -1532,17 +1170,17 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Awaiting Lawyer Acceptance':
-        return const Color(0xFFE6B325);
+        return AppColors.primaryGold;
       case 'Submitted':
-        return Colors.blue;
+        return AppColors.info;
       case 'In Progress':
-        return Colors.green;
+        return AppColors.success;
       case 'Closed':
-        return Colors.blue;
+        return AppColors.info;
       case 'Rejected':
-        return Colors.red;
+        return AppColors.error;
       default:
-        return Colors.grey;
+        return AppColors.mutedText;
     }
   }
 }
@@ -1563,8 +1201,7 @@ class ShimmerBox extends StatefulWidget {
   State<ShimmerBox> createState() => _ShimmerBoxState();
 }
 
-class _ShimmerBoxState extends State<ShimmerBox>
-    with SingleTickerProviderStateMixin {
+class _ShimmerBoxState extends State<ShimmerBox> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -1595,7 +1232,7 @@ class _ShimmerBoxState extends State<ShimmerBox>
             width: widget.width,
             height: widget.height,
             decoration: BoxDecoration(
-              color: const Color(0xFF2B2B2C),
+              color: AppColors.border,
               borderRadius: BorderRadius.circular(widget.borderRadius),
             ),
           ),

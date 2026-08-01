@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../models/appointment_model.dart';
 import '../../../../providers/admin_provider.dart';
 
 class AdminAppointmentsScreen extends ConsumerStatefulWidget {
   const AdminAppointmentsScreen({super.key});
 
   @override
-  ConsumerState<AdminAppointmentsScreen> createState() =>
-      _AdminAppointmentsScreenState();
+  ConsumerState<AdminAppointmentsScreen> createState() => _AdminAppointmentsScreenState();
 }
 
-class _AdminAppointmentsScreenState
-    extends ConsumerState<AdminAppointmentsScreen> {
+class _AdminAppointmentsScreenState extends ConsumerState<AdminAppointmentsScreen> {
   late DateTime _selectedDate;
 
   @override
@@ -23,20 +20,7 @@ class _AdminAppointmentsScreenState
   }
 
   String _getMonthYearString(DateTime dt) {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     return '${months[dt.month - 1]} ${dt.year}';
   }
 
@@ -44,12 +28,12 @@ class _AdminAppointmentsScreenState
     switch (status.toLowerCase()) {
       case 'confirmed':
       case 'completed':
-        return const Color(0xFF4ADE80);
+        return AppColors.statusSuccessFg;
       case 'pending':
-        return const Color(0xFFF59E0B);
+        return AppColors.warning;
       case 'cancelled':
       case 'rejected':
-        return const Color(0xFFFCA5A5);
+        return AppColors.statusErrorFg;
       default:
         return AppColors.primaryGold;
     }
@@ -60,13 +44,8 @@ class _AdminAppointmentsScreenState
     final appointmentsAsync = ref.watch(adminAppointmentsProvider);
 
     // Calculate 7 days centered on selected date
-    final weekStart = _selectedDate.subtract(
-      Duration(days: _selectedDate.weekday % 7),
-    );
-    final daysOfWeek = List.generate(
-      7,
-      (i) => weekStart.add(Duration(days: i)),
-    );
+    final weekStart = _selectedDate.subtract(Duration(days: _selectedDate.weekday % 7));
+    final daysOfWeek = List.generate(7, (i) => weekStart.add(Duration(days: i)));
 
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
@@ -104,37 +83,23 @@ class _AdminAppointmentsScreenState
                       children: [
                         Text(
                           _getMonthYearString(_selectedDate),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: const TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         Row(
                           children: [
                             IconButton(
-                              icon: const Icon(
-                                Icons.chevron_left,
-                                color: AppColors.primaryGold,
-                              ),
+                              icon: const Icon(Icons.chevron_left, color: AppColors.primaryGold),
                               onPressed: () {
                                 setState(() {
-                                  _selectedDate = _selectedDate.subtract(
-                                    const Duration(days: 7),
-                                  );
+                                  _selectedDate = _selectedDate.subtract(const Duration(days: 7));
                                 });
                               },
                             ),
                             IconButton(
-                              icon: const Icon(
-                                Icons.chevron_right,
-                                color: AppColors.primaryGold,
-                              ),
+                              icon: const Icon(Icons.chevron_right, color: AppColors.primaryGold),
                               onPressed: () {
                                 setState(() {
-                                  _selectedDate = _selectedDate.add(
-                                    const Duration(days: 7),
-                                  );
+                                  _selectedDate = _selectedDate.add(const Duration(days: 7));
                                 });
                               },
                             ),
@@ -146,47 +111,29 @@ class _AdminAppointmentsScreenState
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                          .map(
-                            (day) => Text(
-                              day,
-                              style: const TextStyle(
-                                color: AppColors.mutedText,
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          )
+                          .map((day) => Text(day, style: const TextStyle(color: AppColors.mutedText, fontSize: 13, fontWeight: FontWeight.bold)))
                           .toList(),
                     ),
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: daysOfWeek.map((d) {
-                        final isSelected =
-                            d.year == _selectedDate.year &&
-                            d.month == _selectedDate.month &&
-                            d.day == _selectedDate.day;
+                        final isSelected = d.year == _selectedDate.year && d.month == _selectedDate.month && d.day == _selectedDate.day;
                         return GestureDetector(
                           onTap: () => setState(() => _selectedDate = d),
                           child: Container(
                             width: 34,
                             height: 34,
                             decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.primaryGold
-                                  : Colors.transparent,
+                              color: isSelected ? AppColors.primaryGold : Colors.transparent,
                               shape: BoxShape.circle,
                             ),
                             child: Center(
                               child: Text(
                                 '${d.day}',
                                 style: TextStyle(
-                                  color: isSelected
-                                      ? Colors.black
-                                      : Colors.white,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
+                                  color: isSelected ? AppColors.onGold : AppColors.primaryText,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                 ),
                               ),
                             ),
@@ -200,12 +147,7 @@ class _AdminAppointmentsScreenState
               const SizedBox(height: 20),
               const Text(
                 'SCHEDULED CONSULTATIONS',
-                style: TextStyle(
-                  color: AppColors.primaryGold,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
+                style: TextStyle(color: AppColors.primaryGold, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2),
               ),
               const SizedBox(height: 12),
               appointmentsAsync.when(
@@ -222,28 +164,17 @@ class _AdminAppointmentsScreenState
                       child: const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.calendar_month_outlined,
-                            color: AppColors.mutedText,
-                            size: 40,
-                          ),
+                          Icon(Icons.calendar_month_outlined, color: AppColors.mutedText, size: 40),
                           SizedBox(height: 12),
                           Text(
                             'No scheduled consultations found',
-                            style: TextStyle(
-                              color: AppColors.secondaryText,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: TextStyle(color: AppColors.secondaryText, fontSize: 14, fontWeight: FontWeight.w600),
                           ),
                           SizedBox(height: 4),
                           Text(
                             'Bookings will automatically appear here once scheduled by clients.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppColors.mutedText,
-                              fontSize: 12,
-                            ),
+                            style: TextStyle(color: AppColors.mutedText, fontSize: 12),
                           ),
                         ],
                       ),
@@ -258,12 +189,8 @@ class _AdminAppointmentsScreenState
                       final appt = appointments[index];
                       return _buildAppointmentTile(
                         time: appt.timeSlot.isNotEmpty ? appt.timeSlot : 'N/A',
-                        clientName: appt.clientName.isNotEmpty
-                            ? appt.clientName
-                            : 'Client',
-                        lawyerName: appt.lawyerName.isNotEmpty
-                            ? 'Adv. ${appt.lawyerName}'
-                            : 'Assigned Advocate',
+                        clientName: appt.clientName.isNotEmpty ? appt.clientName : 'Client',
+                        lawyerName: appt.lawyerName.isNotEmpty ? 'Adv. ${appt.lawyerName}' : 'Assigned Advocate',
                         type: appt.caseTitle ?? appt.mode,
                         status: appt.status,
                         statusColor: _getStatusColor(appt.status),
@@ -273,11 +200,7 @@ class _AdminAppointmentsScreenState
                 },
                 loading: () => const Padding(
                   padding: EdgeInsets.all(40),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryGold,
-                    ),
-                  ),
+                  child: Center(child: CircularProgressIndicator(color: AppColors.primaryGold)),
                 ),
                 error: (err, stack) => Container(
                   padding: const EdgeInsets.all(16),
@@ -285,10 +208,7 @@ class _AdminAppointmentsScreenState
                     color: AppColors.cardBackground,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    'Error loading consultations: $err',
-                    style: const TextStyle(color: AppColors.error),
-                  ),
+                  child: Text('Error loading consultations: $err', style: const TextStyle(color: AppColors.error)),
                 ),
               ),
             ],
@@ -325,11 +245,7 @@ class _AdminAppointmentsScreenState
             ),
             child: Text(
               time,
-              style: const TextStyle(
-                color: AppColors.primaryGold,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
+              style: const TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold, fontSize: 13),
             ),
           ),
           const SizedBox(width: 14),
@@ -339,28 +255,17 @@ class _AdminAppointmentsScreenState
               children: [
                 Text(
                   clientName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(color: AppColors.primaryText, fontSize: 15, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   lawyerName,
-                  style: const TextStyle(
-                    color: AppColors.primaryGold,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: const TextStyle(color: AppColors.primaryGold, fontSize: 12, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Topic: $type',
-                  style: const TextStyle(
-                    color: AppColors.mutedText,
-                    fontSize: 11,
-                  ),
+                  style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
                 ),
               ],
             ),
@@ -368,16 +273,12 @@ class _AdminAppointmentsScreenState
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.15),
+              color: statusColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               status[0].toUpperCase() + status.substring(1),
-              style: TextStyle(
-                color: statusColor,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold),
             ),
           ),
         ],

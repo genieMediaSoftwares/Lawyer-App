@@ -30,9 +30,7 @@ class _SortBySheetState extends ConsumerState<SortBySheet> {
 
   void _applySort() {
     final filters = ref.read(advocateFiltersProvider);
-    ref.read(advocateFiltersProvider.notifier).state = filters.copyWith(
-      sortBy: _selectedSort,
-    );
+    ref.read(advocateFiltersProvider.notifier).state = filters.copyWith(sortBy: _selectedSort);
     Navigator.pop(context);
   }
 
@@ -41,7 +39,7 @@ class _SortBySheetState extends ConsumerState<SortBySheet> {
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       child: Container(
-        color: Colors.black,
+        color: AppColors.onGold,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: SafeArea(
           child: Column(
@@ -54,7 +52,7 @@ class _SortBySheetState extends ConsumerState<SortBySheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2A2A2A),
+                    color: AppColors.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -68,13 +66,13 @@ class _SortBySheetState extends ConsumerState<SortBySheet> {
                   const Text(
                     'Sort By',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.primaryText,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: const Icon(Icons.close, color: AppColors.primaryText),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -95,13 +93,9 @@ class _SortBySheetState extends ConsumerState<SortBySheet> {
                           Text(
                             opt,
                             style: TextStyle(
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF9A9A9A),
+                              color: isSelected ? AppColors.primaryText : AppColors.mutedText,
                               fontSize: 15,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             ),
                           ),
                           Container(
@@ -110,9 +104,7 @@ class _SortBySheetState extends ConsumerState<SortBySheet> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: isSelected
-                                    ? AppColors.primaryGold
-                                    : const Color(0xFF2A2A2A),
+                                color: isSelected ? AppColors.primaryGold : AppColors.border,
                                 width: 2,
                               ),
                             ),
@@ -145,7 +137,7 @@ class _SortBySheetState extends ConsumerState<SortBySheet> {
                   onPressed: _applySort,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryGold,
-                    foregroundColor: Colors.black,
+                    foregroundColor: AppColors.onGold,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(100),

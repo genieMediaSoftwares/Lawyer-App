@@ -28,9 +28,8 @@ router.post(
   ]),
   aiSmartCaseController.analyzeSmartCase
 );
-router.post("/smart-case/answer-questions", aiSmartCaseController.answerSmartCaseQuestions);
-router.post("/smart-case/confirm-create", aiSmartCaseController.confirmCreateSmartCase);
 router.get("/smart-case/history", aiSmartCaseController.getSmartCaseHistory);
 router.get("/smart-case/session/:id", aiSmartCaseController.getSmartCaseSessionById);
+router.post("/smart-case/session/:id/link-case", aiSmartCaseController.linkSessionToCase);
 
 module.exports = router;

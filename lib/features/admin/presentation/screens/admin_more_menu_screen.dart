@@ -10,7 +10,9 @@ class AdminMoreMenuScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
-      appBar: AppBar(title: const Text('Admin Operations & Tools')),
+      appBar: AppBar(
+        title: const Text('Admin Operations & Tools'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -18,12 +20,7 @@ class AdminMoreMenuScreen extends StatelessWidget {
           children: [
             const Text(
               'MANAGEMENT MODULES',
-              style: TextStyle(
-                color: AppColors.primaryGold,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
+              style: TextStyle(color: AppColors.primaryGold, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2),
             ),
             const SizedBox(height: 12),
             GridView.count(
@@ -95,12 +92,7 @@ class AdminMoreMenuScreen extends StatelessWidget {
             const SizedBox(height: 24),
             const Text(
               'ADMINISTRATOR SETTINGS',
-              style: TextStyle(
-                color: AppColors.primaryGold,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
+              style: TextStyle(color: AppColors.primaryGold, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2),
             ),
             const SizedBox(height: 12),
             Container(
@@ -112,27 +104,11 @@ class AdminMoreMenuScreen extends StatelessWidget {
               child: ListTile(
                 leading: const CircleAvatar(
                   backgroundColor: AppColors.secondaryBackground,
-                  child: Icon(
-                    Icons.person_outline,
-                    color: AppColors.primaryGold,
-                  ),
+                  child: Icon(Icons.person_outline, color: AppColors.primaryGold),
                 ),
-                title: const Text(
-                  'Admin Profile & Security',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                subtitle: const Text(
-                  'Edit profile, change password, logout',
-                  style: TextStyle(color: AppColors.mutedText, fontSize: 12),
-                ),
-                trailing: const Icon(
-                  Icons.arrow_forward_ios,
-                  color: AppColors.mutedText,
-                  size: 14,
-                ),
+                title: const Text('Admin Profile & Security', style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold)),
+                subtitle: const Text('Edit profile, change password, logout', style: TextStyle(color: AppColors.mutedText, fontSize: 12)),
+                trailing: const Icon(Icons.arrow_forward_ios, color: AppColors.mutedText, size: 14),
                 onTap: () => context.push(RouteNames.adminProfile),
               ),
             ),
@@ -169,16 +145,12 @@ class AdminMoreMenuScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryGold.withOpacity(0.15),
+                    color: AppColors.primaryGold.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(icon, color: AppColors.primaryGold, size: 20),
                 ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  color: AppColors.mutedText,
-                  size: 12,
-                ),
+                const Icon(Icons.arrow_forward_ios, color: AppColors.mutedText, size: 12),
               ],
             ),
             Column(
@@ -187,21 +159,14 @@ class AdminMoreMenuScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(color: AppColors.primaryText, fontSize: 14, fontWeight: FontWeight.bold),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: AppColors.mutedText,
-                    fontSize: 11,
-                  ),
+                  style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

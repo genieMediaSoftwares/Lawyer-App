@@ -6,8 +6,7 @@ class AISmartCaseAssistantCard extends StatefulWidget {
   const AISmartCaseAssistantCard({super.key});
 
   @override
-  State<AISmartCaseAssistantCard> createState() =>
-      _AISmartCaseAssistantCardState();
+  State<AISmartCaseAssistantCard> createState() => _AISmartCaseAssistantCardState();
 }
 
 class _AISmartCaseAssistantCardState extends State<AISmartCaseAssistantCard>
@@ -42,26 +41,20 @@ class _AISmartCaseAssistantCardState extends State<AISmartCaseAssistantCard>
         return Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: const Color(0xFF080914), // GenieLaw Deep Black
+            color: AppColors.aiSurfaceBackgroundAlt, // GenieLaw Deep Black
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: AppColors.primaryGold.withValues(
-                alpha: 0.3 + 0.3 * _glowAnimation.value,
-              ),
+              color: AppColors.primaryGold.withValues(alpha: 0.3 + 0.3 * _glowAnimation.value),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF8B5CF6).withValues(
-                  alpha: 0.12 * _glowAnimation.value,
-                ), // Purple AI glow
+                color: AppColors.aiAccentViolet.withValues(alpha: 0.12 * _glowAnimation.value), // Purple AI glow
                 blurRadius: 14,
                 spreadRadius: 1,
               ),
               BoxShadow(
-                color: AppColors.primaryGold.withValues(
-                  alpha: 0.08 * _glowAnimation.value,
-                ), // Gold glow accent
+                color: AppColors.primaryGold.withValues(alpha: 0.08 * _glowAnimation.value), // Gold glow accent
                 blurRadius: 10,
                 spreadRadius: 1,
               ),
@@ -87,20 +80,20 @@ class _AISmartCaseAssistantCardState extends State<AISmartCaseAssistantCard>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF7C3AED), Color(0xFFD97706)],
+                      colors: [AppColors.aiAccentViolet, AppColors.aiAccentAmber],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF7C3AED).withValues(alpha: 0.4),
+                        color: AppColors.aiAccentViolet.withValues(alpha: 0.4),
                         blurRadius: 8,
                       ),
                     ],
                   ),
                   child: const Icon(
                     Icons.auto_awesome,
-                    color: Colors.white,
+                    color: AppColors.primaryText,
                     size: 22,
                   ),
                 ),
@@ -113,30 +106,19 @@ class _AISmartCaseAssistantCardState extends State<AISmartCaseAssistantCard>
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 2,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryGold.withValues(
-                                alpha: 0.15,
-                              ),
+                              color: AppColors.primaryGold.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: AppColors.primaryGold.withValues(
-                                  alpha: 0.5,
-                                ),
+                                color: AppColors.primaryGold.withValues(alpha: 0.5),
                                 width: 0.8,
                               ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: const [
-                                Icon(
-                                  Icons.bolt,
-                                  color: AppColors.primaryGold,
-                                  size: 11,
-                                ),
+                                Icon(Icons.bolt, color: AppColors.primaryGold, size: 11),
                                 SizedBox(width: 3),
                                 Text(
                                   "AI POWERED",
@@ -156,7 +138,7 @@ class _AISmartCaseAssistantCardState extends State<AISmartCaseAssistantCard>
                       const Text(
                         "AI Smart Case Assistant",
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.primaryText,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'Outfit',
@@ -166,7 +148,7 @@ class _AISmartCaseAssistantCardState extends State<AISmartCaseAssistantCard>
                       const Text(
                         "Don't know how to post your legal case?",
                         style: TextStyle(
-                          color: Color(0xFFCBD5E1),
+                          color: AppColors.secondaryText,
                           fontSize: 11.5,
                           fontWeight: FontWeight.w500,
                         ),
@@ -180,7 +162,7 @@ class _AISmartCaseAssistantCardState extends State<AISmartCaseAssistantCard>
 
             // Description
             const Text(
-              "Upload documents or describe your issue with voice. AI automatically analyses your evidence, detects missing details, and matches real verified lawyers.",
+              "Upload your documents — add a voice note for extra detail if you like — and AI fills in your case for you, ready to find a lawyer.",
               style: TextStyle(
                 color: AppColors.mutedText,
                 fontSize: 11.5,
@@ -197,18 +179,14 @@ class _AISmartCaseAssistantCardState extends State<AISmartCaseAssistantCard>
                 onPressed: () => context.push('/ai-smart-case'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryGold,
-                  foregroundColor: Colors.black,
+                  foregroundColor: AppColors.onGold,
                   elevation: 3,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
                   shadowColor: AppColors.primaryGold.withValues(alpha: 0.3),
                 ),
-                icon: const Icon(
-                  Icons.document_scanner,
-                  size: 17,
-                  color: Colors.black,
-                ),
+                icon: const Icon(Icons.document_scanner, size: 17, color: AppColors.onGold),
                 label: const Text(
                   "Upload Documents & Create Case",
                   style: TextStyle(

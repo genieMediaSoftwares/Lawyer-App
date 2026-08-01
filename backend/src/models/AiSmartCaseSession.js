@@ -8,14 +8,66 @@ const aiSmartCaseSessionSchema = new mongoose.Schema(
       required: true,
     },
 
+    // A session is created as "processing" the moment the upload lands, before
+    // any AI work starts, so the client has a real id to subscribe to and the
+    // run survives the client disconnecting. It ends as "extracted" or
+    // "failed".
     status: {
       type: String,
-      enum: ["processing", "questions_pending", "reviewed", "created", "failed"],
+      enum: ["processing", "extracted", "failed"],
       default: "processing",
+    },
+
+    /// Live pipeline position, written at every stage transition.
+    ///
+    /// This is the authoritative progress record. Socket events are derived
+    /// from it rather than the other way round, so a client that missed events
+    /// (backgrounded, reconnected, switched devices) can GET the session and
+    /// render exactly the same state.
+    progress: {
+      /// Machine-readable stage id — see PIPELINE_STAGES in
+      /// services/ai/aiSmartCasePipeline.js.
+      stage: { type: String, default: "queued" },
+      /// Human-readable line shown in the UI, e.g. "Reading document 2 of 5".
+      message: { type: String, default: "" },
+      /// 0-100. Derived from real stage weights, never from a timer.
+      percent: { type: Number, default: 0 },
+      /// Position within a repeated stage (document N of M). Null otherwise.
+      current: { type: Number, default: null },
+      total: { type: Number, default: null },
+      updatedAt: { type: Date, default: Date.now },
+    },
+
+    /// Why the run failed, surfaced to the client verbatim.
+    failureReason: {
+      type: String,
+      default: "",
+    },
+
+    /// Per-document and coercion notes (unreadable pages, unmatched category,
+    /// failed transcription). Persisted so the Post Case form can show them
+    /// even when the client reconnects after the run finished.
+    warnings: {
+      type: [String],
+      default: [],
+    },
+
+    /// True when a voice note was supplied but could not be transcribed.
+    voiceTranscriptionFailed: {
+      type: Boolean,
+      default: false,
     },
 
     uploadedDocuments: [
       {
+        /// The `Document` collection record created for this file, so the
+        /// Post Case form can attach the same document the client already
+        /// uploaded instead of asking for it a second time.
+        documentId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Document",
+          default: null,
+        },
         originalName: String,
         mimeType: String,
         size: Number,
@@ -36,43 +88,60 @@ const aiSmartCaseSessionSchema = new mongoose.Schema(
       default: "",
     },
 
-    aiAnalysis: {
-      caseTitle: { type: String, default: "" },
-      caseDescription: { type: String, default: "" },
-      category: { type: String, default: "General Legal" },
-      priority: { type: String, default: "Medium" },
-      documentType: { type: String, default: "Document" },
-      applicableLegalDomain: { type: String, default: "" },
-      requiredSupportingDocuments: [{ type: String }],
-      aiConfidenceScore: { type: Number, default: 0 },
-      readinessScore: { type: Number, default: 0 },
-      detectedTimeline: [{ type: String }],
-      lawyerSpecializationRequired: { type: String, default: "" },
-      missingInformation: [{ type: String }],
-      followUpQuestions: [{ type: String }],
-      fraudFlags: [{ type: String }],
-    },
+    /// The structured field values handed to the Post Case form.
+    ///
+    /// Replaces the old `aiAnalysis` blob (title/category/priority plus
+    /// timeline, readiness score, follow-up questions and fraud flags) together
+    /// with `userAnswers`, `duplicateCheck` and `recommendedLawyers` — all of
+    /// which existed only to feed the deleted Review & Confirm screen and its
+    /// lawyer recommendations.
+    extractedData: {
+      title: { type: String, default: "" },
+      description: { type: String, default: "" },
+      category: { type: String, default: "" },
+      categoryId: { type: String, default: "" },
+      subType: { type: String, default: "" },
+      urgency: { type: String, default: "" },
+      city: { type: String, default: "" },
+      state: { type: String, default: "" },
+      location: { type: String, default: "" },
+      court: { type: String, default: "" },
+      incidentDate: { type: Date, default: null },
+      opposingParty: { type: String, default: "" },
+      firNumber: { type: String, default: "" },
+      policeStation: { type: String, default: "" },
+      bailDetails: { type: String, default: "" },
+      claimAmount: { type: Number, default: null },
+      documentType: { type: String, default: "" },
+      isCriminalLike: { type: Boolean, default: false },
 
-    userAnswers: [
-      {
-        question: String,
-        answer: String,
+      /// Neutral factual synopsis of the matter, distinct from `description`:
+      /// the description is what the client will file, the summary is what the
+      /// AI understood, shown read-only for review.
+      summary: { type: String, default: "" },
+
+      /// Every party the documents name, with the role each plays. Feeds the
+      /// "Other Party" field and is shown in full on the review step.
+      parties: [
+        {
+          name: { type: String, default: "" },
+          role: { type: String, default: "" },
+        },
+      ],
+
+      /// Per-field 0-1 confidence from the model. The form pre-fills only
+      /// fields at or above CONFIDENCE_FLOOR and flags the rest for review,
+      /// which is what keeps a low-confidence guess out of a filed case.
+      confidence: {
+        type: Map,
+        of: Number,
+        default: {},
       },
-    ],
 
-    duplicateCheck: {
-      isDuplicate: { type: Boolean, default: false },
-      existingCaseId: { type: mongoose.Schema.Types.ObjectId, ref: "Case" },
-      existingCaseTitle: { type: String, default: "" },
-      similarityScore: { type: Number, default: 0 },
+      /// Field names the client should check before submitting — low
+      /// confidence, or extracted from a document whose OCR was degraded.
+      needsReview: { type: [String], default: [] },
     },
-
-    recommendedLawyers: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
 
     createdCase: {
       type: mongoose.Schema.Types.ObjectId,

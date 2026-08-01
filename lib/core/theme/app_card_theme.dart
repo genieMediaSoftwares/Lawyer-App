@@ -8,7 +8,7 @@ abstract final class AppCardTheme {
     return CardThemeData(
       color: AppColors.cardBackground,
       elevation: 1,
-      shadowColor: Colors.black.withOpacity(0.2),
+      shadowColor: AppColors.shadow.withValues(alpha: 0.2),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
         side: const BorderSide(color: AppColors.border, width: 1),

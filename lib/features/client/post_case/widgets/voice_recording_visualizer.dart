@@ -43,7 +43,7 @@ class VoiceRecordingVisualizer extends StatelessWidget {
             decoration: BoxDecoration(
               color: isRecording
                   ? goldColor
-                  : AppColors.mutedText.withOpacity(0.3),
+                  : AppColors.mutedText.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           );

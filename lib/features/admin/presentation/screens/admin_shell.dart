@@ -5,7 +5,10 @@ import '../../../../core/theme/app_colors.dart';
 class AdminShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
-  const AdminShell({super.key, required this.navigationShell});
+  const AdminShell({
+    super.key,
+    required this.navigationShell,
+  });
 
   void _onTap(int index) {
     navigationShell.goBranch(
@@ -20,15 +23,17 @@ class AdminShell extends StatelessWidget {
       body: navigationShell,
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          color: Colors.black,
-          border: Border(top: BorderSide(color: AppColors.border, width: 0.8)),
+          color: AppColors.onGold,
+          border: Border(
+            top: BorderSide(color: AppColors.border, width: 0.8),
+          ),
         ),
         child: BottomNavigationBar(
           currentIndex: navigationShell.currentIndex,
           onTap: _onTap,
-          backgroundColor: Colors.black,
+          backgroundColor: AppColors.primaryBackground,
           selectedItemColor: AppColors.primaryGold,
-          unselectedItemColor: Colors.grey,
+          unselectedItemColor: AppColors.mutedText,
           selectedFontSize: 12,
           unselectedFontSize: 12,
           type: BottomNavigationBarType.fixed,

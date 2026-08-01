@@ -1,229 +1,368 @@
-const Lawyer = require("../../models/Lawyer");
-const User = require("../../models/User");
-const Case = require("../../models/Case");
 const gemini = require("./geminiClient");
+const taxonomy = require("../../config/legalCategories");
+const fs = require("fs");
+const path = require("path");
 
+/**
+ * Below this the model's own confidence is not good enough to pre-fill a field
+ * that will end up on a filed legal case. Such fields are still returned, but
+ * listed in `needsReview` so the form leaves them blank and asks the client.
+ */
+const CONFIDENCE_FLOOR = 0.55;
+
+/**
+ * Total base64 budget for inline document payloads in one request, and the cap
+ * on how many files may be attached.
+ *
+ * Every uploaded document reaches the model — the ones whose text extracted
+ * cleanly through their OCR text, and the ones that did not through these
+ * inline bytes. The budget exists because base64 inflates a file by ~33% and
+ * Gemini rejects oversized requests outright; it is spent on the documents
+ * that need vision most, not on the first two in the list.
+ */
+const INLINE_BUDGET_BYTES = 14 * 1024 * 1024;
+const INLINE_MAX_FILES = 6;
+
+/**
+ * Structured extraction for the Post Case form.
+ */
 class AiSmartIntakeService {
   /**
-   * Main AI Smart Case Analysis Engine using Gemini Pro
+   * @param {object[]} [priorityFiles] Files whose OCR failed or returned almost
+   *   nothing. These are attached inline first, because they are exactly the
+   *   documents the text channel failed to represent.
+   * @returns {Promise<{extracted: object, warnings: string[]}>}
    */
-  async analyzeCaseIntake({ ocrText, voiceTranscript, documentMetadata, clientId }) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is not configured.");
-    }
+  async extractCaseData({
+    ocrText,
+    voiceTranscript,
+    typedDescription,
+    documentMetadata,
+    documentFiles,
+    priorityFiles,
+  }) {
+    const sourceText = `
+=== CLIENT'S OWN DESCRIPTION (most authoritative) ===
+${typedDescription || "None provided."}
 
-    const combinedText = `
 === VOICE TRANSCRIPT ===
-${voiceTranscript || "No voice recording provided."}
+${voiceTranscript || "None provided."}
 
-=== EXTRACTED DOCUMENT OCR TEXT ===
-${ocrText || "No document text extracted."}
+=== EXTRACTED DOCUMENT TEXT ===
+${ocrText || "No document text could be extracted."}
 
-=== ATTACHED DOCUMENTS METADATA ===
+=== ATTACHED DOCUMENT METADATA ===
 ${JSON.stringify(documentMetadata || [], null, 2)}
 `;
 
-    const prompt = `You are an expert AI Legal Intake System for Indian Legal Applications. 
-Analyze the user's provided voice transcript and extracted legal document text.
-Extract and generate a complete legal case intake profile.
+    const prompt = `You are a legal intake assistant for an Indian legal services app.
+Read the client's documents and description, then extract ONLY the facts that are actually present.
 
-IMPORTANT INSTRUCTION: You MUST return strictly a SINGLE VALID JSON OBJECT matching the following JSON schema. Do NOT include markdown codeblocks (do not surround with \`\`\`json or \`\`\`), do NOT output introductory or concluding text. Return raw valid JSON only.
+Return a SINGLE VALID JSON OBJECT and nothing else. No markdown fences, no commentary.
+
+CRITICAL RULES:
+1. Use null for any field you cannot determine from the source text or documents. NEVER invent,
+   infer or fill a plausible-looking placeholder. A null is correct and expected.
+2. "category" MUST be copied EXACTLY from the list below, character for character.
+   "subType" MUST be one of that category's listed sub-types, copied exactly.
+   If nothing fits, set both to null.
+3. Dates must be ISO 8601 (YYYY-MM-DD). If only a month/year is known, use the
+   first day of that month. If no date is stated, null.
+4. The CLIENT'S OWN DESCRIPTION outranks the document text. An uploaded file may
+   be unrelated to the matter (a resume, an ID scan, a random photo). If the
+   document does not concern the problem the client described, base the case
+   fields on the client's description and ignore the document's subject matter —
+   record what the file appears to be in "documentType" only.
+
+ALLOWED CATEGORIES AND SUB-TYPES:
+${taxonomy.promptTaxonomy()}
+
+5. "confidence" must carry an honest 0-1 score for every field you filled.
+   Score how certain you are that the value is correct FOR THIS CLIENT'S
+   MATTER — not how clearly you read the characters. A name read perfectly
+   off a document that may belong to a different matter is LOW confidence.
+   Do not include a score for a field you set to null.
 
 JSON SCHEMA:
 {
-  "caseTitle": "Concise, professional legal title for the case (max 10 words)",
-  "caseDescription": "Comprehensive, factual legal description summarizing the incident, parties involved, financial amounts, locations, and legal grievances.",
-  "category": "One of: Property Law, Criminal Law, Family Law, Labour & Employment, Civil Law, Consumer Protection, Cyber Law, Rental & Tenancy, Motor Vehicle Accidents, Cheque Bounce & Finance, Documentation, General Legal",
-  "priority": "High | Medium | Urgent | Flexible",
-  "documentType": "One of: FIR, Agreement, Sale Deed, Property Documents, Medical Reports, Court Orders, Affidavits, Cheque, Bank Memo, Legal Notice, Employment Contract, Consumer Complaint, Rental Agreement, Tax Documents, Unknown",
-  "applicableLegalDomain": "e.g., Indian Penal Code / Bharatiya Nyaya Sanhita, Specific Relief Act, Consumer Protection Act, Real Estate Regulation Act (RERA), Negotiable Instruments Act Section 138, etc.",
-  "requiredSupportingDocuments": ["Array of recommended supporting documents for this legal issue"],
-  "aiConfidenceScore": 88,
-  "detectedTimeline": ["Array of chronological dates/events extracted from documents/voice"],
-  "lawyerSpecializationRequired": "Specialization needed (e.g., Property Advocate, Criminal Defense Lawyer, Family Court Advocate, Corporate Lawyer)",
-  "missingInformation": ["List any key missing details e.g., Date of incident, Notice delivery proof, Claim amount, Property survey number"],
-  "followUpQuestions": ["Intelligent, specific follow-up questions to ask the user if key details are missing"],
-  "fraudFlags": ["Any detected issues e.g. Unclear signature, Missing bank memo stamp, Unreadable page"]
+  "title": "Short factual case title, max 12 words, or null",
+  "description": "Factual summary of what happened: parties, amounts, places, dates. No legal advice, no speculation. Or null.",
+  "summary": "2-4 sentence neutral synopsis of the matter for the client to review, or null",
+  "category": "EXACT category from the list above, or null",
+  "subType": "EXACT sub-type belonging to that category, or null",
+  "urgency": "Urgent | High | Medium | Flexible | null",
+  "city": "City or town name only, or null",
+  "state": "State name only, or null",
+  "location": "Fuller address/locality if one is stated, or null",
+  "court": "Named court if the documents mention one, or null",
+  "incidentDate": "YYYY-MM-DD of when the incident happened, or null",
+  "opposingParty": "Name of the single main opposing party, or null",
+  "parties": [
+    {"name": "Party name exactly as written", "role": "Their role, e.g. Complainant, Accused, Landlord, Employer, Bank, Petitioner"}
+  ],
+  "firNumber": "FIR number or existing court case number, or null. Only for criminal/cyber/accident matters.",
+  "policeStation": "Police station name, or null. Only for criminal/cyber/accident matters.",
+  "bailDetails": "Bail status, bail type and any sections charged, as a short phrase. Or null. Only for criminal matters.",
+  "claimAmount": "Numeric amount in INR if a sum is claimed or disputed, else null",
+  "documentType": "What the uploaded document appears to be (FIR, Sale Deed, Legal Notice, Agreement, Bank Memo, Medical Report, ...), or null",
+  "confidence": {"title": 0.0, "description": 0.0, "category": 0.0, "subType": 0.0, "city": 0.0, "state": 0.0, "location": 0.0, "court": 0.0, "incidentDate": 0.0, "opposingParty": 0.0, "firNumber": 0.0, "policeStation": 0.0, "bailDetails": 0.0, "claimAmount": 0.0, "urgency": 0.0},
+  "unreadableDocumentNotes": ["Short notes about pages that could not be read, empty array if none"]
 }`;
 
-    const { text: rawAiResponse, error: aiError } = await gemini.generate(
-      [{ text: combinedText }, { text: prompt }],
-      { label: "smart-case:analyze" }
-    );
+    const parts = [];
 
-    if (!rawAiResponse) {
-      throw new Error(`Gemini AI analysis failed: ${aiError}`);
+    // Attach the documents the text channel could not represent — the ones
+    // whose OCR failed or came back near-empty — so vision gets a look at them.
+    // Anything not attached here is still present in the source text above, so
+    // every uploaded document reaches the model through one channel or the
+    // other. The old `documentFiles.slice(0, 2)` sent the first two regardless
+    // of whether they needed it, and silently ignored documents 3..10.
+    const inlineCandidates = [
+      ...(Array.isArray(priorityFiles) ? priorityFiles : []),
+      ...(Array.isArray(documentFiles) ? documentFiles : []),
+    ];
+
+    const seenPaths = new Set();
+    let inlineBudget = INLINE_BUDGET_BYTES;
+    let inlineCount = 0;
+
+    for (const file of inlineCandidates) {
+      if (inlineCount >= INLINE_MAX_FILES || inlineBudget <= 0) break;
+      if (!file?.path || seenPaths.has(file.path)) continue;
+      seenPaths.add(file.path);
+
+      try {
+        if (!fs.existsSync(file.path)) continue;
+
+        const ext = path.extname(file.originalname || file.path).toLowerCase();
+        let mimeType = file.mimetype;
+
+        if (ext === ".pdf") mimeType = "application/pdf";
+        else if (ext === ".png") mimeType = "image/png";
+        else if ([".jpg", ".jpeg"].includes(ext)) mimeType = "image/jpeg";
+        else if (ext === ".webp") mimeType = "image/webp";
+
+        // Only formats Gemini accepts inline. DOCX and TXT are text-extracted
+        // upstream and already sit in the source text.
+        if (!mimeType || !(mimeType.startsWith("image/") || mimeType === "application/pdf")) {
+          continue;
+        }
+
+        const fileBuffer = fs.readFileSync(file.path);
+        const encodedSize = Math.ceil(fileBuffer.length / 3) * 4;
+        if (encodedSize > inlineBudget) continue;
+
+        parts.push({
+          inlineData: { mimeType, data: fileBuffer.toString("base64") },
+        });
+        inlineBudget -= encodedSize;
+        inlineCount += 1;
+      } catch (e) {
+        console.warn("Could not attach inline document file to Gemini request:", e.message);
+      }
     }
 
-    // Parse JSON cleanly
-    const cleanedJson = rawAiResponse
+    parts.push({ text: sourceText });
+    parts.push({ text: prompt });
+
+    const { text: raw, error } = await gemini.generate(parts, { label: "smart-case:extract" });
+
+    if (!raw) {
+      throw new Error(`AI extraction failed: ${error}`);
+    }
+
+    const parsed = this._parseJson(raw);
+    return this._normalise(parsed);
+  }
+
+  /** Strips accidental markdown fences and parses; throws with context. */
+  _parseJson(raw) {
+    const cleaned = raw
       .replace(/```json/gi, "")
       .replace(/```/g, "")
       .trim();
 
-    let parsedResult;
     try {
-      parsedResult = JSON.parse(cleanedJson);
+      return JSON.parse(cleaned);
     } catch (e) {
-      console.error("Failed to parse Gemini JSON:", rawAiResponse);
-      parsedResult = {
-        caseTitle: "Legal Intake Request",
-        caseDescription: ocrText.substring(0, 300) || voiceTranscript.substring(0, 300) || "Legal consultation required.",
-        category: "General Legal",
-        priority: "Medium",
-        documentType: "Document",
-        applicableLegalDomain: "Indian Civil Law",
-        requiredSupportingDocuments: ["ID Proof", "Relevant Agreements/Receipts"],
-        aiConfidenceScore: 75,
-        detectedTimeline: [],
-        lawyerSpecializationRequired: "General Advocate",
-        missingInformation: ["Detailed incident chronology"],
-        followUpQuestions: ["Could you provide more specific dates regarding when this issue occurred?"],
-        fraudFlags: [],
-      };
-    }
-
-    // Calculate Case Readiness Score
-    const confidence = parsedResult.aiConfidenceScore || 75;
-    const hasCategory = !!parsedResult.category;
-    const hasTimeline = parsedResult.detectedTimeline && parsedResult.detectedTimeline.length > 0;
-    const missingCount = (parsedResult.missingInformation || []).length;
-    
-    let readinessScore = Math.round(
-      confidence * 0.5 +
-      (hasCategory ? 20 : 0) +
-      (hasTimeline ? 15 : 5) -
-      missingCount * 5
-    );
-    readinessScore = Math.max(30, Math.min(98, readinessScore));
-    parsedResult.readinessScore = readinessScore;
-
-    // Check Duplicate Cases for the same client in MongoDB
-    const duplicateCheck = await this.checkDuplicateCases(clientId, parsedResult.caseTitle, parsedResult.caseDescription);
-
-    // Get REAL Lawyers from MongoDB
-    const recommendedLawyers = await this.getRealLawyerRecommendations(parsedResult.category, parsedResult.lawyerSpecializationRequired);
-
-    return {
-      aiAnalysis: parsedResult,
-      duplicateCheck,
-      recommendedLawyers,
-    };
-  }
-
-  /**
-   * Search MongoDB for duplicate/similar existing cases owned by the authenticated client
-   */
-  async checkDuplicateCases(clientId, title, description) {
-    if (!clientId) return { isDuplicate: false, similarityScore: 0 };
-
-    try {
-      const activeCases = await Case.find({
-        client: clientId,
-        status: { $in: ["Submitted", "Awaiting Lawyer Acceptance", "In Progress"] },
-      }).select("_id title description category createdAt");
-
-      if (!activeCases || activeCases.length === 0) {
-        return { isDuplicate: false, similarityScore: 0 };
-      }
-
-      const cleanTitle = (title || "").toLowerCase();
-      const cleanDesc = (description || "").toLowerCase();
-
-      for (const existingCase of activeCases) {
-        const existTitle = (existingCase.title || "").toLowerCase();
-        const existDesc = (existingCase.description || "").toLowerCase();
-
-        // Check keyword/token overlap
-        const titleTokens = cleanTitle.split(/\s+/).filter((t) => t.length > 3);
-        const matchCount = titleTokens.filter((t) => existTitle.includes(t) || existDesc.includes(t)).length;
-
-        if (titleTokens.length > 0 && matchCount / titleTokens.length >= 0.6) {
-          return {
-            isDuplicate: true,
-            existingCaseId: existingCase._id,
-            existingCaseTitle: existingCase.title,
-            similarityScore: Math.round((matchCount / titleTokens.length) * 100),
-          };
+      // Last resort: grab the outermost object if the model wrapped it in prose.
+      const first = cleaned.indexOf("{");
+      const last = cleaned.lastIndexOf("}");
+      if (first !== -1 && last > first) {
+        try {
+          return JSON.parse(cleaned.slice(first, last + 1));
+        } catch {
+          /* fall through */
         }
       }
-    } catch (err) {
-      console.error("Duplicate check error:", err.message);
+      console.error("Could not parse extraction JSON:", cleaned.slice(0, 400));
+      throw new Error("The AI returned an unreadable response. Please try again.");
     }
-
-    return { isDuplicate: false, similarityScore: 0 };
   }
 
   /**
-   * Fetch REAL verified lawyers from MongoDB database
-   * Sorted dynamically by rating DESC, experience DESC, win percentage DESC
+   * Coerces the model's answer into the exact shapes the form expects, and
+   * drops anything that does not belong.
    */
-  async getRealLawyerRecommendations(category, specialization) {
-    try {
-      // Prefer lawyers matching the detected specialisation, then fall back to
-      // any active lawyer. The previous filter required verified status OR a
-      // non-zero rating OR non-zero experience, which excluded every
-      // newly-onboarded lawyer and returned an empty list on a fresh database —
-      // silently, because the caller swallows errors. An empty list meant no
-      // lawyer was ever selected, so no appointment and no notification was
-      // created when the case was filed.
-      const specialisationFilter = [category, specialization]
-        .filter(Boolean)
-        .map((term) => ({ specialization: new RegExp(term, "i") }));
+  _normalise(parsed) {
+    const warnings = [];
 
-      let lawyers = [];
-
-      if (specialisationFilter.length > 0) {
-        lawyers = await Lawyer.find({ $or: specialisationFilter })
-          .populate("user", "fullName email mobile profileImage role isActive")
-          .sort({ verificationStatus: 1, rating: -1, experience: -1 })
-          .limit(10);
+    const str = (v) => {
+      if (v === null || v === undefined) return "";
+      const s = String(v).trim();
+      // Models sometimes emit these instead of a real null.
+      if (!s || /^(null|n\/?a|none|unknown|not (specified|available|mentioned))$/i.test(s)) {
+        return "";
       }
+      return s;
+    };
 
-      if (lawyers.length === 0) {
-        lawyers = await Lawyer.find({})
-          .populate("user", "fullName email mobile profileImage role isActive")
-          .sort({ rating: -1, experience: -1 })
-          .limit(10);
+    const date = (v) => {
+      const s = str(v);
+      if (!s) return null;
+      const d = new Date(s);
+      if (Number.isNaN(d.getTime())) return null;
+      // An incident cannot be in the future; a mis-parsed year is more likely.
+      if (d.getTime() > Date.now()) {
+        warnings.push("Ignored an incident date in the future.");
+        return null;
       }
+      return d.toISOString().slice(0, 10);
+    };
 
-      // Every field below reports what the database actually holds.
-      //
-      // The previous version substituted invented values when a field was
-      // absent — rating 4.8, winPercentage 88, casesHandled 95, 24 reviews,
-      // "High Court Advocate" — so an unrated, unverified lawyer was presented
-      // to a client as a highly-rated one. Fabricated credentials shown to
-      // someone choosing legal representation are a compliance problem, not a
-      // cosmetic one. Unknown values are now null; the UI must render them as
-      // "New" or omit the metric.
-      const formatted = lawyers
-        .filter((l) => l.user != null && l.user.isActive !== false)
-        .map((l) => ({
-          lawyerId: l._id.toString(),
-          userId: l.user._id.toString(),
-          // The User schema field is `fullName`; `name` does not exist, so the
-          // old code fell through to "Advocate" for every single lawyer.
-          name: l.user.fullName || "Advocate",
-          email: l.user.email || "",
-          avatar: l.user.profileImage || "",
-          specialization: l.specialization || "",
-          experience: typeof l.experience === "number" ? l.experience : null,
-          rating: l.rating > 0 ? l.rating : null,
-          totalReviews: typeof l.totalReviews === "number" ? l.totalReviews : 0,
-          consultationFee:
-            typeof l.consultationFee === "number" ? l.consultationFee : null,
-          winPercentage: l.winPercentage > 0 ? l.winPercentage : null,
-          casesHandled: typeof l.casesHandled === "number" ? l.casesHandled : 0,
-          officeAddress: l.officeAddress || "",
-          isVerified: l.verificationStatus === "verified",
-        }));
+    const num = (v) => {
+      if (v === null || v === undefined || v === "") return null;
+      // Match the first number-like token rather than stripping non-digits:
+      // stripping left the "." from "Rs." attached to the digits, so
+      // "Rs. 50,000" parsed as 0.5. Commas are removed first so Indian
+      // grouping ("1,25,000") survives.
+      const match = String(v).replace(/,/g, "").match(/\d+(?:\.\d+)?/);
+      if (!match) return null;
+      const n = Number(match[0]);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
 
-      return formatted;
-    } catch (err) {
-      console.error("Lawyer recommendation query error:", err.message);
-      return [];
+    // Category and sub-type are mapped onto the app's exact strings so the
+    // dropdowns can select them; null when nothing credible matched.
+    const resolved = taxonomy.resolveCategory(parsed.category, parsed.subType);
+    if (str(parsed.category) && !resolved.category) {
+      warnings.push(
+        `Could not match "${str(parsed.category)}" to a category — please pick one.`
+      );
     }
+
+    const allowedUrgency = ["Urgent", "High", "Medium", "Flexible"];
+    const urgency = allowedUrgency.find(
+      (u) => u.toLowerCase() === str(parsed.urgency).toLowerCase()
+    ) || null;
+
+    // FIR / police station / bail only make sense for criminal-like categories.
+    // Discard them otherwise so the form does not reveal that field group for,
+    // say, a GST notice just because the model volunteered a stray value.
+    const criminalLike = resolved.category
+      ? taxonomy.isCriminalLike(resolved.category)
+      : false;
+
+    // Per-field confidence, clamped to 0-1. A field the model filled but did
+    // not score is treated as unscored rather than as certain.
+    const rawConfidence =
+      parsed.confidence && typeof parsed.confidence === "object" ? parsed.confidence : {};
+    const confidence = {};
+    for (const [field, value] of Object.entries(rawConfidence)) {
+      const score = Number(value);
+      if (Number.isFinite(score)) {
+        confidence[field] = Math.min(1, Math.max(0, score));
+      }
+    }
+
+    // Named parties, deduplicated on name. Feeds the "Other Party" field and is
+    // shown in full on the review step.
+    const parties = [];
+    const seenParties = new Set();
+    if (Array.isArray(parsed.parties)) {
+      for (const entry of parsed.parties) {
+        const name = str(entry?.name);
+        if (!name) continue;
+        const key = name.toLowerCase();
+        if (seenParties.has(key)) continue;
+        seenParties.add(key);
+        parties.push({ name, role: str(entry?.role) });
+      }
+    }
+
+    const extracted = {
+      title: str(parsed.title),
+      description: str(parsed.description),
+      summary: str(parsed.summary),
+      category: resolved.category,
+      categoryId: resolved.categoryId,
+      subType: resolved.subType,
+      urgency,
+      city: str(parsed.city),
+      state: str(parsed.state),
+      location: str(parsed.location),
+      court: str(parsed.court),
+      incidentDate: date(parsed.incidentDate),
+      opposingParty: str(parsed.opposingParty),
+      parties,
+      firNumber: criminalLike ? str(parsed.firNumber) : "",
+      policeStation: criminalLike ? str(parsed.policeStation) : "",
+      bailDetails: criminalLike ? str(parsed.bailDetails) : "",
+      claimAmount: num(parsed.claimAmount),
+      documentType: str(parsed.documentType),
+      isCriminalLike: criminalLike,
+      confidence,
+    };
+
+    // A value the model itself is unsure of must not be pre-filled into a form
+    // the client is about to file as a legal case. It is cleared here and
+    // named in `needsReview`, so the field shows empty and flagged rather than
+    // pre-filled and wrong.
+    // Each reviewable field maps to the empty value its consumer expects, so
+    // clearing one leaves the exact shape the Post Case form treats as "not
+    // extracted" rather than a type it has to guess at.
+    const EMPTY_WHEN_UNSURE = {
+      title: "",
+      description: "",
+      city: "",
+      state: "",
+      location: "",
+      court: "",
+      opposingParty: "",
+      firNumber: "",
+      policeStation: "",
+      bailDetails: "",
+      category: null,
+      subType: null,
+      urgency: null,
+      incidentDate: null,
+      claimAmount: null,
+    };
+
+    const needsReview = [];
+    for (const [field, emptyValue] of Object.entries(EMPTY_WHEN_UNSURE)) {
+      const value = extracted[field];
+      if (value === null || value === undefined || value === "") continue;
+
+      const score = confidence[field];
+      if (score === undefined || score >= CONFIDENCE_FLOOR) continue;
+
+      needsReview.push(field);
+      extracted[field] = emptyValue;
+      // categoryId is derived from category and must not outlive it.
+      if (field === "category") extracted.categoryId = null;
+    }
+    extracted.needsReview = needsReview;
+
+    return {
+      extracted,
+      warnings: [
+        ...warnings,
+        ...(Array.isArray(parsed.unreadableDocumentNotes)
+          ? parsed.unreadableDocumentNotes.map(str).filter(Boolean)
+          : []),
+      ],
+    };
   }
 }
 

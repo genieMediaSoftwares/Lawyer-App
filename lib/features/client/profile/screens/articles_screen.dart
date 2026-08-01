@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../providers/article_provider.dart';
 import '../../../../models/article_model.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class ArticlesScreen extends ConsumerStatefulWidget {
   const ArticlesScreen({super.key});
@@ -98,7 +99,7 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                           backgroundColor: theme.colorScheme.surface,
                           labelStyle: TextStyle(
                             color: isSelected
-                                ? Colors.black
+                                ? AppColors.onGold
                                 : theme.textTheme.bodySmall?.color,
                             fontWeight: isSelected
                                 ? FontWeight.bold
@@ -219,7 +220,7 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(

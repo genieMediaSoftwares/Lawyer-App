@@ -9,7 +9,7 @@ import '../../../../providers/auth_provider.dart';
 import '../../../../providers/profile_provider.dart';
 import '../../../../models/client_profile_model.dart';
 import '../../../../routes/route_names.dart';
-import '../../../../core/widgets/location_picker_sheet.dart';
+import '../../../../core/widgets/manual_location_field.dart';
 import '../../../../providers/notification_provider.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
@@ -33,22 +33,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final unreadCount = ref.watch(notificationsProvider).unreadCount;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.primaryBackground,
       drawer: const AppDrawer(),
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         title: const Text(
           "Profile",
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.primaryText,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
         leading: Builder(
           builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white),
+            icon: const Icon(Icons.menu, color: AppColors.primaryText),
             onPressed: () {
               Scaffold.of(context).openDrawer();
             },
@@ -59,7 +59,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             alignment: Alignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_none, color: Colors.white),
+                icon: const Icon(
+                  Icons.notifications_none,
+                  color: AppColors.primaryText,
+                ),
                 onPressed: () => context.push(RouteNames.notifications),
               ),
               if (unreadCount > 0)
@@ -79,7 +82,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: Text(
                       '$unreadCount',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.primaryText,
                         fontSize: 8,
                         fontWeight: FontWeight.bold,
                       ),
@@ -94,12 +97,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () => ref.read(profileProvider.notifier).fetchProfileData(),
-        color: const Color(0xFFD4AF37),
-        backgroundColor: const Color(0xFF1B1B1B),
+        color: AppColors.primaryGold,
+        backgroundColor: AppColors.surface,
         child: state.isLoading && state.profile == null
             ? const Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4AF37)),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppColors.primaryGold,
+                  ),
                 ),
               )
             : state.errorMessage != null && state.profile == null
@@ -111,13 +116,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     children: [
                       const Icon(
                         Icons.error_outline,
-                        color: Colors.red,
+                        color: AppColors.error,
                         size: 48,
                       ),
                       const SizedBox(height: 16),
                       Text(
                         "Failed to load profile details.",
-                        style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                        style: TextStyle(
+                          color: AppColors.mutedText,
+                          fontSize: 16,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       ElevatedButton(
@@ -125,8 +133,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             .read(profileProvider.notifier)
                             .fetchProfileData(),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD4AF37),
-                          foregroundColor: Colors.black,
+                          backgroundColor: AppColors.primaryGold,
+                          foregroundColor: AppColors.onGold,
                         ),
                         child: const Text("Retry"),
                       ),
@@ -161,7 +169,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Text(
               "ACCOUNT & PERSONAL DETAILS",
               style: TextStyle(
-                color: Colors.grey,
+                color: AppColors.mutedText,
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
               ),
@@ -169,59 +177,70 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
 
           // 2. Account Details Section
+          //
+          // The background colour lives on the Material, not the Container.
+          // A ListTile paints its own background and ink splash onto the
+          // nearest Material ancestor, so a coloured DecoratedBox in between
+          // hides both — which is exactly what Flutter's
+          // "ListTile background color or ink splashes may be invisible"
+          // assertion was reporting. The Container keeps the border/radius and
+          // clips so the splash respects the rounded corners.
           Container(
             width: double.infinity,
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              color: const Color(0xFF1B1B1B),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF2B2B2B), width: 1),
+              border: Border.all(color: AppColors.border, width: 1),
             ),
-            child: Column(
-              children: [
-                _buildMenuRow(
-                  icon: Icons.person_outline,
-                  title: "My Profile",
-                  subtitle: "Photo, name, contact info",
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const MyProfileScreen(),
+            child: Material(
+              color: AppColors.surface,
+              child: Column(
+                children: [
+                  _buildMenuRow(
+                    icon: Icons.person_outline,
+                    title: "My Profile",
+                    subtitle: "Photo, name, contact info",
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const MyProfileScreen(),
+                      ),
                     ),
                   ),
-                ),
-                const Divider(color: Color(0xFF2B2B2B), height: 1),
-                _buildMenuRow(
-                  icon: Icons.contact_mail_outlined,
-                  title: "Personal Information",
-                  subtitle: "DOB, gender, address, languages",
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const PersonalInformationScreen(),
+                  const Divider(color: AppColors.border, height: 1),
+                  _buildMenuRow(
+                    icon: Icons.contact_mail_outlined,
+                    title: "Personal Information",
+                    subtitle: "DOB, gender, address, languages",
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const PersonalInformationScreen(),
+                      ),
                     ),
                   ),
-                ),
-                const Divider(color: Color(0xFF2B2B2B), height: 1),
-                _buildMenuRow(
-                  icon: Icons.show_chart_outlined,
-                  title: "Recent Activity",
-                  subtitle: "Your timeline of activity logs",
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const RecentActivityScreen(),
+                  const Divider(color: AppColors.border, height: 1),
+                  _buildMenuRow(
+                    icon: Icons.show_chart_outlined,
+                    title: "Recent Activity",
+                    subtitle: "Your timeline of activity logs",
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const RecentActivityScreen(),
+                      ),
                     ),
                   ),
-                ),
-                const Divider(color: Color(0xFF2B2B2B), height: 1),
-                _buildMenuRow(
-                  icon: Icons.headset_mic_outlined,
-                  title: "Support & Help",
-                  subtitle: "Help center, privacy, terms, support",
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const SupportHelpScreen(),
+                  const Divider(color: AppColors.border, height: 1),
+                  _buildMenuRow(
+                    icon: Icons.headset_mic_outlined,
+                    title: "Support & Help",
+                    subtitle: "Help center, privacy, terms, support",
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const SupportHelpScreen(),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -232,37 +251,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Text(
               "LEGAL DESK & SERVICES",
               style: TextStyle(
-                color: Colors.grey,
+                color: AppColors.mutedText,
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
               ),
             ),
           ),
 
-          // 3. Operational Menu Section
+          // 3. Operational Menu Section — same Material-hosts-the-colour
+          // arrangement as the section above, for the same reason.
           Container(
             width: double.infinity,
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              color: const Color(0xFF1B1B1B),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF2B2B2B), width: 1),
+              border: Border.all(color: AppColors.border, width: 1),
             ),
-            child: Column(
-              children: [
-                _buildMenuRow(
-                  icon: Icons.description_outlined,
-                  title: "Documents",
-                  subtitle: "Your legal documents",
-                  onTap: () => context.push(RouteNames.myDocuments),
-                ),
-                const Divider(color: Color(0xFF2B2B2B), height: 1),
-                _buildMenuRow(
-                  icon: Icons.settings_outlined,
-                  title: "Settings",
-                  subtitle: "Account & app settings",
-                  onTap: () => context.push(RouteNames.settings),
-                ),
-              ],
+            child: Material(
+              color: AppColors.surface,
+              child: Column(
+                children: [
+                  _buildMenuRow(
+                    icon: Icons.description_outlined,
+                    title: "Documents",
+                    subtitle: "Your legal documents",
+                    onTap: () => context.push(RouteNames.myDocuments),
+                  ),
+                  const Divider(color: AppColors.border, height: 1),
+                  _buildMenuRow(
+                    icon: Icons.settings_outlined,
+                    title: "Settings",
+                    subtitle: "Account & app settings",
+                    onTap: () => context.push(RouteNames.settings),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 32),
@@ -276,18 +299,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               decoration: BoxDecoration(
                 color: Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFF3B30), width: 1.2),
+                border: Border.all(color: AppColors.error, width: 1.2),
               ),
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: const [
-                  Icon(Icons.logout, color: Color(0xFFFF3B30), size: 20),
+                  Icon(Icons.logout, color: AppColors.error, size: 20),
                   SizedBox(width: 10),
                   Text(
                     "Logout",
                     style: TextStyle(
-                      color: Color(0xFFFF3B30),
+                      color: AppColors.error,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -306,16 +329,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFF1B1B1B),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2B2B2B), width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
           AppCircleAvatar(
             radius: 28,
-            backgroundColor: const Color(0xFF2B2B2B),
+            backgroundColor: AppColors.border,
             imageUrl: profile.profileImage.isNotEmpty
                 ? Environment.getAttachmentUrl(profile.profileImage)
                 : null,
@@ -324,7 +347,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ? profile.fullName[0].toUpperCase()
                   : 'C',
               style: const TextStyle(
-                color: Color(0xFFD4AF37),
+                color: AppColors.primaryGold,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
@@ -338,7 +361,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Text(
                   profile.fullName,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.primaryText,
                     fontWeight: FontWeight.bold,
                     fontSize: 17,
                   ),
@@ -349,12 +372,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 4),
                   Row(
                     children: const [
-                      Icon(Icons.verified, color: Color(0xFFD4AF37), size: 14),
+                      Icon(
+                        Icons.verified,
+                        color: AppColors.primaryGold,
+                        size: 14,
+                      ),
                       SizedBox(width: 6),
                       Text(
                         "Verified Client",
                         style: TextStyle(
-                          color: Color(0xFFD4AF37),
+                          color: AppColors.primaryGold,
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
                         ),
@@ -365,7 +392,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: Color(0xFFD4AF37), size: 20),
+          const Icon(
+            Icons.chevron_right,
+            color: AppColors.primaryGold,
+            size: 20,
+          ),
         ],
       ),
     );
@@ -380,22 +411,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: Icon(icon, color: const Color(0xFFD4AF37), size: 24),
+      leading: Icon(icon, color: AppColors.primaryGold, size: 24),
       title: Text(
         title,
         style: const TextStyle(
-          color: Colors.white,
+          color: AppColors.primaryText,
           fontWeight: FontWeight.bold,
           fontSize: 15,
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(color: Colors.grey, fontSize: 12),
+        style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
       ),
       trailing: const Icon(
         Icons.chevron_right,
-        color: Color(0xFFD4AF37),
+        color: AppColors.primaryGold,
         size: 20,
       ),
     );
@@ -456,9 +487,9 @@ class _EditProfileBottomSheetState
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.dark(
               primary: AppColors.primaryGold,
-              onPrimary: Colors.black,
-              surface: Color(0xFF1B1B1B),
-              onSurface: Colors.white,
+              onPrimary: AppColors.onGold,
+              surface: AppColors.surface,
+              onSurface: AppColors.primaryText,
             ),
           ),
           child: child!,
@@ -545,7 +576,7 @@ class _EditProfileBottomSheetState
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF1B1B1B),
+        color: AppColors.surface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -570,13 +601,13 @@ class _EditProfileBottomSheetState
                   const Text(
                     "Edit Personal Information",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.primaryText,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: const Icon(Icons.close, color: AppColors.primaryText),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -598,7 +629,7 @@ class _EditProfileBottomSheetState
                 controller: _dobController,
                 readOnly: true,
                 onTap: _selectDate,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppColors.primaryText),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
                     return "Date of Birth is required";
@@ -614,18 +645,18 @@ class _EditProfileBottomSheetState
                 },
                 decoration: InputDecoration(
                   labelText: "Date of Birth",
-                  labelStyle: const TextStyle(color: Colors.grey),
+                  labelStyle: const TextStyle(color: AppColors.mutedText),
                   hintText: "dd/mm/yyyy",
-                  hintStyle: const TextStyle(color: Colors.grey),
+                  hintStyle: const TextStyle(color: AppColors.mutedText),
                   suffixIcon: const Icon(
                     Icons.calendar_today_outlined,
                     color: AppColors.primaryGold,
                   ),
                   filled: true,
-                  fillColor: const Color(0xFF2B2B2B),
+                  fillColor: AppColors.border,
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF3B3B3B)),
+                    borderSide: const BorderSide(color: AppColors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -633,11 +664,11 @@ class _EditProfileBottomSheetState
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.red),
+                    borderSide: const BorderSide(color: AppColors.error),
                   ),
                   focusedErrorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.red),
+                    borderSide: const BorderSide(color: AppColors.error),
                   ),
                 ),
               ),
@@ -645,7 +676,7 @@ class _EditProfileBottomSheetState
 
               // Gender
               DropdownButtonFormField<String>(
-                value:
+                initialValue:
                     [
                       'Male',
                       'Female',
@@ -654,24 +685,24 @@ class _EditProfileBottomSheetState
                     ].contains(_genderController.text)
                     ? _genderController.text
                     : null,
-                dropdownColor: const Color(0xFF1B1B1B),
-                style: const TextStyle(color: Colors.white),
+                dropdownColor: AppColors.surface,
+                style: const TextStyle(color: AppColors.primaryText),
                 icon: const Icon(
                   Icons.arrow_drop_down,
                   color: AppColors.primaryGold,
                 ),
                 hint: const Text(
                   "Select Gender",
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                  style: TextStyle(color: AppColors.mutedText, fontSize: 14),
                 ),
                 decoration: InputDecoration(
                   labelText: "Gender",
-                  labelStyle: const TextStyle(color: Colors.grey),
+                  labelStyle: const TextStyle(color: AppColors.mutedText),
                   filled: true,
-                  fillColor: const Color(0xFF2B2B2B),
+                  fillColor: AppColors.border,
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF3B3B3B)),
+                    borderSide: const BorderSide(color: AppColors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -679,11 +710,11 @@ class _EditProfileBottomSheetState
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.red),
+                    borderSide: const BorderSide(color: AppColors.error),
                   ),
                   focusedErrorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.red),
+                    borderSide: const BorderSide(color: AppColors.error),
                   ),
                 ),
                 items: const [
@@ -726,30 +757,16 @@ class _EditProfileBottomSheetState
               ),
               const SizedBox(height: 12),
 
-              // Address / Location
-              GestureDetector(
-                onTap: () async {
-                  final loc = await LocationPickerSheet.show(
-                    context,
-                    initialLocation: _locationController.text,
-                  );
-                  if (loc != null) {
-                    setState(() {
-                      _locationController.text = loc;
-                    });
-                  }
-                },
-                child: AbsorbPointer(
-                  child: _buildTextField(
-                    controller: _locationController,
-                    labelText: "Address / Location",
-                    suffixIcon: const Icon(
-                      Icons.my_location,
-                      color: Color(0xFFD4AF37),
-                    ),
-                    validator: (val) => null,
-                  ),
-                ),
+              // Address / Location — manual free-text entry.
+              //
+              // Was an AbsorbPointer over a read-only field that opened the
+              // autocomplete picker sheet, which meant the user could not type
+              // their address and had to pick a city the places API recognised.
+              // Profile addresses are free-form; autocomplete belongs only on
+              // the Post-a-Case screen.
+              ManualLocationField(
+                controller: _locationController,
+                labelText: "Address / Location",
               ),
 
               const SizedBox(height: 24),
@@ -760,8 +777,8 @@ class _EditProfileBottomSheetState
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD4AF37),
-                    foregroundColor: Colors.black,
+                    backgroundColor: AppColors.primaryGold,
+                    foregroundColor: AppColors.onGold,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -774,7 +791,7 @@ class _EditProfileBottomSheetState
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.black,
+                              AppColors.onGold,
                             ),
                           ),
                         )
@@ -804,29 +821,29 @@ class _EditProfileBottomSheetState
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: AppColors.primaryText),
       validator: validator,
       decoration: InputDecoration(
         labelText: labelText,
-        labelStyle: const TextStyle(color: Colors.grey),
+        labelStyle: const TextStyle(color: AppColors.mutedText),
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: const Color(0xFF2B2B2B),
+        fillColor: AppColors.border,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF3B3B3B)),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFD4AF37)),
+          borderSide: const BorderSide(color: AppColors.primaryGold),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.red),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.red),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
       ),
     );

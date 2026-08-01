@@ -296,7 +296,7 @@ class LawyerProfileScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.star, color: Colors.amber, size: 18),
+              const Icon(Icons.star, color: AppColors.warning, size: 18),
               const SizedBox(width: 4),
               Text(
                 "${lawyer.rating}",

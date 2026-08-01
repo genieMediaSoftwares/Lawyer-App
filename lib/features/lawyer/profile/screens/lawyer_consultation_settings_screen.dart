@@ -9,12 +9,10 @@ class LawyerConsultationSettingsScreen extends ConsumerStatefulWidget {
   const LawyerConsultationSettingsScreen({super.key});
 
   @override
-  ConsumerState<LawyerConsultationSettingsScreen> createState() =>
-      _LawyerConsultationSettingsScreenState();
+  ConsumerState<LawyerConsultationSettingsScreen> createState() => _LawyerConsultationSettingsScreenState();
 }
 
-class _LawyerConsultationSettingsScreenState
-    extends ConsumerState<LawyerConsultationSettingsScreen> {
+class _LawyerConsultationSettingsScreenState extends ConsumerState<LawyerConsultationSettingsScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _feeController;
   late TextEditingController _hoursController;
@@ -35,25 +33,17 @@ class _LawyerConsultationSettingsScreenState
       final userId = ref.read(authProvider).userId ?? "";
       final lawyerState = ref.read(lawyerDetailsProvider(userId));
       lawyerState.whenData((lawyer) {
-        _feeController = TextEditingController(
-          text: "${lawyer.consultationFee}",
-        );
+        _feeController = TextEditingController(text: "${lawyer.consultationFee}");
         _hoursController = TextEditingController(text: lawyer.workingHours);
         _officeController = TextEditingController(text: lawyer.officeAddress);
         _upiController = TextEditingController(text: lawyer.upiId);
-
+        
         final bank = lawyer.bankDetails;
-        _bankNameController = TextEditingController(
-          text: bank['bankName'] ?? "",
-        );
-        _accountNoController = TextEditingController(
-          text: bank['accountNumber'] ?? "",
-        );
+        _bankNameController = TextEditingController(text: bank['bankName'] ?? "");
+        _accountNoController = TextEditingController(text: bank['accountNumber'] ?? "");
         _ifscController = TextEditingController(text: bank['ifscCode'] ?? "");
-        _holderController = TextEditingController(
-          text: bank['accountHolderName'] ?? "",
-        );
-
+        _holderController = TextEditingController(text: bank['accountHolderName'] ?? "");
+        
         _initialized = true;
       });
     }
@@ -79,9 +69,7 @@ class _LawyerConsultationSettingsScreenState
 
     setState(() => _isSaving = true);
 
-    final success = await ref
-        .read(lawyerProfileUpdaterProvider)
-        .updateProfile(
+    final success = await ref.read(lawyerProfileUpdaterProvider).updateProfile(
           specialization: currentLawyer.specialization,
           experience: currentLawyer.experience,
           education: currentLawyer.education,
@@ -104,11 +92,7 @@ class _LawyerConsultationSettingsScreenState
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            success
-                ? "Consultation settings updated successfully!"
-                : "Failed to update settings.",
-          ),
+          content: Text(success ? "Consultation settings updated successfully!" : "Failed to update settings."),
           backgroundColor: success ? AppColors.success : AppColors.error,
         ),
       );
@@ -144,34 +128,20 @@ class _LawyerConsultationSettingsScreenState
       ),
       body: lawyerState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(
-          child: Text("Error: $err", style: const TextStyle(color: Colors.red)),
-        ),
+        error: (err, stack) => Center(child: Text("Error: $err", style: const TextStyle(color: AppColors.error))),
         data: (lawyer) {
           if (!_initialized) {
-            _feeController = TextEditingController(
-              text: "${lawyer.consultationFee}",
-            );
+            _feeController = TextEditingController(text: "${lawyer.consultationFee}");
             _hoursController = TextEditingController(text: lawyer.workingHours);
-            _officeController = TextEditingController(
-              text: lawyer.officeAddress,
-            );
+            _officeController = TextEditingController(text: lawyer.officeAddress);
             _upiController = TextEditingController(text: lawyer.upiId);
 
             final bank = lawyer.bankDetails;
-            _bankNameController = TextEditingController(
-              text: bank['bankName'] ?? "",
-            );
-            _accountNoController = TextEditingController(
-              text: bank['accountNumber'] ?? "",
-            );
-            _ifscController = TextEditingController(
-              text: bank['ifscCode'] ?? "",
-            );
-            _holderController = TextEditingController(
-              text: bank['accountHolderName'] ?? "",
-            );
-
+            _bankNameController = TextEditingController(text: bank['bankName'] ?? "");
+            _accountNoController = TextEditingController(text: bank['accountNumber'] ?? "");
+            _ifscController = TextEditingController(text: bank['ifscCode'] ?? "");
+            _holderController = TextEditingController(text: bank['accountHolderName'] ?? "");
+            
             _initialized = true;
           }
 
@@ -185,9 +155,7 @@ class _LawyerConsultationSettingsScreenState
                   Text(
                     "Set up your consultation fees, working hours, and banking details to automate payouts and booking confirmations.",
                     style: TextStyle(
-                      color:
-                          theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ??
-                          Colors.grey,
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? AppColors.mutedText,
                       fontSize: 13,
                       height: 1.4,
                     ),
@@ -200,10 +168,8 @@ class _LawyerConsultationSettingsScreenState
                     labelText: "Consultation Fee (₹ per slot)",
                     keyboardType: TextInputType.number,
                     validator: (val) {
-                      if (val == null || val.trim().isEmpty)
-                        return "Consultation fee is required";
-                      if (int.tryParse(val.trim()) == null)
-                        return "Enter a valid number";
+                      if (val == null || val.trim().isEmpty) return "Consultation fee is required";
+                      if (int.tryParse(val.trim()) == null) return "Enter a valid number";
                       return null;
                     },
                   ),
@@ -213,9 +179,7 @@ class _LawyerConsultationSettingsScreenState
                   _buildTextField(
                     controller: _hoursController,
                     labelText: "Working Hours (e.g. 9:00 AM - 6:00 PM)",
-                    validator: (val) => val == null || val.trim().isEmpty
-                        ? "Working hours is required"
-                        : null,
+                    validator: (val) => val == null || val.trim().isEmpty ? "Working hours is required" : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -223,9 +187,7 @@ class _LawyerConsultationSettingsScreenState
                   _buildTextField(
                     controller: _officeController,
                     labelText: "Office Address / Chamber Location",
-                    validator: (val) => val == null || val.trim().isEmpty
-                        ? "Office address is required"
-                        : null,
+                    validator: (val) => val == null || val.trim().isEmpty ? "Office address is required" : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -233,9 +195,7 @@ class _LawyerConsultationSettingsScreenState
                   _buildTextField(
                     controller: _upiController,
                     labelText: "UPI ID (for direct client payouts)",
-                    validator: (val) => val == null || val.trim().isEmpty
-                        ? "UPI ID is required"
-                        : null,
+                    validator: (val) => val == null || val.trim().isEmpty ? "UPI ID is required" : null,
                   ),
                   const SizedBox(height: 24),
 
@@ -255,9 +215,7 @@ class _LawyerConsultationSettingsScreenState
                   _buildTextField(
                     controller: _holderController,
                     labelText: "Account Holder Name",
-                    validator: (val) => val == null || val.trim().isEmpty
-                        ? "Account holder name is required"
-                        : null,
+                    validator: (val) => val == null || val.trim().isEmpty ? "Account holder name is required" : null,
                   ),
                   const SizedBox(height: 12),
 
@@ -265,9 +223,7 @@ class _LawyerConsultationSettingsScreenState
                   _buildTextField(
                     controller: _bankNameController,
                     labelText: "Bank Name",
-                    validator: (val) => val == null || val.trim().isEmpty
-                        ? "Bank name is required"
-                        : null,
+                    validator: (val) => val == null || val.trim().isEmpty ? "Bank name is required" : null,
                   ),
                   const SizedBox(height: 12),
 
@@ -276,9 +232,7 @@ class _LawyerConsultationSettingsScreenState
                     controller: _accountNoController,
                     labelText: "Bank Account Number",
                     keyboardType: TextInputType.number,
-                    validator: (val) => val == null || val.trim().isEmpty
-                        ? "Account number is required"
-                        : null,
+                    validator: (val) => val == null || val.trim().isEmpty ? "Account number is required" : null,
                   ),
                   const SizedBox(height: 12),
 
@@ -286,9 +240,7 @@ class _LawyerConsultationSettingsScreenState
                   _buildTextField(
                     controller: _ifscController,
                     labelText: "IFSC Code",
-                    validator: (val) => val == null || val.trim().isEmpty
-                        ? "IFSC Code is required"
-                        : null,
+                    validator: (val) => val == null || val.trim().isEmpty ? "IFSC Code is required" : null,
                   ),
                   const SizedBox(height: 36),
 
@@ -311,17 +263,12 @@ class _LawyerConsultationSettingsScreenState
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.black,
-                                ),
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.onGold),
                               ),
                             )
                           : const Text(
                               "Save Changes",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                             ),
                     ),
                   ),
@@ -348,10 +295,7 @@ class _LawyerConsultationSettingsScreenState
       validator: validator,
       decoration: InputDecoration(
         labelText: labelText,
-        labelStyle: TextStyle(
-          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
-          fontSize: 14,
-        ),
+        labelStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), fontSize: 14),
         filled: true,
         fillColor: theme.colorScheme.surface,
         enabledBorder: OutlineInputBorder(
@@ -364,11 +308,11 @@ class _LawyerConsultationSettingsScreenState
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.red),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.red),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
       ),
     );

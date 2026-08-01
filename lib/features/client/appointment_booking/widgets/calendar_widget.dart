@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'calendar_header.dart';
 import 'calendar_grid.dart';
+import '../../../../core/theme/app_colors.dart';
 
 /// The calendar card container widget.
 /// Matches the reference exactly:
@@ -27,7 +28,7 @@ class CalendarWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: AppColors.shadow.withValues(alpha: 0.2),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),

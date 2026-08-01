@@ -5,7 +5,7 @@ import '../../../../core/config/env.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
-import '../../../../core/widgets/location_picker_sheet.dart';
+import '../../../../core/widgets/manual_location_field.dart';
 
 class LawyerMyProfileScreen extends ConsumerStatefulWidget {
   const LawyerMyProfileScreen({super.key});
@@ -142,8 +142,8 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
                   if (_isSavingImage)
                     Positioned.fill(
                       child: Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.black45,
+                        decoration: BoxDecoration(
+                          color: AppColors.onGold.withValues(alpha: 0.45),
                           shape: BoxShape.circle,
                         ),
                         child: const Center(child: CircularProgressIndicator()),
@@ -160,7 +160,7 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
                         child: const Icon(
                           Icons.camera_alt,
                           size: 16,
-                          color: Colors.black,
+                          color: AppColors.onGold,
                         ),
                       ),
                     ),
@@ -260,8 +260,8 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
                 label,
                 style: TextStyle(
                   color:
-                      theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ??
-                      Colors.grey,
+                      theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ??
+                      AppColors.mutedText,
                   fontSize: 12,
                 ),
               ),
@@ -269,7 +269,8 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
               Text(
                 value,
                 style: TextStyle(
-                  color: theme.textTheme.bodyLarge?.color ?? Colors.white,
+                  color:
+                      theme.textTheme.bodyLarge?.color ?? AppColors.primaryText,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
@@ -382,7 +383,9 @@ class _LawyerEditPersonalBottomSheetState
                   Text(
                     "Edit Personal Information",
                     style: TextStyle(
-                      color: theme.textTheme.titleLarge?.color ?? Colors.white,
+                      color:
+                          theme.textTheme.titleLarge?.color ??
+                          AppColors.primaryText,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                     ),
@@ -416,32 +419,18 @@ class _LawyerEditPersonalBottomSheetState
               ),
               const SizedBox(height: 12),
 
-              // Address / Location
-              GestureDetector(
-                onTap: () async {
-                  final loc = await LocationPickerSheet.show(
-                    context,
-                    initialLocation: _locationController.text,
-                  );
-                  if (loc != null) {
-                    setState(() {
-                      _locationController.text = loc;
-                    });
-                  }
-                },
-                child: AbsorbPointer(
-                  child: _buildTextField(
-                    controller: _locationController,
-                    labelText: "Location",
-                    suffixIcon: Icon(
-                      Icons.my_location,
-                      color: theme.colorScheme.primary,
-                    ),
-                    validator: (val) => val == null || val.trim().isEmpty
-                        ? "Location is required"
-                        : null,
-                  ),
-                ),
+              // Location — manual free-text entry.
+              //
+              // Was an AbsorbPointer over a read-only field that opened the
+              // autocomplete picker sheet. A lawyer's office address is
+              // free-form (chamber number, court complex, building) and should
+              // not be constrained to what a places API can match.
+              ManualLocationField(
+                controller: _locationController,
+                labelText: "Location",
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? "Location is required"
+                    : null,
               ),
 
               const SizedBox(height: 24),
@@ -466,7 +455,7 @@ class _LawyerEditPersonalBottomSheetState
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.black,
+                              AppColors.onGold,
                             ),
                           ),
                         )
@@ -502,7 +491,7 @@ class _LawyerEditPersonalBottomSheetState
       decoration: InputDecoration(
         labelText: labelText,
         labelStyle: TextStyle(
-          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
         ),
         suffixIcon: suffixIcon,
         filled: true,
@@ -517,11 +506,11 @@ class _LawyerEditPersonalBottomSheetState
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.red),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.red),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
       ),
     );

@@ -44,27 +44,19 @@ class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
               children: [
                 TextField(
                   controller: _searchController,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.primaryText),
                   onChanged: (val) {
-                    ref.read(adminClientFilterProvider.notifier).state = filter
-                        .copyWith(search: val);
+                    ref.read(adminClientFilterProvider.notifier).state = filter.copyWith(search: val);
                   },
                   decoration: InputDecoration(
                     hintText: 'Search clients by name, email, or phone...',
-                    prefixIcon: const Icon(
-                      Icons.search,
-                      color: AppColors.primaryGold,
-                    ),
+                    prefixIcon: const Icon(Icons.search, color: AppColors.primaryGold),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, color: Colors.grey),
+                            icon: const Icon(Icons.clear, color: AppColors.mutedText),
                             onPressed: () {
                               _searchController.clear();
-                              ref
-                                  .read(adminClientFilterProvider.notifier)
-                                  .state = filter.copyWith(
-                                search: '',
-                              );
+                              ref.read(adminClientFilterProvider.notifier).state = filter.copyWith(search: '');
                             },
                           )
                         : null,
@@ -97,25 +89,15 @@ class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.people_outline,
-                            color: AppColors.mutedText,
-                            size: 48,
-                          ),
+                          Icon(Icons.people_outline, color: AppColors.mutedText, size: 48),
                           SizedBox(height: 12),
-                          Text(
-                            'No clients found',
-                            style: TextStyle(color: AppColors.secondaryText),
-                          ),
+                          Text('No clients found', style: TextStyle(color: AppColors.secondaryText)),
                         ],
                       ),
                     );
                   }
                   return ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemCount: clients.length,
                     itemBuilder: (context, index) {
                       final client = clients[index];
@@ -132,18 +114,11 @@ class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
                             CircleAvatar(
                               radius: 24,
                               backgroundColor: AppColors.secondaryBackground,
-                              backgroundImage: client.profileImage.isNotEmpty
-                                  ? NetworkImage(client.profileImage)
-                                  : null,
+                              backgroundImage: client.profileImage.isNotEmpty ? NetworkImage(client.profileImage) : null,
                               child: client.profileImage.isEmpty
                                   ? Text(
-                                      client.fullName.isNotEmpty
-                                          ? client.fullName[0].toUpperCase()
-                                          : 'C',
-                                      style: const TextStyle(
-                                        color: AppColors.primaryGold,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      client.fullName.isNotEmpty ? client.fullName[0].toUpperCase() : 'C',
+                                      style: const TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold),
                                     )
                                   : null,
                             ),
@@ -153,42 +128,26 @@ class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Expanded(
                                         child: Text(
                                           client.fullName,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                          style: const TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
-                                          color: client.isActive
-                                              ? const Color(0xFF14532D)
-                                              : const Color(0xFF7F1D1D),
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
+                                          color: client.isActive ? AppColors.statusSuccessBg : AppColors.statusErrorBg,
+                                          borderRadius: BorderRadius.circular(10),
                                         ),
                                         child: Text(
-                                          client.isActive
-                                              ? 'Active'
-                                              : 'Inactive',
+                                          client.isActive ? 'Active' : 'Inactive',
                                           style: TextStyle(
-                                            color: client.isActive
-                                                ? const Color(0xFF4ADE80)
-                                                : const Color(0xFFFCA5A5),
+                                            color: client.isActive ? AppColors.statusSuccessFg : AppColors.statusErrorFg,
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -199,33 +158,21 @@ class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     client.email,
-                                    style: const TextStyle(
-                                      color: AppColors.mutedText,
-                                      fontSize: 12,
-                                    ),
+                                    style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
                                   ),
                                   if (client.mobile.isNotEmpty) ...[
                                     const SizedBox(height: 2),
                                     Text(
                                       client.mobile,
-                                      style: const TextStyle(
-                                        color: AppColors.secondaryText,
-                                        fontSize: 12,
-                                      ),
+                                      style: const TextStyle(color: AppColors.secondaryText, fontSize: 12),
                                     ),
                                   ],
                                   const SizedBox(height: 8),
                                   Row(
                                     children: [
-                                      _buildBadge(
-                                        '${client.casesCount} Cases',
-                                        Icons.folder_open,
-                                      ),
+                                      _buildBadge('${client.casesCount} Cases', Icons.folder_open),
                                       const SizedBox(width: 8),
-                                      _buildBadge(
-                                        '${client.documentsCount} Docs',
-                                        Icons.description_outlined,
-                                      ),
+                                      _buildBadge('${client.documentsCount} Docs', Icons.description_outlined),
                                     ],
                                   ),
                                 ],
@@ -237,16 +184,9 @@ class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
                     },
                   );
                 },
-                loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primaryGold,
-                  ),
-                ),
+                loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryGold)),
                 error: (err, stack) => Center(
-                  child: Text(
-                    'Error loading clients: $err',
-                    style: const TextStyle(color: AppColors.error),
-                  ),
+                  child: Text('Error loading clients: $err', style: const TextStyle(color: AppColors.error)),
                 ),
               ),
             ),
@@ -264,15 +204,13 @@ class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
       onSelected: (selected) {
         if (selected) {
           final filter = ref.read(adminClientFilterProvider);
-          ref.read(adminClientFilterProvider.notifier).state = filter.copyWith(
-            status: value,
-          );
+          ref.read(adminClientFilterProvider.notifier).state = filter.copyWith(status: value);
         }
       },
       selectedColor: AppColors.primaryGold,
       backgroundColor: AppColors.cardBackground,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.black : AppColors.primaryGold,
+        color: isSelected ? AppColors.onGold : AppColors.primaryGold,
         fontWeight: FontWeight.w600,
         fontSize: 12,
       ),
@@ -292,13 +230,7 @@ class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
         children: [
           Icon(icon, color: AppColors.primaryGold, size: 12),
           const SizedBox(width: 4),
-          Text(
-            text,
-            style: const TextStyle(
-              color: AppColors.secondaryText,
-              fontSize: 11,
-            ),
-          ),
+          Text(text, style: const TextStyle(color: AppColors.secondaryText, fontSize: 11)),
         ],
       ),
     );

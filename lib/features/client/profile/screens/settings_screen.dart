@@ -37,26 +37,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF0F1424),
+              backgroundColor: AppColors.aiCardBackground,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
               ),
               title: Row(
                 children: [
-                  const Icon(
-                    Icons.delete_forever,
-                    color: AppColors.error,
-                    size: 24,
-                  ),
+                  const Icon(Icons.delete_forever, color: AppColors.error, size: 24),
                   const SizedBox(width: 8),
                   Text(
                     loc.translate('delete_account_dialog_title'),
-                    style: const TextStyle(
-                      color: AppColors.error,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                    style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ],
               ),
@@ -67,41 +59,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   children: [
                     Text(
                       loc.translate('delete_account_dialog_msg'),
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12.5,
-                        height: 1.4,
-                      ),
+                      style: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.7), fontSize: 12.5, height: 1.4),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       loc.translate('enter_password_to_confirm'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
+                      style: const TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 12),
                     ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: passwordController,
                       obscureText: obscurePassword,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      style: const TextStyle(color: AppColors.primaryText, fontSize: 13),
                       decoration: InputDecoration(
                         hintText: "••••••••",
-                        hintStyle: const TextStyle(color: Colors.white38),
+                        hintStyle: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.38)),
                         filled: true,
-                        fillColor: const Color(0xFF1E2436),
+                        fillColor: AppColors.aiCardBackgroundAlt,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide.none,
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: Colors.white54,
+                            obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            color: AppColors.primaryText.withValues(alpha: 0.54),
                             size: 18,
                           ),
                           onPressed: () {
@@ -116,10 +98,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       const SizedBox(height: 8),
                       Text(
                         dialogError!,
-                        style: const TextStyle(
-                          color: AppColors.error,
-                          fontSize: 11.5,
-                        ),
+                        style: const TextStyle(color: AppColors.error, fontSize: 11.5),
                       ),
                     ],
                   ],
@@ -130,7 +109,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onPressed: () => Navigator.pop(context, false),
                   child: Text(
                     loc.translate('cancel'),
-                    style: const TextStyle(color: Colors.white70),
+                    style: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.7)),
                   ),
                 ),
                 ElevatedButton(
@@ -148,33 +127,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         data: {'password': passwordController.text.trim()},
                       );
 
-                      if (response.statusCode == 200 &&
-                          response.data?['success'] == true) {
+                      if (response.statusCode == 200 && response.data?['success'] == true) {
                         if (context.mounted) {
                           Navigator.pop(context, true);
                         }
                       } else {
                         setDialogState(() {
-                          dialogError =
-                              response.data?['message'] ??
-                              'Incorrect password.';
+                          dialogError = response.data?['message'] ?? 'Incorrect password.';
                         });
                       }
                     } catch (e) {
                       setDialogState(() {
-                        dialogError = e.toString().replaceAll(
-                          'Exception: ',
-                          '',
-                        );
+                        dialogError = e.toString().replaceAll('Exception: ', '');
                       });
                     }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.error,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    foregroundColor: AppColors.primaryText,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: Text(loc.translate('delete_account')),
                 ),
@@ -188,22 +159,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (confirmed == true && mounted) {
       setState(() => _isDeleting = true);
       try {
+        // Logout & Clear Session locally
         await ref.read(authProvider.notifier).logout();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(loc.translate('account_deleted_success')),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
             ),
           );
           context.go(RouteNames.login);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Deletion completed: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Deletion completed: $e')),
+          );
           context.go(RouteNames.login);
         }
       } finally {
@@ -217,6 +189,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final theme = Theme.of(context);
     final loc = AppLocalizations.of(context);
     final currentLangCode = ref.watch(languageProvider).languageCode;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
@@ -226,10 +199,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         title: Text(
           loc.translate('settings'),
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Outfit',
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Outfit'),
         ),
       ),
       body: SafeArea(
@@ -241,15 +211,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
-                side: BorderSide(
-                  color: theme.colorScheme.outline.withValues(alpha: 0.4),
-                ),
+                side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.4)),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 child: Row(
                   children: [
                     Container(
@@ -259,11 +224,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: AppColors.primaryGold.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.language,
-                        color: AppColors.primaryGold,
-                        size: 22,
-                      ),
+                      child: const Icon(Icons.language, color: AppColors.primaryGold, size: 22),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -272,18 +233,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         children: [
                           Text(
                             loc.translate('language'),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14.5,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             loc.translate('choose_language'),
-                            style: const TextStyle(
-                              color: AppColors.mutedText,
-                              fontSize: 11.5,
-                            ),
+                            style: const TextStyle(color: AppColors.mutedText, fontSize: 11.5),
                           ),
                         ],
                       ),
@@ -291,44 +246,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const SizedBox(width: 8),
                     // Minimal Dropdown Selector
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 2,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E2436),
+                        color: AppColors.aiCardBackgroundAlt,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: AppColors.primaryGold.withValues(alpha: 0.4),
-                        ),
+                        border: Border.all(color: AppColors.primaryGold.withValues(alpha: 0.4)),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: currentLangCode,
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down,
-                            color: AppColors.primaryGold,
-                            size: 18,
-                          ),
-                          dropdownColor: const Color(0xFF1E2436),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.primaryGold, size: 18),
+                          dropdownColor: AppColors.aiCardBackgroundAlt,
+                          style: const TextStyle(color: AppColors.primaryText, fontSize: 12.5, fontWeight: FontWeight.bold),
                           items: const [
-                            DropdownMenuItem(
-                              value: 'en',
-                              child: Text('English'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'te',
-                              child: Text('తెలుగు (Telugu)'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'hi',
-                              child: Text('हिंदी (Hindi)'),
-                            ),
+                            DropdownMenuItem(value: 'en', child: Text('English')),
+                            DropdownMenuItem(value: 'te', child: Text('తెలుగు (Telugu)')),
+                            DropdownMenuItem(value: 'hi', child: Text('हिंदी (Hindi)')),
                           ],
                           onChanged: _onLanguageChanged,
                         ),
@@ -345,15 +278,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
-                side: BorderSide(
-                  color: theme.colorScheme.outline.withValues(alpha: 0.4),
-                ),
+                side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.4)),
               ),
               child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 6,
-                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 leading: Container(
                   width: 40,
                   height: 40,
@@ -361,31 +289,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     color: AppColors.primaryGold.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.lock_reset,
-                    color: AppColors.primaryGold,
-                    size: 22,
-                  ),
+                  child: const Icon(Icons.lock_reset, color: AppColors.primaryGold, size: 22),
                 ),
                 title: Text(
                   loc.translate('change_password'),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.5,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
                 ),
                 subtitle: Text(
                   loc.translate('change_password_subtitle'),
-                  style: const TextStyle(
-                    color: AppColors.mutedText,
-                    fontSize: 11.5,
-                  ),
+                  style: const TextStyle(color: AppColors.mutedText, fontSize: 11.5),
                 ),
-                trailing: const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 14,
-                  color: AppColors.primaryGold,
-                ),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primaryGold),
                 onTap: () => context.push('/change-password'),
               ),
             ),
@@ -400,10 +314,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 side: BorderSide(color: AppColors.error.withValues(alpha: 0.4)),
               ),
               child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 6,
-                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 leading: Container(
                   width: 40,
                   height: 40,
@@ -411,41 +322,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     color: AppColors.error.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.delete_forever,
-                    color: AppColors.error,
-                    size: 22,
-                  ),
+                  child: const Icon(Icons.delete_forever, color: AppColors.error, size: 22),
                 ),
                 title: Text(
                   loc.translate('delete_account'),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.5,
-                    color: AppColors.error,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: AppColors.error),
                 ),
                 subtitle: Text(
                   loc.translate('delete_account_subtitle'),
-                  style: TextStyle(
-                    color: AppColors.error.withValues(alpha: 0.8),
-                    fontSize: 11.5,
-                  ),
+                  style: TextStyle(color: AppColors.error.withValues(alpha: 0.8), fontSize: 11.5),
                 ),
                 trailing: _isDeleting
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.error,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.error),
                       )
-                    : const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 14,
-                        color: AppColors.error,
-                      ),
+                    : const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.error),
                 onTap: _isDeleting ? null : _confirmDeleteAccount,
               ),
             ),

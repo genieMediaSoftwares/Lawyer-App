@@ -56,46 +56,28 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                       children: [
                         const Text(
                           'Platform Monthly User Growth',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
                         const Text(
                           'Client vs Lawyer registration trends',
-                          style: TextStyle(
-                            color: AppColors.mutedText,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: AppColors.mutedText, fontSize: 12),
                         ),
                         const SizedBox(height: 20),
                         monthlyStats.isEmpty
                             ? const Padding(
                                 padding: EdgeInsets.all(20.0),
                                 child: Center(
-                                  child: Text(
-                                    'No registration trend data recorded yet',
-                                    style: TextStyle(
-                                      color: AppColors.mutedText,
-                                      fontSize: 13,
-                                    ),
-                                  ),
+                                  child: Text('No registration trend data recorded yet', style: TextStyle(color: AppColors.mutedText, fontSize: 13)),
                                 ),
                               )
                             : Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: monthlyStats.map((d) {
                                   final clients = (d['clients'] ?? 0) as int;
-                                  final double barHeight = maxVal > 0
-                                      ? (clients / maxVal) * 100
-                                      : 10.0;
-                                  final displayHeight = barHeight < 10
-                                      ? 10.0
-                                      : barHeight;
+                                  final double barHeight = maxVal > 0 ? (clients / maxVal) * 100 : 10.0;
+                                  final displayHeight = barHeight < 10 ? 10.0 : barHeight;
                                   return Column(
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
@@ -104,18 +86,13 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                                         height: displayHeight,
                                         decoration: BoxDecoration(
                                           color: AppColors.primaryGold,
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
+                                          borderRadius: BorderRadius.circular(6),
                                         ),
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
                                         (d['month'] ?? '') as String,
-                                        style: const TextStyle(
-                                          color: AppColors.secondaryText,
-                                          fontSize: 11,
-                                        ),
+                                        style: const TextStyle(color: AppColors.secondaryText, fontSize: 11),
                                       ),
                                     ],
                                   );
@@ -128,21 +105,11 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildMetricTile(
-                          'Client Growth',
-                          clientGrowth,
-                          Icons.trending_up,
-                          AppColors.success,
-                        ),
+                        child: _buildMetricTile('Client Growth', clientGrowth, Icons.trending_up, AppColors.success),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _buildMetricTile(
-                          'Case Resolution Rate',
-                          resolutionRate,
-                          Icons.check_circle,
-                          AppColors.primaryGold,
-                        ),
+                        child: _buildMetricTile('Case Resolution Rate', resolutionRate, Icons.check_circle, AppColors.primaryGold),
                       ),
                     ],
                   ),
@@ -151,15 +118,10 @@ class AdminAnalyticsScreen extends ConsumerWidget {
             },
             loading: () => const Padding(
               padding: EdgeInsets.all(40),
-              child: Center(
-                child: CircularProgressIndicator(color: AppColors.primaryGold),
-              ),
+              child: Center(child: CircularProgressIndicator(color: AppColors.primaryGold)),
             ),
             error: (err, stack) => Center(
-              child: Text(
-                'Error loading analytics: $err',
-                style: const TextStyle(color: AppColors.error),
-              ),
+              child: Text('Error loading analytics: $err', style: const TextStyle(color: AppColors.error)),
             ),
           ),
         ),
@@ -167,12 +129,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMetricTile(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
+  Widget _buildMetricTile(String title, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -185,21 +142,9 @@ class AdminAnalyticsScreen extends ConsumerWidget {
         children: [
           Icon(icon, color: color, size: 22),
           const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(value, style: const TextStyle(color: AppColors.primaryText, fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),
-          Text(
-            title,
-            style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          Text(title, style: const TextStyle(color: AppColors.mutedText, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
       ),
     );

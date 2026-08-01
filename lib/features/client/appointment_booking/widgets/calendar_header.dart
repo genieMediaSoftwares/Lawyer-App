@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../providers/calendar_provider.dart';
+import '../../../../core/theme/app_colors.dart';
 
 /// Calendar month/year header with left/right chevron navigation.
 /// Matches the reference exactly:
@@ -11,7 +12,7 @@ import '../providers/calendar_provider.dart';
 class CalendarHeader extends ConsumerWidget {
   const CalendarHeader({super.key});
 
-  static const _navy = Color(0xFF0B1F4D);
+  static const _navy = AppColors.calendarAccent;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
