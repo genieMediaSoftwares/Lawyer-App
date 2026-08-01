@@ -59,8 +59,14 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     // depend on this provider, so nothing tells them a case changed. Riverpod
     // refreshes only the ones currently alive; the rest are a no-op.
     _ref.invalidate(todayConsultationsCountProvider);
-    _ref.invalidate(adminCasesProvider);
-    _ref.invalidate(adminStatsProvider);
+
+    // Admin dashboards should only refresh for an actual admin session —
+    // client/lawyer sessions have no access to these endpoints and were
+    // triggering unnecessary 403s on every case action.
+    if (_ref.read(authProvider).role == UserRole.admin) {
+      _ref.invalidate(adminCasesProvider);
+      _ref.invalidate(adminStatsProvider);
+    }
 
     // A new case raises notifications for the lawyers it reached.
     try {
