@@ -32,7 +32,12 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
               file.name,
               bytes: file.bytes,
             );
-        if (newDoc != null && mounted) {
+        // Guarded once, before either branch. The mounted check used to sit
+        // only on the success condition, so an upload that succeeded after the
+        // screen closed fell through to the `else` and reported failure — and
+        // that branch touched context with no guard at all.
+        if (!mounted) return;
+        if (newDoc != null) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Document uploaded successfully!")));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Upload failed. Unsupported type or size limit.")));
@@ -66,8 +71,8 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
         backgroundColor: theme.colorScheme.primary,
         icon: _isUploading
             ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-            : const Icon(Icons.cloud_upload, color: Colors.black),
-        label: Text(_isUploading ? "Uploading..." : "Upload Document", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            : const Icon(Icons.cloud_upload, color: AppColors.onGold),
+        label: Text(_isUploading ? "Uploading..." : "Upload Document", style: const TextStyle(color: AppColors.onGold, fontWeight: FontWeight.bold)),
       ),
       body: documentsState.when(
         data: (documents) {
@@ -106,7 +111,7 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   leading: CircleAvatar(
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                     child: Icon(_getFileIcon(doc.mimeType), color: theme.colorScheme.primary),
                   ),
                   title: Text(doc.originalName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.titleMedium?.color)),

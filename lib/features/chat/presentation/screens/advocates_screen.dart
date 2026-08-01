@@ -44,25 +44,25 @@ class _AdvocatesScreenState extends ConsumerState<AdvocatesScreen> {
     final advocatesState = ref.watch(advocatesProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.primaryBackground,
       drawer: const AppDrawer(),
       endDrawer: const FilterDrawer(), // Sliding drawer for Tablet/Desktop
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
         title: const Text(
           'Advocates',
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.primaryText,
             fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
         ),
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white, size: 24),
+            icon: const Icon(Icons.menu, color: AppColors.primaryText, size: 24),
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
@@ -81,18 +81,18 @@ class _AdvocatesScreenState extends ConsumerState<AdvocatesScreen> {
                   child: Container(
                     height: 52,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF161616),
+                      color: AppColors.cardBackground,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF2A2A2A)),
+                      border: Border.all(color: AppColors.border),
                     ),
                     child: TextField(
                       controller: _searchController,
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      style: const TextStyle(color: AppColors.primaryText, fontSize: 15),
                       cursorColor: AppColors.primaryGold,
                       decoration: const InputDecoration(
                         hintText: 'Search advocates...',
-                        hintStyle: TextStyle(color: Color(0xFF707070), fontSize: 15),
-                        prefixIcon: Icon(Icons.search, color: Color(0xFF707070), size: 22),
+                        hintStyle: TextStyle(color: AppColors.disabledText, fontSize: 15),
+                        prefixIcon: Icon(Icons.search, color: AppColors.disabledText, size: 22),
                         border: InputBorder.none,
                         focusedBorder: InputBorder.none,
                         enabledBorder: InputBorder.none,
@@ -116,9 +116,9 @@ class _AdvocatesScreenState extends ConsumerState<AdvocatesScreen> {
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF161616),
+                      color: AppColors.cardBackground,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF2A2A2A)),
+                      border: Border.all(color: AppColors.border),
                     ),
                     child: const Center(
                       child: Icon(Icons.sort_rounded, color: AppColors.primaryGold, size: 22),
@@ -146,9 +146,9 @@ class _AdvocatesScreenState extends ConsumerState<AdvocatesScreen> {
                       width: 52,
                       height: 52,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF161616),
+                        color: AppColors.cardBackground,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF2A2A2A)),
+                        border: Border.all(color: AppColors.border),
                       ),
                       child: const Center(
                         child: Icon(Icons.filter_alt_outlined, color: AppColors.primaryGold, size: 22),
@@ -172,12 +172,12 @@ class _AdvocatesScreenState extends ConsumerState<AdvocatesScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                      const Icon(Icons.error_outline, color: AppColors.error, size: 48),
                       const SizedBox(height: 12),
                       Text(
                         'Could not load advocates.\n$err',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Color(0xFF9A9A9A), fontSize: 14),
+                        style: const TextStyle(color: AppColors.mutedText, fontSize: 14),
                       ),
                       const SizedBox(height: 16),
                       OutlinedButton(
@@ -197,7 +197,7 @@ class _AdvocatesScreenState extends ConsumerState<AdvocatesScreen> {
                   return const Center(
                     child: Text(
                       'No advocates found',
-                      style: TextStyle(color: Color(0xFF707070), fontSize: 16),
+                      style: TextStyle(color: AppColors.disabledText, fontSize: 16),
                     ),
                   );
                 }
@@ -256,20 +256,13 @@ class AdvocateCard extends StatelessWidget {
     required this.onViewProfile,
   });
 
-  ImageProvider? _resolveImage(String url) {
-    if (url.isEmpty) return null;
-    return NetworkImage(Environment.getAttachmentUrl(url));
-  }
-
   @override
   Widget build(BuildContext context) {
-    final imageProvider = _resolveImage(imageUrl);
-
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF161616),
+        color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: AppColors.border),
       ),
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -278,9 +271,9 @@ class AdvocateCard extends StatelessWidget {
           // ── Avatar ──────────────────────────────────────
           AppCircleAvatar(
             radius: 36,
-            backgroundColor: const Color(0xFF2A2A2A),
+            backgroundColor: AppColors.border,
             imageUrl: imageUrl.isNotEmpty ? Environment.getAttachmentUrl(imageUrl) : null,
-            fallback: const Icon(Icons.person, color: Colors.white54, size: 36),
+            fallback: Icon(Icons.person, color: AppColors.primaryText.withValues(alpha: 0.54), size: 36),
           ),
 
           const SizedBox(width: 14),
@@ -300,7 +293,7 @@ class AdvocateCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.primaryText,
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
@@ -318,7 +311,7 @@ class AdvocateCard extends StatelessWidget {
                   specialization,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Color(0xFF9A9A9A), fontSize: 12),
+                  style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
                 ),
 
                 const SizedBox(height: 5),
@@ -328,14 +321,14 @@ class AdvocateCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Icon(Icons.location_on_outlined,
-                        color: Color(0xFF9A9A9A), size: 13),
+                        color: AppColors.mutedText, size: 13),
                     const SizedBox(width: 3),
                     Expanded(
                       child: Text(
                         location.isNotEmpty ? location : 'Hyderabad, Telangana',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Color(0xFF9A9A9A), fontSize: 12),
+                        style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
                       ),
                     ),
                   ],
@@ -363,7 +356,7 @@ class AdvocateCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       '($reviews)',
-                      style: const TextStyle(color: Color(0xFF9A9A9A), fontSize: 12),
+                      style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
                     ),
                   ],
                 ),

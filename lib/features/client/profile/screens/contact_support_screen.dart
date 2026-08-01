@@ -1,22 +1,38 @@
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'dart:math';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ContactSupportScreen extends StatefulWidget {
+import '../../../../core/network/dio_client.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../providers/document_provider.dart';
+import '../../../../providers/issue_provider.dart';
+
+class ContactSupportScreen extends ConsumerStatefulWidget {
   const ContactSupportScreen({super.key});
 
   @override
-  State<ContactSupportScreen> createState() => _ContactSupportScreenState();
+  ConsumerState<ContactSupportScreen> createState() => _ContactSupportScreenState();
 }
 
-class _ContactSupportScreenState extends State<ContactSupportScreen> {
+class _ContactSupportScreenState extends ConsumerState<ContactSupportScreen> {
   final _formKey = GlobalKey<FormState>();
   final _subjectController = TextEditingController();
   final _descriptionController = TextEditingController();
   String _selectedCategory = "General Inquiry";
-  String? _attachedFileName;
+
+  /// The attachment actually uploaded to the server, if any.
+  DocumentRecord? _attachment;
+  bool _isAttaching = false;
+
   bool _isSubmitting = false;
   bool _isSuccess = false;
-  String _generatedTicketId = "";
+  String? _submitError;
+
+  /// The id of the ticket the server created. Empty until it has.
+  String _ticketId = "";
+
+  String? get _attachedFileName => _attachment?.originalName;
 
   final List<String> _ticketCategories = [
     "General Inquiry",
@@ -34,59 +50,143 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
     super.dispose();
   }
 
-  void _attachScreenshot() {
-    setState(() {
-      _attachedFileName = "screenshot_bug_report_${Random().nextInt(1000)}.png";
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Attached: $_attachedFileName"),
-        backgroundColor: const Color(0xFF1B1B1B),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  /// Picks a screenshot and uploads it.
+  ///
+  /// This used to invent a filename — `screenshot_bug_report_<random>.png` —
+  /// and show it as attached, so a client reporting a bug believed they had
+  /// sent an image that never existed.
+  Future<void> _attachScreenshot() async {
+    try {
+      final picked = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['png', 'jpg', 'jpeg', 'webp', 'pdf'],
+        withData: kIsWeb,
+      );
+      if (picked == null || picked.files.isEmpty) return;
+
+      final file = picked.files.first;
+      if (file.size > 10 * 1024 * 1024) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Maximum attachment size is 10 MB.")),
+        );
+        return;
+      }
+
+      setState(() => _isAttaching = true);
+
+      final record = await ref.read(documentsProvider.notifier).uploadDocument(
+            kIsWeb ? null : file.path,
+            file.name,
+            bytes: file.bytes,
+          );
+
+      if (!mounted) return;
+      setState(() {
+        _attachment = record;
+        _isAttaching = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            record == null
+                ? "Could not upload the attachment. Please try again."
+                : "Attached: ${record.originalName}",
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isAttaching = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Could not attach the file: $e")),
+      );
+    }
   }
 
   void _removeScreenshot() {
-    setState(() {
-      _attachedFileName = null;
-    });
+    setState(() => _attachment = null);
   }
 
+  /// Files the support ticket against the real `POST /issues/create` endpoint.
+  ///
+  /// This screen previously submitted nothing at all: it waited on a
+  /// `Future.delayed`, generated `GL-<random>` locally, and reported success.
+  /// Every ticket a client believed they had raised was discarded on the
+  /// device, and the admin support queue never saw it.
   Future<void> _submitTicket() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isSubmitting = true;
+      _submitError = null;
     });
 
-    // Simulate network submission delay
-    await Future.delayed(const Duration(seconds: 1500));
+    try {
+      final response = await DioClient.dio.post("/issues/create", data: {
+        "title": _subjectController.text.trim(),
+        "description": _descriptionController.text.trim(),
+        "category": _selectedCategory,
+        if (_attachment != null)
+          "documents": [
+            {
+              "name": _attachment!.originalName,
+              "url": _attachment!.filePath,
+              "size": "${_attachment!.fileSize}",
+            }
+          ],
+      });
 
-    final randomId = "GL-${Random().nextInt(89999) + 10000}";
+      final body = response.data;
+      if (body is! Map || body['success'] != true) {
+        throw Exception(
+          (body is Map ? body['message'] : null)?.toString() ??
+              "Could not raise your ticket.",
+        );
+      }
 
-    setState(() {
-      _isSubmitting = false;
-      _isSuccess = true;
-      _generatedTicketId = randomId;
-    });
+      // The ticket id comes from the record the server created — the client
+      // does not name it.
+      final data = body['data'];
+      final id = (data is Map ? (data['_id'] ?? data['ticketId']) : null)?.toString() ?? '';
+
+      // Keep the client's own ticket list current.
+      await ref.read(issuesProvider.notifier).fetchIssues();
+
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _isSuccess = true;
+        _ticketId = id;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _submitError = e.toString().replaceAll("Exception: ", "");
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_submitError!)),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.primaryBackground,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primaryText),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           "Contact Support",
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.primaryText,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -111,21 +211,21 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: const Color(0xFFD4AF37).withOpacity(0.1),
+              color: AppColors.primaryGold.withValues(alpha: 0.1),
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFD4AF37), width: 2),
+              border: Border.all(color: AppColors.primaryGold, width: 2),
             ),
             child: const Icon(
               Icons.check_circle_outline,
               size: 72,
-              color: Color(0xFFD4AF37),
+              color: AppColors.primaryGold,
             ),
           ),
           const SizedBox(height: 28),
           const Text(
             "Ticket Submitted!",
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.primaryText,
               fontWeight: FontWeight.bold,
               fontSize: 22,
             ),
@@ -135,7 +235,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
             "Your ticket has been logged successfully. A support specialist will review your inquiry shortly.",
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.grey[400],
+              color: AppColors.mutedText,
               fontSize: 14,
               height: 1.5,
             ),
@@ -144,24 +244,28 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1B1B1B),
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF2B2B2B)),
+              border: Border.all(color: AppColors.border),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
                   "Ticket Reference ID:",
-                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                  style: TextStyle(color: AppColors.mutedText, fontSize: 13),
                 ),
-                Text(
-                  _generatedTicketId,
-                  style: const TextStyle(
-                    color: Color(0xFFD4AF37),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    letterSpacing: 0.5,
+                Flexible(
+                  child: Text(
+                    _ticketId,
+                    textAlign: TextAlign.right,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.primaryGold,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
               ],
@@ -175,8 +279,8 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                 Navigator.of(context).pop();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD4AF37),
-                foregroundColor: Colors.black,
+                backgroundColor: AppColors.primaryGold,
+                foregroundColor: AppColors.onGold,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -207,7 +311,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
           const Text(
             "QUICK CHANNELS",
             style: TextStyle(
-              color: Colors.grey,
+              color: AppColors.mutedText,
               fontWeight: FontWeight.bold,
               fontSize: 12,
               letterSpacing: 0.5,
@@ -276,7 +380,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
           const Text(
             "SUBMIT A SUPPORT TICKET",
             style: TextStyle(
-              color: Colors.grey,
+              color: AppColors.mutedText,
               fontWeight: FontWeight.bold,
               fontSize: 12,
               letterSpacing: 0.5,
@@ -287,9 +391,9 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFF1B1B1B),
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF2B2B2B)),
+              border: Border.all(color: AppColors.border),
             ),
             child: Form(
               key: _formKey,
@@ -299,34 +403,34 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                   // Subject
                   const Text(
                     "Subject",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _subjectController,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: const TextStyle(color: AppColors.primaryText, fontSize: 14),
                     validator: (val) => val == null || val.trim().isEmpty ? "Subject is required" : null,
                     decoration: InputDecoration(
                       hintText: "Short summary of your issue",
-                      hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                      hintStyle: const TextStyle(color: AppColors.mutedText, fontSize: 13),
                       filled: true,
-                      fillColor: const Color(0xFF2B2B2B),
+                      fillColor: AppColors.border,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF3B3B3B)),
+                        borderSide: const BorderSide(color: AppColors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFD4AF37)),
+                        borderSide: const BorderSide(color: AppColors.primaryGold),
                       ),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red),
+                        borderSide: const BorderSide(color: AppColors.error),
                       ),
                       focusedErrorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red),
+                        borderSide: const BorderSide(color: AppColors.error),
                       ),
                     ),
                   ),
@@ -335,13 +439,13 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                   // Category
                   const Text(
                     "Category",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: _selectedCategory,
-                    dropdownColor: const Color(0xFF1B1B1B),
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    initialValue: _selectedCategory,
+                    dropdownColor: AppColors.surface,
+                    style: const TextStyle(color: AppColors.primaryText, fontSize: 14),
                     onChanged: (val) {
                       if (val != null) {
                         setState(() => _selectedCategory = val);
@@ -349,15 +453,15 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                     },
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: const Color(0xFF2B2B2B),
+                      fillColor: AppColors.border,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF3B3B3B)),
+                        borderSide: const BorderSide(color: AppColors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFD4AF37)),
+                        borderSide: const BorderSide(color: AppColors.primaryGold),
                       ),
                     ),
                     items: _ticketCategories.map((cat) {
@@ -372,35 +476,35 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                   // Description
                   const Text(
                     "Description",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _descriptionController,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: const TextStyle(color: AppColors.primaryText, fontSize: 14),
                     maxLines: 4,
                     validator: (val) => val == null || val.trim().isEmpty ? "Description details are required" : null,
                     decoration: InputDecoration(
                       hintText: "Explain the details of your request or error...",
-                      hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                      hintStyle: const TextStyle(color: AppColors.mutedText, fontSize: 13),
                       filled: true,
-                      fillColor: const Color(0xFF2B2B2B),
+                      fillColor: AppColors.border,
                       contentPadding: const EdgeInsets.all(14),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF3B3B3B)),
+                        borderSide: const BorderSide(color: AppColors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFD4AF37)),
+                        borderSide: const BorderSide(color: AppColors.primaryGold),
                       ),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red),
+                        borderSide: const BorderSide(color: AppColors.error),
                       ),
                       focusedErrorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red),
+                        borderSide: const BorderSide(color: AppColors.error),
                       ),
                     ),
                   ),
@@ -409,39 +513,48 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                   // Attach Screenshot
                   if (_attachedFileName == null)
                     OutlinedButton.icon(
-                      onPressed: _attachScreenshot,
+                      onPressed: _isAttaching ? null : _attachScreenshot,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFD4AF37),
-                        side: const BorderSide(color: Color(0xFFD4AF37)),
+                        foregroundColor: AppColors.primaryGold,
+                        side: const BorderSide(color: AppColors.primaryGold),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      icon: const Icon(Icons.attach_file, size: 18),
-                      label: const Text("Attach Screenshot", style: TextStyle(fontWeight: FontWeight.bold)),
+                      icon: _isAttaching
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.attach_file, size: 18),
+                      label: Text(
+                        _isAttaching ? "Uploading…" : "Attach Screenshot",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     )
                   else
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2B2B2B),
+                        color: AppColors.border,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.image, color: Color(0xFFD4AF37), size: 20),
+                          const Icon(Icons.image, color: AppColors.primaryGold, size: 20),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _attachedFileName!,
-                              style: const TextStyle(color: Colors.white, fontSize: 12),
+                              style: const TextStyle(color: AppColors.primaryText, fontSize: 12),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           IconButton(
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
-                            icon: const Icon(Icons.close, color: Colors.red, size: 18),
+                            icon: const Icon(Icons.close, color: AppColors.error, size: 18),
                             onPressed: _removeScreenshot,
                           ),
                         ],
@@ -456,8 +569,8 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                     child: ElevatedButton(
                       onPressed: _isSubmitting ? null : _submitTicket,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD4AF37),
-                        foregroundColor: Colors.black,
+                        backgroundColor: AppColors.primaryGold,
+                        foregroundColor: AppColors.onGold,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -469,7 +582,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.onGold),
                               ),
                             )
                           : const Text(
@@ -490,20 +603,20 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF111111),
+              color: AppColors.secondaryBackground,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF2B2B2B)),
+              border: Border.all(color: AppColors.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: const [
-                    Icon(Icons.schedule, color: Color(0xFFD4AF37), size: 18),
+                    Icon(Icons.schedule, color: AppColors.primaryGold, size: 18),
                     SizedBox(width: 8),
                     Text(
                       "Business Hours & SLA",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                      style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                   ],
                 ),
@@ -512,7 +625,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                   "• Support Channels: Available 24/7 (Live Chat & Phone)\n"
                   "• Support Ticket Desk: 9:00 AM - 6:00 PM (Monday - Saturday)\n"
                   "• SLA Response SLA: Tickets are processed within 2 to 4 business hours.",
-                  style: TextStyle(color: Colors.grey, fontSize: 12.5, height: 1.5),
+                  style: TextStyle(color: AppColors.mutedText, fontSize: 12.5, height: 1.5),
                 ),
               ],
             ),
@@ -525,21 +638,21 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1B0F00),
+              color: AppColors.statWarningBg,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF4A340F)),
+              border: Border.all(color: AppColors.statWarningBg),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
                 Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded, color: Color(0xFFFFB300), size: 20),
+                    Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 20),
                     SizedBox(width: 8),
                     Text(
                       "EMERGENCY LEGAL DISCLAIMER",
                       style: TextStyle(
-                        color: Color(0xFFFFB300),
+                        color: AppColors.warning,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                         letterSpacing: 0.2,
@@ -551,7 +664,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                 Text(
                   "This customer care desk handles application usage, account, and billing queries. If you are experiencing an urgent legal emergency, please contact local emergency authorities or consult a licensed advocate directly. Support representatives are not legal practitioners and cannot provide formal legal advice.",
                   style: TextStyle(
-                    color: Color(0xFFDCC3A0),
+                    color: AppColors.disclaimerText,
                     fontSize: 12,
                     height: 1.45,
                   ),
@@ -579,23 +692,23 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
         width: width,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1B1B1B),
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2B2B2B)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: const Color(0xFFD4AF37), size: 24),
+            Icon(icon, color: AppColors.primaryGold, size: 24),
             const SizedBox(height: 12),
             Text(
               title,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5),
+              style: const TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 13.5),
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: const TextStyle(color: Colors.grey, fontSize: 11),
+              style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

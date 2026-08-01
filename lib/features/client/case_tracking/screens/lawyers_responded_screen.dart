@@ -5,6 +5,7 @@ import '../../../../providers/case_provider.dart';
 import '../../../../models/case_model.dart';
 import '../../../../core/config/env.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class LawyersRespondedScreen extends ConsumerWidget {
   final String caseId;
@@ -120,7 +121,7 @@ class LawyersRespondedScreen extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 16),
+                      const Icon(Icons.star, color: AppColors.warning, size: 16),
                       const SizedBox(width: 4),
                       const Text(
                         "4.8", // Static for rating in proposal

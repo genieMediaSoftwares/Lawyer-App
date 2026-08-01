@@ -167,7 +167,7 @@
 //       autofillHints: widget.autofillHints,
 //       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
 //         color: widget.isReadOnly
-//             ? cs.onSurface.withOpacity(0.6)
+//             ? cs.onSurface.withValues(alpha: 0.6)
 //             : cs.onSurface,
 //         fontSize: 15,
 //       ),
@@ -193,12 +193,12 @@
 //       hintText: widget.hint,
 //       hintStyle: TextStyle(
 //         fontSize: 14,
-//         color: cs.onSurfaceVariant.withOpacity(0.55),
+//         color: cs.onSurfaceVariant.withValues(alpha: 0.55),
 //       ),
 //       helperText: widget.helperText,
 //       helperStyle: TextStyle(
 //         fontSize: 12,
-//         color: cs.onSurfaceVariant.withOpacity(0.7),
+//         color: cs.onSurfaceVariant.withValues(alpha: 0.7),
 //       ),
 //       prefixIcon: widget.prefixIcon != null
 //           ? Icon(
@@ -217,7 +217,7 @@
 //       filled: true,
 //       fillColor: widget.isEnabled
 //           ? fill
-//           : cs.onSurface.withOpacity(0.04),
+//           : cs.onSurface.withValues(alpha: 0.04),
 //       contentPadding: widget.prefixIcon != null
 //           ? const EdgeInsets.symmetric(horizontal: 16, vertical: 16)
 //           : const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -244,7 +244,7 @@
 //       disabledBorder: OutlineInputBorder(
 //         borderRadius: BorderRadius.circular(radius),
 //         borderSide:
-//         BorderSide(color: cs.outline.withOpacity(0.4), width: 1),
+//         BorderSide(color: cs.outline.withValues(alpha: 0.4), width: 1),
 //       ),
 //       errorStyle: TextStyle(fontSize: 12, color: cs.error),
 //       isDense: false,
@@ -288,7 +288,7 @@
 //         hintText: widget.hint ?? 'Search…',
 //         hintStyle: TextStyle(
 //           fontSize: 14,
-//           color: cs.onSurfaceVariant.withOpacity(0.6),
+//           color: cs.onSurfaceVariant.withValues(alpha: 0.6),
 //         ),
 //         prefixIcon: Icon(
 //           Icons.search_rounded,

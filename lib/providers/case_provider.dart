@@ -1,11 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../core/config/env.dart';
 import '../core/network/dio_client.dart';
 import '../core/storage/token_storage.dart';
 import '../models/case_model.dart';
 import '../models/document_model.dart';
+import 'admin_provider.dart';
 import 'auth_provider.dart';
+import 'lawyer_provider.dart';
+import 'notification_provider.dart';
 
 
 final casesProvider = StateNotifierProvider<CaseNotifier, AsyncValue<List<CaseModel>>>((ref) {
@@ -16,11 +19,45 @@ final casesProvider = StateNotifierProvider<CaseNotifier, AsyncValue<List<CaseMo
 });
 
 class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
-  IO.Socket? _socket;
+  io.Socket? _socket;
   String? _currentUserId;
 
-  CaseNotifier(Ref ref) : super(const AsyncValue.loading()) {
+  /// Kept so a case change can fan out to every view derived from the case
+  /// list. The constructor previously accepted this and threw it away, which
+  /// is why posting a case refreshed My Cases but left the dashboards, badge
+  /// counts and lawyer workspace showing stale data until they were reopened.
+  final Ref _ref;
+
+  CaseNotifier(this._ref) : super(const AsyncValue.loading()) {
     fetchCases();
+  }
+
+  /// Single fan-out point for "a case was created or changed".
+  ///
+  /// Called both by the `/cases` socket and directly after a local write, so
+  /// the originating device updates immediately rather than waiting for its
+  /// own broadcast to arrive. Everything downstream reads from these
+  /// providers, so no screen needs its own refresh logic and none can drift.
+  Future<void> caseChanged() async {
+    await fetchCases();
+
+    // Views that fetch case-derived data from their own endpoints. Riverpod
+    // rebuilds only the ones currently being watched.
+    _ref.invalidate(lawyerWorkspaceLeadsProvider);
+    _ref.invalidate(lawyerWorkspaceClientsProvider);
+    _ref.invalidate(todayConsultationsCountProvider);
+    _ref.invalidate(todayHearingsCountProvider);
+    _ref.invalidate(adminCasesProvider);
+    _ref.invalidate(adminStatsProvider);
+
+    // A new case raises notifications for the lawyers it reached.
+    try {
+      await _ref
+          .read(notificationsProvider.notifier)
+          .fetchNotifications(refresh: true);
+    } catch (_) {
+      // Notification refresh is best-effort; the case list is already current.
+    }
   }
 
   Future<void> fetchCases() async {
@@ -63,6 +100,12 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     String? country,
     double? latitude,
     double? longitude,
+    DateTime? incidentDate,
+    String? opposingParty,
+    String? firNumber,
+    String? policeStation,
+    String? bailDetails,
+    double? claimAmount,
   }) async {
     try {
       final response = await DioClient.dio.post("/cases", data: {
@@ -84,6 +127,15 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
         "country": country ?? "",
         "latitude": latitude ?? 0.0,
         "longitude": longitude ?? 0.0,
+        // Structured detail extracted from documents (or typed by hand).
+        // Sent as ISO-8601 so the server parses it unambiguously regardless of
+        // the device locale.
+        "incidentDate": incidentDate?.toIso8601String(),
+        "opposingParty": opposingParty ?? "",
+        "firNumber": firNumber ?? "",
+        "policeStation": policeStation ?? "",
+        "bailDetails": bailDetails ?? "",
+        "claimAmount": claimAmount,
       });
 
       if (response.data != null && response.data['success'] == true) {
@@ -246,7 +298,7 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
       if (token == null || token.isEmpty) return;
 
       final base = Environment.baseSocketUrl;
-      _socket = IO.io('$base/cases', IO.OptionBuilder()
+      _socket = io.io('$base/cases', io.OptionBuilder()
         .setTransports(['websocket'])
         .setAuth({'token': token})
         .build());
@@ -256,8 +308,10 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
       // The user's case-update room is joined server-side from the
       // authenticated handshake — no client-supplied userId is trusted.
 
+      // One socket, one handler, one fan-out — so every screen that shows
+      // case-derived data updates from the same event.
       _socket!.on('case_updated', (_) {
-        fetchCases();
+        caseChanged();
       });
     } catch (e) {
       // socket connection error

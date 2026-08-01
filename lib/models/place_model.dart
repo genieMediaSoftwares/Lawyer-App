@@ -2,7 +2,7 @@ class PlaceSuggestionModel {
   final String description;
   final String placeId;
 
-  PlaceSuggestionModel({
+  const PlaceSuggestionModel({
     required this.description,
     required this.placeId,
   });
@@ -13,6 +13,13 @@ class PlaceSuggestionModel {
       placeId: json['placeId'] ?? '',
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is PlaceSuggestionModel && other.placeId == placeId;
+
+  @override
+  int get hashCode => placeId.hashCode;
 }
 
 class PlaceDetailsModel {
@@ -21,11 +28,20 @@ class PlaceDetailsModel {
   final String district;
   final String state;
   final String country;
-  final double latitude;
-  final double longitude;
+
+  /// Nullable on purpose.
+  ///
+  /// The India Post provider returns no coordinates at all, and Google can omit
+  /// geometry. These were previously defaulted to `0.0`, which is a real point
+  /// in the Gulf of Guinea — so a PIN-code selection silently placed the user
+  /// off the coast of Africa and would corrupt any distance-based lawyer
+  /// matching. Absent stays absent; callers must handle null.
+  final double? latitude;
+  final double? longitude;
+
   final String placeId;
 
-  PlaceDetailsModel({
+  const PlaceDetailsModel({
     required this.description,
     required this.city,
     required this.district,
@@ -36,6 +52,11 @@ class PlaceDetailsModel {
     required this.placeId,
   });
 
+  bool get hasCoordinates => latitude != null && longitude != null;
+
+  /// Short label for compact UI, e.g. "Gachibowli, Telangana".
+  String get shortLabel => [city, state].where((p) => p.isNotEmpty).join(', ');
+
   factory PlaceDetailsModel.fromJson(Map<String, dynamic> json) {
     return PlaceDetailsModel(
       description: json['description'] ?? '',
@@ -43,9 +64,20 @@ class PlaceDetailsModel {
       district: json['district'] ?? '',
       state: json['state'] ?? '',
       country: json['country'] ?? '',
-      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
-      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
       placeId: json['placeId'] ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'description': description,
+        'city': city,
+        'district': district,
+        'state': state,
+        'country': country,
+        'latitude': latitude,
+        'longitude': longitude,
+        'placeId': placeId,
+      };
 }

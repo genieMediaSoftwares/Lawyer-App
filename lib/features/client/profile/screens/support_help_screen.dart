@@ -5,6 +5,7 @@ import 'contact_support_screen.dart';
 import 'about_us_screen.dart';
 import 'privacy_policy_screen.dart';
 import 'terms_conditions_screen.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class SupportHelpScreen extends StatelessWidget {
   const SupportHelpScreen({super.key});
@@ -12,18 +13,18 @@ class SupportHelpScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.primaryBackground,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primaryText),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           "Support & Help",
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.primaryText,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -37,9 +38,9 @@ class SupportHelpScreen extends StatelessWidget {
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: const Color(0xFF1B1B1B),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2B2B2B), width: 1),
+                border: Border.all(color: AppColors.border, width: 1),
               ),
               child: Column(
                 children: [
@@ -48,25 +49,25 @@ class SupportHelpScreen extends StatelessWidget {
                       MaterialPageRoute(builder: (context) => const HelpCenterScreen()),
                     );
                   }),
-                  const Divider(color: Color(0xFF2B2B2B), height: 1),
+                  const Divider(color: AppColors.border, height: 1),
                   _buildMenuRow(context, Icons.support_agent, "Contact Support", () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (context) => const ContactSupportScreen()),
                     );
                   }),
-                  const Divider(color: Color(0xFF2B2B2B), height: 1),
+                  const Divider(color: AppColors.border, height: 1),
                   _buildMenuRow(context, Icons.info_outline, "About Us", () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (context) => const AboutUsScreen()),
                     );
                   }),
-                  const Divider(color: Color(0xFF2B2B2B), height: 1),
+                  const Divider(color: AppColors.border, height: 1),
                   _buildMenuRow(context, Icons.privacy_tip_outlined, "Privacy Policy", () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
                     );
                   }),
-                  const Divider(color: Color(0xFF2B2B2B), height: 1),
+                  const Divider(color: AppColors.border, height: 1),
                   _buildMenuRow(context, Icons.gavel_outlined, "Terms & Conditions", () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (context) => const TermsConditionsScreen()),
@@ -85,12 +86,12 @@ class SupportHelpScreen extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-      leading: Icon(icon, color: const Color(0xFFD4AF37), size: 22),
+      leading: Icon(icon, color: AppColors.primaryGold, size: 22),
       title: Text(
         title,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14.5),
+        style: const TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.w600, fontSize: 14.5),
       ),
-      trailing: const Icon(Icons.chevron_right, color: Color(0xFFD4AF37), size: 18),
+      trailing: const Icon(Icons.chevron_right, color: AppColors.primaryGold, size: 18),
     );
   }
 }

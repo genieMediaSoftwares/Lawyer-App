@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../core/config/env.dart';
 import '../core/network/dio_client.dart';
 import '../core/storage/token_storage.dart';
@@ -58,7 +58,7 @@ final notificationsProvider = StateNotifierProvider<NotificationNotifier, Notifi
 
 class NotificationNotifier extends StateNotifier<NotificationState> {
   final String? userId;
-  IO.Socket? _socket;
+  io.Socket? _socket;
   bool _isDisposed = false;
 
   NotificationNotifier(this.userId)
@@ -91,7 +91,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     final base = Environment.baseUrl.replaceAll('/api', '');
     final socketUrl = '$base/notifications';
 
-    _socket = IO.io(socketUrl, IO.OptionBuilder()
+    _socket = io.io(socketUrl, io.OptionBuilder()
       .setTransports(['websocket'])
       .setAuth({'token': token})
       .enableAutoConnect()

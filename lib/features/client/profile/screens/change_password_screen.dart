@@ -83,8 +83,8 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
   Color get _strengthColor {
     final score = _passwordStrengthScore;
     if (score <= 0.4) return AppColors.error;
-    if (score <= 0.8) return Colors.orange;
-    return Colors.green;
+    if (score <= 0.8) return AppColors.warning;
+    return AppColors.success;
   }
 
   Future<void> _submitChangePassword() async {
@@ -111,7 +111,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(loc.translate('password_changed_success')),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
             ),
           );
           context.pop();
@@ -206,7 +206,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                     child: LinearProgressIndicator(
                       value: _passwordStrengthScore,
                       color: _strengthColor,
-                      backgroundColor: Colors.white12,
+                      backgroundColor: AppColors.primaryText.withValues(alpha: 0.12),
                       minHeight: 6,
                     ),
                   ),
@@ -294,15 +294,15 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                     onPressed: (_isFormValid && !_isLoading) ? _submitChangePassword : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryGold,
-                      foregroundColor: Colors.black,
-                      disabledBackgroundColor: Colors.grey.shade800,
+                      foregroundColor: AppColors.onGold,
+                      disabledBackgroundColor: AppColors.disabledText,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: _isLoading
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onGold),
                           )
                         : Text(
                             loc.translate('save_password'),
@@ -334,7 +334,7 @@ class _RuleCheckItem extends StatelessWidget {
           Icon(
             isMet ? Icons.check_circle : Icons.circle_outlined,
             size: 14,
-            color: isMet ? Colors.green : Colors.grey,
+            color: isMet ? AppColors.success : AppColors.mutedText,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -342,7 +342,7 @@ class _RuleCheckItem extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 11.5,
-                color: isMet ? Colors.white : Colors.grey,
+                color: isMet ? AppColors.primaryText : AppColors.mutedText,
                 fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
               ),
             ),

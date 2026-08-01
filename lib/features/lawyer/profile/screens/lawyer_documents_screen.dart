@@ -32,7 +32,12 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
               file.name,
               bytes: file.bytes,
             );
-        if (newDoc != null && mounted) {
+        // Guarded once, before either branch. The mounted check used to sit
+        // only on the success condition, so an upload that succeeded after the
+        // screen closed fell through to the `else` and reported failure — and
+        // that branch touched context with no guard at all.
+        if (!mounted) return;
+        if (newDoc != null) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Document uploaded successfully!")));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Upload failed. Unsupported type or size limit.")));
@@ -73,10 +78,10 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
         backgroundColor: theme.colorScheme.primary,
         icon: _isUploading
             ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-            : const Icon(Icons.cloud_upload, color: Colors.black),
+            : const Icon(Icons.cloud_upload, color: AppColors.onGold),
         label: Text(
           _isUploading ? "Uploading..." : "Upload Document",
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: AppColors.onGold, fontWeight: FontWeight.bold),
         ),
       ),
       body: documentsState.when(
@@ -98,7 +103,7 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
                     Text(
                       "Upload credentials, bar registration certificates, or identity verifications.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6)),
+                      style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                     ),
                   ],
                 ),
@@ -123,7 +128,7 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   leading: CircleAvatar(
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                     child: Icon(_getFileIcon(doc.mimeType), color: theme.colorScheme.primary),
                   ),
                   title: Text(
@@ -132,7 +137,7 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
                   ),
                   subtitle: Text(
                     "$sizeInKb KB | Uploaded: ${_formatDate(doc.uploadedAt)}",
-                    style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6), fontSize: 11),
+                    style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), fontSize: 11),
                   ),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete_outline, color: AppColors.error),

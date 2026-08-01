@@ -99,12 +99,12 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
             color: isSelected
                 ? theme.colorScheme.primary
                 : isPopular
-                    ? theme.colorScheme.primary.withOpacity(0.5)
+                    ? theme.colorScheme.primary.withValues(alpha: 0.5)
                     : theme.colorScheme.outline,
             width: isSelected ? 2.5 : 1,
           ),
           boxShadow: isSelected
-              ? [BoxShadow(color: theme.colorScheme.primary.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 4))]
+              ? [BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.15), blurRadius: 10, offset: const Offset(0, 4))]
               : null,
         ),
         child: Stack(
@@ -162,7 +162,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                   ),
                   child: const Text(
                     "Most Popular",
-                    style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: AppColors.onGold, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

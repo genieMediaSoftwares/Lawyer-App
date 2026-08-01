@@ -1,424 +1,135 @@
+const path = require("path");
 const ApiResponse = require("../../config/ApiResponse");
 const AiSmartCaseSession = require("../../models/AiSmartCaseSession");
-const Case = require("../../models/Case");
-const Appointment = require("../../models/Appointment");
-const ocrSanitizationService = require("../../services/ai/ocrSanitizationService");
-const aiSmartIntakeService = require("../../services/ai/aiSmartIntakeService");
-const notificationService = require("../../services/notification/notificationService");
-const gemini = require("../../services/ai/geminiClient");
-const fs = require("fs");
-const path = require("path");
+const Document = require("../../models/Document");
+const { AiSmartCasePipeline } = require("../../services/ai/aiSmartCasePipeline");
+
+/** Repo root, used to turn an absolute upload path into a served URL. */
+const PROJECT_ROOT = path.join(__dirname, "../../..");
 
 class AiSmartCaseController {
   /**
    * POST /api/ai/smart-case/analyze
-   * Upload multiple documents and optional voice recording to analyze with AI
+   *
+   * Accepts the documents and optional voice note, persists a "processing"
+   * session, and returns its id straight away. The analysis itself runs
+   * detached and reports over the /ai Socket.IO namespace.
+   *
+   * This shape replaced a single blocking request that held the connection for
+   * the whole pipeline. That could not work: OCR plus transcription plus
+   * extraction routinely outran the client's receive timeout and Node's own
+   * request timeout, so the client aborted while the server carried on
+   * working, and the finished result had nowhere to go. Returning an id first
+   * also means the run survives the client backgrounding or reconnecting.
    */
   async analyzeSmartCase(req, res, next) {
     try {
       const clientId = req.user._id;
 
-      // Extract uploaded files from Multer
-      const documentFiles = req.files?.documents || (Array.isArray(req.files) ? req.files : []);
-      const voiceFile = req.files?.voice ? req.files.voice[0] : (req.file || null);
+      const documentFiles =
+        req.files?.documents || (Array.isArray(req.files) ? req.files : []);
+      const voiceFile = req.files?.voice ? req.files.voice[0] : req.file || null;
 
-      let aggregatedOcrText = "";
-      const documentMetadata = [];
-      const allFraudFlags = [];
-      const uploadedDocsForDb = [];
-      const extractionFailures = [];
-
-      // 1. Process Documents (OCR & Sanitization)
-      //
-      // Run in parallel. OCR takes 13-45s per file against Gemini, so the
-      // original sequential loop meant 10 documents could take six minutes and
-      // exceed any sane client timeout. Order is preserved because
-      // Promise.all resolves positionally.
-      if (documentFiles && documentFiles.length > 0) {
-        const ocrResults = await Promise.all(
-          documentFiles.map((file) =>
-            ocrSanitizationService
-              .extractText(file.path, file.mimetype, file.originalname)
-              .catch((err) => ({
-                // A single unreadable document must not fail the whole intake.
-                extractedText: "",
-                ocrQuality: "Extraction Unavailable",
-                fraudFlags: [],
-                charCount: 0,
-                extractionFailed: true,
-                extractionError: err.message,
-              }))
-          )
-        );
-
-        documentFiles.forEach((file, index) => {
-          const ocrResult = ocrResults[index];
-
-          // Must include the sub-folder. upload.middleware routes /api/ai/*
-          // uploads to uploads/cases/, so the old `/uploads/${filename}` URL
-          // pointed at a path that does not exist and every stored document
-          // link 404'd. Derived from file.path so the two can't drift again.
-          const fileUrl =
-            "/" + path.relative(path.join(__dirname, "../../.."), file.path).replace(/\\/g, "/");
-
-          // Only feed real extracted text to the model. Appending an empty or
-          // placeholder body used to leave the AI inferring case details from
-          // the filename alone.
-          if (ocrResult.extractedText && ocrResult.extractedText.trim()) {
-            aggregatedOcrText +=
-              `\n\n--- DOCUMENT: ${file.originalname} ---\n` + ocrResult.extractedText;
-          }
-
-          if (ocrResult.extractionFailed) {
-            extractionFailures.push({
-              name: file.originalname,
-              reason: ocrResult.extractionError || "OCR service unavailable",
-            });
-          }
-
-          if (ocrResult.fraudFlags && ocrResult.fraudFlags.length > 0) {
-            allFraudFlags.push(...ocrResult.fraudFlags);
-          }
-
-          documentMetadata.push({
-            name: file.originalname,
-            size: `${(file.size / 1024).toFixed(1)} KB`,
-            type: file.mimetype,
-            ocrQuality: ocrResult.ocrQuality,
-            charactersExtracted: ocrResult.charCount,
-          });
-
-          uploadedDocsForDb.push({
-            originalName: file.originalname,
-            mimeType: file.mimetype,
-            size: file.size,
-            path: file.path,
-            url: fileUrl,
-            documentType: file.mimetype,
-            ocrQuality: ocrResult.ocrQuality,
-          });
-        });
-      }
-
-      // 2. Transcribe Voice if provided
-      let voiceTranscript = req.body.voiceTranscript || "";
-      let voiceTranscriptionFailed = false;
-
-      if (voiceFile && !voiceTranscript) {
-        try {
-          const audioBase64 = fs.readFileSync(voiceFile.path).toString("base64");
-          // Routed through geminiClient so a model outage falls back instead of
-          // failing outright, as it did when this was pinned to gemini-2.0-flash.
-          const { text } = await gemini.generate(
-            [
-              {
-                inlineData: {
-                  mimeType: voiceFile.mimetype || "audio/mp4",
-                  data: audioBase64,
-                },
-              },
-              {
-                text:
-                  "Transcribe this voice description of a legal issue verbatim into English. " +
-                  "Return ONLY the plain transcript, with no commentary.",
-              },
-            ],
-            { label: "smart-case:transcribe" }
-          );
-
-          voiceTranscript = text || "";
-          voiceTranscriptionFailed = !text;
-        } catch (vErr) {
-          console.error("Voice transcription failed in intake:", vErr.message);
-          voiceTranscriptionFailed = true;
-        }
-      }
-
-      const typedDescription = (req.body.issueDescription || "").trim();
-
-      // Fall back to whatever the client typed. Never substitute a synthetic
-      // sentence like "General legal intake submission." — the model treated
-      // that as the client's actual account of their problem and generated a
-      // case title and legal category from it.
-      if (!aggregatedOcrText.trim() && !voiceTranscript.trim()) {
-        voiceTranscript = typedDescription;
-      }
-
-      // With no document text, no transcript and nothing typed there is
-      // nothing to analyse. Record the failure so the session history shows
-      // what happened rather than leaving an invented case behind.
-      if (!aggregatedOcrText.trim() && !voiceTranscript.trim()) {
-        await AiSmartCaseSession.create({
-          client: clientId,
-          status: "failed",
-          uploadedDocuments: uploadedDocsForDb,
-          voiceTranscript: "",
-        });
-
-        const reason = extractionFailures.length
-          ? "We could not read any text from the uploaded document(s)."
-          : "No document text, voice recording or description was provided.";
-
+      // The document is the primary input the assistant reasons from; voice
+      // and typed notes only ever supplement it.
+      if (!documentFiles || documentFiles.length === 0) {
         return ApiResponse.error(
           res,
-          `${reason} Please add a short description of your issue, or upload a clearer document, and try again.`,
+          "Please upload at least one supporting document to use the AI Smart Assistant. A voice note or written notes can add extra detail, but a document is required.",
           422
         );
       }
 
-      // 3. AI Intake Processing via Gemini Pro
-      const analysisResult = await aiSmartIntakeService.analyzeCaseIntake({
-        ocrText: aggregatedOcrText,
-        voiceTranscript,
-        documentMetadata,
-        clientId,
-      });
+      const typedDescription = ((req.body && req.body.issueDescription) || "").trim();
 
-      // Merge fraud flags from OCR & Gemini
-      const combinedFraudFlags = [
-        ...allFraudFlags,
-        ...(analysisResult.aiAnalysis.fraudFlags || []),
-      ];
-      analysisResult.aiAnalysis.fraudFlags = Array.from(new Set(combinedFraudFlags));
+      // Register each upload in the Document collection, the same one the
+      // manual Post Case upload writes to. Without this the AI flow produced
+      // files that existed on disk but had no record, so the Post Case form
+      // could not treat them as attached and asked the client to upload the
+      // very files they had just given us.
+      const uploadedDocsForDb = [];
+      for (const file of documentFiles) {
+        const url =
+          "/" + path.relative(PROJECT_ROOT, file.path).replace(/\\/g, "/");
 
-      // 4. Save Session in MongoDB
+        let documentId = null;
+        try {
+          const record = await Document.create({
+            clientId,
+            originalName: file.originalname,
+            fileName: path.basename(file.path),
+            filePath: url,
+            mimeType: file.mimetype,
+            fileSize: file.size,
+          });
+          documentId = record._id;
+        } catch (e) {
+          // A missing catalogue row must not lose the client's upload; the file
+          // is still on disk and still analysed.
+          console.error("Could not create Document record for AI upload:", e.message);
+        }
+
+        uploadedDocsForDb.push({
+          documentId,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          path: file.path,
+          url,
+          documentType: file.mimetype,
+          ocrQuality: "Pending",
+        });
+      }
+
       const session = await AiSmartCaseSession.create({
         client: clientId,
-        status: analysisResult.aiAnalysis.aiConfidenceScore >= 90 ? "reviewed" : "questions_pending",
+        status: "processing",
         uploadedDocuments: uploadedDocsForDb,
-        ocrExtractedText: aggregatedOcrText,
-        voiceTranscript,
-        aiAnalysis: analysisResult.aiAnalysis,
-        duplicateCheck: analysisResult.duplicateCheck,
-        recommendedLawyers: analysisResult.recommendedLawyers.map((l) => l.userId),
+        voiceTranscript: "",
+        progress: {
+          stage: "queued",
+          message: "Preparing your documents",
+          percent: 0,
+          current: null,
+          total: documentFiles.length,
+          updatedAt: new Date(),
+        },
       });
 
-      return ApiResponse.success(res, "AI Smart Case analysis completed successfully.", {
+      const payload = {
         sessionId: session._id.toString(),
         status: session.status,
-        aiAnalysis: analysisResult.aiAnalysis,
-        duplicateCheck: analysisResult.duplicateCheck,
-        recommendedLawyers: analysisResult.recommendedLawyers,
-        uploadedDocuments: uploadedDocsForDb,
-        voiceTranscript,
-        // Told to the client so the review screen can say which documents were
-        // not read, instead of implying the analysis covered everything.
-        extractionWarnings: extractionFailures,
-        voiceTranscriptionFailed,
+        progress: session.progress,
+        uploadedDocuments: session.uploadedDocuments,
+        documentCount: documentFiles.length,
+      };
+
+      // Respond before starting work. `setImmediate` defers the pipeline to the
+      // next tick so the response is flushed first and the client is already
+      // listening when the first progress event fires.
+      ApiResponse.success(res, "Analysis started.", payload, 202);
+
+      const pipeline = new AiSmartCasePipeline(req.app.get("io"));
+      setImmediate(() => {
+        pipeline
+          .run({ session, documentFiles, voiceFile, typedDescription })
+          .catch((err) => console.error("Detached pipeline rejected:", err));
       });
+
+      return undefined;
     } catch (error) {
       console.error("Analyze Smart Case Error:", error);
-
-      // Leave a trace of the failure. The "failed" status existed in the
-      // session enum but nothing ever set it, so a crashed analysis vanished.
-      try {
-        await AiSmartCaseSession.create({
-          client: req.user?._id,
-          status: "failed",
-          voiceTranscript: "",
-        });
-      } catch {
-        // Session bookkeeping must not mask the original error.
-      }
-
-      next(error);
-    }
-  }
-
-  /**
-   * POST /api/ai/smart-case/answer-questions
-   * Submit answers to follow-up questions to refine case readiness & confidence
-   */
-  async answerSmartCaseQuestions(req, res, next) {
-    try {
-      const { sessionId, answers } = req.body;
-      const clientId = req.user._id;
-
-      const session = await AiSmartCaseSession.findOne({ _id: sessionId, client: clientId });
-      if (!session) {
-        return ApiResponse.error(res, "AI Case Session not found.", 404);
-      }
-
-      session.userAnswers = answers || [];
-
-      // Re-run AI analysis with answers included
-      const formattedAnswersText = (answers || [])
-        .map((a) => `Q: ${a.question}\nA: ${a.answer}`)
-        .join("\n\n");
-
-      const refinedText = session.ocrExtractedText + "\n\n=== ADDITIONAL CLIENT ANSWERS ===\n" + formattedAnswersText;
-
-      const refinedResult = await aiSmartIntakeService.analyzeCaseIntake({
-        ocrText: refinedText,
-        voiceTranscript: session.voiceTranscript,
-        documentMetadata: session.uploadedDocuments,
-        clientId,
-      });
-
-      session.aiAnalysis = refinedResult.aiAnalysis;
-      session.status = "reviewed";
-      await session.save();
-
-      return ApiResponse.success(res, "Answers processed and case updated successfully.", {
-        sessionId: session._id.toString(),
-        status: session.status,
-        aiAnalysis: session.aiAnalysis,
-        duplicateCheck: session.duplicateCheck,
-        recommendedLawyers: refinedResult.recommendedLawyers,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * POST /api/ai/smart-case/confirm-create
-   * Confirm and officially create the Case in MongoDB with real lawyer assignment & socket notifications
-   */
-  async confirmCreateSmartCase(req, res, next) {
-    try {
-      const {
-        sessionId,
-        title,
-        description,
-        category,
-        priority,
-        selectedLawyerId,
-        location,
-        urgency,
-        budgetRange,
-      } = req.body;
-      const clientId = req.user._id;
-
-      let session = null;
-      if (sessionId) {
-        session = await AiSmartCaseSession.findOne({ _id: sessionId, client: clientId });
-      }
-
-      const caseTitle = title || session?.aiAnalysis?.caseTitle || "AI Assistance Case";
-      const caseDescription = description || session?.aiAnalysis?.caseDescription || "Case generated via AI Smart Case Assistant.";
-      const caseCategory = category || session?.aiAnalysis?.category || "General Legal";
-      const caseUrgency = urgency || priority || session?.aiAnalysis?.priority || "Flexible";
-
-      // Process attached documents
-      const caseDocuments = (session?.uploadedDocuments || []).map((doc) => ({
-        name: doc.originalName,
-        url: doc.url,
-        size: `${(doc.size / 1024).toFixed(1)} KB`,
-      }));
-
-      // 1. Create real Case in MongoDB
-      const newCase = await Case.create({
-        client: clientId,
-        title: caseTitle,
-        description: caseDescription,
-        category: caseCategory,
-        location: location || "Delhi NCR, India",
-        urgency: caseUrgency,
-        budgetRange: budgetRange || "Market Standard",
-        status: selectedLawyerId ? "Awaiting Lawyer Acceptance" : "Submitted",
-        selectedLawyer: selectedLawyerId || null,
-        documents: caseDocuments,
-        voiceTranscript: session?.voiceTranscript || "",
-      });
-
-      // 2. Create Appointment Request if lawyer is selected
-      //
-      // These field names must match the Appointment schema exactly. They did
-      // not: `appointmentDate` (schema: `date`, and required), `type` (schema:
-      // `mode`), `status: "Pending"` (enum is lowercase) and `type: "Online"`
-      // (enum is Chat | In-Person). Mongoose rejected every insert, so
-      // selecting a lawyer made the whole confirm-create request fail with a
-      // 500 — after the Case had already been written.
-      let appointment = null;
-      if (selectedLawyerId) {
-        // Non-fatal: the Case is already persisted at this point, so throwing
-        // here would leave the client with a 500 and an orphaned case they
-        // cannot see. Report the case as created and log the shortfall.
-        try {
-          appointment = await Appointment.create({
-            client: clientId,
-            lawyer: selectedLawyerId,
-            case: newCase._id,
-            date: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-            timeSlot: "10:00 AM - 11:00 AM",
-            mode: "Chat",
-            status: "pending",
-            notes: `AI Smart Case Intake: ${caseTitle}`,
-          });
-        } catch (aErr) {
-          console.error("Appointment creation failed for case", newCase._id.toString(), aErr.message);
-        }
-
-        // 3. Emit Real-time Socket.io Notifications to Lawyer & Client
-        const io = req.app.get("io");
-        if (io) {
-          try {
-            io.of("/notifications").to(selectedLawyerId.toString()).emit("notification", {
-              type: "NEW_CASE_ASSIGNMENT",
-              title: "New AI Smart Case Assigned",
-              message: `You have received a new case: "${caseTitle}"`,
-              caseId: newCase._id.toString(),
-            });
-
-            io.of("/cases").to(selectedLawyerId.toString()).emit("new_case_assigned", {
-              caseId: newCase._id.toString(),
-              title: caseTitle,
-              category: caseCategory,
-            });
-          } catch (sErr) {
-            console.error("Socket emission error:", sErr.message);
-          }
-        }
-
-        // Send in-app notification record.
-        //
-        // Was calling a non-existent `sendNotification` with the wrong keys
-        // (`userId`/`body`/`relatedId`), so it threw
-        // "sendNotification is not a function" into a swallowing catch and the
-        // lawyer was never notified that a case had been assigned to them.
-        try {
-          await notificationService.createAndSendNotification({
-            senderId: clientId,
-            receiverId: selectedLawyerId,
-            title: "New Case Received",
-            message: `A client assigned the case "${caseTitle}" to you via the AI Assistant.`,
-            type: "case_posted",
-            priority: "high",
-            referenceId: newCase._id.toString(),
-          });
-        } catch (nErr) {
-          console.error("Notification service error:", nErr.message);
-        }
-      }
-
-      // Update Session Status
-      if (session) {
-        session.status = "created";
-        session.createdCase = newCase._id;
-        // Clean OCR text from session to save memory as required by DB rules
-        session.ocrExtractedText = "";
-        await session.save();
-      }
-
-      return ApiResponse.success(res, "Case created successfully!", {
-        case: newCase,
-        appointment,
-      });
-    } catch (error) {
-      console.error("Confirm Create Smart Case Error:", error);
       next(error);
     }
   }
 
   /**
    * GET /api/ai/smart-case/history
-   * Retrieve previous AI intake sessions for the client to resume anytime
+   * Previous intake sessions for the client.
    */
   async getSmartCaseHistory(req, res, next) {
     try {
-      const clientId = req.user._id;
-      const sessions = await AiSmartCaseSession.find({ client: clientId })
+      const sessions = await AiSmartCaseSession.find({ client: req.user._id })
         .sort({ updatedAt: -1 })
         .populate("createdCase", "title status createdAt");
 
@@ -432,22 +143,67 @@ class AiSmartCaseController {
 
   /**
    * GET /api/ai/smart-case/session/:id
-   * Fetch single session details
+   *
+   * The reconnect and poll path. A client that missed socket events — it was
+   * backgrounded, the connection dropped, the user switched devices — reads the
+   * authoritative state here and renders exactly what the events would have
+   * produced.
    */
   async getSmartCaseSessionById(req, res, next) {
     try {
-      const { id } = req.params;
-      const clientId = req.user._id;
-
-      const session = await AiSmartCaseSession.findOne({ _id: id, client: clientId })
-        .populate("createdCase")
-        .populate("recommendedLawyers");
+      const session = await AiSmartCaseSession.findOne({
+        _id: req.params.id,
+        client: req.user._id,
+      }).populate("createdCase");
 
       if (!session) {
         return ApiResponse.error(res, "Session not found.", 404);
       }
 
-      return ApiResponse.success(res, "Session retrieved successfully.", { session });
+      return ApiResponse.success(res, "Session retrieved successfully.", {
+        session,
+        // Flattened alongside the session so the completion payload is
+        // identical in shape to the `analysis_complete` socket event, and the
+        // client can parse both with one model.
+        sessionId: session._id.toString(),
+        status: session.status,
+        progress: session.progress,
+        extracted: session.extractedData,
+        uploadedDocuments: session.uploadedDocuments,
+        voiceTranscript: session.voiceTranscript,
+        voiceTranscriptionFailed: session.voiceTranscriptionFailed,
+        extractionWarnings: session.warnings,
+        failureReason: session.failureReason,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/ai/smart-case/session/:id/link-case
+   *
+   * Records which case an intake session produced, closing the audit trail
+   * from uploaded document through to filed case.
+   */
+  async linkSessionToCase(req, res, next) {
+    try {
+      const { caseId } = req.body;
+      if (!caseId) {
+        return ApiResponse.error(res, "caseId is required.", 400);
+      }
+
+      const session = await AiSmartCaseSession.findOneAndUpdate(
+        { _id: req.params.id, client: req.user._id },
+        { $set: { createdCase: caseId } },
+        { new: true }
+      );
+
+      if (!session) {
+        return ApiResponse.error(res, "Session not found.", 404);
+      }
+
+      return ApiResponse.success(res, "Session linked to case.", { session });
     } catch (error) {
       next(error);
     }

@@ -51,7 +51,7 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
               children: [
                 SwitchListTile(
                   value: _pushNotifications,
-                  activeColor: theme.colorScheme.primary,
+                  activeThumbColor: theme.colorScheme.primary,
                   title: const Text("Push Notifications", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   subtitle: const Text("Receive alerts about active cases, client requests, and chats", style: TextStyle(fontSize: 11)),
                   onChanged: (val) => setState(() => _pushNotifications = val),
@@ -59,7 +59,7 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
                 Divider(color: theme.colorScheme.outline, height: 1),
                 SwitchListTile(
                   value: _emailAlerts,
-                  activeColor: theme.colorScheme.primary,
+                  activeThumbColor: theme.colorScheme.primary,
                   title: const Text("Email Notifications", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   subtitle: const Text("Receive updates regarding weekly briefings and payout settlements", style: TextStyle(fontSize: 11)),
                   onChanged: (val) => setState(() => _emailAlerts = val),
@@ -81,7 +81,7 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
               children: [
                 SwitchListTile(
                   value: _darkMode,
-                  activeColor: theme.colorScheme.primary,
+                  activeThumbColor: theme.colorScheme.primary,
                   title: const Text("Dark Theme Mode", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   subtitle: const Text("Switch to dark color schemes (Simulated)", style: TextStyle(fontSize: 11)),
                   onChanged: (val) => setState(() => _darkMode = val),
@@ -196,7 +196,7 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: Colors.red.shade50.withOpacity(0.1),
+              backgroundColor: AppColors.error.withValues(alpha: 0.1),
               radius: 20,
               child: const Icon(Icons.calendar_month, color: AppColors.primaryGold, size: 22),
             ),

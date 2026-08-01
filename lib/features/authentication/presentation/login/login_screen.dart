@@ -178,14 +178,15 @@ class _LoginScreenState
                   height: 30,
                 ),
 
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.asset(
-                    "assets/images/logo.jpg",
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.cover,
-                  ),
+                // Was the JPEG with its baked-in navy background,
+                // ClipRRect-cropped into a square — same seam bug as the
+                // splash screen, since the navy never matched this screen's
+                // background either. The transparent PNG needs no clip or
+                // fill; it just sits on whatever is behind it.
+                Image.asset(
+                  "assets/images/logo_transparent.png",
+                  width: 140,
+                  fit: BoxFit.contain,
                 ),
 
                 const SizedBox(

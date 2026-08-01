@@ -171,14 +171,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   height: size.height * 0.02,
                 ),
 
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.asset(
-                    "assets/images/logo.jpg",
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.cover,
-                  ),
+                // Same fix as login/splash — transparent cutout, no clip or
+                // fill needed, so it blends with whatever background sits
+                // behind it instead of showing its own baked-in navy square.
+                Image.asset(
+                  "assets/images/logo_transparent.png",
+                  width: 140,
+                  fit: BoxFit.contain,
                 ),
 
                 const SizedBox(
@@ -278,7 +277,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
                 DropdownButtonFormField<
                     String>(
-                  value: _selectedRole,
+                  initialValue: _selectedRole,
                   decoration:
                   const InputDecoration(
                     labelText:

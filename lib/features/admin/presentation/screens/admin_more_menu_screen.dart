@@ -106,7 +106,7 @@ class AdminMoreMenuScreen extends StatelessWidget {
                   backgroundColor: AppColors.secondaryBackground,
                   child: Icon(Icons.person_outline, color: AppColors.primaryGold),
                 ),
-                title: const Text('Admin Profile & Security', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                title: const Text('Admin Profile & Security', style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold)),
                 subtitle: const Text('Edit profile, change password, logout', style: TextStyle(color: AppColors.mutedText, fontSize: 12)),
                 trailing: const Icon(Icons.arrow_forward_ios, color: AppColors.mutedText, size: 14),
                 onTap: () => context.push(RouteNames.adminProfile),
@@ -145,7 +145,7 @@ class AdminMoreMenuScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryGold.withOpacity(0.15),
+                    color: AppColors.primaryGold.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(icon, color: AppColors.primaryGold, size: 20),
@@ -159,7 +159,7 @@ class AdminMoreMenuScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: AppColors.primaryText, fontSize: 14, fontWeight: FontWeight.bold),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),

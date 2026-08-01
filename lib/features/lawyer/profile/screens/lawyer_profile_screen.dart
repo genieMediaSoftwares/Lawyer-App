@@ -157,7 +157,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
             child: Text(
               "ACCOUNT & PROFESSIONAL DETAILS",
               style: TextStyle(
-                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey,
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? AppColors.mutedText,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
                 letterSpacing: 0.8,
@@ -221,7 +221,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
             child: Text(
               "LEGAL WORKSPACE & PREFERENCES",
               style: TextStyle(
-                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey,
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? AppColors.mutedText,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
                 letterSpacing: 0.8,
@@ -341,7 +341,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                 Text(
                   "Adv. ${lawyer.fullName}",
                   style: TextStyle(
-                    color: theme.textTheme.bodyLarge?.color ?? Colors.white,
+                    color: theme.textTheme.bodyLarge?.color ?? AppColors.primaryText,
                     fontWeight: FontWeight.bold,
                     fontSize: 17,
                   ),
@@ -353,14 +353,14 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                   children: [
                     Icon(
                       lawyer.isVerified ? Icons.verified : Icons.pending_actions,
-                      color: lawyer.isVerified ? theme.colorScheme.primary : Colors.grey,
+                      color: lawyer.isVerified ? theme.colorScheme.primary : AppColors.mutedText,
                       size: 14,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       lawyer.isVerified ? "Verified Advocate" : "Verification Pending",
                       style: TextStyle(
-                        color: lawyer.isVerified ? theme.colorScheme.primary : Colors.grey,
+                        color: lawyer.isVerified ? theme.colorScheme.primary : AppColors.mutedText,
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),
@@ -383,9 +383,9 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.05),
+        color: theme.colorScheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.2), width: 1.2),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2), width: 1.2),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -429,7 +429,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                 : "💡 Tip: Complete your professional and bank settings to receive inquiries and consultation bookings.",
             style: TextStyle(
               fontSize: 11.5,
-              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8),
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
               height: 1.3,
             ),
           ),
@@ -466,7 +466,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
             label: "Rating",
             value: rating == 0.0 ? "N/A" : "$rating",
             icon: Icons.star,
-            iconColor: Colors.amber,
+            iconColor: AppColors.warning,
           ),
         ),
       ],
@@ -504,7 +504,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
             label,
             style: TextStyle(
               fontSize: 10,
-              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.center,
           ),
@@ -530,7 +530,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6), fontSize: 12),
+        style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), fontSize: 12),
       ),
       trailing: Icon(Icons.chevron_right, color: theme.colorScheme.primary, size: 20),
     );

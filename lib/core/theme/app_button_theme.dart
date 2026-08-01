@@ -9,7 +9,7 @@ abstract final class AppButtonTheme {
       style: ElevatedButton.styleFrom(
         elevation: 0,
         backgroundColor: AppColors.primaryGold,
-        foregroundColor: Colors.black, // Black text on Gold button
+        foregroundColor: AppColors.onGold,
         minimumSize: const Size(double.infinity, 56),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
@@ -17,7 +17,7 @@ abstract final class AppButtonTheme {
         textStyle: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w700,
-          color: Colors.black,
+          color: AppColors.onGold,
         ),
       ),
     );

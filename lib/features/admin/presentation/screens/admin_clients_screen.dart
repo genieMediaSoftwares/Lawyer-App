@@ -44,7 +44,7 @@ class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
               children: [
                 TextField(
                   controller: _searchController,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.primaryText),
                   onChanged: (val) {
                     ref.read(adminClientFilterProvider.notifier).state = filter.copyWith(search: val);
                   },
@@ -53,7 +53,7 @@ class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
                     prefixIcon: const Icon(Icons.search, color: AppColors.primaryGold),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, color: Colors.grey),
+                            icon: const Icon(Icons.clear, color: AppColors.mutedText),
                             onPressed: () {
                               _searchController.clear();
                               ref.read(adminClientFilterProvider.notifier).state = filter.copyWith(search: '');
@@ -133,7 +133,7 @@ class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
                                       Expanded(
                                         child: Text(
                                           client.fullName,
-                                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                          style: const TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -141,13 +141,13 @@ class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
-                                          color: client.isActive ? const Color(0xFF14532D) : const Color(0xFF7F1D1D),
+                                          color: client.isActive ? AppColors.statusSuccessBg : AppColors.statusErrorBg,
                                           borderRadius: BorderRadius.circular(10),
                                         ),
                                         child: Text(
                                           client.isActive ? 'Active' : 'Inactive',
                                           style: TextStyle(
-                                            color: client.isActive ? const Color(0xFF4ADE80) : const Color(0xFFFCA5A5),
+                                            color: client.isActive ? AppColors.statusSuccessFg : AppColors.statusErrorFg,
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -210,7 +210,7 @@ class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
       selectedColor: AppColors.primaryGold,
       backgroundColor: AppColors.cardBackground,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.black : AppColors.primaryGold,
+        color: isSelected ? AppColors.onGold : AppColors.primaryGold,
         fontWeight: FontWeight.w600,
         fontSize: 12,
       ),

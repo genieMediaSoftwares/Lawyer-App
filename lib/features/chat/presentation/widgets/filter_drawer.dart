@@ -15,13 +15,13 @@ const List<String> kAvailableLanguages = [
   'Kannada'
 ];
 
-typedef voidFunction = void Function(AdvocateFilters);
+typedef VoidFilterCallback = void Function(AdvocateFilters);
 
 class FilterContent extends StatefulWidget {
   final AdvocateFilters initialFilters;
   final List<String> specializations;
   final List<String> locations;
-  final voidFunction onApply;
+  final VoidFilterCallback onApply;
   final VoidCallback onReset;
   final ScrollController? scrollController;
 
@@ -134,15 +134,13 @@ class _FilterContentState extends State<FilterContent> {
     }
 
     // 4. Sanitize & build Rating list
-    final ratingItems = ['All Ratings', '4.0★+', '3.0★+', '2.0★+']
-        .toSet()
-        .toList();
+    final ratingItems = {'All Ratings', '4.0★+', '3.0★+', '2.0★+'}.toList();
     if (!ratingItems.contains(_rating)) {
       _rating = ratingItems.isNotEmpty ? ratingItems.first : 'All Ratings';
     }
 
     return Container(
-      color: Colors.black,
+      color: AppColors.onGold,
       child: Column(
         children: [
           // Scrollable fields list
@@ -160,7 +158,7 @@ class _FilterContentState extends State<FilterContent> {
                     items: specItems.isEmpty ? null : specItems.map((spec) {
                       return DropdownMenuItem(
                         value: spec,
-                        child: Text(spec, style: const TextStyle(color: Colors.white)),
+                        child: Text(spec, style: const TextStyle(color: AppColors.primaryText)),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -177,7 +175,7 @@ class _FilterContentState extends State<FilterContent> {
                     items: locItems.isEmpty ? null : locItems.map((loc) {
                       return DropdownMenuItem(
                         value: loc,
-                        child: Text(loc, style: const TextStyle(color: Colors.white)),
+                        child: Text(loc, style: const TextStyle(color: AppColors.primaryText)),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -195,7 +193,7 @@ class _FilterContentState extends State<FilterContent> {
                       final label = exp == 'All Experience' || exp == '10+' ? exp : '$exp Years';
                       return DropdownMenuItem(
                         value: exp,
-                        child: Text(label, style: const TextStyle(color: Colors.white)),
+                        child: Text(label, style: const TextStyle(color: AppColors.primaryText)),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -212,7 +210,7 @@ class _FilterContentState extends State<FilterContent> {
                     items: ratingItems.isEmpty ? null : ratingItems.map((r) {
                       return DropdownMenuItem(
                         value: r,
-                        child: Text(r, style: const TextStyle(color: Colors.white)),
+                        child: Text(r, style: const TextStyle(color: AppColors.primaryText)),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -240,7 +238,7 @@ class _FilterContentState extends State<FilterContent> {
                     max: 5000,
                     divisions: 50,
                     activeColor: AppColors.primaryGold,
-                    inactiveColor: const Color(0xFF2A2A2A),
+                    inactiveColor: AppColors.border,
                     onChanged: (values) {
                       setState(() => _feeRange = values);
                     },
@@ -260,12 +258,12 @@ class _FilterContentState extends State<FilterContent> {
                         label: Text(lang),
                         selected: isSelected,
                         selectedColor: AppColors.primaryGold,
-                        backgroundColor: const Color(0xFF161616),
+                        backgroundColor: AppColors.cardBackground,
                         side: BorderSide(
-                          color: isSelected ? AppColors.primaryGold : const Color(0xFF2A2A2A),
+                          color: isSelected ? AppColors.primaryGold : AppColors.border,
                         ),
                         labelStyle: TextStyle(
-                          color: isSelected ? Colors.black : const Color(0xFF9A9A9A),
+                          color: isSelected ? AppColors.onGold : AppColors.mutedText,
                           fontSize: 12,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
@@ -305,9 +303,9 @@ class _FilterContentState extends State<FilterContent> {
           Container(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
             decoration: const BoxDecoration(
-              color: Colors.black,
+              color: AppColors.onGold,
               border: Border(
-                top: BorderSide(color: Color(0xFF1A1A1A), width: 1),
+                top: BorderSide(color: AppColors.surface, width: 1),
               ),
             ),
             child: Row(
@@ -315,10 +313,10 @@ class _FilterContentState extends State<FilterContent> {
                 Expanded(
                   child: TextButton(
                     onPressed: _reset,
-                    child: const Text(
+                    child: Text(
                       'Reset',
                       style: TextStyle(
-                        color: Colors.white70,
+                        color: AppColors.primaryText.withValues(alpha: 0.7),
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
@@ -332,7 +330,7 @@ class _FilterContentState extends State<FilterContent> {
                     onPressed: _apply,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryGold,
-                      foregroundColor: Colors.black,
+                      foregroundColor: AppColors.onGold,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(100),
@@ -358,7 +356,7 @@ class _FilterContentState extends State<FilterContent> {
       child: Text(
         text,
         style: const TextStyle(
-          color: Color(0xFF9A9A9A),
+          color: AppColors.mutedText,
           fontSize: 13,
           fontWeight: FontWeight.w500,
         ),
@@ -376,17 +374,17 @@ class _FilterContentState extends State<FilterContent> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFF161616),
+        color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: AppColors.border),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           value: finalValue,
           items: finalItems.isEmpty ? null : finalItems,
           onChanged: onChanged,
-          dropdownColor: const Color(0xFF161616),
-          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF9A9A9A)),
+          dropdownColor: AppColors.cardBackground,
+          icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.mutedText),
           isExpanded: true,
         ),
       ),
@@ -404,17 +402,17 @@ class _FilterContentState extends State<FilterContent> {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
+            style: const TextStyle(color: AppColors.primaryText, fontSize: 14),
           ),
         ),
         const SizedBox(width: 8),
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: Colors.black,
+          activeThumbColor: AppColors.onGold,
           activeTrackColor: AppColors.primaryGold,
-          inactiveThumbColor: const Color(0xFF707070),
-          inactiveTrackColor: const Color(0xFF161616),
+          inactiveThumbColor: AppColors.disabledText,
+          inactiveTrackColor: AppColors.cardBackground,
         ),
       ],
     );
@@ -432,7 +430,7 @@ class FilterDrawer extends ConsumerWidget {
     final filterOptions = ref.watch(filterOptionsProvider);
 
     return Drawer(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.primaryBackground,
       width: 380,
       child: SafeArea(
         child: Column(
@@ -446,13 +444,13 @@ class FilterDrawer extends ConsumerWidget {
                   const Text(
                     'Filter Advocates',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.primaryText,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: const Icon(Icons.close, color: AppColors.primaryText),
                     onPressed: () {
                       if (Navigator.of(context).canPop()) {
                         Navigator.of(context).pop();
@@ -466,7 +464,7 @@ class FilterDrawer extends ConsumerWidget {
             Expanded(
               child: filterOptions.when(
                 loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryGold)),
-                error: (err, _) => Center(child: Text('Error loading filters: $err', style: const TextStyle(color: Colors.white))),
+                error: (err, _) => Center(child: Text('Error loading filters: $err', style: const TextStyle(color: AppColors.primaryText))),
                 data: (data) => FilterContent(
                   initialFilters: filters,
                   specializations: data['specializations']!,
@@ -512,7 +510,7 @@ class FilterBottomSheet extends ConsumerWidget {
         return ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           child: Container(
-            color: Colors.black,
+            color: AppColors.onGold,
             child: SafeArea(
               child: Column(
                 children: [
@@ -522,7 +520,7 @@ class FilterBottomSheet extends ConsumerWidget {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2A2A2A),
+                      color: AppColors.border,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -535,13 +533,13 @@ class FilterBottomSheet extends ConsumerWidget {
                         const Text(
                           'Filter Advocates',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColors.primaryText,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white),
+                          icon: const Icon(Icons.close, color: AppColors.primaryText),
                           onPressed: () {
                             if (Navigator.of(context).canPop()) {
                               Navigator.of(context).pop();
@@ -560,7 +558,7 @@ class FilterBottomSheet extends ConsumerWidget {
                       error: (err, _) => Center(
                         child: Text(
                           'Error loading filters: $err',
-                          style: const TextStyle(color: Colors.white),
+                          style: const TextStyle(color: AppColors.primaryText),
                         ),
                       ),
                       data: (data) => Padding(

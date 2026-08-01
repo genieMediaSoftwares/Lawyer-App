@@ -18,14 +18,14 @@ class _AdminSupportTicketsScreenState extends ConsumerState<AdminSupportTicketsS
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
-        title: const Text('Update Ticket Status', style: TextStyle(color: Colors.white, fontSize: 16)),
+        title: const Text('Update Ticket Status', style: TextStyle(color: AppColors.primaryText, fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildOption(ctx, ticketId, 'Pending', Colors.amber),
-            _buildOption(ctx, ticketId, 'Assigned', Colors.blue),
-            _buildOption(ctx, ticketId, 'Resolved', Colors.green),
-            _buildOption(ctx, ticketId, 'Closed', Colors.grey),
+            _buildOption(ctx, ticketId, 'Pending', AppColors.warning),
+            _buildOption(ctx, ticketId, 'Assigned', AppColors.info),
+            _buildOption(ctx, ticketId, 'Resolved', AppColors.success),
+            _buildOption(ctx, ticketId, 'Closed', AppColors.mutedText),
           ],
         ),
       ),
@@ -35,13 +35,13 @@ class _AdminSupportTicketsScreenState extends ConsumerState<AdminSupportTicketsS
   Widget _buildOption(BuildContext context, String ticketId, String status, Color color) {
     return ListTile(
       leading: Icon(Icons.circle, color: color, size: 12),
-      title: Text(status, style: const TextStyle(color: Colors.white)),
+      title: Text(status, style: const TextStyle(color: AppColors.primaryText)),
       onTap: () async {
         Navigator.pop(context);
         final repo = ref.read(adminRepositoryProvider);
         await repo.updateSupportTicket(ticketId, status);
-        ref.refresh(adminSupportTicketsProvider);
-        ref.refresh(adminStatsProvider);
+        ref.invalidate(adminSupportTicketsProvider);
+        ref.invalidate(adminStatsProvider);
       },
     );
   }
@@ -81,7 +81,7 @@ class _AdminSupportTicketsScreenState extends ConsumerState<AdminSupportTicketsS
                       selectedColor: AppColors.primaryGold,
                       backgroundColor: AppColors.cardBackground,
                       labelStyle: TextStyle(
-                        color: isSelected ? Colors.black : AppColors.primaryGold,
+                        color: isSelected ? AppColors.onGold : AppColors.primaryGold,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),
@@ -114,12 +114,12 @@ class _AdminSupportTicketsScreenState extends ConsumerState<AdminSupportTicketsS
                     itemBuilder: (context, index) {
                       final t = filtered[index];
                       final statusColor = t.status.toLowerCase().contains('resolved')
-                          ? Colors.green
+                          ? AppColors.success
                           : t.status.toLowerCase().contains('assigned')
-                              ? Colors.blue
+                              ? AppColors.info
                               : t.status.toLowerCase().contains('closed')
-                                  ? Colors.grey
-                                  : Colors.amber;
+                                  ? AppColors.mutedText
+                                  : AppColors.warning;
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -142,7 +142,7 @@ class _AdminSupportTicketsScreenState extends ConsumerState<AdminSupportTicketsS
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.15),
+                                    color: statusColor.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
@@ -153,7 +153,7 @@ class _AdminSupportTicketsScreenState extends ConsumerState<AdminSupportTicketsS
                               ],
                             ),
                             const SizedBox(height: 6),
-                            Text(t.title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                            Text(t.title, style: const TextStyle(color: AppColors.primaryText, fontSize: 15, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 4),
                             Text(t.description, style: const TextStyle(color: AppColors.mutedText, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
                             const SizedBox(height: 10),

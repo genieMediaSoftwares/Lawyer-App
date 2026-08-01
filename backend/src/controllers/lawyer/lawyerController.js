@@ -323,22 +323,27 @@ class LawyerController {
         // Caps at 98% max, min at 65%
         matchPercentage = Math.min(98, Math.max(65, matchPercentage));
 
-        // Generate responseTime pseudo-randomly but stably based on name length
-        const nameLen = lawyer.user.fullName.length;
-        const responseTimeMins = 10 + (nameLen % 4) * 5; // 10, 15, 20, 25 mins
-        const responseTime = `Responds in ${responseTimeMins} mins`;
+        // Response time is only reported when the lawyer's record actually
+        // holds one. It used to be derived from the length of their name
+        // — `10 + (nameLen % 4) * 5` minutes — and shown to clients choosing
+        // legal representation as though it were a measured service level.
+        const responseTime = lawyer.responseTime || null;
 
-        // Extract city/district/state from location string (e.g. "Visakhapatnam, Andhra Pradesh")
-        const locParts = lawyer.user.location.split(",");
-        const parsedCity = locParts[0] ? locParts[0].trim() : "Unknown";
-        const parsedState = locParts[1] ? locParts[1].trim() : "India";
+        // Extract city/district/state from location string (e.g. "Visakhapatnam, Andhra Pradesh").
+        // Empty when the lawyer has not set a location — "Unknown" and "India"
+        // were placeholders that rendered as if they were real profile data.
+        const locParts = (lawyer.user.location || "").split(",");
+        const parsedCity = locParts[0] ? locParts[0].trim() : "";
+        const parsedState = locParts[1] ? locParts[1].trim() : "";
 
-        // Practice areas / tags
-        const practiceAreas = [
-          lawyer.specialization,
-          subcategory || "Legal Advice",
-          category || "General Advice"
-        ].filter((v, i, self) => self.indexOf(v) === i); // unique
+        // Only the lawyer's own declared specialisation. The requested category
+        // and sub-category used to be appended here, so every result appeared
+        // to practise exactly what the client searched for.
+        const practiceAreas = (
+          Array.isArray(lawyer.practiceAreas) && lawyer.practiceAreas.length
+            ? lawyer.practiceAreas
+            : [lawyer.specialization]
+        ).filter(Boolean);
 
         return {
           lawyerId: lawyer._id, // lawyer document ID
@@ -347,8 +352,15 @@ class LawyerController {
           fullName: lawyer.user.fullName,
           specialization: lawyer.specialization,
           city: parsedCity,
-          district: district || parsedCity,
+          // The lawyer's own district, never the one the client searched for —
+          // echoing the query back made every result look local.
+          district: lawyer.district || parsedCity,
           state: parsedState,
+          // The stored location string as well as its parts. Only the parts
+          // were returned, and every consumer of this endpoint reads
+          // `location` (LawyerModel.fromJson, AdvocateCard), so recommended
+          // advocates rendered with a blank location.
+          location: lawyer.user.location || "",
           experience: lawyer.experience,
           rating: lawyer.rating,
           reviewCount: lawyer.totalReviews,
@@ -614,7 +626,13 @@ class LawyerController {
       }
 
       const googleCalendarService = require("../../services/googleCalendarService");
-      const realMode = googleCalendarService.isRealMode() && !isSimulated;
+
+      // A real exchange needs both configured credentials and an authorization
+      // code. Requiring the code here is what stops `oauth2Client.getToken()`
+      // being called with undefined on a configured deployment whose client
+      // did not complete the OAuth flow.
+      const realMode =
+        googleCalendarService.isRealMode() && !isSimulated && Boolean(code);
 
       if (realMode) {
         const { google } = require("googleapis");
@@ -641,12 +659,23 @@ class LawyerController {
           lawyer.googleTokenExpiry = new Date(tokens.expiry_date);
         }
       } else {
-        // Simulated Google Calendar integration
+        // Simulated integration: no Google API call is made and no real
+        // calendar event will exist. The lawyer's own address is recorded —
+        // "mock_advocate@gmail.com" used to be stored when none was supplied,
+        // which then displayed in their settings as a connected account.
+        if (!email) {
+          return ApiResponse.error(
+            res,
+            "An email address is required to connect a calendar.",
+            400
+          );
+        }
+
         lawyer.googleConnected = true;
-        lawyer.googleEmail = email || "mock_advocate@gmail.com";
-        lawyer.googleAccessToken = "mock_access_token";
+        lawyer.googleEmail = email;
+        lawyer.googleAccessToken = "";
         lawyer.googleRefreshToken = "mock_refresh_token";
-        lawyer.googleTokenExpiry = new Date(Date.now() + 3600 * 1000); // 1 hour mock
+        lawyer.googleTokenExpiry = null;
       }
 
       await lawyer.save();
@@ -656,10 +685,19 @@ class LawyerController {
         console.error("Failed to sync existing appointments on connect:", err);
       });
 
-      return ApiResponse.success(res, "Google Calendar connected successfully.", {
-        connected: true,
-        email: lawyer.googleEmail,
-      });
+      return ApiResponse.success(
+        res,
+        realMode
+          ? "Google Calendar connected successfully."
+          : "Calendar linked in simulation mode — consultations will not appear in your real Google Calendar until Google credentials are configured.",
+        {
+          connected: true,
+          email: lawyer.googleEmail,
+          // Told plainly, so the UI never presents a simulated link as a live
+          // calendar integration.
+          simulated: !realMode,
+        }
+      );
     } catch (error) {
       next(error);
     }

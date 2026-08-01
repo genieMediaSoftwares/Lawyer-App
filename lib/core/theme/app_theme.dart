@@ -12,11 +12,11 @@ class AppTheme {
   static ThemeData get luxuryTheme {
     final ColorScheme colorScheme = const ColorScheme.dark(
       primary: AppColors.primaryGold,
-      onPrimary: Colors.black,
+      onPrimary: AppColors.onGold,
       primaryContainer: AppColors.darkGold,
       onPrimaryContainer: AppColors.primaryText,
       secondary: AppColors.accentGold,
-      onSecondary: Colors.black,
+      onSecondary: AppColors.onGold,
       surface: AppColors.cardBackground,
       onSurface: AppColors.primaryText,
       error: AppColors.error,
@@ -40,14 +40,14 @@ class AppTheme {
 
       // App Bar Theme
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
-        iconTheme: IconThemeData(color: Colors.white),
-        actionsIconTheme: IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: AppColors.primaryText),
+        actionsIconTheme: IconThemeData(color: AppColors.primaryText),
         titleTextStyle: TextStyle(
-          color: Colors.white,
+          color: AppColors.primaryText,
           fontSize: 20,
           fontWeight: FontWeight.w700,
         ),
@@ -55,9 +55,9 @@ class AppTheme {
 
       // Bottom Navigation Bar Theme
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
         selectedItemColor: AppColors.primaryGold,
-        unselectedItemColor: Colors.grey,
+        unselectedItemColor: AppColors.mutedText,
         showSelectedLabels: true,
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
@@ -66,7 +66,7 @@ class AppTheme {
 
       // Drawer Theme
       drawerTheme: const DrawerThemeData(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
       ),
 
       // Icon Theme
@@ -80,10 +80,10 @@ class AppTheme {
       // List Tile Theme
       listTileTheme: const ListTileThemeData(
         tileColor: Colors.transparent,
-        leadingAndTrailingTextStyle: TextStyle(color: Colors.grey),
+        leadingAndTrailingTextStyle: TextStyle(color: AppColors.mutedText),
         iconColor: AppColors.primaryGold,
-        titleTextStyle: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-        subtitleTextStyle: TextStyle(color: Colors.grey, fontSize: 13),
+        titleTextStyle: TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.w600),
+        subtitleTextStyle: TextStyle(color: AppColors.mutedText, fontSize: 13),
       ),
 
       // Chip Theme
@@ -94,7 +94,7 @@ class AppTheme {
         secondarySelectedColor: AppColors.primaryGold,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         labelStyle: const TextStyle(color: AppColors.primaryGold, fontSize: 13, fontWeight: FontWeight.w500),
-        secondaryLabelStyle: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.w600),
+        secondaryLabelStyle: const TextStyle(color: AppColors.onGold, fontSize: 13, fontWeight: FontWeight.w600),
         brightness: Brightness.dark,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -116,13 +116,13 @@ class AppTheme {
           if (states.contains(WidgetState.selected)) {
             return AppColors.primaryGold;
           }
-          return Colors.grey;
+          return AppColors.mutedText;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.primaryGold.withOpacity(0.5);
+            return AppColors.primaryGold.withValues(alpha: 0.5);
           }
-          return Colors.grey.withOpacity(0.3);
+          return AppColors.disabledText.withValues(alpha: 0.3);
         }),
       ),
 
@@ -134,14 +134,14 @@ class AppTheme {
           }
           return Colors.transparent;
         }),
-        checkColor: WidgetStateProperty.all(Colors.black),
-        side: const BorderSide(color: Colors.grey),
+        checkColor: WidgetStateProperty.all(AppColors.onGold),
+        side: const BorderSide(color: AppColors.mutedText),
       ),
 
       // Slider Theme
       sliderTheme: SliderThemeData(
         activeTrackColor: AppColors.primaryGold,
-        inactiveTrackColor: Colors.grey.withOpacity(0.3),
+        inactiveTrackColor: AppColors.disabledText.withValues(alpha: 0.3),
         thumbColor: AppColors.primaryGold,
       ),
 
@@ -158,7 +158,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(18),
         ),
         titleTextStyle: const TextStyle(
-          color: Colors.white,
+          color: AppColors.primaryText,
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
@@ -174,8 +174,8 @@ class AppTheme {
 
       // SnackBar Theme
       snackBarTheme: const SnackBarThemeData(
-        backgroundColor: Color(0xFF202020),
-        contentTextStyle: TextStyle(color: Colors.white),
+        backgroundColor: AppColors.surface,
+        contentTextStyle: TextStyle(color: AppColors.primaryText),
         actionTextColor: AppColors.primaryGold,
         behavior: SnackBarBehavior.floating,
       ),

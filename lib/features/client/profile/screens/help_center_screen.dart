@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'contact_support_screen.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class HelpCenterScreen extends StatefulWidget {
   const HelpCenterScreen({super.key});
@@ -45,7 +46,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1B1B1B),
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -63,7 +64,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 height: 4,
                 width: 40,
                 decoration: BoxDecoration(
-                  color: Colors.grey[700],
+                  color: AppColors.disabledText,
                   borderRadius: BorderRadius.circular(2),
                 ),
                 margin: const EdgeInsets.only(bottom: 24),
@@ -74,24 +75,24 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFD4AF37).withOpacity(0.15),
+                    color: AppColors.primaryGold.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     article.tag.toUpperCase(),
                     style: const TextStyle(
-                      color: Color(0xFFD4AF37),
+                      color: AppColors.primaryGold,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                Icon(Icons.timer_outlined, size: 14, color: Colors.grey[400]),
+                Icon(Icons.timer_outlined, size: 14, color: AppColors.mutedText),
                 const SizedBox(width: 4),
                 Text(
                   article.readTime,
-                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                  style: TextStyle(color: AppColors.mutedText, fontSize: 12),
                 ),
               ],
             ),
@@ -99,16 +100,16 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             Text(
               article.title,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.primaryText,
                 fontWeight: FontWeight.bold,
                 fontSize: 20,
               ),
             ),
-            const Divider(color: Color(0xFF2B2B2B), height: 32),
+            const Divider(color: AppColors.border, height: 32),
             Text(
               article.content,
               style: TextStyle(
-                color: Colors.grey[300],
+                color: AppColors.secondaryText,
                 fontSize: 14,
                 height: 1.6,
               ),
@@ -125,18 +126,18 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     final filteredFaqs = _getFilteredFaqs();
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.primaryBackground,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primaryText),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           "Help Center",
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.primaryText,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -153,15 +154,15 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 children: [
                   TextField(
                     controller: _searchController,
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                    style: const TextStyle(color: AppColors.primaryText, fontSize: 15),
                     onChanged: (val) => setState(() {}),
                     decoration: InputDecoration(
                       hintText: "Search guides, FAQs, and topics...",
-                      hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-                      prefixIcon: const Icon(Icons.search, color: Color(0xFFD4AF37)),
+                      hintStyle: const TextStyle(color: AppColors.mutedText, fontSize: 14),
+                      prefixIcon: const Icon(Icons.search, color: AppColors.primaryGold),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear, color: Colors.grey),
+                              icon: const Icon(Icons.clear, color: AppColors.mutedText),
                               onPressed: () {
                                 setState(() {
                                   _searchController.clear();
@@ -170,15 +171,15 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                             )
                           : null,
                       filled: true,
-                      fillColor: const Color(0xFF1B1B1B),
+                      fillColor: AppColors.surface,
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF2B2B2B)),
+                        borderSide: const BorderSide(color: AppColors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFD4AF37)),
+                        borderSide: const BorderSide(color: AppColors.primaryGold),
                       ),
                     ),
                   ),
@@ -197,17 +198,17 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                             showCheckmark: false,
                             label: Text(cat),
                             selected: isSelected,
-                            selectedColor: const Color(0xFFD4AF37).withOpacity(0.15),
-                            backgroundColor: const Color(0xFF1B1B1B),
+                            selectedColor: AppColors.primaryGold.withValues(alpha: 0.15),
+                            backgroundColor: AppColors.surface,
                             labelStyle: TextStyle(
-                              color: isSelected ? const Color(0xFFD4AF37) : Colors.grey,
+                              color: isSelected ? AppColors.primaryGold : AppColors.mutedText,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                               fontSize: 13,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                               side: BorderSide(
-                                color: isSelected ? const Color(0xFFD4AF37) : const Color(0xFF2B2B2B),
+                                color: isSelected ? AppColors.primaryGold : AppColors.border,
                                 width: 1,
                               ),
                             ),
@@ -239,7 +240,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                     child: Text(
                       "POPULAR HELP ARTICLES",
                       style: TextStyle(
-                        color: Colors.grey,
+                        color: AppColors.mutedText,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                         letterSpacing: 0.5,
@@ -262,9 +263,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                             margin: const EdgeInsets.symmetric(horizontal: 6),
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1B1B1B),
+                              color: AppColors.surface,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFF2B2B2B)),
+                              border: Border.all(color: AppColors.border),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,13 +276,13 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFD4AF37).withOpacity(0.15),
+                                        color: AppColors.primaryGold.withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
                                         article.tag,
                                         style: const TextStyle(
-                                          color: Color(0xFFD4AF37),
+                                          color: AppColors.primaryGold,
                                           fontSize: 9,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -289,7 +290,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                     ),
                                     Text(
                                       article.readTime,
-                                      style: const TextStyle(color: Colors.grey, fontSize: 10),
+                                      style: const TextStyle(color: AppColors.mutedText, fontSize: 10),
                                     ),
                                   ],
                                 ),
@@ -299,7 +300,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                    color: Colors.white,
+                                    color: AppColors.primaryText,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
@@ -309,10 +310,10 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                   children: const [
                                     Text(
                                       "Read Guide",
-                                      style: TextStyle(color: Color(0xFFD4AF37), fontSize: 11, fontWeight: FontWeight.bold),
+                                      style: TextStyle(color: AppColors.primaryGold, fontSize: 11, fontWeight: FontWeight.bold),
                                     ),
                                     SizedBox(width: 4),
-                                    Icon(Icons.arrow_forward, color: Color(0xFFD4AF37), size: 12),
+                                    Icon(Icons.arrow_forward, color: AppColors.primaryGold, size: 12),
                                   ],
                                 )
                               ],
@@ -334,7 +335,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               child: Text(
                 _selectedCategory == "All" ? "ALL FREQUENTLY ASKED QUESTIONS" : "${_selectedCategory.toUpperCase()} FAQS",
                 style: const TextStyle(
-                  color: Colors.grey,
+                  color: AppColors.mutedText,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                   letterSpacing: 0.5,
@@ -355,22 +356,22 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1B1B1B),
+                            color: AppColors.surface,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFF2B2B2B), width: 1),
+                            border: Border.all(color: AppColors.border, width: 1),
                           ),
                           child: Theme(
                             data: Theme.of(context).copyWith(
                               dividerColor: Colors.transparent,
                             ),
                             child: ExpansionTile(
-                              iconColor: const Color(0xFFD4AF37),
-                              collapsedIconColor: Colors.grey,
+                              iconColor: AppColors.primaryGold,
+                              collapsedIconColor: AppColors.mutedText,
                               tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                               title: Text(
                                 faq.question,
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: AppColors.primaryText,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
                                 ),
@@ -381,7 +382,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                   child: Text(
                                     faq.answer,
                                     style: const TextStyle(
-                                      color: Colors.grey,
+                                      color: AppColors.mutedText,
                                       fontSize: 13,
                                       height: 1.5,
                                     ),
@@ -420,20 +421,20 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: const BoxDecoration(
-              color: Color(0xFF1B1B1B),
+              color: AppColors.surface,
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.search_off_outlined,
               size: 48,
-              color: Color(0xFFD4AF37),
+              color: AppColors.primaryGold,
             ),
           ),
           const SizedBox(height: 16),
           const Text(
             "No Matches Found",
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.primaryText,
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
@@ -443,7 +444,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             "We couldn't find any FAQs matching your exact query. Try another search or category filter.",
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.grey,
+              color: AppColors.mutedText,
               fontSize: 13,
               height: 1.45,
             ),
@@ -457,9 +458,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 28.0),
       decoration: const BoxDecoration(
-        color: Color(0xFF111111),
+        color: AppColors.secondaryBackground,
         border: Border(
-          top: BorderSide(color: Color(0xFF2B2B2B), width: 1),
+          top: BorderSide(color: AppColors.border, width: 1),
         ),
       ),
       child: Column(
@@ -468,7 +469,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           const Text(
             "STILL NEED HELP?",
             style: TextStyle(
-              color: Colors.grey,
+              color: AppColors.mutedText,
               fontWeight: FontWeight.bold,
               fontSize: 12,
               letterSpacing: 0.5,
@@ -477,7 +478,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           const SizedBox(height: 6),
           const Text(
             "If you can't find answers in our guides, reach out to our dedicated support channels.",
-            style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
+            style: TextStyle(color: AppColors.mutedText, fontSize: 13, height: 1.4),
           ),
           const SizedBox(height: 20),
           Row(
@@ -526,19 +527,19 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1B1B1B),
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2B2B2B)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: const Color(0xFFD4AF37), size: 22),
+            Icon(icon, color: AppColors.primaryGold, size: 22),
             const SizedBox(height: 12),
             Text(
               title,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.primaryText,
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
               ),
@@ -547,7 +548,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             Text(
               subtitle,
               style: const TextStyle(
-                color: Colors.grey,
+                color: AppColors.mutedText,
                 fontSize: 11,
               ),
               maxLines: 1,

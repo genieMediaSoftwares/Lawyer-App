@@ -41,11 +41,6 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     super.dispose();
   }
 
-  ImageProvider? _resolveImage(String url) {
-    if (url.isEmpty) return null;
-    return NetworkImage(Environment.getAttachmentUrl(url));
-  }
-
   @override
   Widget build(BuildContext context) {
     final chatsState = ref.watch(chatsProvider);
@@ -64,7 +59,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
           onPressed: () => context.pop(),
         ),
         elevation: 0,
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
       ),
       body: Column(
         children: [
@@ -73,16 +68,16 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: TextField(
               controller: _searchController,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.primaryText),
               decoration: InputDecoration(
                 hintText: "Search conversations...",
-                hintStyle: TextStyle(color: Colors.grey.shade500),
+                hintStyle: TextStyle(color: AppColors.mutedText),
                 prefixIcon:
                     const Icon(Icons.search, color: AppColors.primaryGold),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon:
-                            const Icon(Icons.clear, color: Colors.grey),
+                            const Icon(Icons.clear, color: AppColors.mutedText),
                         onPressed: () => _searchController.clear(),
                       )
                     : null,
@@ -132,8 +127,8 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                     backgroundColor: AppColors.secondaryBackground,
                     labelStyle: TextStyle(
                       color: isSelected
-                          ? Colors.black
-                          : Colors.grey.shade400,
+                          ? AppColors.onGold
+                          : AppColors.secondaryText,
                       fontWeight: isSelected
                           ? FontWeight.bold
                           : FontWeight.normal,
@@ -208,19 +203,19 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                               children: [
                                 Icon(Icons.chat_bubble_outline,
                                     size: 48,
-                                    color: Colors.grey.shade600),
+                                    color: AppColors.disabledText),
                                 const SizedBox(height: 16),
                                 Text(
                                   "No conversations found",
                                   style: TextStyle(
-                                      color: Colors.grey.shade500,
+                                      color: AppColors.mutedText,
                                       fontSize: 16),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   "Accept a client case to start messaging",
                                   style: TextStyle(
-                                      color: Colors.grey.shade600,
+                                      color: AppColors.disabledText,
                                       fontSize: 13),
                                 ),
                               ],
@@ -296,7 +291,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                     width: 13,
                                     height: 13,
                                     decoration: BoxDecoration(
-                                      color: Colors.green,
+                                      color: AppColors.success,
                                       shape: BoxShape.circle,
                                       border: Border.all(
                                           color:
@@ -322,7 +317,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                               ? FontWeight.bold
                                               : FontWeight.w600,
                                           fontSize: 16,
-                                          color: Colors.white,
+                                          color: AppColors.primaryText,
                                         ),
                                       ),
                                     ),
@@ -339,7 +334,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                 style: TextStyle(
                                   color: isUnread
                                       ? AppColors.primaryGold
-                                      : Colors.grey.shade500,
+                                      : AppColors.mutedText,
                                   fontSize: 11,
                                   fontWeight: isUnread
                                       ? FontWeight.bold
@@ -358,7 +353,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                   Text(
                                     otherParticipant.specialization,
                                     style: TextStyle(
-                                      color: Colors.grey.shade400,
+                                      color: AppColors.secondaryText,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -395,7 +390,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                       Icon(
                                         chat.isLastMessageRead ? Icons.done_all : Icons.done,
                                         size: 16,
-                                        color: chat.isLastMessageRead ? AppColors.primaryGold : Colors.grey,
+                                        color: chat.isLastMessageRead ? AppColors.primaryGold : AppColors.mutedText,
                                       ),
                                       const SizedBox(width: 4),
                                     ],
@@ -412,8 +407,8 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                           color: typingUser != null
                                               ? AppColors.success
                                               : (isUnread
-                                                  ? Colors.white
-                                                  : Colors.grey.shade400),
+                                                  ? AppColors.primaryText
+                                                  : AppColors.secondaryText),
                                           fontStyle: typingUser != null
                                               ? FontStyle.italic
                                               : FontStyle.normal,
@@ -446,7 +441,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                     child: Text(
                                       "${chat.unreadCount}",
                                       style: const TextStyle(
-                                        color: Colors.black,
+                                        color: AppColors.onGold,
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -489,12 +484,12 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.wifi_off,
-                                size: 48, color: Colors.grey.shade600),
+                                size: 48, color: AppColors.disabledText),
                             const SizedBox(height: 16),
                             Text(
                               "Could not load conversations",
                               style: TextStyle(
-                                  color: Colors.grey.shade400,
+                                  color: AppColors.secondaryText,
                                   fontSize: 16),
                             ),
                             const SizedBox(height: 8),
@@ -503,7 +498,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                   ? "Session expired. Please log in again."
                                   : "Pull down to retry",
                               style: TextStyle(
-                                  color: Colors.grey.shade600,
+                                  color: AppColors.disabledText,
                                   fontSize: 13),
                               textAlign: TextAlign.center,
                             ),
@@ -516,7 +511,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                               label: const Text("Retry"),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primaryGold,
-                                foregroundColor: Colors.black,
+                                foregroundColor: AppColors.onGold,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                 ),

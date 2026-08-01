@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../routes/route_names.dart';
 
@@ -119,7 +120,13 @@ class _SplashScreenState
     final logoSize = screen.width * 0.28;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      // Was theme.scaffoldBackgroundColor — routed through the dedicated
+      // AppColors.splashBackgroundColor token instead. Both resolve to the
+      // same value today, but a screen-specific token means a future splash
+      // redesign has exactly one place to change, rather than a literal that
+      // can silently drift out of sync with the rest of the theme (which is
+      // exactly what caused the original seam below).
+      backgroundColor: AppColors.splashBackgroundColor,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -131,6 +138,19 @@ class _SplashScreenState
               MainAxisAlignment.center,
               children: [
                 /// Animated Logo
+                ///
+                /// `logo.jpg` had a navy-black background baked into the
+                /// JPEG (JPEGs can't be transparent), which never matched
+                /// this screen's neutral near-black background — visible as
+                /// a mismatched square, worse at the corners where the
+                /// gold-filled Container behind it peeked through the
+                /// rounded clip. `logo_transparent.png` is a soft-alpha
+                /// chroma-keyed cutout of the same artwork (background
+                /// verified as fully transparent, RGBA alpha=0 at every
+                /// corner) with no wrapping Container or fill color needed —
+                /// it simply sits on the scaffold background, so it matches
+                /// by construction rather than by picking a close-enough
+                /// color.
                 AnimatedBuilder(
                   animation: _logoController,
                   builder: (context, child) {
@@ -142,21 +162,10 @@ class _SplashScreenState
                       ),
                     );
                   },
-                  child: Container(
-                    width: logoSize,
-                    height: logoSize,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      borderRadius:
-                      BorderRadius.circular(24),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: Image.asset(
-                        "assets/images/logo.jpg",
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                  child: Image.asset(
+                    "assets/images/logo_transparent.png",
+                    width: logoSize * 1.6,
+                    fit: BoxFit.contain,
                   ),
                 ),
 

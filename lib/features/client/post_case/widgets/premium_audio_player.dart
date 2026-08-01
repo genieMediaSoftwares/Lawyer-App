@@ -177,7 +177,7 @@ class _PremiumAudioPlayerState extends State<PremiumAudioPlayer> {
                           width: 3.5,
                           height: barHeight,
                           decoration: BoxDecoration(
-                            color: isActive ? goldColor : AppColors.mutedText.withOpacity(0.2),
+                            color: isActive ? goldColor : AppColors.mutedText.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         );

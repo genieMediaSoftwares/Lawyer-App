@@ -1,5 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../../core/network/dio_client.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -49,25 +52,52 @@ class _ForgotPasswordScreenState
       _isLoading = true;
     });
 
-    await Future.delayed(
-      const Duration(seconds: 2),
-    );
+    // Calls the real endpoint. This screen used to wait on a two-second
+    // `Future.delayed` and then tell the user a reset link had been sent —
+    // nothing was ever requested, so no email was ever sent and anyone locked
+    // out stayed locked out.
+    try {
+      final email = _emailController.text.trim();
+      final response = await DioClient.dio.post(
+        "/auth/forgot-password",
+        data: {"email": email},
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    setState(() {
-      _isLoading = false;
-    });
+      final body = response.data;
+      final succeeded = body is Map && body['success'] == true;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "Password reset link sent to ${_emailController.text}",
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            succeeded
+                // Deliberately does not confirm whether the address is
+                // registered — that would let anyone enumerate accounts.
+                ? "If $email is registered, a password reset link is on its way."
+                : (body is Map && body['message'] != null
+                    ? body['message'].toString()
+                    : "Could not send the reset link. Please try again."),
+          ),
         ),
-      ),
-    );
+      );
 
-    context.pop();
+      if (succeeded) context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e is DioException && e.response?.data is Map
+                ? (e.response!.data['message']?.toString() ??
+                    "Could not send the reset link. Please try again.")
+                : "Could not reach the server. Please check your connection.",
+          ),
+        ),
+      );
+    }
   }
 
   @override

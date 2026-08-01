@@ -143,13 +143,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
           }
         } else {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Failed to upload file attachment.")),
           );
         }
       }
     } catch (e) {
-      print('🔌 Error picking attachment: $e');
+      debugPrint('🔌 Error picking attachment: $e');
       setState(() {
         _isUploading = false;
       });
@@ -169,6 +170,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         throw "Could not launch URL";
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Could not open attachment link: $urlString")),
       );
@@ -239,7 +241,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     children: [
                       CircleAvatar(
                         radius: 4,
-                        backgroundColor: isOnline ? AppColors.success : Colors.grey,
+                        backgroundColor: isOnline ? AppColors.success : AppColors.mutedText,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -252,7 +254,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             );
           }
         ),
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
         elevation: 0,
       ),
       body: SafeArea(
@@ -266,7 +268,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.secondaryBackground,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primaryGold.withOpacity(0.4), width: 1),
+                  border: Border.all(color: AppColors.primaryGold.withValues(alpha: 0.4), width: 1),
                 ),
                 child: Row(
                   children: [
@@ -289,7 +291,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           Text(
                             currentChat!.caseInfo!.title,
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.primaryText,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -300,7 +302,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           Text(
                             "Case ID: ${currentChat!.caseInfo!.id}",
                             style: TextStyle(
-                              color: Colors.grey.shade500,
+                              color: AppColors.mutedText,
                               fontSize: 11,
                             ),
                             maxLines: 1,
@@ -355,7 +357,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryGold)),
-                error: (err, stack) => Center(child: Text("Error loading messages: $err", style: const TextStyle(color: Colors.red))),
+                error: (err, stack) => Center(child: Text("Error loading messages: $err", style: const TextStyle(color: AppColors.error))),
               ),
             ),
 
@@ -423,7 +425,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(0),
                 bottomRight: isMe ? const Radius.circular(0) : const Radius.circular(16),
               ),
-              border: isMe ? null : Border.all(color: theme.colorScheme.outline.withOpacity(0.5)),
+              border: isMe ? null : Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.5)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,7 +436,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   Text(
                     message.content,
                     style: TextStyle(
-                      color: isMe ? Colors.black : Colors.white,
+                      color: isMe ? AppColors.onGold : AppColors.primaryText,
                       fontSize: 14.5,
                       height: 1.4,
                       fontWeight: isMe ? FontWeight.w500 : FontWeight.normal,
@@ -459,7 +461,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           width: double.infinity,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: isMe ? Colors.black26 : Colors.white24),
+                            border: Border.all(color: isMe ? AppColors.onGold.withValues(alpha: 0.26) : AppColors.primaryText.withValues(alpha: 0.24)),
                             image: DecorationImage(
                               image: NetworkImage(_resolveImageUrl(attachment.url)),
                               fit: BoxFit.cover,
@@ -473,16 +475,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         padding: const EdgeInsets.all(10),
                         margin: const EdgeInsets.only(top: 4),
                         decoration: BoxDecoration(
-                          color: isMe ? Colors.black.withOpacity(0.15) : AppColors.secondaryBackground,
+                          color: isMe ? AppColors.shadow.withValues(alpha: 0.15) : AppColors.secondaryBackground,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: isMe ? Colors.black12 : Colors.white12),
+                          border: Border.all(color: isMe ? AppColors.onGold.withValues(alpha: 0.12) : AppColors.primaryText.withValues(alpha: 0.12)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.insert_drive_file_outlined,
-                              color: isMe ? Colors.black : AppColors.primaryGold,
+                              color: isMe ? AppColors.onGold : AppColors.primaryGold,
                               size: 24,
                             ),
                             const SizedBox(width: 8),
@@ -495,7 +497,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      color: isMe ? Colors.black : Colors.white,
+                                      color: isMe ? AppColors.onGold : AppColors.primaryText,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13,
                                     ),
@@ -505,7 +507,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         ? attachment.mimeType.split('/').last.toUpperCase()
                                         : "PDF DOCUMENT",
                                     style: TextStyle(
-                                      color: isMe ? Colors.black54 : Colors.grey.shade500,
+                                      color: isMe ? AppColors.onGold.withValues(alpha: 0.54) : AppColors.mutedText,
                                       fontSize: 10,
                                     ),
                                   ),
@@ -516,7 +518,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             IconButton(
                               icon: Icon(
                                 Icons.open_in_new,
-                                color: isMe ? Colors.black : AppColors.primaryGold,
+                                color: isMe ? AppColors.onGold : AppColors.primaryGold,
                                 size: 18,
                               ),
                               onPressed: () => _launchUrl(_resolveImageUrl(attachment.url)),
@@ -536,7 +538,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             children: [
               Text(
                 formattedTime,
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 10),
+                style: TextStyle(color: AppColors.mutedText, fontSize: 10),
               ),
               if (isMe && isLastSentByMe && message.isRead) ...[
                 const SizedBox(width: 6),
@@ -594,10 +596,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: TextField(
               controller: _messageController,
               onChanged: _onTextChanged,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              style: const TextStyle(color: AppColors.primaryText, fontSize: 14),
               decoration: InputDecoration(
                 hintText: "Type a message...",
-                hintStyle: TextStyle(color: Colors.grey.shade500),
+                hintStyle: TextStyle(color: AppColors.mutedText),
                 fillColor: AppColors.primaryBackground,
                 filled: true,
                 border: OutlineInputBorder(
@@ -618,7 +620,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               shape: BoxShape.circle,
             ),
             child: IconButton(
-              icon: const Icon(Icons.send, color: Colors.black, size: 18),
+              icon: const Icon(Icons.send, color: AppColors.onGold, size: 18),
               onPressed: _sendMessage,
             ),
           ),

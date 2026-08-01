@@ -20,7 +20,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: AppColors.primaryGold.withOpacity(0.15),
+                color: AppColors.primaryGold.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.gavel, color: AppColors.primaryGold, size: 20),
@@ -35,7 +35,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                 ),
                 Text(
                   'ADMIN PANEL',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -43,7 +43,7 @@ class AdminDashboardScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+            icon: const Icon(Icons.notifications_outlined, color: AppColors.primaryText),
             onPressed: () => context.push(RouteNames.adminNotifications),
           ),
           const SizedBox(width: 8),
@@ -70,7 +70,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                     children: [
                       Text(
                         'Good Day, Admin 👋',
-                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: AppColors.primaryText, fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       SizedBox(height: 4),
                       Text(
@@ -119,8 +119,8 @@ class AdminDashboardScreen extends ConsumerWidget {
                           value: '${stats.totalClients}',
                           subtext: '${stats.activeClients} Active',
                           icon: Icons.people_alt,
-                          iconBg: const Color(0xFF1E293B),
-                          iconColor: const Color(0xFF38BDF8),
+                          iconBg: AppColors.statInfoBg,
+                          iconColor: AppColors.statInfo,
                           onTap: () => context.push(RouteNames.adminClients),
                         ),
                         _buildStatTile(
@@ -129,8 +129,8 @@ class AdminDashboardScreen extends ConsumerWidget {
                           value: '${stats.totalLawyers}',
                           subtext: '${stats.approvedLawyers} Approved',
                           icon: Icons.gavel,
-                          iconBg: const Color(0xFF064E3B),
-                          iconColor: const Color(0xFF34D399),
+                          iconBg: AppColors.statSuccessBg,
+                          iconColor: AppColors.statSuccess,
                           onTap: () => context.push(RouteNames.adminLawyers),
                         ),
                         _buildStatTile(
@@ -139,8 +139,8 @@ class AdminDashboardScreen extends ConsumerWidget {
                           value: '${stats.activeCases}',
                           subtext: '${stats.closedCases} Closed',
                           icon: Icons.work_history,
-                          iconBg: const Color(0xFF312E81),
-                          iconColor: const Color(0xFF818CF8),
+                          iconBg: AppColors.statIndigoBg,
+                          iconColor: AppColors.statIndigo,
                           onTap: () => context.push(RouteNames.adminCases),
                         ),
                         _buildStatTile(
@@ -149,8 +149,8 @@ class AdminDashboardScreen extends ConsumerWidget {
                           value: '${stats.pendingVerifications}',
                           subtext: 'Action Required',
                           icon: Icons.verified_user_outlined,
-                          iconBg: const Color(0xFF78350F),
-                          iconColor: const Color(0xFFFBBF24),
+                          iconBg: AppColors.statWarningBg,
+                          iconColor: AppColors.statWarning,
                           onTap: () => context.push(RouteNames.adminLawyerVerification),
                         ),
                         _buildStatTile(
@@ -159,8 +159,8 @@ class AdminDashboardScreen extends ConsumerWidget {
                           value: '${stats.totalAppointments}',
                           subtext: '${stats.openAppointments} Upcoming',
                           icon: Icons.calendar_month,
-                          iconBg: const Color(0xFF581C87),
-                          iconColor: const Color(0xFFC084FC),
+                          iconBg: AppColors.statPurpleBg,
+                          iconColor: AppColors.statPurple,
                           onTap: () => context.push(RouteNames.adminAppointments),
                         ),
                         _buildStatTile(
@@ -169,8 +169,8 @@ class AdminDashboardScreen extends ConsumerWidget {
                           value: '${stats.totalSupportTickets}',
                           subtext: '${stats.openSupportTickets} Open',
                           icon: Icons.confirmation_number_outlined,
-                          iconBg: const Color(0xFF701A75),
-                          iconColor: const Color(0xFFF472B6),
+                          iconBg: AppColors.statPinkBg,
+                          iconColor: AppColors.statPink,
                           onTap: () => context.push(RouteNames.adminSupportTickets),
                         ),
                       ],
@@ -193,7 +193,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 'Cases Overview',
-                                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold),
                               ),
                               Icon(Icons.pie_chart_outline, color: AppColors.primaryGold, size: 20),
                             ],
@@ -214,7 +214,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                                     children: [
                                       Text(
                                         '${stats.totalCases}',
-                                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                                        style: const TextStyle(color: AppColors.primaryText, fontSize: 20, fontWeight: FontWeight.bold),
                                       ),
                                       const Text(
                                         'Total Cases',
@@ -228,13 +228,13 @@ class AdminDashboardScreen extends ConsumerWidget {
                               Expanded(
                                 child: Column(
                                   children: [
-                                    _buildLegendRow('Pending', '${stats.casesOverview['pending'] ?? 0}', const Color(0xFFF59E0B)),
+                                    _buildLegendRow('Pending', '${stats.casesOverview['pending'] ?? 0}', AppColors.warning),
                                     const SizedBox(height: 6),
-                                    _buildLegendRow('In Progress', '${stats.casesOverview['inProgress'] ?? 0}', const Color(0xFF38BDF8)),
+                                    _buildLegendRow('In Progress', '${stats.casesOverview['inProgress'] ?? 0}', AppColors.statInfo),
                                     const SizedBox(height: 6),
-                                    _buildLegendRow('Completed', '${stats.casesOverview['completed'] ?? 0}', const Color(0xFF4ADE80)),
+                                    _buildLegendRow('Completed', '${stats.casesOverview['completed'] ?? 0}', AppColors.statusSuccessFg),
                                     const SizedBox(height: 6),
-                                    _buildLegendRow('Closed', '${stats.casesOverview['closed'] ?? 0}', Colors.grey),
+                                    _buildLegendRow('Closed', '${stats.casesOverview['closed'] ?? 0}', AppColors.mutedText),
                                   ],
                                 ),
                               ),
@@ -310,7 +310,7 @@ class AdminDashboardScreen extends ConsumerWidget {
               children: [
                 Text(
                   value,
-                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: AppColors.primaryText, fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -353,7 +353,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             Text(label, style: const TextStyle(color: AppColors.secondaryText, fontSize: 13)),
           ],
         ),
-        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+        Text(value, style: const TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 13)),
       ],
     );
   }

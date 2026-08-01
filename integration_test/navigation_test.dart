@@ -38,7 +38,7 @@ void main() {
         executionTimeSec: (stopwatch.elapsedMilliseconds / 1000).clamp(3.9, 6.0),
       );
 
-      print(TestExecutionSummary().printFormattedLog(result));
+      debugPrint(TestExecutionSummary().printFormattedLog(result));
       expect(find.byType(MaterialApp), findsOneWidget);
     });
   });

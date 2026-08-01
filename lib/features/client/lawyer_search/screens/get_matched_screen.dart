@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../models/lawyer_model.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class GetMatchedScreen extends ConsumerStatefulWidget {
   const GetMatchedScreen({super.key});
@@ -393,7 +394,7 @@ class _FilterPanel extends StatelessWidget {
                             ),
                             labelStyle: TextStyle(
                               color: isSelected
-                                  ? Colors.black
+                                  ? AppColors.onGold
                                   : theme.textTheme.bodySmall?.color,
                               fontWeight: isSelected
                                   ? FontWeight.bold
@@ -426,9 +427,9 @@ class _FilterPanel extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 2),
                         decoration: BoxDecoration(
-                          color: gold.withOpacity(0.12),
+                          color: gold.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: gold.withOpacity(0.35)),
+                          border: Border.all(color: gold.withValues(alpha: 0.35)),
                         ),
                         child: Text(
                           "$minExperience yrs",
@@ -469,9 +470,9 @@ class _FilterPanel extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 2),
                         decoration: BoxDecoration(
-                          color: gold.withOpacity(0.12),
+                          color: gold.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: gold.withOpacity(0.35)),
+                          border: Border.all(color: gold.withValues(alpha: 0.35)),
                         ),
                         child: Text(
                           "₹$maxFee",
@@ -528,7 +529,7 @@ class _FilterPanel extends StatelessWidget {
                             ),
                             labelStyle: TextStyle(
                               color: isSelected
-                                  ? Colors.black
+                                  ? AppColors.onGold
                                   : theme.textTheme.bodySmall?.color,
                               fontWeight: isSelected
                                   ? FontWeight.bold
@@ -593,7 +594,7 @@ class _MatchedLawyerCard extends StatelessWidget {
         border: Border.all(color: borderColor, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: AppColors.shadow.withValues(alpha: 0.15),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -621,19 +622,19 @@ class _MatchedLawyerCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
-                          colors: [gold.withOpacity(0.6), gold],
+                          colors: [gold.withValues(alpha: 0.6), gold],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         border: Border.all(
-                            color: gold.withOpacity(0.5), width: 2),
+                            color: gold.withValues(alpha: 0.5), width: 2),
                       ),
                       child: lawyer.profileImage.isNotEmpty
                           ? ClipOval(
                               child: Image.network(
                                 lawyer.profileImage,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
+                                errorBuilder: (_, _, _) =>
                                     _InitialsWidget(initials: initials),
                               ),
                             )
@@ -668,10 +669,10 @@ class _MatchedLawyerCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: gold.withOpacity(0.12),
+                              color: gold.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                  color: gold.withOpacity(0.35)),
+                                  color: gold.withValues(alpha: 0.35)),
                             ),
                             child: Text(
                               lawyer.specialization.isNotEmpty
@@ -712,10 +713,10 @@ class _MatchedLawyerCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: gold.withOpacity(0.12),
+                        color: gold.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                         border:
-                            Border.all(color: gold.withOpacity(0.35)),
+                            Border.all(color: gold.withValues(alpha: 0.35)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -811,7 +812,7 @@ class _MatchedLawyerCard extends StatelessWidget {
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: gold,
-                      foregroundColor: Colors.black,
+                      foregroundColor: AppColors.onGold,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -843,7 +844,7 @@ class _InitialsWidget extends StatelessWidget {
       child: Text(
         initials.toUpperCase(),
         style: const TextStyle(
-          color: Colors.black,
+          color: AppColors.onGold,
           fontWeight: FontWeight.bold,
           fontSize: 20,
         ),

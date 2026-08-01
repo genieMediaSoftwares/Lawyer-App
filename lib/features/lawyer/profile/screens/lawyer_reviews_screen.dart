@@ -5,6 +5,7 @@ import '../../../../providers/auth_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/review_provider.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class LawyerReviewsScreen extends ConsumerWidget {
   const LawyerReviewsScreen({super.key});
@@ -92,7 +93,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
                                   final isGold = index < averageRating.round();
                                   return Icon(
                                     Icons.star,
-                                    color: isGold ? Colors.amber : theme.colorScheme.outline,
+                                    color: isGold ? AppColors.warning : theme.colorScheme.outline,
                                     size: 16,
                                   );
                                 }),
@@ -102,7 +103,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
                                 "Based on $totalReviewsCount reviews",
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                                 ),
                               ),
                             ],
@@ -133,7 +134,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
                     Text(
                       "CLIENT FEEDBACKS ($totalReviewsCount)",
                       style: TextStyle(
-                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey,
+                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? AppColors.mutedText,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                         letterSpacing: 0.8,
@@ -159,7 +160,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
                               Text(
                                 "Client reviews will appear here once your cases or consultations are resolved.",
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6), fontSize: 13),
+                                style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), fontSize: 13),
                               ),
                             ],
                           ),
@@ -208,7 +209,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
                                       dateStr,
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                                       ),
                                     ),
                                   ],
@@ -228,7 +229,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
                                     final isGold = starIdx < rev.rating.round();
                                     return Icon(
                                       Icons.star,
-                                      color: isGold ? Colors.amber : theme.colorScheme.outline,
+                                      color: isGold ? AppColors.warning : theme.colorScheme.outline,
                                       size: 14,
                                     );
                                   }),
@@ -265,7 +266,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
         ),
         const SizedBox(width: 4),
-        const Icon(Icons.star, color: Colors.amber, size: 10),
+        const Icon(Icons.star, color: AppColors.warning, size: 10),
         const SizedBox(width: 8),
         Expanded(
           child: ClipRRect(
@@ -285,7 +286,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
             "${(pct * 100).toInt()}%",
             style: TextStyle(
               fontSize: 10,
-              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.end,
           ),

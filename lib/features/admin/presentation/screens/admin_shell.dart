@@ -23,7 +23,7 @@ class AdminShell extends StatelessWidget {
       body: navigationShell,
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          color: Colors.black,
+          color: AppColors.onGold,
           border: Border(
             top: BorderSide(color: AppColors.border, width: 0.8),
           ),
@@ -31,9 +31,9 @@ class AdminShell extends StatelessWidget {
         child: BottomNavigationBar(
           currentIndex: navigationShell.currentIndex,
           onTap: _onTap,
-          backgroundColor: Colors.black,
+          backgroundColor: AppColors.primaryBackground,
           selectedItemColor: AppColors.primaryGold,
-          unselectedItemColor: Colors.grey,
+          unselectedItemColor: AppColors.mutedText,
           selectedFontSize: 12,
           unselectedFontSize: 12,
           type: BottomNavigationBarType.fixed,

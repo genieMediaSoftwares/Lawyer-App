@@ -61,6 +61,11 @@ dependencies:
   permission_handler: ^11.3.1
   path_provider: ^2.1.3
 
+  # Used directly for MediaType on multipart uploads (post_case_screen.dart).
+  # It resolved transitively through dio, but a package imported in lib/ must
+  # be declared, or a change in dio's own dependencies could remove it.
+  http_parser: ^4.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

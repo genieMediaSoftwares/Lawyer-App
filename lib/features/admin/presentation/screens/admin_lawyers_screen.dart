@@ -25,7 +25,7 @@ class _AdminLawyersScreenState extends ConsumerState<AdminLawyersScreen> {
       context: context,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
-        title: const Text('Update Lawyer Verification Status', style: TextStyle(color: Colors.white, fontSize: 16)),
+        title: const Text('Update Lawyer Verification Status', style: TextStyle(color: AppColors.primaryText, fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -34,7 +34,7 @@ class _AdminLawyersScreenState extends ConsumerState<AdminLawyersScreen> {
             const SizedBox(height: 14),
             TextField(
               controller: reasonController,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.primaryText),
               decoration: const InputDecoration(
                 hintText: 'Rejection/Suspension reason (optional)',
                 labelText: 'Notes / Reason',
@@ -45,10 +45,10 @@ class _AdminLawyersScreenState extends ConsumerState<AdminLawyersScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.mutedText)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53935)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
               Navigator.pop(dialogCtx);
               final repo = ref.read(adminRepositoryProvider);
@@ -57,14 +57,14 @@ class _AdminLawyersScreenState extends ConsumerState<AdminLawyersScreen> {
                 status: 'rejected',
                 rejectionReason: reasonController.text,
               );
-              ref.refresh(adminLawyersProvider);
-              ref.refresh(adminPendingLawyersProvider);
-              ref.refresh(adminStatsProvider);
+              ref.invalidate(adminLawyersProvider);
+              ref.invalidate(adminPendingLawyersProvider);
+              ref.invalidate(adminStatsProvider);
             },
-            child: const Text('Reject', style: TextStyle(color: Colors.white)),
+            child: const Text('Reject', style: TextStyle(color: AppColors.primaryText)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4CAF50)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
             onPressed: () async {
               Navigator.pop(dialogCtx);
               final repo = ref.read(adminRepositoryProvider);
@@ -72,11 +72,11 @@ class _AdminLawyersScreenState extends ConsumerState<AdminLawyersScreen> {
                 lawyerId: lawyerId,
                 status: 'verified',
               );
-              ref.refresh(adminLawyersProvider);
-              ref.refresh(adminPendingLawyersProvider);
-              ref.refresh(adminStatsProvider);
+              ref.invalidate(adminLawyersProvider);
+              ref.invalidate(adminPendingLawyersProvider);
+              ref.invalidate(adminStatsProvider);
             },
-            child: const Text('Approve', style: TextStyle(color: Colors.black)),
+            child: const Text('Approve', style: TextStyle(color: AppColors.onGold)),
           ),
         ],
       ),
@@ -108,7 +108,7 @@ class _AdminLawyersScreenState extends ConsumerState<AdminLawyersScreen> {
               children: [
                 TextField(
                   controller: _searchController,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.primaryText),
                   onChanged: (val) {
                     ref.read(adminLawyerFilterProvider.notifier).state = filter.copyWith(search: val);
                   },
@@ -117,7 +117,7 @@ class _AdminLawyersScreenState extends ConsumerState<AdminLawyersScreen> {
                     prefixIcon: const Icon(Icons.search, color: AppColors.primaryGold),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, color: Colors.grey),
+                            icon: const Icon(Icons.clear, color: AppColors.mutedText),
                             onPressed: () {
                               _searchController.clear();
                               ref.read(adminLawyerFilterProvider.notifier).state = filter.copyWith(search: '');
@@ -171,10 +171,10 @@ class _AdminLawyersScreenState extends ConsumerState<AdminLawyersScreen> {
                     itemBuilder: (context, index) {
                       final lawyer = lawyers[index];
                       final statusColor = lawyer.verificationStatus == 'verified'
-                          ? const Color(0xFF4ADE80)
+                          ? AppColors.statusSuccessFg
                           : lawyer.verificationStatus == 'rejected'
-                              ? const Color(0xFFFCA5A5)
-                              : const Color(0xFFFBBF24);
+                              ? AppColors.statusErrorFg
+                              : AppColors.statWarning;
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -209,7 +209,7 @@ class _AdminLawyersScreenState extends ConsumerState<AdminLawyersScreen> {
                                       Expanded(
                                         child: Text(
                                           lawyer.fullName.startsWith('Adv.') ? lawyer.fullName : 'Adv. ${lawyer.fullName}',
-                                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                          style: const TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -217,9 +217,9 @@ class _AdminLawyersScreenState extends ConsumerState<AdminLawyersScreen> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
-                                          color: statusColor.withOpacity(0.15),
+                                          color: statusColor.withValues(alpha: 0.15),
                                           borderRadius: BorderRadius.circular(10),
-                                          border: Border.all(color: statusColor.withOpacity(0.5)),
+                                          border: Border.all(color: statusColor.withValues(alpha: 0.5)),
                                         ),
                                         child: Text(
                                           lawyer.verificationStatus.toUpperCase(),
@@ -256,7 +256,7 @@ class _AdminLawyersScreenState extends ConsumerState<AdminLawyersScreen> {
                                             lawyer.rating != null
                                                 ? '${lawyer.rating!.toStringAsFixed(1)} Rating'
                                                 : 'Not yet rated',
-                                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                            style: const TextStyle(color: AppColors.primaryText, fontSize: 12, fontWeight: FontWeight.bold),
                                           ),
                                         ],
                                       ),
@@ -308,7 +308,7 @@ class _AdminLawyersScreenState extends ConsumerState<AdminLawyersScreen> {
       selectedColor: AppColors.primaryGold,
       backgroundColor: AppColors.cardBackground,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.black : AppColors.primaryGold,
+        color: isSelected ? AppColors.onGold : AppColors.primaryGold,
         fontWeight: FontWeight.w600,
         fontSize: 12,
       ),

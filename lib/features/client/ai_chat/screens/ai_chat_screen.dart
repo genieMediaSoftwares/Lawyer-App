@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../constants/ai_suggestions.dart';
 import '../../dashboard/widgets/ai_legal_assistant_card.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -308,10 +309,10 @@ class _AiChatScreenState extends State<AiChatScreen> with SingleTickerProviderSt
                       ),
                       if (_userConversations.isNotEmpty)
                         TextButton.icon(
-                          icon: const Icon(Icons.delete_sweep_outlined, size: 18, color: Colors.redAccent),
+                          icon: const Icon(Icons.delete_sweep_outlined, size: 18, color: AppColors.error),
                           label: const Text(
                             "Clear All",
-                            style: TextStyle(color: Colors.redAccent, fontSize: 13),
+                            style: TextStyle(color: AppColors.error, fontSize: 13),
                           ),
                           onPressed: () {
                             showDialog(
@@ -331,7 +332,7 @@ class _AiChatScreenState extends State<AiChatScreen> with SingleTickerProviderSt
                                       setSheetState(() {});
                                       if (context.mounted) Navigator.of(context).pop();
                                     },
-                                    child: const Text("Delete All", style: TextStyle(color: Colors.redAccent)),
+                                    child: const Text("Delete All", style: TextStyle(color: AppColors.error)),
                                   ),
                                 ],
                               ),
@@ -375,7 +376,7 @@ class _AiChatScreenState extends State<AiChatScreen> with SingleTickerProviderSt
                               child: Icon(
                                 Icons.chat_bubble_outline,
                                 size: 18,
-                                color: isSelected ? Colors.black : theme.colorScheme.onSurface,
+                                color: isSelected ? AppColors.onGold : theme.colorScheme.onSurface,
                               ),
                             ),
                             title: Text(
@@ -406,7 +407,7 @@ class _AiChatScreenState extends State<AiChatScreen> with SingleTickerProviderSt
                               ],
                             ),
                             trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.grey),
+                              icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.mutedText),
                               onPressed: () async {
                                 await _deleteSingleConversation(id);
                                 setSheetState(() {});
@@ -612,7 +613,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
               bottomRight: isMe ? const Radius.circular(0) : const Radius.circular(16),
             ),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6, offset: const Offset(0, 2))
+              BoxShadow(color: AppColors.shadow.withValues(alpha: 0.2), blurRadius: 6, offset: const Offset(0, 2))
             ],
             border: isMe ? null : Border.all(color: theme.colorScheme.outline),
           ),
@@ -630,7 +631,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
   Widget _parseMarkdownText(String text, bool isMe) {
     final theme = Theme.of(context);
     final textStyle = TextStyle(
-      color: isMe ? Colors.black : theme.colorScheme.onSurface,
+      color: isMe ? AppColors.onGold : theme.colorScheme.onSurface,
       fontSize: 13.5,
       height: 1.5,
     );
@@ -650,7 +651,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
           child: Text(
             line.replaceAll('###', '').trim(),
             style: TextStyle(
-              color: isMe ? Colors.black : theme.colorScheme.primary,
+              color: isMe ? AppColors.onGold : theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
@@ -661,8 +662,8 @@ Please let me know if you would like me to draft outlines for agreements or expl
           margin: const EdgeInsets.symmetric(vertical: 6),
           padding: const EdgeInsets.only(left: 10, top: 6, bottom: 6, right: 6),
           decoration: BoxDecoration(
-            border: Border(left: BorderSide(color: isMe ? Colors.black : theme.colorScheme.primary, width: 3)),
-            color: (isMe ? Colors.black.withValues(alpha: 0.12) : theme.colorScheme.primary.withValues(alpha: 0.08)),
+            border: Border(left: BorderSide(color: isMe ? AppColors.onGold : theme.colorScheme.primary, width: 3)),
+            color: (isMe ? AppColors.shadow.withValues(alpha: 0.12) : theme.colorScheme.primary.withValues(alpha: 0.08)),
           ),
           child: Text(
             line.replaceAll('>', '').trim(),
@@ -744,7 +745,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: theme.textTheme.bodySmall?.color ?? Colors.grey,
+              color: theme.textTheme.bodySmall?.color ?? AppColors.mutedText,
             ),
           ),
         ),
@@ -793,7 +794,7 @@ Please let me know if you would like me to draft outlines for agreements or expl
           CircleAvatar(
             backgroundColor: theme.colorScheme.primary,
             child: IconButton(
-              icon: const Icon(Icons.send, color: Colors.black, size: 18),
+              icon: const Icon(Icons.send, color: AppColors.onGold, size: 18),
               onPressed: () => _sendQuery(_messageController.text),
             ),
           ),

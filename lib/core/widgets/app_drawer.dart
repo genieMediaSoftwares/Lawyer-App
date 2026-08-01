@@ -6,6 +6,7 @@ import '../../providers/lawyer_provider.dart';
 import '../../routes/route_names.dart';
 import '../../core/config/env.dart';
 import 'app_circle_avatar.dart';
+import '../../core/theme/app_colors.dart';
 
 
 class AppDrawer extends ConsumerWidget {
@@ -63,7 +64,7 @@ class AppDrawer extends ConsumerWidget {
                           : null;
                       return AppCircleAvatar(
                         radius: 28,
-                        backgroundColor: theme.colorScheme.onSurface.withOpacity(0.12),
+                        backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.12),
                         imageUrl: resolvedPhotoUrl,
                         fallback: Icon(Icons.person, color: theme.colorScheme.onSurface, size: 28),
                       );
@@ -89,7 +90,7 @@ class AppDrawer extends ConsumerWidget {
                   Text(
                     auth.userEmail ?? "",
                     style: TextStyle(
-                      color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+                      color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
                       fontSize: 12,
                     ),
                   ),
@@ -157,7 +158,7 @@ class AppDrawer extends ConsumerWidget {
                   ? Badge(
                       label: Text('$count'),
                       backgroundColor: theme.colorScheme.primary,
-                      textColor: Colors.black,
+                      textColor: AppColors.onGold,
                     )
                   : const SizedBox.shrink(),
               loading: () => const SizedBox.shrink(),
@@ -229,7 +230,7 @@ class AppDrawer extends ConsumerWidget {
                   ? Badge(
                       label: Text('$count'),
                       backgroundColor: theme.colorScheme.primary,
-                      textColor: Colors.black,
+                      textColor: AppColors.onGold,
                     )
                   : const SizedBox.shrink(),
               loading: () => const SizedBox.shrink(),

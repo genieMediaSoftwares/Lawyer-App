@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/calendar_provider.dart';
 import 'calendar_day_cell.dart';
+import '../../../../core/theme/app_colors.dart';
 
 /// Calendar date grid — weekday labels + 7-column date cells.
 /// Matches the reference exactly:
@@ -50,7 +51,7 @@ class CalendarGrid extends ConsumerWidget {
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF7E8797),
+                  color: AppColors.mutedText,
                 ),
               ),
             ),

@@ -71,11 +71,11 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Compose Announcement / Broadcast', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text('Compose Announcement / Broadcast', style: TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 14),
                   TextField(
                     controller: _titleController,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: AppColors.primaryText),
                     decoration: const InputDecoration(
                       hintText: 'Notification Title',
                       labelText: 'Title',
@@ -84,7 +84,7 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                   const SizedBox(height: 12),
                   TextField(
                     controller: _messageController,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: AppColors.primaryText),
                     maxLines: 3,
                     decoration: const InputDecoration(
                       hintText: 'Enter push message details to broadcast to active users...',
@@ -109,8 +109,8 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                     height: 48,
                     child: ElevatedButton.icon(
                       icon: _isSending
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                          : const Icon(Icons.send, color: Colors.black),
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onGold))
+                          : const Icon(Icons.send, color: AppColors.onGold),
                       label: Text(_isSending ? 'Sending...' : 'Send Broadcast Push Notification'),
                       onPressed: _isSending ? null : _sendNotification,
                     ),
@@ -135,7 +135,7 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
       selectedColor: AppColors.primaryGold,
       backgroundColor: AppColors.secondaryBackground,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.black : AppColors.primaryGold,
+        color: isSelected ? AppColors.onGold : AppColors.primaryGold,
         fontWeight: FontWeight.bold,
         fontSize: 11,
       ),

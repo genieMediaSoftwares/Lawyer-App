@@ -5,12 +5,11 @@ import 'package:intl/intl.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/appointment_provider.dart';
 import '../../../../models/case_model.dart';
-import '../../../../routes/route_names.dart';
-import '../../../../core/widgets/app_drawer.dart';
 import '../../post_case/widgets/premium_audio_player.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../core/config/env.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class CaseProgressScreen extends ConsumerWidget {
   final String caseId;
@@ -23,17 +22,17 @@ class CaseProgressScreen extends ConsumerWidget {
     final appointmentsState = ref.watch(appointmentsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0B0B),
+      backgroundColor: AppColors.primaryBackground,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0B0B0B),
+        backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primaryText),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           "Case Details",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
@@ -43,7 +42,7 @@ class CaseProgressScreen extends ConsumerWidget {
             return const Center(
               child: Text(
                 "No case details found.",
-                style: TextStyle(color: Colors.grey, fontSize: 14),
+                style: TextStyle(color: AppColors.mutedText, fontSize: 14),
               ),
             );
           }
@@ -65,8 +64,8 @@ class CaseProgressScreen extends ConsumerWidget {
             onRefresh: () async {
               ref.invalidate(caseDetailsProvider(caseId));
             },
-            color: const Color(0xFFE6B325),
-            backgroundColor: const Color(0xFF181818),
+            color: AppColors.primaryGold,
+            backgroundColor: AppColors.cardBackground,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
@@ -80,7 +79,7 @@ class CaseProgressScreen extends ConsumerWidget {
                   // Case Timeline Stepper progress tracker
                   const Text(
                     "Case Progress Tracker",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primaryText),
                   ),
                   const SizedBox(height: 10),
                   _buildProgressTimeline(context, caseItem),
@@ -94,7 +93,7 @@ class CaseProgressScreen extends ConsumerWidget {
                   if (caseItem.assignedLawyerId != null) ...[
                     const Text(
                       "Next Consultation",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primaryText),
                     ),
                     const SizedBox(height: 10),
                     _buildNextConsultationCard(context, caseItem, nextAppointment),
@@ -105,7 +104,7 @@ class CaseProgressScreen extends ConsumerWidget {
                   if (caseItem.documents.isNotEmpty) ...[
                     const Text(
                       "Supporting Documents",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primaryText),
                     ),
                     const SizedBox(height: 10),
                     _buildDocumentsCard(context, caseItem),
@@ -132,9 +131,9 @@ class CaseProgressScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF282828)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,20 +144,20 @@ class CaseProgressScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF282828),
+                  color: AppColors.border,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   caseItem.category.toUpperCase(),
-                  style: const TextStyle(color: Color(0xFFE6B325), fontWeight: FontWeight.bold, fontSize: 9),
+                  style: const TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold, fontSize: 9),
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.08),
+                  color: statusColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: statusColor.withOpacity(0.3)),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                 ),
                 child: Text(
                   caseItem.status,
@@ -170,29 +169,29 @@ class CaseProgressScreen extends ConsumerWidget {
           const SizedBox(height: 14),
           Text(
             caseItem.title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primaryText),
           ),
           const SizedBox(height: 6),
           Text(
             "Case ID: #$caseSuffix",
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
+            style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
           ),
           const SizedBox(height: 4),
           Text(
             "Posted on $formattedDate",
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
+            style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
           ),
           const SizedBox(height: 12),
-          const Divider(color: Color(0xFF282828), height: 1),
+          const Divider(color: AppColors.border, height: 1),
           const SizedBox(height: 12),
           const Text(
             "Description",
-            style: TextStyle(color: Color(0xFFE6B325), fontSize: 12, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AppColors.primaryGold, fontSize: 12, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
           Text(
             caseItem.description,
-            style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+            style: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.7), fontSize: 13, height: 1.4),
           ),
           if (caseItem.voiceUrl != null && caseItem.voiceUrl!.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -206,9 +205,9 @@ class CaseProgressScreen extends ConsumerWidget {
   Widget _buildProgressTimeline(BuildContext context, CaseModel caseItem) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF282828)),
+        border: Border.all(color: AppColors.border),
       ),
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -227,21 +226,21 @@ class CaseProgressScreen extends ConsumerWidget {
                       height: 22,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: milestone.isCompleted ? const Color(0xFFE6B325) : const Color(0xFF181818),
+                        color: milestone.isCompleted ? AppColors.primaryGold : AppColors.cardBackground,
                         border: Border.all(
-                          color: milestone.isCompleted ? const Color(0xFFE6B325) : const Color(0xFF282828),
+                          color: milestone.isCompleted ? AppColors.primaryGold : AppColors.border,
                           width: 2,
                         ),
                       ),
                       child: milestone.isCompleted
-                          ? const Icon(Icons.check, color: Colors.black, size: 12)
+                          ? const Icon(Icons.check, color: AppColors.onGold, size: 12)
                           : null,
                     ),
                     if (!isLast)
                       Expanded(
                         child: Container(
                           width: 2,
-                          color: milestone.isCompleted ? const Color(0xFFE6B325) : const Color(0xFF282828),
+                          color: milestone.isCompleted ? AppColors.primaryGold : AppColors.border,
                         ),
                       ),
                   ],
@@ -258,7 +257,7 @@ class CaseProgressScreen extends ConsumerWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
-                            color: milestone.isCompleted ? Colors.white : Colors.grey,
+                            color: milestone.isCompleted ? AppColors.primaryText : AppColors.mutedText,
                           ),
                         ),
                         const SizedBox(height: 3),
@@ -266,7 +265,7 @@ class CaseProgressScreen extends ConsumerWidget {
                           milestone.isCompleted ? "Completed" : "Pending",
                           style: TextStyle(
                             fontSize: 11,
-                            color: milestone.isCompleted ? const Color(0xFFE6B325) : Colors.grey,
+                            color: milestone.isCompleted ? AppColors.primaryGold : AppColors.mutedText,
                           ),
                         ),
                       ],
@@ -287,18 +286,18 @@ class CaseProgressScreen extends ConsumerWidget {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF181818),
+          color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF282828)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: const [
-            Icon(Icons.hourglass_empty, color: Color(0xFFE6B325)),
+            Icon(Icons.hourglass_empty, color: AppColors.primaryGold),
             SizedBox(width: 12),
             Expanded(
               child: Text(
                 "Awaiting counsel assignment...",
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+                style: TextStyle(color: AppColors.mutedText, fontSize: 13),
               ),
             ),
           ],
@@ -316,19 +315,19 @@ class CaseProgressScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF282828)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
           AppCircleAvatar(
             radius: 24,
-            backgroundColor: const Color(0xFF2B2B2C),
+            backgroundColor: AppColors.border,
             imageUrl: lawyerImage.isNotEmpty
                 ? Environment.getAttachmentUrl(lawyerImage)
                 : null,
-            fallback: const Icon(Icons.person, color: Colors.grey),
+            fallback: const Icon(Icons.person, color: AppColors.mutedText),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -340,30 +339,30 @@ class CaseProgressScreen extends ConsumerWidget {
                     Flexible(
                       child: Text(
                         lawyerName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primaryText),
                       ),
                     ),
                     if (isVerified) ...[
                       const SizedBox(width: 4),
-                      const Icon(Icons.verified, color: Color(0xFFE6B325), size: 14),
+                      const Icon(Icons.verified, color: AppColors.primaryGold, size: 14),
                     ],
                   ],
                 ),
                 const SizedBox(height: 3),
                 Text(
                   lawyerSpec,
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
                 ),
                 const SizedBox(height: 3),
                 // Hidden entirely when the lawyer has no rating yet.
                 if (rating != null)
                   Row(
                     children: [
-                      const Icon(Icons.star, color: Color(0xFFE6B325), size: 12),
+                      const Icon(Icons.star, color: AppColors.primaryGold, size: 12),
                       const SizedBox(width: 3),
                       Text(
                         rating.toStringAsFixed(1),
-                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: AppColors.primaryText, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -376,13 +375,13 @@ class CaseProgressScreen extends ConsumerWidget {
               final otherUserId = caseItem.selectedLawyerId ?? caseItem.assignedLawyerId;
               if (otherUserId != null) {
                 final chat = await ref.read(chatsProvider.notifier).getOrCreateChat(otherUserId);
-                if (chat != null) {
+                if (chat != null && context.mounted) {
                   context.push('/chat/${chat.id}/$lawyerName');
                 }
               }
             },
             icon: const Icon(Icons.chat_bubble_outline),
-            color: const Color(0xFFE6B325),
+            color: AppColors.primaryGold,
           ),
         ],
       ),
@@ -398,19 +397,19 @@ class CaseProgressScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF282828)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFE6B325).withOpacity(0.1),
+              color: AppColors.primaryGold.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.calendar_today, color: Color(0xFFE6B325), size: 18),
+            child: const Icon(Icons.calendar_today, color: AppColors.primaryGold, size: 18),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -419,12 +418,12 @@ class CaseProgressScreen extends ConsumerWidget {
               children: [
                 Text(
                   timeSlot,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryText),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   formattedDate,
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
                 ),
               ],
             ),
@@ -432,12 +431,12 @@ class CaseProgressScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFF282828),
+              color: AppColors.border,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               mode,
-              style: const TextStyle(color: Colors.white70, fontSize: 10),
+              style: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.7), fontSize: 10),
             ),
           ),
         ],
@@ -449,20 +448,20 @@ class CaseProgressScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF282828)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         children: List.generate(caseItem.documents.length, (index) {
           final doc = caseItem.documents[index];
           return ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.description, color: Color(0xFFE6B325)),
-            title: Text(doc.name, style: const TextStyle(color: Colors.white, fontSize: 13)),
-            subtitle: Text(doc.size, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            leading: const Icon(Icons.description, color: AppColors.primaryGold),
+            title: Text(doc.name, style: const TextStyle(color: AppColors.primaryText, fontSize: 13)),
+            subtitle: Text(doc.size, style: const TextStyle(color: AppColors.mutedText, fontSize: 11)),
             trailing: IconButton(
-              icon: const Icon(Icons.download, color: Colors.grey),
+              icon: const Icon(Icons.download, color: AppColors.mutedText),
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text("Downloading ${doc.name}... (Simulated)")),
@@ -484,9 +483,9 @@ class CaseProgressScreen extends ConsumerWidget {
         return Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: const Color(0xFF181818),
+            color: AppColors.cardBackground,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF282828)),
+            border: Border.all(color: AppColors.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -510,18 +509,18 @@ class CaseProgressScreen extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+            const Icon(Icons.error_outline, color: AppColors.error, size: 48),
             const SizedBox(height: 16),
             Text(
               "Error loading details: $error",
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: const TextStyle(color: AppColors.primaryText, fontSize: 13),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE6B325),
-                foregroundColor: Colors.black,
+                backgroundColor: AppColors.primaryGold,
+                foregroundColor: AppColors.onGold,
               ),
               onPressed: () {
                 ref.invalidate(caseDetailsProvider(caseId));
@@ -537,17 +536,17 @@ class CaseProgressScreen extends ConsumerWidget {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Awaiting Lawyer Acceptance':
-        return const Color(0xFFE6B325);
+        return AppColors.primaryGold;
       case 'Submitted':
-        return Colors.blue;
+        return AppColors.info;
       case 'In Progress':
-        return Colors.green;
+        return AppColors.success;
       case 'Closed':
-        return Colors.blue;
+        return AppColors.info;
       case 'Rejected':
-        return Colors.red;
+        return AppColors.error;
       default:
-        return Colors.grey;
+        return AppColors.mutedText;
     }
   }
 }
@@ -599,7 +598,7 @@ class _ShimmerPulseState extends State<ShimmerPulse> with SingleTickerProviderSt
             width: widget.width,
             height: widget.height,
             decoration: BoxDecoration(
-              color: const Color(0xFF2B2B2C),
+              color: AppColors.border,
               borderRadius: BorderRadius.circular(widget.borderRadius),
             ),
           ),

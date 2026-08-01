@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -20,6 +20,18 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
   bool _isRecording = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Clear anything left from a previous run. The provider outlives this
+    // screen, so without this the intake reopened still holding the last
+    // analysis's files, voice note and result — and a second run re-uploaded
+    // the previous documents alongside the new ones.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(aiSmartCaseProvider.notifier).reset();
+    });
+  }
+
+  @override
   void dispose() {
     _descController.dispose();
     super.dispose();
@@ -37,7 +49,16 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
       final result = await FilePicker.pickFiles(
         allowMultiple: true,
         type: FileType.custom,
-        allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg', 'docx', 'doc'],
+        // Mirrors EXTENSION_BY_MIME in backend/src/middleware/upload.middleware.js.
+        // `.doc` is deliberately absent: the pre-2007 binary Word format has no
+        // text extractor here and Gemini cannot read it, so offering it only
+        // produced an upload that could never be analysed.
+        allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'docx', 'txt', 'csv'],
+        // Web has no filesystem to stream from, so the bytes must come back
+        // with the pick or the file is unreadable. On native we deliberately
+        // skip this and stream from the path at upload time instead — loading
+        // ten 10 MB documents into memory up front is wasteful.
+        withData: kIsWeb,
       );
 
       if (result == null || result.files.isEmpty) return;
@@ -45,16 +66,27 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
       final notifier = ref.read(aiSmartCaseProvider.notifier);
       final alreadySelected = ref.read(aiSmartCaseProvider).selectedFiles.length;
 
-      final accepted = <File>[];
+      final accepted = <PlatformFile>[];
       final oversized = <String>[];
+      final unreadable = <String>[];
       var overflowed = false;
 
       for (final picked in result.files) {
-        if (picked.path == null) continue;
-
-        final file = File(picked.path!);
-        if (await file.length() > _maxFileBytes) {
+        // Size comes straight from PlatformFile, which every platform
+        // populates. The previous version built a `dart:io` File just to call
+        // `length()` — that threw `Unsupported operation: _Namespace` on web,
+        // because file_picker's web backend puts a `blob:` URL in `path`
+        // (so it is never null) and `File` does not exist in a browser.
+        if (picked.size > _maxFileBytes) {
           oversized.add(picked.name);
+          continue;
+        }
+
+        // No bytes and no usable native path means the upload step would have
+        // nothing to send. Reported separately from oversized so the message
+        // matches the actual reason.
+        if (picked.bytes == null && (kIsWeb || picked.path == null)) {
+          unreadable.add(picked.name);
           continue;
         }
 
@@ -63,7 +95,7 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
           break;
         }
 
-        accepted.add(file);
+        accepted.add(picked);
       }
 
       if (accepted.isNotEmpty) notifier.addFiles(accepted);
@@ -73,6 +105,8 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
       final problems = <String>[
         if (oversized.isNotEmpty)
           'Skipped (over 10 MB): ${oversized.join(', ')}',
+        if (unreadable.isNotEmpty)
+          'Could not read: ${unreadable.join(', ')}',
         if (overflowed) 'You can attach up to $_maxFileCount documents.',
       ];
 
@@ -98,10 +132,12 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
     }
 
     final state = ref.read(aiSmartCaseProvider);
-    if (state.selectedFiles.isEmpty && state.voiceFile == null && _descController.text.trim().isEmpty) {
+    // The document is the primary input the AI reasons from; the voice note
+    // and written notes are optional supplements, not alternatives to it.
+    if (state.selectedFiles.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please upload at least one document or record a voice note to proceed.'),
+          content: Text('Please upload at least one document to proceed. A voice note or notes can add extra detail.'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -119,15 +155,15 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
     final state = ref.watch(aiSmartCaseProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF060713),
+      backgroundColor: AppColors.aiSurfaceBackground,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF080914),
+        backgroundColor: AppColors.aiSurfaceBackgroundAlt,
         title: const Text(
           "AI Smart Case Assistant",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Outfit'),
+          style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontFamily: 'Outfit'),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primaryText),
           onPressed: () => context.pop(),
         ),
       ),
@@ -143,7 +179,7 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF1E1035), Color(0xFF0F172A)],
+                    colors: [AppColors.aiCardBackgroundAlt, AppColors.aiCardBackground],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -159,16 +195,16 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: const [
                           Text(
-                            "Smart Document & Voice Intake",
+                            "Smart Document Intake",
                             style: TextStyle(
-                              color: Colors.white,
+                              color: AppColors.primaryText,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
                           ),
                           SizedBox(height: 2),
                           Text(
-                            "Upload FIRs, Agreements, Notices, Court Orders or record your voice.",
+                            "Upload FIRs, Agreements, Notices or Court Orders — add a voice note to explain further, if you'd like.",
                             style: TextStyle(color: AppColors.mutedText, fontSize: 12),
                           ),
                         ],
@@ -179,14 +215,22 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
               ),
               const SizedBox(height: 24),
 
-              // Supported Documents Section
-              const Text(
-                "Upload Supporting Documents",
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              // Supported Documents Section — the primary, required input.
+              Row(
+                children: const [
+                  Text(
+                    "Upload Supporting Documents",
+                    style: TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    " *",
+                    style: TextStyle(color: AppColors.error, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               const Text(
-                "Supported formats: PDF, PNG, JPG, JPEG, DOCX (Multiple allowed)",
+                "Supported formats: PDF, PNG, JPG, WEBP, DOCX, TXT (Multiple allowed)",
                 style: TextStyle(color: AppColors.mutedText, fontSize: 12),
               ),
               const SizedBox(height: 12),
@@ -198,7 +242,7 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0F1424),
+                    color: AppColors.aiCardBackground,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: AppColors.primaryGold.withValues(alpha: 0.5),
@@ -211,7 +255,7 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
                       SizedBox(height: 10),
                       Text(
                         "Tap to browse & select documents",
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       SizedBox(height: 4),
                       Text(
@@ -237,29 +281,47 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
                   itemCount: state.selectedFiles.length,
                   itemBuilder: (context, index) {
                     final file = state.selectedFiles[index];
-                    final fileName = file.path.split('/').last.split('\\').last;
+                    // PlatformFile.name is the real filename on every
+                    // platform. Deriving it from `path` broke on web, where
+                    // the path is an opaque `blob:` URL with no filename in it.
+                    final fileName = file.name;
+                    final fileSize = file.size < 1024 * 1024
+                        ? '${(file.size / 1024).toStringAsFixed(0)} KB'
+                        : '${(file.size / (1024 * 1024)).toStringAsFixed(1)} MB';
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E2436),
+                        color: AppColors.aiCardBackgroundAlt,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.white12),
+                        border: Border.all(color: AppColors.primaryText.withValues(alpha: 0.12)),
                       ),
                       child: Row(
                         children: [
                           const Icon(Icons.insert_drive_file, color: AppColors.primaryGold, size: 20),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: Text(
-                              fileName,
-                              style: const TextStyle(color: Colors.white, fontSize: 12.5),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  fileName,
+                                  style: const TextStyle(color: AppColors.primaryText, fontSize: 12.5),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  fileSize,
+                                  style: TextStyle(
+                                    color: AppColors.primaryText.withValues(alpha: 0.5),
+                                    fontSize: 10.5,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white60, size: 18),
+                            icon: Icon(Icons.close, color: AppColors.primaryText.withValues(alpha: 0.6), size: 18),
                             onPressed: () {
                               ref.read(aiSmartCaseProvider.notifier).removeFile(file);
                             },
@@ -272,14 +334,15 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
                 const SizedBox(height: 20),
               ],
 
-              // Voice Recording Section
+              // Voice Recording Section — an optional supplement to the
+              // document above, not an alternative to it.
               const Text(
-                "Or Describe Issue Using Voice",
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                "Add a Voice Note (Optional)",
+                style: TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
               const Text(
-                "Tap microphone to record voice explanation of your legal problem.",
+                "Explain anything the document doesn't cover — tap the microphone to record.",
                 style: TextStyle(color: AppColors.mutedText, fontSize: 12),
               ),
               const SizedBox(height: 12),
@@ -288,9 +351,9 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F1424),
+                  color: AppColors.aiCardBackground,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white12),
+                  border: Border.all(color: AppColors.primaryText.withValues(alpha: 0.12)),
                 ),
                 child: Row(
                   children: [
@@ -319,7 +382,7 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
                                 ? "Recording voice..."
                                 : (state.voiceFile != null ? "Voice Recorded ✓" : "Tap mic to start recording"),
                             style: TextStyle(
-                              color: _isRecording ? Colors.redAccent : Colors.white,
+                              color: _isRecording ? AppColors.error : AppColors.primaryText,
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),
@@ -342,21 +405,21 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
               // Additional Optional Description
               const Text(
                 "Additional Written Notes (Optional)",
-                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                style: TextStyle(color: AppColors.primaryText, fontSize: 14, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _descController,
                 maxLines: 3,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+                style: const TextStyle(color: AppColors.primaryText, fontSize: 13),
                 decoration: InputDecoration(
                   hintText: "Add any extra details or dates if not mentioned in documents...",
-                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                  hintStyle: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.38), fontSize: 12),
                   filled: true,
-                  fillColor: const Color(0xFF0F1424),
+                  fillColor: AppColors.aiCardBackground,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.white12),
+                    borderSide: BorderSide(color: AppColors.primaryText.withValues(alpha: 0.12)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -391,7 +454,7 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
                   onPressed: _onProceed,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryGold,
-                    foregroundColor: Colors.black,
+                    foregroundColor: AppColors.onGold,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   child: const Text(

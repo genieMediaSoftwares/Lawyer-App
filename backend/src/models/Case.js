@@ -69,6 +69,48 @@ const caseSchema = new mongoose.Schema(
       default: "",
     },
 
+    // ── Structured detail extracted from uploaded documents ──────────────────
+    // Populated by the AI intake extractor and editable by the client on the
+    // Post Case form before submission. All optional: a case can be filed with
+    // nothing more than a category, location and description.
+
+    /// Date the incident occurred (not the filing date). Relevant to almost
+    /// every category, so always collected.
+    incidentDate: {
+      type: Date,
+      default: null,
+    },
+
+    /// The other side — respondent, opposing party, builder, employer, bank.
+    /// Free text because it may be a person, a company, or several of both.
+    opposingParty: {
+      type: String,
+      default: "",
+    },
+
+    // The three below only apply to Criminal Law, Cyber Crime and Motor
+    // Accident Claims (3 of 15 categories), so the form reveals them
+    // conditionally rather than showing empty inputs on a GST or divorce case.
+
+    /// FIR number, or an existing court case number if proceedings started.
+    firNumber: {
+      type: String,
+      default: "",
+    },
+
+    policeStation: {
+      type: String,
+      default: "",
+    },
+
+    /// Bail status/type and any sections charged, as free text. Deliberately
+    /// unmodelled: sections vary by statute (IPC/BNS, NDPS, POCSO...) and a
+    /// rigid sub-schema would reject real-world combinations.
+    bailDetails: {
+      type: String,
+      default: "",
+    },
+
     budgetRange: {
       type: String,
       default: "",

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class TermsConditionsScreen extends StatelessWidget {
   const TermsConditionsScreen({super.key});
@@ -6,18 +7,18 @@ class TermsConditionsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.primaryBackground,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primaryText),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           "Terms & Conditions",
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.primaryText,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -30,7 +31,7 @@ class TermsConditionsScreen extends StatelessWidget {
           children: [
             const Text(
               "Last Updated: July 2026",
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+              style: TextStyle(color: AppColors.mutedText, fontSize: 12),
             ),
             const SizedBox(height: 20),
 
@@ -140,7 +141,7 @@ class TermsConditionsScreen extends StatelessWidget {
       child: Text(
         title,
         style: const TextStyle(
-          color: Color(0xFFD4AF37),
+          color: AppColors.primaryGold,
           fontWeight: FontWeight.bold,
           fontSize: 15,
         ),
@@ -152,7 +153,7 @@ class TermsConditionsScreen extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
-        color: Colors.grey,
+        color: AppColors.mutedText,
         fontSize: 13,
         height: 1.55,
       ),

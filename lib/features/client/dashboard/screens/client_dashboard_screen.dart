@@ -82,7 +82,7 @@ class ClientDashboardScreen extends ConsumerWidget {
                     child: Text(
                       '$unreadCount',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.primaryText,
                         fontSize: 8,
                         fontWeight: FontWeight.bold,
                       ),
@@ -369,7 +369,7 @@ class _StepItem extends StatelessWidget {
                   width: 58,
                   height: 58,
                   decoration: BoxDecoration(
-                    color: isActive ? AppColors.primaryGold.withOpacity(0.12) : AppColors.cardBackground,
+                    color: isActive ? AppColors.primaryGold.withValues(alpha: 0.12) : AppColors.cardBackground,
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: isActive ? AppColors.primaryGold : AppColors.border,
@@ -378,7 +378,7 @@ class _StepItem extends StatelessWidget {
                     boxShadow: [
                       if (isActive)
                         BoxShadow(
-                          color: AppColors.primaryGold.withOpacity(0.15),
+                          color: AppColors.primaryGold.withValues(alpha: 0.15),
                           blurRadius: 8,
                           spreadRadius: 1,
                         ),
@@ -405,7 +405,7 @@ class _StepItem extends StatelessWidget {
                     child: Text(
                       "$number",
                       style: TextStyle(
-                        color: isActive ? Colors.black : AppColors.mutedText,
+                        color: isActive ? AppColors.onGold : AppColors.mutedText,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
@@ -418,7 +418,7 @@ class _StepItem extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                color: isActive ? Colors.white : AppColors.secondaryText,
+                color: isActive ? AppColors.primaryText : AppColors.secondaryText,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
               ),

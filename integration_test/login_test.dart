@@ -6,7 +6,7 @@ import 'package:law/app.dart';
 import 'utils/test_reporter.dart';
 
 void main() {
-  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('Authentication - Login Screen Integration Tests', () {
     testWidgets('TC001 Real Client Login Flow Test', (WidgetTester tester) async {

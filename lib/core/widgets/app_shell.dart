@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/theme/app_colors.dart';
 class AppShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -16,7 +17,7 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final activeColor = theme.colorScheme.primary;
-    final inactiveColor = Colors.grey;
+    final inactiveColor = AppColors.mutedText;
     return Scaffold(
       body: navigationShell,
       floatingActionButton: Container(
@@ -24,7 +25,7 @@ class AppShell extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.4),
+              color: AppColors.shadow.withValues(alpha: 0.4),
               blurRadius: 8,
               offset: const Offset(0, 4),
             )
@@ -36,13 +37,13 @@ class AppShell extends StatelessWidget {
           },
           backgroundColor: theme.colorScheme.primary,
           shape: const CircleBorder(),
-          child: const Icon(Icons.add, color: Colors.black, size: 28),
+          child: const Icon(Icons.add, color: AppColors.onGold, size: 28),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
-        color: Colors.black,
-        surfaceTintColor: Colors.black,
+        color: AppColors.onGold,
+        surfaceTintColor: AppColors.onGold,
         elevation: 16,
         notchMargin: 8,
         clipBehavior: Clip.antiAlias,
@@ -51,7 +52,7 @@ class AppShell extends StatelessWidget {
         height: 68,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.black,
+            color: AppColors.onGold,
             border: Border(top: BorderSide(color: theme.dividerColor, width: 1)),
           ),
           child: Row(

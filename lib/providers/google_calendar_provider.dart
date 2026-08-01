@@ -50,15 +50,24 @@ class GoogleCalendarNotifier extends StateNotifier<GoogleCalendarState> {
     }
   }
 
-  Future<bool> connect(String email, {bool simulate = true}) async {
+  /// Connects the lawyer's Google Calendar.
+  ///
+  /// The server decides whether this is a real OAuth exchange or a simulated
+  /// one, based on whether GOOGLE_CLIENT_ID/SECRET are configured
+  /// (`googleCalendarService.isRealMode()`). The client used to force
+  /// simulation — `simulate` defaulted to true and a literal
+  /// "mock_auth_code_12345" was sent — so even a correctly configured
+  /// deployment never performed a real calendar sync.
+  ///
+  /// [authCode] is the OAuth authorization code when one has been obtained.
+  Future<bool> connect(String email, {String? authCode}) async {
     state = state.copyWith(isLoading: true);
     try {
       final response = await DioClient.dio.post(
         "/lawyers/google-calendar/connect",
         data: {
           "email": email,
-          "isSimulated": simulate,
-          "code": "mock_auth_code_12345",
+          if (authCode != null && authCode.isNotEmpty) "code": authCode,
         },
       );
       if (response.data != null && response.data['success'] == true) {

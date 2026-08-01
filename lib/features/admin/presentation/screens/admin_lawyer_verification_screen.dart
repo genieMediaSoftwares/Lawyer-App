@@ -12,7 +12,7 @@ class AdminLawyerVerificationScreen extends ConsumerWidget {
       context: context,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
-        title: const Text('Reject Lawyer Verification', style: TextStyle(color: Colors.white, fontSize: 16)),
+        title: const Text('Reject Lawyer Verification', style: TextStyle(color: AppColors.primaryText, fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -21,7 +21,7 @@ class AdminLawyerVerificationScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             TextField(
               controller: reasonController,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.primaryText),
               maxLines: 3,
               decoration: const InputDecoration(
                 hintText: 'e.g. Invalid Bar Council ID / Document Unclear',
@@ -32,7 +32,7 @@ class AdminLawyerVerificationScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.mutedText)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
@@ -44,16 +44,16 @@ class AdminLawyerVerificationScreen extends ConsumerWidget {
                 status: 'rejected',
                 rejectionReason: reasonController.text,
               );
-              ref.refresh(adminPendingLawyersProvider);
-              ref.refresh(adminLawyersProvider);
-              ref.refresh(adminStatsProvider);
+              ref.invalidate(adminPendingLawyersProvider);
+              ref.invalidate(adminLawyersProvider);
+              ref.invalidate(adminStatsProvider);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Lawyer verification rejected')),
                 );
               }
             },
-            child: const Text('Confirm Reject', style: TextStyle(color: Colors.white)),
+            child: const Text('Confirm Reject', style: TextStyle(color: AppColors.primaryText)),
           ),
         ],
       ),
@@ -67,9 +67,9 @@ class AdminLawyerVerificationScreen extends ConsumerWidget {
       status: 'verified',
     );
     if (success) {
-      ref.refresh(adminPendingLawyersProvider);
-      ref.refresh(adminLawyersProvider);
-      ref.refresh(adminStatsProvider);
+      ref.invalidate(adminPendingLawyersProvider);
+      ref.invalidate(adminLawyersProvider);
+      ref.invalidate(adminStatsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Lawyer verified and approved successfully! 🎉')),
@@ -106,7 +106,7 @@ class AdminLawyerVerificationScreen extends ConsumerWidget {
                   children: [
                     Icon(Icons.check_circle_outline, color: AppColors.success, size: 56),
                     SizedBox(height: 14),
-                    Text('No Pending Verifications', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text('No Pending Verifications', style: TextStyle(color: AppColors.primaryText, fontSize: 18, fontWeight: FontWeight.bold)),
                     SizedBox(height: 6),
                     Text('All advocate profiles have been processed', style: TextStyle(color: AppColors.mutedText, fontSize: 13)),
                   ],
@@ -125,7 +125,7 @@ class AdminLawyerVerificationScreen extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: AppColors.cardBackground,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.primaryGold.withOpacity(0.4)),
+                    border: Border.all(color: AppColors.primaryGold.withValues(alpha: 0.4)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,7 +150,7 @@ class AdminLawyerVerificationScreen extends ConsumerWidget {
                               children: [
                                 Text(
                                   lawyer.fullName.startsWith('Adv.') ? lawyer.fullName : 'Adv. ${lawyer.fullName}',
-                                  style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(color: AppColors.primaryText, fontSize: 17, fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
@@ -179,7 +179,7 @@ class AdminLawyerVerificationScreen extends ConsumerWidget {
                                 context: context,
                                 builder: (ctx) => AlertDialog(
                                   backgroundColor: AppColors.cardBackground,
-                                  title: Text(lawyer.fullName, style: const TextStyle(color: Colors.white)),
+                                  title: Text(lawyer.fullName, style: const TextStyle(color: AppColors.primaryText)),
                                   content: Text(
                                     'Email: ${lawyer.email}\nPhone: ${lawyer.mobile}\nSpecialization: ${lawyer.specialization}\nBar Council No: ${lawyer.barCouncilNumber}',
                                     style: const TextStyle(color: AppColors.secondaryText),
@@ -211,7 +211,7 @@ class AdminLawyerVerificationScreen extends ConsumerWidget {
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                 ),
                                 onPressed: () => _approveLawyer(context, ref, lawyer.id),
-                                child: const Text('Approve', style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
+                                child: const Text('Approve', style: TextStyle(color: AppColors.onGold, fontSize: 12, fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),

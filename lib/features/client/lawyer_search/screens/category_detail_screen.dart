@@ -6,6 +6,7 @@ import '../../../../providers/faq_provider.dart';
 import '../../../../routes/route_names.dart';
 import '../../../../core/config/env.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class CategoryDetailScreen extends ConsumerStatefulWidget {
   final String categoryName;
@@ -93,9 +94,9 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(RouteNames.getMatched),
         backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.black,
-        icon: const Icon(Icons.psychology, color: Colors.black),
-        label: const Text("Match Me With Lawyer", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        foregroundColor: AppColors.onGold,
+        icon: const Icon(Icons.psychology, color: AppColors.onGold),
+        label: const Text("Match Me With Lawyer", style: TextStyle(color: AppColors.onGold, fontWeight: FontWeight.bold)),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -109,7 +110,7 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
                 image: DecorationImage(image: NetworkImage(catData['banner']), fit: BoxFilter.cover),
               ),
               child: Container(
-                color: Colors.black.withOpacity(0.55),
+                color: AppColors.shadow.withValues(alpha: 0.55),
                 padding: const EdgeInsets.all(24),
                 alignment: Alignment.bottomLeft,
                 child: Column(
@@ -118,12 +119,12 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
                   children: [
                     Text(
                       widget.categoryName,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 26, fontFamily: 'Outfit'),
+                      style: const TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 26, fontFamily: 'Outfit'),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       catData['desc'],
-                      style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.3),
+                      style: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.7), fontSize: 13, height: 1.3),
                     ),
                   ],
                 ),

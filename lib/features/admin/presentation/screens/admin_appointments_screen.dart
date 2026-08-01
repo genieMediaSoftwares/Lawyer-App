@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../models/appointment_model.dart';
 import '../../../../providers/admin_provider.dart';
 
 class AdminAppointmentsScreen extends ConsumerStatefulWidget {
@@ -29,12 +28,12 @@ class _AdminAppointmentsScreenState extends ConsumerState<AdminAppointmentsScree
     switch (status.toLowerCase()) {
       case 'confirmed':
       case 'completed':
-        return const Color(0xFF4ADE80);
+        return AppColors.statusSuccessFg;
       case 'pending':
-        return const Color(0xFFF59E0B);
+        return AppColors.warning;
       case 'cancelled':
       case 'rejected':
-        return const Color(0xFFFCA5A5);
+        return AppColors.statusErrorFg;
       default:
         return AppColors.primaryGold;
     }
@@ -84,7 +83,7 @@ class _AdminAppointmentsScreenState extends ConsumerState<AdminAppointmentsScree
                       children: [
                         Text(
                           _getMonthYearString(_selectedDate),
-                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         Row(
                           children: [
@@ -133,7 +132,7 @@ class _AdminAppointmentsScreenState extends ConsumerState<AdminAppointmentsScree
                               child: Text(
                                 '${d.day}',
                                 style: TextStyle(
-                                  color: isSelected ? Colors.black : Colors.white,
+                                  color: isSelected ? AppColors.onGold : AppColors.primaryText,
                                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                 ),
                               ),
@@ -256,7 +255,7 @@ class _AdminAppointmentsScreenState extends ConsumerState<AdminAppointmentsScree
               children: [
                 Text(
                   clientName,
-                  style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: AppColors.primaryText, fontSize: 15, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -274,7 +273,7 @@ class _AdminAppointmentsScreenState extends ConsumerState<AdminAppointmentsScree
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.15),
+              color: statusColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(

@@ -57,7 +57,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
               children: [
                 const Icon(Icons.check_circle, color: AppColors.success),
                 const SizedBox(width: 8),
-                Text('$format Export Generated', style: const TextStyle(color: Colors.white, fontSize: 16)),
+                Text('$format Export Generated', style: const TextStyle(color: AppColors.primaryText, fontSize: 16)),
               ],
             ),
             content: Column(
@@ -146,7 +146,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryGold.withOpacity(0.15),
+                  color: AppColors.primaryGold.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.primaryGold, size: 22),
@@ -156,7 +156,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(title, style: const TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 2),
                     Text(description, style: const TextStyle(color: AppColors.mutedText, fontSize: 12)),
                   ],

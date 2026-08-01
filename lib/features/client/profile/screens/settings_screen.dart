@@ -37,7 +37,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF0F1424),
+              backgroundColor: AppColors.aiCardBackground,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
@@ -59,23 +59,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   children: [
                     Text(
                       loc.translate('delete_account_dialog_msg'),
-                      style: const TextStyle(color: Colors.white70, fontSize: 12.5, height: 1.4),
+                      style: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.7), fontSize: 12.5, height: 1.4),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       loc.translate('enter_password_to_confirm'),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                      style: const TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 12),
                     ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: passwordController,
                       obscureText: obscurePassword,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      style: const TextStyle(color: AppColors.primaryText, fontSize: 13),
                       decoration: InputDecoration(
                         hintText: "••••••••",
-                        hintStyle: const TextStyle(color: Colors.white38),
+                        hintStyle: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.38)),
                         filled: true,
-                        fillColor: const Color(0xFF1E2436),
+                        fillColor: AppColors.aiCardBackgroundAlt,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide.none,
@@ -83,7 +83,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         suffixIcon: IconButton(
                           icon: Icon(
                             obscurePassword ? Icons.visibility_off : Icons.visibility,
-                            color: Colors.white54,
+                            color: AppColors.primaryText.withValues(alpha: 0.54),
                             size: 18,
                           ),
                           onPressed: () {
@@ -109,7 +109,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onPressed: () => Navigator.pop(context, false),
                   child: Text(
                     loc.translate('cancel'),
-                    style: const TextStyle(color: Colors.white70),
+                    style: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.7)),
                   ),
                 ),
                 ElevatedButton(
@@ -144,7 +144,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.error,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppColors.primaryText,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: Text(loc.translate('delete_account')),
@@ -166,7 +166,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(loc.translate('account_deleted_success')),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
             ),
           );
           context.go(RouteNames.login);
@@ -248,7 +248,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E2436),
+                        color: AppColors.aiCardBackgroundAlt,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: AppColors.primaryGold.withValues(alpha: 0.4)),
                       ),
@@ -256,8 +256,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         child: DropdownButton<String>(
                           value: currentLangCode,
                           icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.primaryGold, size: 18),
-                          dropdownColor: const Color(0xFF1E2436),
-                          style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.bold),
+                          dropdownColor: AppColors.aiCardBackgroundAlt,
+                          style: const TextStyle(color: AppColors.primaryText, fontSize: 12.5, fontWeight: FontWeight.bold),
                           items: const [
                             DropdownMenuItem(value: 'en', child: Text('English')),
                             DropdownMenuItem(value: 'te', child: Text('తెలుగు (Telugu)')),

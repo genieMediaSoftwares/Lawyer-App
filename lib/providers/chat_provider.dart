@@ -1,5 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:dio/dio.dart';
 import '../core/network/dio_client.dart';
 import '../models/chat_model.dart';
@@ -26,9 +27,9 @@ final chatsProvider =
 
 class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
   final Ref _ref;
-  IO.Socket? _socket;
+  io.Socket? _socket;
 
-  IO.Socket? get socket => _socket;
+  io.Socket? get socket => _socket;
 
   ChatsNotifier(this._ref, {bool shouldFetch = true})
       : super(
@@ -51,9 +52,9 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
     if (token == null || token.isEmpty) return;
 
     final base = Environment.baseUrl.replaceAll('/api', '');
-    _socket = IO.io(
+    _socket = io.io(
       '$base/chat',
-      IO.OptionBuilder()
+      io.OptionBuilder()
           .setTransports(['websocket'])
           .setAuth({'token': token})
           .disableAutoConnect()
@@ -63,19 +64,19 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
     _socket!.connect();
 
     _socket!.onConnectError((data) {
-      print('🔌 [ChatsSocket] Connect Error: $data');
+      debugPrint('🔌 [ChatsSocket] Connect Error: $data');
     });
 
     _socket!.onError((data) {
-      print('🔌 [ChatsSocket] Error: $data');
+      debugPrint('🔌 [ChatsSocket] Error: $data');
     });
 
     _socket!.onDisconnect((data) {
-      print('🔌 [ChatsSocket] Disconnected: $data');
+      debugPrint('🔌 [ChatsSocket] Disconnected: $data');
     });
 
     _socket!.onConnect((_) {
-      print('🔌 [ChatsSocket] Connected');
+      debugPrint('🔌 [ChatsSocket] Connected');
       final userId = _ref.read(authProvider).userId;
       // The personal user room is joined server-side from the authenticated
       // handshake — the client no longer names its own room.
@@ -254,7 +255,7 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
         return chat;
       }
     } catch (e) {
-      print('🔌 [ChatsNotifier] getOrCreateChat error: $e');
+      debugPrint('🔌 [ChatsNotifier] getOrCreateChat error: $e');
     }
     return null;
   }
@@ -280,7 +281,7 @@ class ChatMessagesNotifier
     extends StateNotifier<AsyncValue<List<MessageModel>>> {
   final String chatId;
   final Ref _ref;
-  IO.Socket? _socket;
+  io.Socket? _socket;
 
   ChatMessagesNotifier(this.chatId, this._ref)
       : super(const AsyncValue.loading()) {
@@ -315,7 +316,7 @@ class ChatMessagesNotifier
         }
       });
     } catch (e) {
-      print('🔌 [ChatMsgSocket:$chatId] message parse error: $e');
+      debugPrint('🔌 [ChatMsgSocket:$chatId] message parse error: $e');
     }
   }
 
@@ -428,7 +429,7 @@ class ChatMessagesNotifier
             response.data['data'] as Map<String, dynamic>);
       }
     } catch (e) {
-      print('🔌 [ChatMsgNotifier] uploadAttachment error: $e');
+      debugPrint('🔌 [ChatMsgNotifier] uploadAttachment error: $e');
     }
     return null;
   }
@@ -476,7 +477,7 @@ class ChatMessagesNotifier
         return true;
       }
     } catch (e) {
-      print('🔌 [ChatMsgNotifier] sendMessage error: $e');
+      debugPrint('🔌 [ChatMsgNotifier] sendMessage error: $e');
     }
     return false;
   }

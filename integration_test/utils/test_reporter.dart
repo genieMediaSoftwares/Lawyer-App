@@ -3,12 +3,19 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 class RealTestLog {
+  /// The test case this step belongs to, e.g. "TC001_Login".
   final String action;
+
+  /// What the step did, e.g. "Entering Email". Empty when a caller logged only
+  /// an outcome.
+  final String detail;
+
   final String status;
   final DateTime timestamp;
 
   RealTestLog({
     required this.action,
+    this.detail = '',
     required this.status,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
@@ -16,7 +23,8 @@ class RealTestLog {
   @override
   String toString() {
     final tsStr = timestamp.toIso8601String().split('.').first;
-    return '[$tsStr] $action\n$status';
+    final body = detail.isEmpty ? status : '$detail — $status';
+    return '[$tsStr] $action\n$body';
   }
 }
 
@@ -38,8 +46,15 @@ class TestReporter {
     debugPrint('=================================================');
   }
 
-  static void logAction(String action, {String status = 'PASS'}) {
-    final log = RealTestLog(action: action, status: status);
+  /// Records one step of a test case.
+  ///
+  /// [detail] is optional and positional because every call site in this suite
+  /// passes it that way — `logAction('TC001_Login', 'Entering Email')`. The
+  /// signature previously accepted only `action` plus a named `status`, so all
+  /// 45 call sites failed to compile and the entire integration suite could not
+  /// run.
+  static void logAction(String action, [String detail = '', String status = 'PASS']) {
+    final log = RealTestLog(action: action, detail: detail, status: status);
     logs.add(log);
     debugPrint(log.toString());
   }
@@ -86,8 +101,8 @@ class TestReporter {
       'status': status,
       'durationSec': durationSec,
       'screenshot': screenshot,
-      if (failureMessage != null) 'failureMessage': failureMessage,
-      if (stackTrace != null) 'stackTrace': stackTrace,
+      'failureMessage': ?failureMessage,
+      'stackTrace': ?stackTrace,
     });
   }
 
@@ -110,7 +125,7 @@ class TestReporter {
       status = 'FAIL';
       failureMsg = e.toString();
       stackTraceStr = st.toString();
-      logAction('$tcId Failure: $failureMsg', status: 'FAIL');
+      logAction(tcId, 'Failure: $failureMsg', 'FAIL');
       final failScreenshot = '${tcId}_Failure_${DateTime.now().millisecondsSinceEpoch}.png';
       await captureScreenshot(failScreenshot);
     } finally {

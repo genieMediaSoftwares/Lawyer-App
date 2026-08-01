@@ -5,6 +5,7 @@ import '../../../../providers/appointment_provider.dart';
 import '../../../../providers/case_provider.dart';
 import '../widgets/calendar_widget.dart';
 import '../providers/calendar_provider.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class ScheduleConsultationScreen extends ConsumerStatefulWidget {
   final String lawyerUserId;
@@ -159,7 +160,7 @@ class _ScheduleConsultationScreenState
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? Colors.black : theme.textTheme.bodyMedium?.color,
+                    color: isSelected ? AppColors.onGold : theme.textTheme.bodyMedium?.color,
                   ),
                 ),
               ),

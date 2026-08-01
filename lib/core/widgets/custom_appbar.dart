@@ -152,7 +152,7 @@
 //   // ── Transparent (overlaid on hero image) ─────────────────────────────────
 //
 //   Widget _buildTransparent(BuildContext context) {
-//     final fg = foregroundColor ?? Colors.white;
+//     final fg = foregroundColor ?? AppColors.primaryText;
 //
 //     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light.copyWith(
 //       statusBarColor: Colors.transparent,
@@ -303,7 +303,7 @@
 //                     hintText: searchHint ?? 'Search lawyers…',
 //                     hintStyle: TextStyle(
 //                       fontSize: 14,
-//                       color: cs.onSurfaceVariant.withOpacity(0.6),
+//                       color: cs.onSurfaceVariant.withValues(alpha: 0.6),
 //                     ),
 //                     prefixIcon: Icon(
 //                       Icons.search_rounded,
@@ -355,10 +355,10 @@
 //       onPressed: onBackPressed ?? () => Navigator.of(context).pop(),
 //       icon: const Icon(Icons.arrow_back_ios_new_rounded),
 //       iconSize: 20,
-//       color: forceCircle ? Colors.white : fg,
+//       color: forceCircle ? AppColors.primaryText : fg,
 //       style: forceCircle
 //           ? IconButton.styleFrom(
-//         backgroundColor: Colors.black.withOpacity(0.25),
+//         backgroundColor: AppColors.primaryBackground.withValues(alpha: 0.25),
 //         shape: const CircleBorder(),
 //         padding: const EdgeInsets.all(8),
 //       )
@@ -381,7 +381,7 @@
 //             Container(
 //               margin: const EdgeInsets.only(right: 4),
 //               decoration: BoxDecoration(
-//                 color: Colors.black.withOpacity(0.25),
+//                 color: AppColors.shadow.withValues(alpha: 0.25),
 //                 shape: BoxShape.circle,
 //               ),
 //               child: action,
@@ -489,7 +489,7 @@
 //                 style: const TextStyle(
 //                   fontSize: 9,
 //                   fontWeight: FontWeight.w800,
-//                   color: Colors.white,
+//                   color: AppColors.primaryText,
 //                   height: 1,
 //                 ),
 //               ),
@@ -522,7 +522,7 @@
 //         borderRadius: BorderRadius.circular(size * 0.28),
 //         boxShadow: [
 //           BoxShadow(
-//             color: AppColors.navyPrimary.withOpacity(0.35),
+//             color: AppColors.navyPrimary.withValues(alpha: 0.35),
 //             blurRadius: 10,
 //             offset: const Offset(0, 3),
 //           ),

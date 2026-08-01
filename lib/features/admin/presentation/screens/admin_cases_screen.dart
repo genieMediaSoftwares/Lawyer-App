@@ -32,12 +32,12 @@ class _AdminCasesScreenState extends ConsumerState<AdminCasesScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Update Case Status', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Update Case Status', style: TextStyle(color: AppColors.primaryText, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            _buildStatusTile(bottomSheetCtx, caseId, 'Pending', Colors.amber),
-            _buildStatusTile(bottomSheetCtx, caseId, 'In Progress', Colors.lightBlue),
-            _buildStatusTile(bottomSheetCtx, caseId, 'Completed', Colors.green),
-            _buildStatusTile(bottomSheetCtx, caseId, 'Closed', Colors.grey),
+            _buildStatusTile(bottomSheetCtx, caseId, 'Pending', AppColors.warning),
+            _buildStatusTile(bottomSheetCtx, caseId, 'In Progress', AppColors.info),
+            _buildStatusTile(bottomSheetCtx, caseId, 'Completed', AppColors.success),
+            _buildStatusTile(bottomSheetCtx, caseId, 'Closed', AppColors.mutedText),
           ],
         ),
       ),
@@ -47,13 +47,13 @@ class _AdminCasesScreenState extends ConsumerState<AdminCasesScreen> {
   Widget _buildStatusTile(BuildContext context, String caseId, String status, Color color) {
     return ListTile(
       leading: Icon(Icons.circle, color: color, size: 14),
-      title: Text(status, style: const TextStyle(color: Colors.white, fontSize: 15)),
+      title: Text(status, style: const TextStyle(color: AppColors.primaryText, fontSize: 15)),
       onTap: () async {
         Navigator.pop(context);
         final repo = ref.read(adminRepositoryProvider);
         await repo.updateCaseStatus(caseId, status);
-        ref.refresh(adminCasesProvider);
-        ref.refresh(adminStatsProvider);
+        ref.invalidate(adminCasesProvider);
+        ref.invalidate(adminStatsProvider);
       },
     );
   }
@@ -83,7 +83,7 @@ class _AdminCasesScreenState extends ConsumerState<AdminCasesScreen> {
               children: [
                 TextField(
                   controller: _searchController,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.primaryText),
                   onChanged: (val) {
                     ref.read(adminCaseFilterProvider.notifier).state = AdminCaseFilter(search: val, status: filter.status);
                   },
@@ -92,7 +92,7 @@ class _AdminCasesScreenState extends ConsumerState<AdminCasesScreen> {
                     prefixIcon: const Icon(Icons.search, color: AppColors.primaryGold),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, color: Colors.grey),
+                            icon: const Icon(Icons.clear, color: AppColors.mutedText),
                             onPressed: () {
                               _searchController.clear();
                               ref.read(adminCaseFilterProvider.notifier).state = AdminCaseFilter(search: '', status: filter.status);
@@ -148,12 +148,12 @@ class _AdminCasesScreenState extends ConsumerState<AdminCasesScreen> {
                     itemBuilder: (context, index) {
                       final c = cases[index];
                       final statusColor = c.status.toLowerCase().contains('progress')
-                          ? const Color(0xFF38BDF8)
+                          ? AppColors.statInfo
                           : c.status.toLowerCase().contains('completed')
-                              ? const Color(0xFF4ADE80)
+                              ? AppColors.statusSuccessFg
                               : c.status.toLowerCase().contains('closed')
-                                  ? Colors.grey
-                                  : const Color(0xFFF59E0B);
+                                  ? AppColors.mutedText
+                                  : AppColors.warning;
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -176,9 +176,9 @@ class _AdminCasesScreenState extends ConsumerState<AdminCasesScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.15),
+                                    color: statusColor.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: statusColor.withOpacity(0.5)),
+                                    border: Border.all(color: statusColor.withValues(alpha: 0.5)),
                                   ),
                                   child: Text(
                                     c.status,
@@ -190,7 +190,7 @@ class _AdminCasesScreenState extends ConsumerState<AdminCasesScreen> {
                             const SizedBox(height: 6),
                             Text(
                               c.title,
-                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                              style: const TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -256,7 +256,7 @@ class _AdminCasesScreenState extends ConsumerState<AdminCasesScreen> {
       selectedColor: AppColors.primaryGold,
       backgroundColor: AppColors.cardBackground,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.black : AppColors.primaryGold,
+        color: isSelected ? AppColors.onGold : AppColors.primaryGold,
         fontWeight: FontWeight.w600,
         fontSize: 12,
       ),

@@ -43,10 +43,10 @@ class AdminAiAnalyticsScreen extends ConsumerWidget {
                       mainAxisSpacing: 12,
                       childAspectRatio: 1.2,
                       children: [
-                        _buildAiMetricCard('Total AI Questions', '${aiData.totalQuestions}', 'Live', Icons.chat_bubble_outline, const Color(0xFF38BDF8)),
-                        _buildAiMetricCard('Success Rate', aiData.successRate, 'Target 95%+', Icons.check_circle_outline, const Color(0xFF4ADE80)),
-                        _buildAiMetricCard('Avg Response Time', aiData.avgResponseTime, 'Optimal', Icons.timer_outlined, const Color(0xFFF59E0B)),
-                        _buildAiMetricCard('Tokens Consumed', aiData.tokensUsed, 'Usage', Icons.memory_outlined, const Color(0xFFC084FC)),
+                        _buildAiMetricCard('Total AI Questions', '${aiData.totalQuestions}', 'Live', Icons.chat_bubble_outline, AppColors.statInfo),
+                        _buildAiMetricCard('Success Rate', aiData.successRate, 'Target 95%+', Icons.check_circle_outline, AppColors.statusSuccessFg),
+                        _buildAiMetricCard('Avg Response Time', aiData.avgResponseTime, 'Optimal', Icons.timer_outlined, AppColors.warning),
+                        _buildAiMetricCard('Tokens Consumed', aiData.tokensUsed, 'Usage', Icons.memory_outlined, AppColors.statPurple),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -72,19 +72,19 @@ class AdminAiAnalyticsScreen extends ConsumerWidget {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: aiData.topQuestions.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.divider),
+                              separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.divider),
                               itemBuilder: (context, index) {
                                 final item = aiData.topQuestions[index];
                                 return ListTile(
                                   leading: CircleAvatar(
                                     radius: 14,
-                                    backgroundColor: AppColors.primaryGold.withOpacity(0.15),
+                                    backgroundColor: AppColors.primaryGold.withValues(alpha: 0.15),
                                     child: Text(
                                       '${index + 1}',
                                       style: const TextStyle(color: AppColors.primaryGold, fontSize: 12, fontWeight: FontWeight.bold),
                                     ),
                                   ),
-                                  title: Text(item['topic'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                                  title: Text(item['topic'] ?? '', style: const TextStyle(color: AppColors.primaryText, fontSize: 14, fontWeight: FontWeight.w600)),
                                   trailing: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
@@ -132,7 +132,7 @@ class AdminAiAnalyticsScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(badgeText, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
@@ -142,7 +142,7 @@ class AdminAiAnalyticsScreen extends ConsumerWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(value, style: const TextStyle(color: AppColors.primaryText, fontSize: 20, fontWeight: FontWeight.bold)),
               Text(title, style: const TextStyle(color: AppColors.mutedText, fontSize: 11)),
             ],
           ),

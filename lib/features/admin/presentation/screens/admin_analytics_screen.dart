@@ -56,7 +56,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                       children: [
                         const Text(
                           'Platform Monthly User Growth',
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
                         const Text(
@@ -142,7 +142,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
         children: [
           Icon(icon, color: color, size: 22),
           const SizedBox(height: 10),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(value, style: const TextStyle(color: AppColors.primaryText, fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),
           Text(title, style: const TextStyle(color: AppColors.mutedText, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
         ],

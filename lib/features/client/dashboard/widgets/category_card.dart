@@ -38,7 +38,7 @@ class CategoryCard extends StatelessWidget {
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: theme.colorScheme.primary.withOpacity(0.12),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       )
@@ -47,7 +47,7 @@ class CategoryCard extends StatelessWidget {
             ),
             child: Icon(
               icon,
-              color: isSelected ? theme.colorScheme.primary : theme.colorScheme.primary.withOpacity(0.7),
+              color: isSelected ? theme.colorScheme.primary : theme.colorScheme.primary.withValues(alpha: 0.7),
               size: 24,
             ),
           ),

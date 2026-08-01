@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "seed:admin": "node src/scripts/seedAdmin.js"
+    "seed:admin": "node src/scripts/seedAdmin.js",
+    "migrate:clear-fabricated-lawyer-stats": "node src/scripts/clearFabricatedLawyerStats.js"
   },
   "keywords": [],
   "author": "",

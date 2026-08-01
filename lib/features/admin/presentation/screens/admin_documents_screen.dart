@@ -64,7 +64,7 @@ class _AdminDocumentsScreenState extends ConsumerState<AdminDocumentsScreen> {
               children: [
                 TextField(
                   controller: _searchController,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.primaryText),
                   onChanged: (val) => setState(() {}),
                   decoration: const InputDecoration(
                     hintText: 'Search uploaded legal documents...',
@@ -88,7 +88,7 @@ class _AdminDocumentsScreenState extends ConsumerState<AdminDocumentsScreen> {
                           selectedColor: AppColors.primaryGold,
                           backgroundColor: AppColors.cardBackground,
                           labelStyle: TextStyle(
-                            color: isSelected ? Colors.black : AppColors.primaryGold,
+                            color: isSelected ? AppColors.onGold : AppColors.primaryGold,
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -139,18 +139,18 @@ class _AdminDocumentsScreenState extends ConsumerState<AdminDocumentsScreen> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF7F1D1D).withOpacity(0.2),
+                                color: AppColors.statusErrorBg.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: const Color(0xFFFCA5A5).withOpacity(0.4)),
+                                border: Border.all(color: AppColors.statusErrorFg.withValues(alpha: 0.4)),
                               ),
-                              child: const Icon(Icons.picture_as_pdf, color: Color(0xFFFCA5A5), size: 24),
+                              child: const Icon(Icons.picture_as_pdf, color: AppColors.statusErrorFg, size: 24),
                             ),
                             const SizedBox(width: 14),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(doc.title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                                  Text(doc.title, style: const TextStyle(color: AppColors.primaryText, fontSize: 15, fontWeight: FontWeight.bold)),
                                   const SizedBox(height: 2),
                                   Text('${doc.fileSize} • Uploaded by ${doc.docUploadedBy}', style: const TextStyle(color: AppColors.mutedText, fontSize: 12)),
                                   const SizedBox(height: 2),

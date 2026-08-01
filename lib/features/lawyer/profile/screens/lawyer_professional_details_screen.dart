@@ -111,7 +111,7 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
       ),
       body: lawyerState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text("Error: $err", style: const TextStyle(color: Colors.red))),
+        error: (err, stack) => Center(child: Text("Error: $err", style: const TextStyle(color: AppColors.error))),
         data: (lawyer) {
           if (!_initialized) {
             _specController = TextEditingController(text: lawyer.specialization);
@@ -132,7 +132,7 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
                   Text(
                     "Update your professional details to attract more client consultation bookings.",
                     style: TextStyle(
-                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey,
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? AppColors.mutedText,
                       fontSize: 13,
                       height: 1.4,
                     ),
@@ -208,7 +208,7 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.onGold),
                               ),
                             )
                           : const Text(
@@ -242,7 +242,7 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
       validator: validator,
       decoration: InputDecoration(
         labelText: labelText,
-        labelStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6), fontSize: 14),
+        labelStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), fontSize: 14),
         filled: true,
         fillColor: theme.colorScheme.surface,
         enabledBorder: OutlineInputBorder(
@@ -255,11 +255,11 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.red),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.red),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
       ),
     );

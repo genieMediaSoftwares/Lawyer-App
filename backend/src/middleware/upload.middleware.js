@@ -13,8 +13,14 @@ const EXTENSION_BY_MIME = {
   "image/jpg": ".jpg",
   "image/png": ".png",
   "image/webp": ".webp",
-  "application/msword": ".doc",
+  // "application/msword" (.doc) is intentionally absent. It is a pre-2007
+  // binary compound file: Gemini cannot read it and there is no text extractor
+  // for it here, so accepting one only produced an unreadable document and a
+  // confusing failure. Clients are asked for PDF/DOCX/image/TXT instead.
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+  "text/plain": ".txt",
+  "text/markdown": ".md",
+  "text/csv": ".csv",
   "audio/mpeg": ".mp3",
   "audio/mp3": ".mp3",
   "audio/wav": ".wav",
@@ -68,7 +74,12 @@ const fileFilter = (req, file, cb) => {
   if (Object.prototype.hasOwnProperty.call(EXTENSION_BY_MIME, file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only PDF, PNG, JPG, JPEG, DOCX and Audio files are allowed."), false);
+    cb(
+      new Error(
+        "Unsupported file type. Allowed: PDF, PNG, JPG, WEBP, DOCX, TXT, CSV and audio."
+      ),
+      false
+    );
   }
 };
 

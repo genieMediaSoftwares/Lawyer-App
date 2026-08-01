@@ -5,6 +5,7 @@ import '../widgets/calendar_widget.dart';
 import '../providers/calendar_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../providers/appointment_provider.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   final String? lawyerUserId;
@@ -73,7 +74,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       Text("Select Lawyer", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: theme.textTheme.bodySmall?.color)),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
-                        value: selectedLawyerId,
+                        initialValue: selectedLawyerId,
                         dropdownColor: theme.colorScheme.surface,
                         decoration: const InputDecoration(
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -128,7 +129,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     Text("Select Time Slot", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: theme.textTheme.bodySmall?.color)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
-                      value: selectedTimeSlot,
+                      initialValue: selectedTimeSlot,
                       dropdownColor: theme.colorScheme.surface,
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -150,7 +151,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     Text("Consultation Mode", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: theme.textTheme.bodySmall?.color)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
-                      value: selectedMode,
+                      initialValue: selectedMode,
                       dropdownColor: theme.colorScheme.surface,
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -246,7 +247,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   shape: BoxShape.circle,
                   color: colorScheme.primary,
                 ),
-                child: const Icon(Icons.add, color: Colors.black, size: 20),
+                child: const Icon(Icons.add, color: AppColors.onGold, size: 20),
               ),
             ),
           ),
@@ -319,7 +320,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: AppColors.shadow.withValues(alpha: 0.2),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),

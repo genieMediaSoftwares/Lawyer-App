@@ -107,7 +107,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 child: Text(
                   "${state.unreadCount}",
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.primaryText,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
@@ -137,17 +137,17 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           if (state.isOffline)
             Container(
               width: double.infinity,
-              color: AppColors.warning.withOpacity(0.9),
+              color: AppColors.warning.withValues(alpha: 0.9),
               padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.wifi_off_outlined, size: 16, color: Colors.black),
+                  const Icon(Icons.wifi_off_outlined, size: 16, color: AppColors.onGold),
                   const SizedBox(width: 8),
                   Text(
                     "Connection lost. Trying to reconnect...",
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.black,
+                      color: AppColors.onGold,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -261,7 +261,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               color: AppColors.error,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.delete_outline, color: Colors.white),
+            child: const Icon(Icons.delete_outline, color: AppColors.primaryText),
           ),
           child: AnimatedSize(
             duration: const Duration(milliseconds: 250),
@@ -270,13 +270,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             child: Card(
               elevation: 0,
               margin: EdgeInsets.zero,
-              color: item.isRead ? theme.cardColor : theme.cardColor.withOpacity(0.7),
+              color: item.isRead ? theme.cardColor : theme.cardColor.withValues(alpha: 0.7),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
                   color: item.isRead
                       ? theme.colorScheme.outline
-                      : theme.colorScheme.primary.withOpacity(0.5),
+                      : theme.colorScheme.primary.withValues(alpha: 0.5),
                   width: item.isRead ? 1.0 : 1.5,
                 ),
               ),
@@ -300,7 +300,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: (item.isRead ? AppColors.primaryGold : theme.colorScheme.primary)
-                              .withOpacity(0.12),
+                              .withValues(alpha: 0.12),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(

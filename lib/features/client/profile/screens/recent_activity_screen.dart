@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../providers/profile_provider.dart';
 import '../../../../models/activity_model.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class RecentActivityScreen extends ConsumerWidget {
   const RecentActivityScreen({super.key});
@@ -31,18 +32,18 @@ class RecentActivityScreen extends ConsumerWidget {
     final list = state.activities;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.primaryBackground,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primaryText),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           "Recent Activity",
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.primaryText,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -54,7 +55,7 @@ class RecentActivityScreen extends ConsumerWidget {
                 padding: EdgeInsets.all(24.0),
                 child: Text(
                   "No recent activities found.",
-                  style: TextStyle(color: Colors.grey, fontSize: 15),
+                  style: TextStyle(color: AppColors.mutedText, fontSize: 15),
                 ),
               ),
             )
@@ -75,7 +76,7 @@ class RecentActivityScreen extends ConsumerWidget {
 
     // Map title keywords to custom timeline icons
     IconData icon = Icons.circle;
-    Color iconColor = const Color(0xFFD4AF37);
+    Color iconColor = AppColors.primaryGold;
     final titleLower = act.title.toLowerCase();
 
     if (titleLower.contains("case") || titleLower.contains("post")) {
@@ -99,7 +100,7 @@ class RecentActivityScreen extends ConsumerWidget {
                 height: 28,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF1B1B1B),
+                  color: AppColors.surface,
                   border: Border.all(color: iconColor, width: 1),
                 ),
                 child: Icon(icon, size: 14, color: iconColor),
@@ -108,7 +109,7 @@ class RecentActivityScreen extends ConsumerWidget {
                 Expanded(
                   child: Container(
                     width: 2,
-                    color: const Color(0xFF2B2B2B),
+                    color: AppColors.border,
                   ),
                 ),
             ],
@@ -123,7 +124,7 @@ class RecentActivityScreen extends ConsumerWidget {
                   Text(
                     act.title,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.primaryText,
                       fontWeight: FontWeight.bold,
                       fontSize: 14.5,
                     ),
@@ -132,7 +133,7 @@ class RecentActivityScreen extends ConsumerWidget {
                   Text(
                     timeStr,
                     style: const TextStyle(
-                      color: Colors.grey,
+                      color: AppColors.mutedText,
                       fontSize: 12,
                     ),
                   ),

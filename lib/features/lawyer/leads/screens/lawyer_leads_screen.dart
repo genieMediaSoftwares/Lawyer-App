@@ -5,19 +5,20 @@ import '../../../../core/config/env.dart';
 import '../../../../models/case_model.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/auth_provider.dart';
+import '../../../../core/theme/app_colors.dart';
 
 // ─── Design tokens (matching reference image exactly) ───────────────────────
-const _bg = Color(0xFF0A0A0A);          // pure black background
-const _card = Color(0xFF1A1A1A);        // dark card surface
-const _gold = Color(0xFFD4A32A);        // gold accent
-const _goldBg = Color(0xFF2A1F05);      // gold tint bg for "New" badge
-const _divider = Color(0xFF2A2A2A);     // subtle divider
-const _matchGreen = Color(0xFF4CE064);  // match % text
-const _matchBg = Color(0xFF0D2010);     // match % bg
-const _grey = Color(0xFF8A8A8A);        // secondary text
-const _tabActive = Color(0xFFD4A32A);   // active tab text
-const _tabInactive = Color(0xFF707070); // inactive tab text
-const _badgeBg = Color(0xFF2A1E05);     // number badge bg (inactive)
+const _bg = AppColors.primaryBackground;          // pure black background
+const _card = AppColors.surface;        // dark card surface
+const _gold = AppColors.primaryGold;        // gold accent
+const _goldBg = AppColors.statWarningBg;      // gold tint bg for "New" badge
+const _divider = AppColors.border;     // subtle divider
+const _matchGreen = AppColors.statSuccess;  // match % text
+const _matchBg = AppColors.cardBackground;     // match % bg
+const _grey = AppColors.mutedText;        // secondary text
+const _tabActive = AppColors.primaryGold;   // active tab text
+const _tabInactive = AppColors.disabledText; // inactive tab text
+const _badgeBg = AppColors.statWarningBg;     // number badge bg (inactive)
 
 class LawyerLeadsScreen extends ConsumerStatefulWidget {
   const LawyerLeadsScreen({super.key});
@@ -170,7 +171,7 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(success ? 'Case accepted! Moved to Accepted.' : 'Failed to accept. Try again.'),
-        backgroundColor: success ? const Color(0xFF1B3A1B) : Colors.red.shade900,
+        backgroundColor: success ? AppColors.statSuccessBg : AppColors.statusErrorBg,
       ));
     }
   }
@@ -182,7 +183,7 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(success ? 'Lead rejected.' : 'Failed to reject. Try again.'),
-        backgroundColor: success ? const Color(0xFF2A0A0A) : Colors.red.shade900,
+        backgroundColor: success ? AppColors.statusErrorBg : AppColors.statusErrorBg,
       ));
     }
   }
@@ -194,7 +195,7 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(success ? 'Case completed!' : 'Failed. Try again.'),
-        backgroundColor: success ? const Color(0xFF1B3A1B) : Colors.red.shade900,
+        backgroundColor: success ? AppColors.statSuccessBg : AppColors.statusErrorBg,
       ));
     }
   }
@@ -218,14 +219,14 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
     return showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: Text(body, style: const TextStyle(color: Colors.white70)),
+        title: Text(title, style: const TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold)),
+        content: Text(body, style: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.7))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.mutedText)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -314,7 +315,7 @@ class _Tab extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: active ? Colors.black : _gold,
+                        color: active ? AppColors.onGold : _gold,
                       ),
                     ),
                   ),
@@ -355,16 +356,16 @@ class _SearchFilterRow extends StatelessWidget {
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: const Color(0xFF141414),
+          color: AppColors.secondaryBackground,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: _divider, width: 1),
         ),
         child: TextField(
           controller: ctrl,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: const TextStyle(color: AppColors.primaryText, fontSize: 14),
           decoration: InputDecoration(
             hintText: hints[tab],
-            hintStyle: const TextStyle(color: Color(0xFF555555), fontSize: 14),
+            hintStyle: const TextStyle(color: AppColors.disabledText, fontSize: 14),
             prefixIcon: Padding(
               padding: const EdgeInsets.only(left: 14, right: 10),
               child: Icon(Icons.search, color: _gold, size: 20),
@@ -394,7 +395,7 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         titles[tab],
         style: const TextStyle(
-          color: Colors.white,
+          color: AppColors.primaryText,
           fontWeight: FontWeight.bold,
           fontSize: 16,
         ),
@@ -459,7 +460,7 @@ class _LeadCard extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 26,
-                          backgroundColor: const Color(0xFF2A2A2A),
+                          backgroundColor: AppColors.border,
                           backgroundImage: imgProvider,
                           child: imgProvider == null
                               ? Text(
@@ -507,7 +508,7 @@ class _LeadCard extends StatelessWidget {
                           Text(
                             lead.clientName.isNotEmpty ? lead.clientName : 'Client',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.primaryText,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
@@ -516,7 +517,7 @@ class _LeadCard extends StatelessWidget {
                           Text(
                             'Case: ${lead.title}',
                             style: const TextStyle(
-                              color: Color(0xFF9A9A9A),
+                              color: AppColors.mutedText,
                               fontSize: 13,
                             ),
                             maxLines: 1,
@@ -605,7 +606,7 @@ class _LeadCard extends StatelessWidget {
                 // ── Date line ────────────────────────────────────────────
                 Text(
                   _dateLine(tab, lead),
-                  style: const TextStyle(color: Color(0xFF666666), fontSize: 12),
+                  style: const TextStyle(color: AppColors.disabledText, fontSize: 12),
                 ),
                 const SizedBox(height: 14),
 
@@ -639,27 +640,27 @@ class _LeadCard extends StatelessWidget {
     Color fg;
     switch (status) {
       case 'In Progress':
-        bg = const Color(0xFF2A1A05);
-        fg = Colors.orange;
+        bg = AppColors.statWarningBg;
+        fg = AppColors.warning;
         break;
       case 'Accepted':
-        bg = const Color(0xFF0D2010);
+        bg = AppColors.cardBackground;
         fg = _matchGreen;
         break;
       case 'Completed':
       case 'resolved':
-        bg = const Color(0xFF0D2010);
+        bg = AppColors.cardBackground;
         fg = _matchGreen;
         break;
       case 'Rejected':
       case 'Expired':
       case 'Closed':
-        bg = const Color(0xFF2A0A0A);
-        fg = Colors.redAccent;
+        bg = AppColors.statusErrorBg;
+        fg = AppColors.error;
         break;
       default:
-        bg = const Color(0xFF1A1A2A);
-        fg = Colors.blueAccent;
+        bg = AppColors.surface;
+        fg = AppColors.info;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -732,13 +733,13 @@ class _OverflowMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
       padding: EdgeInsets.zero,
-      icon: const Icon(Icons.more_vert, color: Color(0xFF888888), size: 20),
-      color: const Color(0xFF222222),
+      icon: const Icon(Icons.more_vert, color: AppColors.mutedText, size: 20),
+      color: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       itemBuilder: (_) => [
-        _menuItem('details', Icons.info_outline, 'View Details', Colors.white70),
+        _menuItem('details', Icons.info_outline, 'View Details', AppColors.primaryText.withValues(alpha: 0.7)),
         if (tab == 0)
-          _menuItem('reject', Icons.close, 'Reject Lead', Colors.redAccent),
+          _menuItem('reject', Icons.close, 'Reject Lead', AppColors.error),
         if (tab == 1 && status != 'Completed' && status != 'Closed')
           _menuItem('complete', Icons.check_circle_outline, 'Mark Completed', _matchGreen),
       ],
@@ -812,7 +813,7 @@ class _SolidBtn extends StatelessWidget {
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
           backgroundColor: _gold,
-          foregroundColor: Colors.black,
+          foregroundColor: AppColors.onGold,
           minimumSize: const Size(0, 44),
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -822,7 +823,7 @@ class _SolidBtn extends StatelessWidget {
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 13,
-            color: Colors.black,
+            color: AppColors.onGold,
           ),
         ),
       ),
@@ -853,11 +854,11 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icons[tab], color: const Color(0xFF333333), size: 60),
+          Icon(icons[tab], color: AppColors.border, size: 60),
           const SizedBox(height: 16),
           Text(
             msgs[tab],
-            style: const TextStyle(color: Color(0xFF555555), fontSize: 14, height: 1.6),
+            style: const TextStyle(color: AppColors.disabledText, fontSize: 14, height: 1.6),
             textAlign: TextAlign.center,
           ),
         ],
@@ -882,16 +883,16 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.cloud_off_rounded, color: Color(0xFF555555), size: 60),
+            const Icon(Icons.cloud_off_rounded, color: AppColors.disabledText, size: 60),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Failed to load leads.',
-              style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 16),
+              style: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.7), fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(
               message,
-              style: const TextStyle(color: Color(0xFF666666), fontSize: 12),
+              style: const TextStyle(color: AppColors.disabledText, fontSize: 12),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -940,19 +941,19 @@ class _DetailsSheet extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF333333),
+                  color: AppColors.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 16),
             Text(lead.title,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                style: const TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 18)),
             const SizedBox(height: 4),
             Text('Client: ${lead.clientName}',
                 style: const TextStyle(color: _grey, fontSize: 13)),
             const SizedBox(height: 14),
-            const Divider(color: Color(0xFF2A2A2A)),
+            const Divider(color: AppColors.border),
             const SizedBox(height: 12),
             _row('Category', lead.category),
             _row('Location', lead.location),
@@ -961,8 +962,8 @@ class _DetailsSheet extends StatelessWidget {
             _row('Budget', lead.budgetRange),
             if (lead.description.isNotEmpty) ...[
               const SizedBox(height: 12),
-              const Text('Description',
-                  style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 12)),
+              Text('Description',
+                  style: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.7), fontWeight: FontWeight.w600, fontSize: 12)),
               const SizedBox(height: 6),
               Text(lead.description,
                   style: const TextStyle(color: _grey, fontSize: 13, height: 1.6)),
@@ -987,7 +988,7 @@ class _DetailsSheet extends StatelessWidget {
                     onPressed: onAccept,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _gold,
-                      foregroundColor: Colors.black,
+                      foregroundColor: AppColors.onGold,
                       minimumSize: const Size(0, 44),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
@@ -1008,12 +1009,12 @@ class _DetailsSheet extends StatelessWidget {
           children: [
             SizedBox(
               width: 80,
-              child: Text(label, style: const TextStyle(color: Color(0xFF666666), fontSize: 12)),
+              child: Text(label, style: const TextStyle(color: AppColors.disabledText, fontSize: 12)),
             ),
             Expanded(
               child: Text(
                 value.isNotEmpty ? value : '—',
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+                style: const TextStyle(color: AppColors.primaryText, fontSize: 13),
               ),
             ),
           ],

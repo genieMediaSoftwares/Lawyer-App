@@ -1,6 +1,19 @@
 const fs = require("fs");
 const path = require("path");
 const gemini = require("./geminiClient");
+const { extractDocxText } = require("./docxExtractor");
+
+/**
+ * Formats we can actually turn into text, and how. Anything absent is rejected
+ * with a message naming the file, rather than being read as UTF-8 and fed to
+ * the model as if binary noise were the document's contents.
+ *
+ * `.doc` (the pre-2007 binary Word format) is deliberately absent: it is a
+ * compound-file container, Gemini does not accept it, and reading it as text
+ * yields garbage. The upload middleware and the picker both refuse it.
+ */
+const TEXT_EXTENSIONS = new Set([".txt", ".text", ".md", ".csv", ".rtf"]);
+const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".heic", ".heif"]);
 
 class OcrSanitizationService {
   /**
@@ -22,21 +35,34 @@ class OcrSanitizationService {
     try {
       const ext = path.extname(originalName || filePath).toLowerCase();
 
-      if (ext === ".docx" || mimeType?.includes("wordprocessingml") || mimeType?.includes("docx")) {
-        rawText = await this._extractDocxText(filePath);
+      if (ext === ".docx" || mimeType?.includes("wordprocessingml")) {
+        const result = this._extractDocx(filePath);
+        rawText = result.text;
+        extractionFailed = result.extractionFailed;
+        extractionError = result.error;
       } else if (ext === ".pdf" || mimeType?.includes("pdf")) {
         const result = await this._extractPdfText(filePath);
         rawText = result.text;
         extractionFailed = result.extractionFailed;
         extractionError = result.error;
         if (result.isScanned) ocrQuality = "Scanned OCR";
-      } else if ([".png", ".jpg", ".jpeg", ".webp"].includes(ext) || mimeType?.startsWith("image/")) {
+      } else if (IMAGE_EXTENSIONS.has(ext) || mimeType?.startsWith("image/")) {
         const result = await this._extractImageOcr(filePath, mimeType);
         rawText = result.text;
         extractionFailed = result.extractionFailed;
         extractionError = result.error;
-      } else if (fs.existsSync(filePath)) {
-        rawText = fs.readFileSync(filePath, "utf8");
+      } else if (TEXT_EXTENSIONS.has(ext) || mimeType?.startsWith("text/")) {
+        rawText = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : "";
+        if (!fs.existsSync(filePath)) {
+          extractionFailed = true;
+          extractionError = "File not found on disk.";
+        }
+      } else {
+        // Never fall back to reading unknown bytes as UTF-8. That is how a
+        // legacy .doc used to reach the model as several kilobytes of binary
+        // noise dressed up as the client's document.
+        extractionFailed = true;
+        extractionError = `Unsupported file type "${ext || mimeType || "unknown"}". Upload a PDF, image, DOCX or TXT.`;
       }
 
       const cleanLen = rawText.trim().length;
@@ -157,9 +183,15 @@ class OcrSanitizationService {
       // Not fatal — fall through to OCR.
     }
 
-    if (textContent.trim().length > 50) {
+    // Only trust the cheap path when what it found actually looks like prose.
+    // The regex runs over the whole file including compressed streams, so on a
+    // FlateDecode PDF it can match binary and produce >50 characters of noise —
+    // which was then returned as the document's text and never OCR'd, because
+    // this branch reported extractionFailed: false.
+    if (this._looksLikeProse(textContent)) {
       return { text: textContent, isScanned: false, extractionFailed: false, error: null };
     }
+    textContent = "";
 
     // Gemini accepts PDFs directly and handles scanned pages.
     const { text, error } = await gemini.generate(
@@ -183,22 +215,46 @@ class OcrSanitizationService {
   }
 
   /**
-   * Extract raw text from DOCX document XML
+   * DOCX text via a real ZIP + inflate pass — see services/ai/docxExtractor.js
+   * for why regexing the raw file could never work.
    */
-  async _extractDocxText(filePath) {
-    if (!fs.existsSync(filePath)) return "";
-    try {
-      const buffer = fs.readFileSync(filePath);
-      const str = buffer.toString("utf8");
-      // Extract text inside XML <w:t> tags
-      const matches = str.match(/<w:t[^>]*>(.*?)<\/w:t>/g);
-      if (matches) {
-        return matches.map((m) => m.replace(/<[^>]+>/g, "")).join(" ");
-      }
-    } catch (e) {
-      console.error("DOCX extraction error:", e.message);
+  _extractDocx(filePath) {
+    if (!fs.existsSync(filePath)) {
+      return { text: "", extractionFailed: true, error: "File not found on disk." };
     }
-    return "";
+
+    try {
+      const text = extractDocxText(fs.readFileSync(filePath));
+      return { text, extractionFailed: false, error: null };
+    } catch (e) {
+      // A corrupt or mislabelled archive is our failure to read it, not
+      // evidence that the client's document is blank.
+      console.error("DOCX extraction error:", e.message);
+      return { text: "", extractionFailed: true, error: e.message };
+    }
+  }
+
+  /**
+   * Guards the PDF fast path: is this recovered string plausibly human text?
+   *
+   * Requires enough length, a high proportion of printable characters, and a
+   * realistic letter-to-total ratio. Inflated binary fails all three, so it
+   * falls through to Gemini OCR instead of being reported as the document.
+   */
+  _looksLikeProse(candidate) {
+    const text = (candidate || "").trim();
+    if (text.length < 80) return false;
+
+    const printable = (text.match(/[\x20-\x7E\s]/g) || []).length;
+    if (printable / text.length < 0.92) return false;
+
+    const letters = (text.match(/[A-Za-z]/g) || []).length;
+    if (letters / text.length < 0.5) return false;
+
+    // Real prose contains words. Binary that survives the checks above is
+    // typically an unbroken run of symbols.
+    const words = text.split(/\s+/).filter((w) => /^[A-Za-z][A-Za-z'.,-]{2,}$/.test(w));
+    return words.length >= 12;
   }
 
   /**
@@ -213,9 +269,13 @@ class OcrSanitizationService {
     const injectionPatterns = [
       /ignore\s+previous\s+instructions/gi,
       /ignore\s+all\s+instructions/gi,
-      /system\s*:/gi,
-      /user\s*:/gi,
-      /assistant\s*:/gi,
+      // Anchored to line starts. Unanchored, these matched ordinary legal
+      // prose — "…before the Assistant: Commissioner of Police…" and any
+      // sentence ending in "the user:" — and redacted the client's own
+      // document. A role-prefix injection only works at the start of a line.
+      /^[ \t]*system\s*:/gim,
+      /^[ \t]*user\s*:/gim,
+      /^[ \t]*assistant\s*:/gim,
       /\[INST\]/gi,
       /\[\/INST\]/gi,
       /<\|endoftext\|>/gi,
