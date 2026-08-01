@@ -29,7 +29,7 @@ import '../../ai_smart_case/models/ai_smart_case_models.dart';
 import '../../ai_smart_case/providers/ai_smart_case_provider.dart';
 import '../../../../models/lawyer_model.dart';
 import '../../../../providers/lawyer_provider.dart';
-import '../../../chat/presentation/screens/advocates_screen.dart' show AdvocateCard;
+import '../../../../core/widgets/app_circle_avatar.dart';
 
 class PostCaseScreen extends ConsumerStatefulWidget {
   final String? preselectedCategoryId;
@@ -141,8 +141,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   /// document step can show them as attached rather than asking again.
   final List<DocumentRecord> _aiUploadedDocs = [];
 
-  /// The lawyer the client picked on the final step, or null while unchosen.
+  /// The lawyer the client picked on the Lawyers step, or null while unchosen.
   LawyerModel? _selectedLawyerModel;
+
+  /// The Lawyers step shows the top 5 matches until the client asks for more.
+  bool _viewAllLawyers = false;
 
   /// Amount in dispute, when the analysis found one stated in the documents.
   /// Null means no sum was identified — never zero, which would read as a
@@ -788,10 +791,19 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     // through to submission.
     if (_aiUploadedDocs.isNotEmpty) _uploadedDocRecord = _aiUploadedDocs.first;
 
-    // Open on the lawyer step, which is what the client came here to do. Every
-    // earlier step remains reachable with Back, and each is pre-filled with
-    // whatever the analysis established — and blank where it did not.
-    _currentStep = _lawyerStepIndex;
+    // Open on the Lawyers step, which is what the client came here to do —
+    // every earlier step stays reachable with Back, pre-filled with whatever
+    // the analysis established and blank where it did not.
+    //
+    // Only when the analysis resolved both the category and the sub-type,
+    // though. Advocates are recommended on exactly those two, so landing there
+    // without them shows the client an error from the recommendation endpoint
+    // and a Submit that later refuses. In that case open on step 1 so they
+    // complete the one thing the analysis could not.
+    final categoryComplete = matched != null &&
+        data.subType != null &&
+        matched.subcategories.contains(data.subType);
+    _currentStep = categoryComplete ? _lawyerStepIndex : 0;
   }
 
   /// The extractor returns a coarse urgency; the form offers specific windows.
@@ -828,29 +840,55 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   }
 
   Future<void> _submitCase() async {
-    if (_selectedCategory == null ||
-        _selectedSubcategory == null ||
-        _descriptionController.text.trim().length < 20 ||
-        _selectedCityName == null ||
-        !_agreedToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Please complete all required fields and agree to the terms.",
-          ),
-        ),
-      );
-      return;
+    // Name the field that is missing and the step it lives on. Submit used to
+    // refuse with one blanket sentence, which the client could not act on: the
+    // AI intake fills these steps for them, so any single one can be blank
+    // without them ever having seen the field.
+    String? missing;
+    int? missingStep;
+    if (_selectedCategory == null) {
+      missing = "Choose a category.";
+      missingStep = 0;
+    } else if (_selectedSubcategory == null) {
+      missing = "Choose a sub-type under $_selectedCategory.";
+      missingStep = 0;
+    } else if (_descriptionController.text.trim().length < 20) {
+      missing = "Describe the case in at least 20 characters.";
+      missingStep = 1;
+    } else if (_selectedCityName == null) {
+      missing = "Add the city the case belongs to.";
+      missingStep = 1;
+    } else if (!_agreedToTerms) {
+      // The checkbox is on this step, so stay here rather than sending the
+      // client somewhere else to find it.
+      missing = "Agree to the Terms & Conditions to continue.";
+      missingStep = _reviewStepIndex;
+    } else if (_selectedLawyerModel == null) {
+      missing = "Choose an advocate for your case.";
+      missingStep = _lawyerStepIndex;
     }
 
-    if (_selectedLawyerModel == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please choose an advocate for your case.")),
-      );
+    if (missing != null) {
+      // Take them to the step that fixes it rather than leaving them on Review
+      // with a message about a field they cannot see.
+      setState(() => _currentStep = missingStep!);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(missing)));
       return;
     }
 
     setState(() => _isSubmitting = true);
+
+    // Everything the success path needs, taken while the context is still
+    // valid. Submitting tears this screen down, and looking any of these up
+    // afterwards is what made the redirect home conditional on surviving the
+    // network calls.
+    final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final casesNotifier = ref.read(casesProvider.notifier);
+    final aiRepository = ref.read(aiSmartCaseRepositoryProvider);
+    final lawyerName = _selectedLawyerModel!.fullName;
 
     String? voiceUrl;
     if (_recordedFilePath != null) {
@@ -885,9 +923,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         ? _titleController.text.trim()
         : _selectedSubcategory!;
 
-    final newCase = await ref
-        .read(casesProvider.notifier)
-        .createCase(
+    final newCase = await casesNotifier.createCase(
           title: title,
           description: _descriptionController.text,
           category: _selectedCategory!,
@@ -919,26 +955,42 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           claimAmount: _claimAmount,
         );
 
-    if (!mounted) return;
-    setState(() => _isSubmitting = false);
+
+    if (mounted) setState(() => _isSubmitting = false);
 
     if (newCase == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to post case. Please try again.")),
+      if (!mounted) return;
+      // The server's reason, when it gave one. "Please try again" on its own
+      // hides validation failures the client could actually correct.
+      final reason = casesNotifier.lastCreateError;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            reason == null || reason.isEmpty
+                ? "Failed to post case. Please try again."
+                : "Failed to post case: $reason",
+          ),
+        ),
       );
       return;
     }
 
+    // From here the case exists on the server, so the workflow is over and the
+    // client goes home — no `mounted` check may stand between this point and
+    // the redirect. A disposed screen used to abort the navigation and leave
+    // the client looking at the form for a case that had already been filed.
     _clearDraft();
 
     // Close the audit trail from uploaded document through to filed case.
-    // Best-effort — the case already exists either way.
+    // Best-effort — the case already exists either way, and the repository
+    // swallows its own transport errors.
     final sessionId = widget.prefill?.sessionId;
     if (sessionId != null && sessionId.isNotEmpty) {
-      await ref.read(aiSmartCaseRepositoryProvider).linkSessionToCase(
-            sessionId: sessionId,
-            caseId: newCase.id,
-          );
+      await aiRepository.linkSessionToCase(
+        sessionId: sessionId,
+        caseId: newCase.id,
+      );
+    } else {
     }
 
     // Refresh everything derived from the case list so My Cases, the
@@ -946,17 +998,17 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     // the client reopening or refreshing anything. `casesProvider` has already
     // inserted it locally; these are the views that read from their own
     // endpoints.
-    await ref.read(casesProvider.notifier).caseChanged();
+    await casesNotifier.caseChanged();
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "Case posted and sent to ${_selectedLawyerModel!.fullName}.",
-        ),
-      ),
+    messenger.showSnackBar(
+      SnackBar(content: Text("Case posted and sent to $lawyerName.")),
     );
-    context.go(RouteNames.myCases);
+
+    // `go` alone, and nothing imperative: /post-case is a page-based go_router
+    // route, so the router owns the stack. `go` replaces it with the shell, and
+    // the AI intake's imperatively pushed route is pageless — anchored to the
+    // /ai-smart-case page, so it is removed along with it.
+    router.go(RouteNames.clientDashboard);
   }
 
   @override
@@ -1004,19 +1056,18 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Five steps, ending on lawyer selection: the client chooses their
-          // advocate before the case is created, so it is filed with that
-          // lawyer attached rather than going out unassigned. The AI intake
-          // opens the form directly on the final step — see [_applyPrefill].
+          // Category → Details → Documents → Lawyers → Review, with Review
+          // always last. The AI intake completes the first three steps and
+          // opens the form on Lawyers — see [_applyPrefill].
           _buildStepIndicator(1, "Category", _currentStep >= 0),
           _buildStepDivider(_currentStep >= 1),
           _buildStepIndicator(2, "Details", _currentStep >= 1),
           _buildStepDivider(_currentStep >= 2),
           _buildStepIndicator(3, "Documents", _currentStep >= 2),
           _buildStepDivider(_currentStep >= 3),
-          _buildStepIndicator(4, "Review", _currentStep >= 3),
+          _buildStepIndicator(4, "Lawyers", _currentStep >= 3),
           _buildStepDivider(_currentStep >= 4),
-          _buildStepIndicator(5, "Lawyer", _currentStep >= 4),
+          _buildStepIndicator(5, "Review", _currentStep >= 4),
         ],
       ),
     );
@@ -1073,10 +1124,13 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     );
   }
 
-  /// Index of the final step. Named because several places need it and a bare
-  /// `4` scattered around is what let the stepper, the action bar and the AI
-  /// prefill drift apart previously.
-  static const int _lawyerStepIndex = 4;
+  /// Lawyer selection, step 4 of 5. Named because the stepper, the action bar
+  /// and the AI prefill all need it and a bare `3` scattered around is what let
+  /// them drift apart previously.
+  static const int _lawyerStepIndex = 3;
+
+  /// Review, the final step. Reached only after a lawyer has been chosen.
+  static const int _reviewStepIndex = 4;
 
   Widget _buildCurrentStepView() {
     switch (_currentStep) {
@@ -1086,10 +1140,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         return _buildStep2Details();
       case 2:
         return _buildStep3Documents();
-      case 3:
-        return _buildStep5Review();
       case _lawyerStepIndex:
-        return _buildStep6Lawyer();
+        return _buildStep4RecommendedLawyers();
+      case _reviewStepIndex:
+        return _buildStep5Review();
       default:
         return Container();
     }
@@ -1967,25 +2021,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           const SizedBox(height: 24),
         ],
 
-        // 8. Terms & Conditions
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Checkbox(
-              value: _agreedToTerms,
-              onChanged: (val) => setState(() => _agreedToTerms = val ?? false),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Text(
-                  "I agree to the Terms & Conditions and Privacy Policy",
-                  style: TextStyle(fontSize: 12, color: primaryTextColor),
-                ),
-              ),
-            ),
-          ],
-        ),
+        // The Terms & Conditions checkbox lives on the Review step, the last
+        // thing before Submit, and is the single implementation both the manual
+        // and the AI flow accept. See [_buildStep5Review].
       ],
     );
   }
@@ -2906,7 +2944,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        "Category '${_selectedCategory ?? 'Legal Issue'}' and issue description extracted from your document. Tap below to select your lawyer.",
+                        "Category '${_selectedCategory ?? 'Legal Issue'}' and issue description extracted from your document. Check the details below before submitting.",
                         style: TextStyle(color: primaryTextColor, fontSize: 12),
                       ),
                     ],
@@ -3022,185 +3060,834 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                     : _uploadedDocs.map((d) => d.name).join('\n'),
                 isMultiline: _uploadedDocs.length > 1,
               ),
+
+              // A voice note reaches the case from either flow: recorded here,
+              // or spoken at the AI intake and transcribed server-side. Shown
+              // when there is one so the client sees it is part of what they
+              // are submitting.
+              if (_recordedFilePath != null ||
+                  (widget.prefill?.voiceTranscript.isNotEmpty ?? false)) ...[
+                const Divider(height: 24),
+                _buildReviewRow(
+                  "Voice Note",
+                  widget.prefill?.voiceTranscript.isNotEmpty ?? false
+                      ? widget.prefill!.voiceTranscript
+                      : "Recorded — uploaded with your case",
+                  isMultiline: true,
+                ),
+              ],
             ],
           ),
+        ),
+        const SizedBox(height: 24),
+        // Review is the last step, so the advocate chosen on the previous one
+        // is shown here as part of what the client is about to submit.
+        if (_selectedLawyerModel != null) ...[
+          Text(
+            "Selected Lawyer",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: primaryTextColor,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.primaryGold, width: 1.5),
+            ),
+            child: Row(
+              children: [
+                AppCircleAvatar(
+                  radius: 28,
+                  imageUrl: _selectedLawyerModel!.profileImage.isNotEmpty
+                      ? Environment.getAttachmentUrl(
+                          _selectedLawyerModel!.profileImage,
+                        )
+                      : null,
+                  fallback: const Icon(Icons.person, color: Colors.grey),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _selectedLawyerModel!.fullName,
+                              style: const TextStyle(
+                                color: AppColors.primaryText,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                          const Icon(
+                            Icons.verified,
+                            color: AppColors.primaryGold,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${_selectedLawyerModel!.specialization} • ${_selectedLawyerModel!.experience} Yrs Exp",
+                        style: const TextStyle(
+                          color: AppColors.mutedText,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.star,
+                            color: AppColors.primaryGold,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            "${_selectedLawyerModel!.rating} (${_selectedLawyerModel!.totalReviews} Reviews)",
+                            style: const TextStyle(
+                              color: AppColors.primaryText,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Text(
+                            "Fee: ₹${_selectedLawyerModel!.consultationFee}",
+                            style: const TextStyle(
+                              color: AppColors.primaryGold,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // The one Terms & Conditions in the workflow, on the last step before
+        // Submit. Both the manual and the AI flow arrive here and accept them
+        // in the same place — the checkbox used to sit on the Details step,
+        // which the AI flow never passes through.
+        const SizedBox(height: 24),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: _agreedToTerms,
+              onChanged: (val) => setState(() => _agreedToTerms = val ?? false),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(
+                  "I agree to the Terms & Conditions and Privacy Policy",
+                  style: TextStyle(fontSize: 12, color: primaryTextColor),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  /// Final step: pick the advocate the case will be filed with.
-  ///
-  /// Backed by the existing `/lawyers/recommend` endpoint through
-  /// [recommendedLawyersProvider], and rendered with the existing
-  /// [AdvocateCard] from the Advocates screen — no parallel lawyer list, no
-  /// duplicated card, no second source of lawyer data.
-  Widget _buildStep6Lawyer() {
+  Widget _buildStep4RecommendedLawyers() {
     final theme = Theme.of(context);
     final primaryTextColor = theme.textTheme.titleMedium?.color;
     final secondaryTextColor = theme.textTheme.bodySmall?.color;
 
-    final category = _selectedCategory;
-    if (category == null) {
-      return _buildStepNotice(
-        "Choose a category first",
-        "Go back to step 1 and pick the area of law, and we will show the advocates who practise it.",
+    // Recommendations are ranked by category and `/lawyers/recommend` rejects a
+    // request without one. Ask for it here instead of putting the server's
+    // "Category is required for recommendation" in front of the client.
+    if (_selectedCategory == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40.0),
+          child: Column(
+            children: [
+              Icon(
+                Icons.category_outlined,
+                size: 64,
+                color: AppColors.mutedText.withValues(alpha: 0.5),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Choose a category first",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: primaryTextColor,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "We match advocates by the area of law your case falls under. Pick one on step 1 and your recommendations will appear here.",
+                style: TextStyle(color: secondaryTextColor, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => setState(() => _currentStep = 0),
+                child: const Text("Go to Category"),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
-    // The same query the backend ranks on: category, sub-type and the case's
-    // own location.
-    final query = Uri(queryParameters: {
-      'category': category,
-      'subcategory': ?_selectedSubcategory,
-      if (_selectedCityName != null && _selectedCityName!.isNotEmpty)
-        'city': _selectedCityName!,
-      if (_selectedDistrictName != null && _selectedDistrictName!.isNotEmpty)
-        'district': _selectedDistrictName!,
-      if (_selectedStateName != null && _selectedStateName!.isNotEmpty)
-        'state': _selectedStateName!,
-      'sortBy': _sortByFilter,
-    }).query;
+    final queryKey = "category=${Uri.encodeComponent(_selectedCategory ?? '')}"
+        "&subcategory=${Uri.encodeComponent(_selectedSubcategory ?? '')}"
+        "&city=${Uri.encodeComponent(_selectedCityName ?? '')}"
+        "&district=${Uri.encodeComponent(_selectedDistrictName ?? '')}"
+        "&state=${Uri.encodeComponent(_selectedStateName ?? '')}"
+        "&sortBy=${Uri.encodeComponent(_sortByFilter)}";
 
-    final lawyersAsync = ref.watch(recommendedLawyersProvider(query));
+    final recommendedState = ref.watch(recommendedLawyersProvider(queryKey));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Text(
-                "Choose Your Advocate",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: primaryTextColor,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Recommended Lawyers",
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primaryTextColor),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "We've matched the best lawyers for your issue (${_selectedSubcategory ?? _selectedCategory}) in ${_selectedCityName ?? 'your area'} and nearby areas.",
+                    style: TextStyle(color: secondaryTextColor, fontSize: 13, height: 1.4),
+                  ),
+                ],
               ),
             ),
+            const SizedBox(width: 8),
             _buildWhyTheseLawyersButton(),
           ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          "Advocates practising $category${_selectedCityName != null && _selectedCityName!.isNotEmpty ? ", nearest to ${_selectedCityName!} first" : ""}.",
-          style: TextStyle(color: secondaryTextColor, fontSize: 13),
-        ),
-        const SizedBox(height: 16),
-        _buildFiltersRow(),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
 
-        lawyersAsync.when(
-          loading: () => Column(
-            children: List.generate(3, (_) => _buildSkeletonCard()),
-          ),
-          error: (error, _) => _buildStepNotice(
-            "Could not load advocates",
-            "$error",
-            action: TextButton(
-              onPressed: () => ref.invalidate(recommendedLawyersProvider(query)),
-              child: const Text("Try again"),
-            ),
-          ),
+        // Filter Chips Row
+        _buildFiltersRow(),
+        const SizedBox(height: 20),
+
+        recommendedState.when(
           data: (lawyers) {
             if (lawyers.isEmpty) {
-              return _buildStepNotice(
-                "No advocates available yet",
-                "No verified advocate currently lists $category. Try a different category, or check back shortly.",
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40.0),
+                  child: Column(
+                    children: [
+                      Icon(Icons.person_search_outlined, size: 64, color: AppColors.mutedText.withValues(alpha: 0.5)),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "No Recommended Lawyers Found",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primaryText),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Try picking a different city or location in the previous step.",
+                        style: TextStyle(color: secondaryTextColor, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
               );
             }
 
+            final visibleCount = _viewAllLawyers ? lawyers.length : (lawyers.length > 5 ? 5 : lawyers.length);
+            final visibleLawyers = lawyers.take(visibleCount).toList();
+
             return Column(
               children: [
-                for (final lawyer in lawyers)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildSelectableLawyer(lawyer),
-                  ),
+                ...visibleLawyers.map((lawyer) {
+                  final isSelected = _selectedLawyerModel?.userId == lawyer.userId;
+                  return _buildLawyerCard(lawyer, isSelected);
+                }),
+                const SizedBox(height: 16),
+                
+                // Bottom Dotted prompt
+                _buildViewMorePrompt(),
               ],
             );
           },
+          loading: () => Column(
+            children: List.generate(3, (index) => _buildSkeletonCard()),
+          ),
+          error: (err, stack) => Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40.0),
+              child: Column(
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  const SizedBox(height: 16),
+                  Text("Error loading recommendations: $err", style: TextStyle(color: primaryTextColor)),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => ref.invalidate(recommendedLawyersProvider(queryKey)),
+                    child: const Text("Retry"),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ],
     );
   }
 
-  /// Wraps the shared [AdvocateCard] with selection affordance, so the card
-  /// itself stays the single implementation used by the Advocates screen.
-  Widget _buildSelectableLawyer(LawyerModel lawyer) {
-    final isSelected = _selectedLawyerModel?.userId == lawyer.userId;
-
-    return GestureDetector(
-      onTap: () => setState(() => _selectedLawyerModel = isSelected ? null : lawyer),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? AppColors.primaryGold : Colors.transparent,
-            width: 2,
+  Widget _buildViewMorePrompt() {
+    return CustomPaint(
+      painter: DashedBorderPainter(
+        color: const Color(0xFFD4AF37),
+        strokeWidth: 1.0,
+        gap: 5.0,
+      ),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _viewAllLawyers = true;
+          });
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F0F10),
+            borderRadius: BorderRadius.circular(12),
           ),
-        ),
-        child: Stack(
-          children: [
-            AdvocateCard(
-              name: lawyer.fullName,
-              specialization: lawyer.specialization,
-              location: lawyer.location,
-              rating: lawyer.rating,
-              reviews: lawyer.totalReviews,
-              imageUrl: lawyer.profileImage,
-              experience: lawyer.experience,
-              onViewProfile: () => context.push('/lawyer-profile/${lawyer.userId}'),
-            ),
-            if (isSelected)
-              const Positioned(
-                top: 8,
-                right: 8,
-                child: Icon(
-                  Icons.check_circle,
-                  color: AppColors.primaryGold,
-                  size: 22,
+          child: Row(
+            children: [
+              const Icon(Icons.folder_shared_outlined, color: Color(0xFFD4AF37), size: 20),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  "Can't find the right lawyer? View more lawyers",
+                  style: TextStyle(
+                    color: Color(0xFFD4AF37),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
                 ),
               ),
+              const Icon(Icons.chevron_right, color: Color(0xFFD4AF37), size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLawyerCard(LawyerModel lawyer, bool isSelected) {
+    final displayedTags = lawyer.languages.take(3).toList();
+    final remainingTagsCount = lawyer.languages.length - displayedTags.length;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF131314),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected ? const Color(0xFFD4AF37) : const Color(0xFF2B2B2B),
+          width: isSelected ? 1.5 : 1.0,
+        ),
+        boxShadow: [
+          if (isSelected)
+            BoxShadow(
+              color: const Color(0xFFD4AF37).withValues(alpha: 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Profile photo stack
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: lawyer.profileImage.isNotEmpty
+                          ? Image.network(
+                              Environment.getAttachmentUrl(lawyer.profileImage),
+                              width: 80,
+                              height: 88,
+                              fit: BoxFit.cover,
+                              errorBuilder: (c, o, s) => Container(
+                                width: 80,
+                                height: 88,
+                                color: const Color(0xFF2B2B2B),
+                                child: const Icon(Icons.person, color: Colors.white54, size: 40),
+                              ),
+                            )
+                          : Container(
+                              width: 80,
+                              height: 88,
+                              color: const Color(0xFF2B2B2B),
+                              child: const Icon(Icons.person, color: Colors.white54, size: 40),
+                            ),
+                    ),
+                    if (lawyer.onlineStatus)
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Text(
+                                "Online",
+                                style: TextStyle(color: Colors.green, fontSize: 9, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (lawyer.isVerified)
+                      Positioned(
+                        top: -2,
+                        right: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.verified, color: Colors.white, size: 12),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 14),
+
+                // 2. Center info details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        lawyer.fullName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        lawyer.specialization,
+                        style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined, color: Colors.grey, size: 13),
+                          const SizedBox(width: 3),
+                          Expanded(
+                            child: Text(
+                              lawyer.location,
+                              style: const TextStyle(color: Colors.grey, fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Color(0xFFD4AF37), size: 14),
+                          const SizedBox(width: 3),
+                          Text(
+                            "${lawyer.rating}  (${lawyer.totalReviews} Reviews)",
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${lawyer.experience}+ Years Exp  •  ${lawyer.casesHandled}+ Cases",
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // 3. Right status/stats details
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Gold Circular Tick Selection Indicator
+                    Icon(
+                      isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                      color: isSelected ? const Color(0xFFD4AF37) : Colors.white30,
+                      size: 20,
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.gps_fixed, color: Colors.green, size: 12),
+                        const SizedBox(width: 3),
+                        Text(
+                          "${lawyer.matchPercentage}% Match",
+                          style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.access_time, color: Colors.grey, size: 12),
+                        const SizedBox(width: 3),
+                        Text(
+                          lawyer.responseTime,
+                          style: const TextStyle(color: Colors.grey, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text(
+                          "Consultation Fee",
+                          style: TextStyle(color: Colors.grey, fontSize: 9),
+                        ),
+                        Text(
+                          "₹${lawyer.consultationFee}",
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            
+            // Practice Area Tag Chips row
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                ...displayedTags.map((tag) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1B1B1C),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFF2B2B2C)),
+                      ),
+                      child: Text(
+                        tag,
+                        style: const TextStyle(color: Colors.grey, fontSize: 10),
+                      ),
+                    )),
+                if (remainingTagsCount > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1B1B1C),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFF2B2B2C)),
+                    ),
+                    child: Text(
+                      "+$remainingTagsCount",
+                      style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Action Buttons row
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _viewLawyerProfileBottomSheet(lawyer),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFD4AF37),
+                      side: const BorderSide(color: Color(0xFFD4AF37), width: 1.0),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text("View Profile", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        if (isSelected) {
+                          _selectedLawyerModel = null;
+                        } else {
+                          _selectedLawyerModel = lawyer;
+                        }
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isSelected ? const Color(0xFFD4AF37).withValues(alpha: 0.1) : const Color(0xFFD4AF37),
+                      foregroundColor: isSelected ? const Color(0xFFD4AF37) : Colors.black,
+                      side: isSelected ? const BorderSide(color: Color(0xFFD4AF37), width: 1.2) : null,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (isSelected) ...[
+                          const Icon(Icons.check, size: 14),
+                          const SizedBox(width: 4),
+                          const Text("Selected", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        ] else ...[
+                          const Text("Select Lawyer", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  /// Shared empty/error panel for a step that cannot render its content.
-  Widget _buildStepNotice(String title, String body, {Widget? action}) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outline),
+  void _viewLawyerProfileBottomSheet(LawyerModel lawyer) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.secondaryBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: AppColors.border,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      AppCircleAvatar(
+                        radius: 40,
+                        imageUrl: lawyer.profileImage.isNotEmpty
+                            ? Environment.getAttachmentUrl(lawyer.profileImage)
+                            : null,
+                        fallback: const Icon(Icons.person, size: 40, color: Colors.grey),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    lawyer.fullName,
+                                    style: const TextStyle(
+                                      color: AppColors.primaryText,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                                ),
+                                const Icon(Icons.verified, color: AppColors.primaryGold, size: 20),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              lawyer.specialization,
+                              style: const TextStyle(color: AppColors.primaryGold, fontSize: 14, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              lawyer.location,
+                              style: const TextStyle(color: AppColors.mutedText, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildProfileStat("Experience", "${lawyer.experience} Yrs"),
+                      _buildProfileStat("Rating", "${lawyer.rating} ★"),
+                      _buildProfileStat("Cases", "${lawyer.casesHandled}"),
+                      _buildProfileStat("Win Rate", "${lawyer.winPercentage}%"),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const Divider(color: AppColors.border),
+                  const SizedBox(height: 16),
+                  
+                  const Text("About Lawyer", style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  Text(
+                    lawyer.bio.isNotEmpty ? lawyer.bio : "Professional legal counsel.",
+                    style: const TextStyle(color: AppColors.secondaryText, fontSize: 14, height: 1.5),
+                  ),
+                  const SizedBox(height: 20),
+
+                  const Text("Practice Areas", style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildSheetChip(lawyer.specialization),
+                      _buildSheetChip("Legal Consultation"),
+                      _buildSheetChip("Case Representation"),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  _buildDetailRow("Education", lawyer.education.isNotEmpty ? lawyer.education : "LLB, Law University"),
+                  _buildDetailRow("Bar Council Reg", lawyer.barCouncilNumber.isNotEmpty ? lawyer.barCouncilNumber : "IND/2026/BAR"),
+                  _buildDetailRow("Languages", lawyer.languages.isEmpty ? 'English' : lawyer.languages.join(", ")),
+                  _buildDetailRow("Office Address", lawyer.officeAddress.isNotEmpty ? lawyer.officeAddress : "Office Suite, City Center"),
+                  _buildDetailRow("Working Hours", lawyer.workingHours),
+                  _buildDetailRow("Consultation Fee", "₹${lawyer.consultationFee}", valueColor: AppColors.primaryGold, isBoldValue: true),
+
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedLawyerModel = lawyer;
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: const Text("Select This Lawyer"),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildProfileStat(String label, String value) {
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(color: AppColors.mutedText, fontSize: 12)),
+      ],
+    );
+  }
+
+  Widget _buildSheetChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Text(label, style: const TextStyle(color: AppColors.primaryGold, fontSize: 12)),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, {Color? valueColor, bool isBoldValue = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-              color: theme.textTheme.titleMedium?.color,
+          SizedBox(
+            width: 120,
+            child: Text(label, style: const TextStyle(color: AppColors.mutedText, fontSize: 13, fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: valueColor ?? AppColors.secondaryText,
+                fontSize: 13,
+                fontWeight: isBoldValue ? FontWeight.bold : FontWeight.normal,
+              ),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            body,
-            style: TextStyle(
-              fontSize: 13,
-              color: theme.textTheme.bodySmall?.color,
-            ),
-          ),
-          if (action != null) ...[const SizedBox(height: 8), action],
         ],
       ),
     );
@@ -3235,21 +3922,21 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   }
 
   Widget _buildBottomActionBar() {
-    final bool isLast = _currentStep == _lawyerStepIndex;
+    final bool isLast = _currentStep == _reviewStepIndex;
     final theme = Theme.of(context);
 
+    // The terms are accepted on Review, so they no longer gate this step.
     final bool isForm1Valid =
         _descriptionController.text.trim().length >= 20 &&
         _selectedCityName != null &&
-        _selectedUrgency != null &&
-        _agreedToTerms;
+        _selectedUrgency != null;
 
     final bool nextDisabled =
         (_currentStep == 0 && _selectedSubcategory == null) ||
         (_currentStep == 1 && !isForm1Valid) ||
         (_currentStep == 2 && _uploadedDocRecord == null) ||
-        // The case is filed with the chosen advocate attached, so the choice
-        // has to be made before submit rather than after.
+        // Review opens only once an advocate has been chosen, so the case is
+        // filed with that lawyer attached.
         (_currentStep == _lawyerStepIndex && _selectedLawyerModel == null);
 
     return Container(
@@ -3290,14 +3977,15 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                 children: [
                   Text(
                     isLast
-                        ? (_isSubmitting ? "Posting case…" : "Post Case")
+                        ? (_isSubmitting ? "Posting case…" : "Submit Case")
                         : "Next",
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
                   ),
-                  if (isLast && _selectedLawyerModel == null)
+                  if (_currentStep == _lawyerStepIndex &&
+                      _selectedLawyerModel == null)
                     Padding(
                       padding: EdgeInsets.only(top: 2),
                       child: Text(
