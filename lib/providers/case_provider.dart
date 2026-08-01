@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../core/config/env.dart';
@@ -22,6 +23,11 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
   io.Socket? _socket;
   String? _currentUserId;
 
+  /// Why the last [createCase] failed, or null when it succeeded. The call
+  /// returns null on every kind of failure, which left the Post Case screen
+  /// with nothing to tell the client beyond "please try again".
+  String? lastCreateError;
+
   /// Kept so a case change can fan out to every view derived from the case
   /// list. The constructor previously accepted this and threw it away, which
   /// is why posting a case refreshed My Cases but left the dashboards, badge
@@ -39,14 +45,20 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
   /// own broadcast to arrive. Everything downstream reads from these
   /// providers, so no screen needs its own refresh logic and none can drift.
   Future<void> caseChanged() async {
+    // `lawyerWorkspaceLeadsProvider`, `lawyerWorkspaceClientsProvider` and
+    // `todayHearingsCountProvider` each `ref.watch(casesProvider)`, so this one
+    // line already rebuilds them. They must NOT be invalidated from here:
+    // `Ref.invalidate` asserts `_debugAssertCanDependOn`, which walks the
+    // target's ancestors and throws CircularDependencyError when it finds the
+    // caller — and casesProvider is their ancestor. That throw propagated out
+    // of caseChanged() and out of _submitCase(), so a case was created but the
+    // success snackbar and the redirect home never ran.
     await fetchCases();
 
-    // Views that fetch case-derived data from their own endpoints. Riverpod
-    // rebuilds only the ones currently being watched.
-    _ref.invalidate(lawyerWorkspaceLeadsProvider);
-    _ref.invalidate(lawyerWorkspaceClientsProvider);
+    // Views that fetch case-derived data from their own endpoints and do not
+    // depend on this provider, so nothing tells them a case changed. Riverpod
+    // refreshes only the ones currently alive; the rest are a no-op.
     _ref.invalidate(todayConsultationsCountProvider);
-    _ref.invalidate(todayHearingsCountProvider);
     _ref.invalidate(adminCasesProvider);
     _ref.invalidate(adminStatsProvider);
 
@@ -107,6 +119,7 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     String? bailDetails,
     double? claimAmount,
   }) async {
+    lastCreateError = null;
     try {
       final response = await DioClient.dio.post("/cases", data: {
         "title": title,
@@ -147,8 +160,16 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
         });
         return newCase;
       }
+      lastCreateError = response.data?['message']?.toString();
     } catch (e) {
-      // Handle error
+      // The server's own message ("Category is required", a validation error)
+      // is far more useful to the client than the Dio wrapper around it.
+      lastCreateError = e is DioException
+          ? (e.response?.data is Map
+                ? e.response?.data['message']?.toString()
+                : null) ??
+                e.message
+          : e.toString();
     }
     return null;
   }
