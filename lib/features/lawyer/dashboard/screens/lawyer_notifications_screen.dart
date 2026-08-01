@@ -7,16 +7,15 @@ import '../../../../models/notification_model.dart';
 class LawyerNotificationsScreen extends ConsumerStatefulWidget {
   final VoidCallback onBack;
 
-  const LawyerNotificationsScreen({
-    super.key,
-    required this.onBack,
-  });
+  const LawyerNotificationsScreen({super.key, required this.onBack});
 
   @override
-  ConsumerState<LawyerNotificationsScreen> createState() => _LawyerNotificationsScreenState();
+  ConsumerState<LawyerNotificationsScreen> createState() =>
+      _LawyerNotificationsScreenState();
 }
 
-class _LawyerNotificationsScreenState extends ConsumerState<LawyerNotificationsScreen> {
+class _LawyerNotificationsScreenState
+    extends ConsumerState<LawyerNotificationsScreen> {
   int _selectedTab = 0; // 0: All, 1: Unread, 2: Clients
 
   @override
@@ -56,9 +55,7 @@ class _LawyerNotificationsScreenState extends ConsumerState<LawyerNotificationsS
             const SizedBox(height: 12),
             _buildTabsAndActions(context, ref),
             const SizedBox(height: 16),
-            Expanded(
-              child: _buildNotificationsList(notificationsState),
-            ),
+            Expanded(child: _buildNotificationsList(notificationsState)),
           ],
         ),
       ),
@@ -88,7 +85,11 @@ class _LawyerNotificationsScreenState extends ConsumerState<LawyerNotificationsS
           onPressed: () {
             ref.read(notificationsProvider.notifier).markAllAsRead();
           },
-          icon: const Icon(Icons.check_circle_outlined, color: Color(0xFFDE9D32), size: 16),
+          icon: const Icon(
+            Icons.check_circle_outlined,
+            color: Color(0xFFDE9D32),
+            size: 16,
+          ),
           label: const Text(
             "Mark all read",
             style: TextStyle(
@@ -129,7 +130,9 @@ class _LawyerNotificationsScreenState extends ConsumerState<LawyerNotificationsS
 
   Widget _buildNotificationsList(NotificationState state) {
     if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFFDE9D32)));
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFDE9D32)),
+      );
     }
 
     if (state.errorMessage != null) {
@@ -156,7 +159,8 @@ class _LawyerNotificationsScreenState extends ConsumerState<LawyerNotificationsS
       if (_selectedTab == 1) {
         return !notif.isRead;
       } else if (_selectedTab == 2) {
-        final isClientType = notif.type == 'case_posted' ||
+        final isClientType =
+            notif.type == 'case_posted' ||
             notif.type == 'proposal_received' ||
             notif.type == 'proposal_accepted' ||
             notif.type == 'appointment_requested' ||
@@ -186,37 +190,57 @@ class _LawyerNotificationsScreenState extends ConsumerState<LawyerNotificationsS
             padding: EdgeInsets.only(top: 8, bottom: 8, left: 4),
             child: Text(
               "Today",
-              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          ...grouped['Today']!.map((n) => _buildNotificationItem(context, ref, n)),
+          ...grouped['Today']!.map(
+            (n) => _buildNotificationItem(context, ref, n),
+          ),
         ],
         if (grouped['Yesterday']!.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.only(top: 12, bottom: 12, left: 4),
             child: Text(
               "Yesterday",
-              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          ...grouped['Yesterday']!.map((n) => _buildNotificationItem(context, ref, n)),
+          ...grouped['Yesterday']!.map(
+            (n) => _buildNotificationItem(context, ref, n),
+          ),
         ],
         if (grouped['Older']!.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.only(top: 12, bottom: 12, left: 4),
             child: Text(
               "Older",
-              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          ...grouped['Older']!.map((n) => _buildNotificationItem(context, ref, n)),
+          ...grouped['Older']!.map(
+            (n) => _buildNotificationItem(context, ref, n),
+          ),
         ],
         const SizedBox(height: 20),
       ],
     );
   }
 
-  Map<String, List<NotificationModel>> _groupNotifications(List<NotificationModel> list) {
+  Map<String, List<NotificationModel>> _groupNotifications(
+    List<NotificationModel> list,
+  ) {
     final Map<String, List<NotificationModel>> groups = {
       'Today': [],
       'Yesterday': [],
@@ -228,7 +252,11 @@ class _LawyerNotificationsScreenState extends ConsumerState<LawyerNotificationsS
     final yesterday = today.subtract(const Duration(days: 1));
 
     for (final notif in list) {
-      final notifDate = DateTime(notif.createdAt.year, notif.createdAt.month, notif.createdAt.day);
+      final notifDate = DateTime(
+        notif.createdAt.year,
+        notif.createdAt.month,
+        notif.createdAt.day,
+      );
       if (notifDate == today) {
         groups['Today']!.add(notif);
       } else if (notifDate == yesterday) {
@@ -240,7 +268,11 @@ class _LawyerNotificationsScreenState extends ConsumerState<LawyerNotificationsS
     return groups;
   }
 
-  Widget _buildNotificationItem(BuildContext context, WidgetRef ref, NotificationModel notif) {
+  Widget _buildNotificationItem(
+    BuildContext context,
+    WidgetRef ref,
+    NotificationModel notif,
+  ) {
     final style = _getNotificationStyle(notif);
     final timeStr = _formatNotificationTime(notif.createdAt);
 
@@ -265,7 +297,9 @@ class _LawyerNotificationsScreenState extends ConsumerState<LawyerNotificationsS
                 margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: !notif.isRead ? const Color(0xFFDE9D32) : Colors.transparent,
+                  color: !notif.isRead
+                      ? const Color(0xFFDE9D32)
+                      : Colors.transparent,
                 ),
               ),
               CircleAvatar(
@@ -349,23 +383,57 @@ class _LawyerNotificationsScreenState extends ConsumerState<LawyerNotificationsS
     final type = notif.type.toLowerCase();
     final title = notif.title.toLowerCase();
 
-    if (type == 'case_posted' || type == 'proposal_received' || title.contains('client request') || title.contains('new client')) {
-      return NotificationStyle(Icons.person, const Color(0xFFDE9D32)); // amber/orange
+    if (type == 'case_posted' ||
+        type == 'proposal_received' ||
+        title.contains('client request') ||
+        title.contains('new client')) {
+      return NotificationStyle(
+        Icons.person,
+        const Color(0xFFDE9D32),
+      ); // amber/orange
     } else if (type == 'proposal_accepted' || title.contains('accepted')) {
-      return NotificationStyle(Icons.check_circle_outline, const Color(0xFF28C76F)); // green
-    } else if (type.contains('case') || type.contains('document') || title.contains('case') || title.contains('document')) {
-      return NotificationStyle(Icons.article_outlined, const Color(0xFF28C76F)); // green
-    } else if (type == 'chat_message' || title.contains('message') || title.contains('chat')) {
-      return NotificationStyle(Icons.chat_bubble_outline, const Color(0xFF9F7AEA)); // purple
-    } else if (type.contains('appointment') || type.contains('schedule') || type.contains('reminder') || title.contains('schedule') || title.contains('appointment')) {
-      return NotificationStyle(Icons.calendar_month_outlined, const Color(0xFFDE9D32)); // amber
+      return NotificationStyle(
+        Icons.check_circle_outline,
+        const Color(0xFF28C76F),
+      ); // green
+    } else if (type.contains('case') ||
+        type.contains('document') ||
+        title.contains('case') ||
+        title.contains('document')) {
+      return NotificationStyle(
+        Icons.article_outlined,
+        const Color(0xFF28C76F),
+      ); // green
+    } else if (type == 'chat_message' ||
+        title.contains('message') ||
+        title.contains('chat')) {
+      return NotificationStyle(
+        Icons.chat_bubble_outline,
+        const Color(0xFF9F7AEA),
+      ); // purple
+    } else if (type.contains('appointment') ||
+        type.contains('schedule') ||
+        type.contains('reminder') ||
+        title.contains('schedule') ||
+        title.contains('appointment')) {
+      return NotificationStyle(
+        Icons.calendar_month_outlined,
+        const Color(0xFFDE9D32),
+      ); // amber
     } else {
       // System update/general
-      return NotificationStyle(Icons.notifications_outlined, const Color(0xFF3B82F6)); // blue
+      return NotificationStyle(
+        Icons.notifications_outlined,
+        const Color(0xFF3B82F6),
+      ); // blue
     }
   }
 
-  void _showMoreOptions(BuildContext context, WidgetRef ref, NotificationModel notif) {
+  void _showMoreOptions(
+    BuildContext context,
+    WidgetRef ref,
+    NotificationModel notif,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1E1E20),
@@ -393,18 +461,31 @@ class _LawyerNotificationsScreenState extends ConsumerState<LawyerNotificationsS
                 ),
                 if (!notif.isRead)
                   ListTile(
-                    leading: const Icon(Icons.mail_outline, color: Colors.white),
-                    title: const Text("Mark as read", style: TextStyle(color: Colors.white)),
+                    leading: const Icon(
+                      Icons.mail_outline,
+                      color: Colors.white,
+                    ),
+                    title: const Text(
+                      "Mark as read",
+                      style: TextStyle(color: Colors.white),
+                    ),
                     onTap: () {
-                      ref.read(notificationsProvider.notifier).markAsRead(notif.id);
+                      ref
+                          .read(notificationsProvider.notifier)
+                          .markAsRead(notif.id);
                       Navigator.pop(context);
                     },
                   ),
                 ListTile(
                   leading: const Icon(Icons.delete_outline, color: Colors.red),
-                  title: const Text("Clear", style: TextStyle(color: Colors.red)),
+                  title: const Text(
+                    "Clear",
+                    style: TextStyle(color: Colors.red),
+                  ),
                   onTap: () {
-                    ref.read(notificationsProvider.notifier).deleteNotification(notif.id);
+                    ref
+                        .read(notificationsProvider.notifier)
+                        .deleteNotification(notif.id);
                     Navigator.pop(context);
                   },
                 ),
@@ -415,8 +496,6 @@ class _LawyerNotificationsScreenState extends ConsumerState<LawyerNotificationsS
       },
     );
   }
-
-
 }
 
 class NotificationStyle {

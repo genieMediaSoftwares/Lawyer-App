@@ -19,22 +19,16 @@ class AppCircleAvatar extends StatelessWidget {
     final theme = Theme.of(context);
     final size = radius * 2;
 
-    Widget fallbackWidget = fallback ??
-        Icon(
-          Icons.person,
-          color: theme.colorScheme.primary,
-          size: radius,
-        );
+    Widget fallbackWidget =
+        fallback ??
+        Icon(Icons.person, color: theme.colorScheme.primary, size: radius);
 
     final bg = backgroundColor ?? theme.colorScheme.outline.withOpacity(0.2);
 
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: bg,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
       child: ClipOval(
         child: (imageUrl != null && imageUrl!.isNotEmpty)
             ? Image.network(
@@ -52,7 +46,7 @@ class AppCircleAvatar extends StatelessWidget {
                         strokeWidth: 2,
                         value: loadingProgress.expectedTotalBytes != null
                             ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
+                                  loadingProgress.expectedTotalBytes!
                             : null,
                       ),
                     ),

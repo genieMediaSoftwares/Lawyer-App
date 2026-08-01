@@ -25,9 +25,36 @@ class _PremiumAudioPlayerState extends State<PremiumAudioPlayer> {
   Duration _position = Duration.zero;
 
   static const List<double> _barHeights = [
-    10, 18, 28, 14, 18, 36, 32, 16, 12, 24, 
-    40, 26, 14, 20, 34, 38, 24, 18, 10, 22, 
-    30, 36, 20, 14, 26, 32, 20, 16, 12, 8
+    10,
+    18,
+    28,
+    14,
+    18,
+    36,
+    32,
+    16,
+    12,
+    24,
+    40,
+    26,
+    14,
+    20,
+    34,
+    38,
+    24,
+    18,
+    10,
+    22,
+    30,
+    36,
+    20,
+    14,
+    26,
+    32,
+    20,
+    16,
+    12,
+    8,
   ];
 
   @override
@@ -73,7 +100,8 @@ class _PremiumAudioPlayerState extends State<PremiumAudioPlayer> {
 
   Future<void> _setSource() async {
     try {
-      if (widget.source.startsWith('http://') || widget.source.startsWith('https://')) {
+      if (widget.source.startsWith('http://') ||
+          widget.source.startsWith('https://')) {
         await _audioPlayer.setSource(UrlSource(widget.source));
       } else {
         await _audioPlayer.setSource(DeviceFileSource(widget.source));
@@ -160,24 +188,30 @@ class _PremiumAudioPlayerState extends State<PremiumAudioPlayer> {
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
                 return GestureDetector(
-                  onTapDown: (details) => _handleSeek(details.localPosition, width),
-                  onHorizontalDragUpdate: (details) => _handleSeek(details.localPosition, width),
+                  onTapDown: (details) =>
+                      _handleSeek(details.localPosition, width),
+                  onHorizontalDragUpdate: (details) =>
+                      _handleSeek(details.localPosition, width),
                   child: Container(
-                    color: Colors.transparent, // Capture taps on empty spaces too
+                    color:
+                        Colors.transparent, // Capture taps on empty spaces too
                     height: 40,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: List.generate(_barHeights.length, (index) {
                         final double barHeight = _barHeights[index];
-                        final double activeThreshold = index / _barHeights.length;
+                        final double activeThreshold =
+                            index / _barHeights.length;
                         final bool isActive = progress >= activeThreshold;
 
                         return Container(
                           width: 3.5,
                           height: barHeight,
                           decoration: BoxDecoration(
-                            color: isActive ? goldColor : AppColors.mutedText.withOpacity(0.2),
+                            color: isActive
+                                ? goldColor
+                                : AppColors.mutedText.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         );
@@ -205,11 +239,7 @@ class _PremiumAudioPlayerState extends State<PremiumAudioPlayer> {
             const SizedBox(width: 10),
             IconButton(
               onPressed: widget.onReRecord,
-              icon: Icon(
-                Icons.refresh_rounded,
-                color: goldColor,
-                size: 24,
-              ),
+              icon: Icon(Icons.refresh_rounded, color: goldColor, size: 24),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),

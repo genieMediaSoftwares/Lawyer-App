@@ -5,13 +5,16 @@ import '../core/network/dio_client.dart';
 import '../models/chat_model.dart';
 import '../models/message_model.dart';
 import '../core/config/env.dart';
+import '../core/storage/token_storage.dart';
+
 import 'auth_provider.dart';
 import 'notification_provider.dart';
 
 final activeChatIdProvider = StateProvider<String?>((ref) => null);
 
-final userOnlineStatusProvider =
-    StateProvider.family<bool, String>((ref, userId) => false);
+final userOnlineStatusProvider = StateProvider.family<bool, String>(
+  (ref, userId) => false,
+);
 
 // ────────────────────────────────────────────────────────────────────────────
 // chatsProvider — rebuilds ONLY when isLoggedIn changes (not on every
@@ -19,9 +22,9 @@ final userOnlineStatusProvider =
 // ────────────────────────────────────────────────────────────────────────────
 final chatsProvider =
     StateNotifierProvider<ChatsNotifier, AsyncValue<List<ChatModel>>>((ref) {
-  final isLoggedIn = ref.watch(authProvider.select((s) => s.isLoggedIn));
-  return ChatsNotifier(ref, shouldFetch: isLoggedIn);
-});
+      final isLoggedIn = ref.watch(authProvider.select((s) => s.isLoggedIn));
+      return ChatsNotifier(ref, shouldFetch: isLoggedIn);
+    });
 
 class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
   final Ref _ref;
@@ -30,25 +33,27 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
   IO.Socket? get socket => _socket;
 
   ChatsNotifier(this._ref, {bool shouldFetch = true})
-      : super(
-          shouldFetch
-              ? const AsyncValue.loading()
-              : const AsyncValue.data([]),
-        ) {
+    : super(
+        shouldFetch ? const AsyncValue.loading() : const AsyncValue.data([]),
+      ) {
     if (shouldFetch) {
       fetchChats().then((_) => _initSocket());
     }
   }
 
-  void _initSocket() {
+  Future<void> _initSocket() async {
     // Guard against creating duplicate sockets
     if (_socket != null && _socket!.connected) return;
+
+    final token = await TokenStorage().getToken();
+    if (token == null || token.isEmpty) return;
 
     final base = Environment.baseUrl.replaceAll('/api', '');
     _socket = IO.io(
       '$base/chat',
       IO.OptionBuilder()
           .setTransports(['websocket'])
+          .setAuth({'token': token})
           .disableAutoConnect()
           .build(),
     );
@@ -70,10 +75,6 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
     _socket!.onConnect((_) {
       print('🔌 [ChatsSocket] Connected');
       final userId = _ref.read(authProvider).userId;
-      if (userId != null) {
-        // Register personal user room to receive chat_updated events
-        _socket!.emit('register', {'userId': userId});
-      }
 
       // Join every existing chat room
       state.whenData((chats) {
@@ -91,9 +92,8 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
               {'userId': other.id},
               ack: (response) {
                 if (response != null && response['status'] == 'online') {
-                  _ref
-                      .read(userOnlineStatusProvider(other.id).notifier)
-                      .state = true;
+                  _ref.read(userOnlineStatusProvider(other.id).notifier).state =
+                      true;
                 }
               },
             );
@@ -140,7 +140,7 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
               lastMessage: content,
               lastMessageAt: lastMsgAtStr.isNotEmpty
                   ? (DateTime.tryParse(lastMsgAtStr)?.toLocal() ??
-                      DateTime.now())
+                        DateTime.now())
                   : DateTime.now(),
               lastMessageSender: senderId,
               // Only increment unread if the message is from someone else and chat is not open
@@ -186,8 +186,9 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
       final response = await DioClient.dio.get("/chats");
       if (response.data != null && response.data['success'] == true) {
         final list = response.data['data'] as List;
-        final chats =
-            list.map((item) => ChatModel.fromJson(item as Map<String, dynamic>)).toList();
+        final chats = list
+            .map((item) => ChatModel.fromJson(item as Map<String, dynamic>))
+            .toList();
         state = AsyncValue.data(chats);
 
         // Ensure new chat rooms are joined on the socket after a fetch
@@ -221,12 +222,17 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
 
   /// Update last message preview after the current user sends a message.
   void updateLastMessage(
-      String chatId, String lastMessage, DateTime lastMessageAt) {
+    String chatId,
+    String lastMessage,
+    DateTime lastMessageAt,
+  ) {
     state.whenData((chats) {
       final updated = chats.map((c) {
         if (c.id == chatId) {
           return c.copyWith(
-              lastMessage: lastMessage, lastMessageAt: lastMessageAt);
+            lastMessage: lastMessage,
+            lastMessageAt: lastMessageAt,
+          );
         }
         return c;
       }).toList();
@@ -237,13 +243,15 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
 
   Future<ChatModel?> getOrCreateChat(String otherUserId) async {
     try {
-      final response = await DioClient.dio.post("/chats", data: {
-        "otherUserId": otherUserId,
-      });
+      final response = await DioClient.dio.post(
+        "/chats",
+        data: {"otherUserId": otherUserId},
+      );
 
       if (response.data != null && response.data['success'] == true) {
         final chat = ChatModel.fromJson(
-            response.data['data'] as Map<String, dynamic>);
+          response.data['data'] as Map<String, dynamic>,
+        );
         await fetchChats();
         _socket?.emit('join', {'chatId': chat.id});
         return chat;
@@ -258,18 +266,21 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
 // ────────────────────────────────────────────────────────────────────────────
 // chatTypingProvider — per-chat typing indicator
 // ────────────────────────────────────────────────────────────────────────────
-final chatTypingProvider =
-    StateProvider.family<String?, String>((ref, chatId) => null);
+final chatTypingProvider = StateProvider.family<String?, String>(
+  (ref, chatId) => null,
+);
 
 // ────────────────────────────────────────────────────────────────────────────
 // chatMessagesProvider — manages messages + socket for ONE specific chat
 // ────────────────────────────────────────────────────────────────────────────
-final chatMessagesProvider = StateNotifierProvider.family<
-    ChatMessagesNotifier,
-    AsyncValue<List<MessageModel>>,
-    String>((ref, chatId) {
-  return ChatMessagesNotifier(chatId, ref);
-});
+final chatMessagesProvider =
+    StateNotifierProvider.family<
+      ChatMessagesNotifier,
+      AsyncValue<List<MessageModel>>,
+      String
+    >((ref, chatId) {
+      return ChatMessagesNotifier(chatId, ref);
+    });
 
 class ChatMessagesNotifier
     extends StateNotifier<AsyncValue<List<MessageModel>>> {
@@ -278,7 +289,7 @@ class ChatMessagesNotifier
   IO.Socket? _socket;
 
   ChatMessagesNotifier(this.chatId, this._ref)
-      : super(const AsyncValue.loading()) {
+    : super(const AsyncValue.loading()) {
     fetchMessages();
     _initSocket();
   }
@@ -335,8 +346,9 @@ class ChatMessagesNotifier
     if (data == null) return;
     final userName = (data['userName'] ?? '').toString();
     final isTyping = data['isTyping'] as bool? ?? false;
-    _ref.read(chatTypingProvider(chatId).notifier).state =
-        isTyping ? userName : null;
+    _ref.read(chatTypingProvider(chatId).notifier).state = isTyping
+        ? userName
+        : null;
   }
 
   void emitTyping(String userName, bool isTyping) {
@@ -360,12 +372,19 @@ class ChatMessagesNotifier
     try {
       await DioClient.dio.put("/chats/$chatId/read");
       _ref.read(chatsProvider.notifier).markChatAsRead(chatId);
-      
+
       // Clear associated notifications
       final notificationsNotifier = _ref.read(notificationsProvider.notifier);
-      final targetNotifications = _ref.read(notificationsProvider).notifications.where(
-        (n) => n.referenceId == chatId && n.type == 'chat_message' && !n.isRead
-      ).toList();
+      final targetNotifications = _ref
+          .read(notificationsProvider)
+          .notifications
+          .where(
+            (n) =>
+                n.referenceId == chatId &&
+                n.type == 'chat_message' &&
+                !n.isRead,
+          )
+          .toList();
       for (final n in targetNotifications) {
         notificationsNotifier.markAsRead(n.id);
       }
@@ -381,15 +400,13 @@ class ChatMessagesNotifier
       if (response.data != null && response.data['success'] == true) {
         final list = response.data['data'] as List;
         final messages = list
-            .map((item) =>
-                MessageModel.fromJson(item as Map<String, dynamic>))
+            .map((item) => MessageModel.fromJson(item as Map<String, dynamic>))
             .toList();
         state = AsyncValue.data(messages);
         // Mark as read after loading (fire-and-forget, no await)
         markAsRead();
       } else {
-        state = AsyncValue.error(
-            "Failed to load messages", StackTrace.current);
+        state = AsyncValue.error("Failed to load messages", StackTrace.current);
       }
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -420,7 +437,8 @@ class ChatMessagesNotifier
 
       if (response.data != null && response.data['success'] == true) {
         return MessageAttachmentModel.fromJson(
-            response.data['data'] as Map<String, dynamic>);
+          response.data['data'] as Map<String, dynamic>,
+        );
       }
     } catch (e) {
       print('🔌 [ChatMsgNotifier] uploadAttachment error: $e');
@@ -428,27 +446,32 @@ class ChatMessagesNotifier
     return null;
   }
 
-  Future<bool> sendMessage(String content,
-      {List<MessageAttachmentModel> attachments = const []}) async {
+  Future<bool> sendMessage(
+    String content, {
+    List<MessageAttachmentModel> attachments = const [],
+  }) async {
     try {
       final response = await DioClient.dio.post(
         "/chats/$chatId/messages",
         data: {
           "content": content,
           "attachments": attachments
-              .map((a) => {
-                    "name": a.name,
-                    "url": a.url,
-                    "mimeType": a.mimeType,
-                    "size": a.size,
-                  })
+              .map(
+                (a) => {
+                  "name": a.name,
+                  "url": a.url,
+                  "mimeType": a.mimeType,
+                  "size": a.size,
+                },
+              )
               .toList(),
         },
       );
 
       if (response.data != null && response.data['success'] == true) {
         final newMessage = MessageModel.fromJson(
-            response.data['data'] as Map<String, dynamic>);
+          response.data['data'] as Map<String, dynamic>,
+        );
 
         // Add to local message list (dedup check)
         state.whenData((currentMessages) {
@@ -462,11 +485,9 @@ class ChatMessagesNotifier
         final lastMsgText = content.isNotEmpty
             ? content
             : (attachments.isNotEmpty ? "Sent an attachment" : "");
-        _ref.read(chatsProvider.notifier).updateLastMessage(
-              chatId,
-              lastMsgText,
-              newMessage.createdAt,
-            );
+        _ref
+            .read(chatsProvider.notifier)
+            .updateLastMessage(chatId, lastMsgText, newMessage.createdAt);
 
         return true;
       }

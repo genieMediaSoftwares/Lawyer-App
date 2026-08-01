@@ -22,7 +22,8 @@ class ChatModel {
   factory ChatModel.fromJson(Map<String, dynamic> json) {
     return ChatModel(
       id: json['_id'] ?? '',
-      participants: (json['participants'] as List?)
+      participants:
+          (json['participants'] as List?)
               ?.map((p) => ChatParticipantModel.fromJson(p))
               .toList() ??
           [],
@@ -95,10 +96,7 @@ class ChatCaseInfoModel {
   final String id;
   final String title;
 
-  ChatCaseInfoModel({
-    required this.id,
-    required this.title,
-  });
+  ChatCaseInfoModel({required this.id, required this.title});
 
   factory ChatCaseInfoModel.fromJson(Map<String, dynamic> json) {
     return ChatCaseInfoModel(

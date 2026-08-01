@@ -24,7 +24,9 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> {
   @override
   void initState() {
     super.initState();
-    final initialPage = (_virtualItemCount ~/ 2) - ((_virtualItemCount ~/ 2) % widget.assetPaths.length);
+    final initialPage =
+        (_virtualItemCount ~/ 2) -
+        ((_virtualItemCount ~/ 2) % widget.assetPaths.length);
     _pageController = PageController(initialPage: initialPage);
     _startAutoSlide();
   }

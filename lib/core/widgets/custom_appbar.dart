@@ -539,8 +539,7 @@
 
 import 'package:flutter/material.dart';
 
-class CustomAppBar extends StatelessWidget
-    implements PreferredSizeWidget {
+class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool centerTitle;
   final List<Widget>? actions;

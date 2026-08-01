@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../core/config/env.dart';
 import '../core/network/dio_client.dart';
+import '../core/storage/token_storage.dart';
+
 import '../models/notification_model.dart';
 import 'auth_provider.dart';
 
@@ -41,7 +43,8 @@ class NotificationState {
       notifications: notifications ?? this.notifications,
       isLoading: isLoading ?? this.isLoading,
       isLoadMore: isLoadMore ?? this.isLoadMore,
-      errorMessage: errorMessage, // Note: does not support resetting to null if passing null is required, but it serves our resets
+      errorMessage:
+          errorMessage, // Note: does not support resetting to null if passing null is required, but it serves our resets
       unreadCount: unreadCount ?? this.unreadCount,
       isOffline: isOffline ?? this.isOffline,
       page: page ?? this.page,
@@ -50,10 +53,11 @@ class NotificationState {
   }
 }
 
-final notificationsProvider = StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
-  final authState = ref.watch(authProvider);
-  return NotificationNotifier(authState.userId);
-});
+final notificationsProvider =
+    StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
+      final authState = ref.watch(authProvider);
+      return NotificationNotifier(authState.userId);
+    });
 
 class NotificationNotifier extends StateNotifier<NotificationState> {
   final String? userId;
@@ -61,7 +65,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   bool _isDisposed = false;
 
   NotificationNotifier(this.userId)
-      : super(const NotificationState(
+    : super(
+        const NotificationState(
           notifications: [],
           isLoading: false,
           isLoadMore: false,
@@ -69,7 +74,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
           isOffline: false,
           page: 1,
           hasMore: true,
-        )) {
+        ),
+      ) {
     if (userId != null) {
       init();
     }
@@ -80,25 +86,30 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     _initSocket();
   }
 
-  void _initSocket() {
+  Future<void> _initSocket() async {
     if (userId == null) return;
 
+    final token = await TokenStorage().getToken();
+    if (token == null || token.isEmpty) return;
     final base = Environment.baseUrl.replaceAll('/api', '');
     final socketUrl = '$base/notifications';
 
-    _socket = IO.io(socketUrl, IO.OptionBuilder()
-      .setTransports(['websocket'])
-      .enableAutoConnect()
-      .enableReconnection()
-      .setReconnectionDelay(2000)
-      .setReconnectionDelayMax(5000)
-      .setReconnectionAttempts(99)
-      .build());
+    _socket = IO.io(
+      socketUrl,
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .setAuth({'token': token})
+          .enableAutoConnect()
+          .enableReconnection()
+          .setReconnectionDelay(2000)
+          .setReconnectionDelayMax(5000)
+          .setReconnectionAttempts(99)
+          .build(),
+    );
 
     _socket?.connect();
 
     _socket?.onConnect((_) {
-      _socket?.emit('register', {'userId': userId});
       if (!_isDisposed) {
         state = state.copyWith(isOffline: false);
       }
@@ -119,7 +130,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     _socket?.on('new_notification', (data) {
       if (data != null && !_isDisposed) {
         final newNotification = NotificationModel.fromJson(data);
-        
+
         state = state.copyWith(
           notifications: [newNotification, ...state.notifications],
           unreadCount: state.unreadCount + 1,
@@ -140,7 +151,12 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     if (userId == null) return;
     if (refresh) {
       if (!_isDisposed) {
-        state = state.copyWith(isLoading: true, page: 1, hasMore: true, errorMessage: null);
+        state = state.copyWith(
+          isLoading: true,
+          page: 1,
+          hasMore: true,
+          errorMessage: null,
+        );
       }
     } else {
       if (!state.hasMore || state.isLoadMore) return;
@@ -151,18 +167,20 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
     try {
       final pageToFetch = refresh ? 1 : state.page + 1;
-      final response = await DioClient.dio.get("/notifications", queryParameters: {
-        "page": pageToFetch,
-        "limit": 15,
-      });
+      final response = await DioClient.dio.get(
+        "/notifications",
+        queryParameters: {"page": pageToFetch, "limit": 15},
+      );
 
       if (_isDisposed) return;
 
       if (response.data != null && response.data['success'] == true) {
         final responseData = response.data['data'];
         final list = responseData['notifications'] as List;
-        final fetchedNotifications = list.map((item) => NotificationModel.fromJson(item)).toList();
-        
+        final fetchedNotifications = list
+            .map((item) => NotificationModel.fromJson(item))
+            .toList();
+
         final unreadCount = responseData['unreadCount'] ?? 0;
         final pagination = responseData['pagination'] ?? {};
         final totalPages = pagination['pages'] ?? 1;
@@ -202,15 +220,23 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       // Optimistic UI update
       final wasUnread = state.notifications.any((n) => n.id == id && !n.isRead);
       state = state.copyWith(
-        notifications: state.notifications.map((n) => n.id == id ? n.copyWith(isRead: true) : n).toList(),
-        unreadCount: wasUnread ? (state.unreadCount - 1).clamp(0, 99999) : state.unreadCount,
+        notifications: state.notifications
+            .map((n) => n.id == id ? n.copyWith(isRead: true) : n)
+            .toList(),
+        unreadCount: wasUnread
+            ? (state.unreadCount - 1).clamp(0, 99999)
+            : state.unreadCount,
       );
 
       final response = await DioClient.dio.put("/notifications/$id/read");
       if (response.data != null && response.data['success'] == true) {
-        final updatedNotification = NotificationModel.fromJson(response.data['data']);
+        final updatedNotification = NotificationModel.fromJson(
+          response.data['data'],
+        );
         state = state.copyWith(
-          notifications: state.notifications.map((n) => n.id == id ? updatedNotification : n).toList(),
+          notifications: state.notifications
+              .map((n) => n.id == id ? updatedNotification : n)
+              .toList(),
         );
       }
     } catch (e) {
@@ -221,7 +247,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   Future<void> markAllAsRead() async {
     try {
       state = state.copyWith(
-        notifications: state.notifications.map((n) => n.copyWith(isRead: true)).toList(),
+        notifications: state.notifications
+            .map((n) => n.copyWith(isRead: true))
+            .toList(),
         unreadCount: 0,
       );
 
@@ -234,10 +262,12 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   Future<void> deleteNotification(String id) async {
     try {
       final wasUnread = state.notifications.any((n) => n.id == id && !n.isRead);
-      
+
       state = state.copyWith(
         notifications: state.notifications.where((n) => n.id != id).toList(),
-        unreadCount: wasUnread ? (state.unreadCount - 1).clamp(0, 99999) : state.unreadCount,
+        unreadCount: wasUnread
+            ? (state.unreadCount - 1).clamp(0, 99999)
+            : state.unreadCount,
       );
 
       await DioClient.dio.delete("/notifications/$id");
@@ -252,7 +282,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
           .where((n) => n.senderId == senderId && !n.isRead)
           .length;
       state = state.copyWith(
-        notifications: state.notifications.where((n) => n.senderId != senderId).toList(),
+        notifications: state.notifications
+            .where((n) => n.senderId != senderId)
+            .toList(),
         unreadCount: (state.unreadCount - countClearedUnread).clamp(0, 99999),
       );
 
@@ -264,11 +296,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   Future<void> clearAll() async {
     try {
-      state = state.copyWith(
-        notifications: [],
-        unreadCount: 0,
-        hasMore: false,
-      );
+      state = state.copyWith(notifications: [], unreadCount: 0, hasMore: false);
 
       await DioClient.dio.delete("/notifications/clear-all");
     } catch (e) {

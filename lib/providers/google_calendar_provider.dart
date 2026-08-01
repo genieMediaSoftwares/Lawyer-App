@@ -27,14 +27,18 @@ class GoogleCalendarState {
 
 class GoogleCalendarNotifier extends StateNotifier<GoogleCalendarState> {
   GoogleCalendarNotifier()
-      : super(GoogleCalendarState(isConnected: false, email: "", isLoading: false)) {
+    : super(
+        GoogleCalendarState(isConnected: false, email: "", isLoading: false),
+      ) {
     checkStatus();
   }
 
   Future<void> checkStatus() async {
     state = state.copyWith(isLoading: true);
     try {
-      final response = await DioClient.dio.get("/lawyers/google-calendar/status");
+      final response = await DioClient.dio.get(
+        "/lawyers/google-calendar/status",
+      );
       if (response.data != null && response.data['success'] == true) {
         final data = response.data['data'];
         state = GoogleCalendarState(
@@ -79,7 +83,9 @@ class GoogleCalendarNotifier extends StateNotifier<GoogleCalendarState> {
   Future<bool> disconnect() async {
     state = state.copyWith(isLoading: true);
     try {
-      final response = await DioClient.dio.post("/lawyers/google-calendar/disconnect");
+      final response = await DioClient.dio.post(
+        "/lawyers/google-calendar/disconnect",
+      );
       if (response.data != null && response.data['success'] == true) {
         state = GoogleCalendarState(
           isConnected: false,
@@ -98,5 +104,5 @@ class GoogleCalendarNotifier extends StateNotifier<GoogleCalendarState> {
 
 final googleCalendarProvider =
     StateNotifierProvider<GoogleCalendarNotifier, GoogleCalendarState>(
-  (ref) => GoogleCalendarNotifier(),
-);
+      (ref) => GoogleCalendarNotifier(),
+    );

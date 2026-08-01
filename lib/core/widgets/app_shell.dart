@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 class AppShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -27,7 +28,7 @@ class AppShell extends StatelessWidget {
               color: Colors.black.withOpacity(0.4),
               blurRadius: 8,
               offset: const Offset(0, 4),
-            )
+            ),
           ],
         ),
         child: FloatingActionButton(
@@ -52,7 +53,9 @@ class AppShell extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: Colors.black,
-            border: Border(top: BorderSide(color: theme.dividerColor, width: 1)),
+            border: Border(
+              top: BorderSide(color: theme.dividerColor, width: 1),
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -127,11 +130,7 @@ class _NavItem extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: color,
-              size: 24,
-            ),
+            Icon(icon, color: color, size: 24),
             const SizedBox(height: 3),
             Text(
               label,

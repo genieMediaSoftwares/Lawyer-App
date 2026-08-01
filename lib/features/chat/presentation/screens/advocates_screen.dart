@@ -34,9 +34,9 @@ class _AdvocatesScreenState extends ConsumerState<AdvocatesScreen> {
   }
 
   void _onSearchChanged() {
-    ref.read(advocateFiltersProvider.notifier).update(
-          (state) => state.copyWith(search: _searchController.text),
-        );
+    ref
+        .read(advocateFiltersProvider.notifier)
+        .update((state) => state.copyWith(search: _searchController.text));
   }
 
   @override
@@ -91,8 +91,15 @@ class _AdvocatesScreenState extends ConsumerState<AdvocatesScreen> {
                       cursorColor: AppColors.primaryGold,
                       decoration: const InputDecoration(
                         hintText: 'Search advocates...',
-                        hintStyle: TextStyle(color: Color(0xFF707070), fontSize: 15),
-                        prefixIcon: Icon(Icons.search, color: Color(0xFF707070), size: 22),
+                        hintStyle: TextStyle(
+                          color: Color(0xFF707070),
+                          fontSize: 15,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: Color(0xFF707070),
+                          size: 22,
+                        ),
                         border: InputBorder.none,
                         focusedBorder: InputBorder.none,
                         enabledBorder: InputBorder.none,
@@ -121,7 +128,11 @@ class _AdvocatesScreenState extends ConsumerState<AdvocatesScreen> {
                       border: Border.all(color: const Color(0xFF2A2A2A)),
                     ),
                     child: const Center(
-                      child: Icon(Icons.sort_rounded, color: AppColors.primaryGold, size: 22),
+                      child: Icon(
+                        Icons.sort_rounded,
+                        color: AppColors.primaryGold,
+                        size: 22,
+                      ),
                     ),
                   ),
                 ),
@@ -130,7 +141,8 @@ class _AdvocatesScreenState extends ConsumerState<AdvocatesScreen> {
                 Builder(
                   builder: (buttonContext) => GestureDetector(
                     onTap: () {
-                      final isTablet = MediaQuery.of(buttonContext).size.width >= 600;
+                      final isTablet =
+                          MediaQuery.of(buttonContext).size.width >= 600;
                       if (isTablet) {
                         Scaffold.of(buttonContext).openEndDrawer();
                       } else {
@@ -151,7 +163,11 @@ class _AdvocatesScreenState extends ConsumerState<AdvocatesScreen> {
                         border: Border.all(color: const Color(0xFF2A2A2A)),
                       ),
                       child: const Center(
-                        child: Icon(Icons.filter_alt_outlined, color: AppColors.primaryGold, size: 22),
+                        child: Icon(
+                          Icons.filter_alt_outlined,
+                          color: AppColors.primaryGold,
+                          size: 22,
+                        ),
                       ),
                     ),
                   ),
@@ -172,12 +188,19 @@ class _AdvocatesScreenState extends ConsumerState<AdvocatesScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 48,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         'Could not load advocates.\n$err',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Color(0xFF9A9A9A), fontSize: 14),
+                        style: const TextStyle(
+                          color: Color(0xFF9A9A9A),
+                          fontSize: 14,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       OutlinedButton(
@@ -279,7 +302,9 @@ class AdvocateCard extends StatelessWidget {
           AppCircleAvatar(
             radius: 36,
             backgroundColor: const Color(0xFF2A2A2A),
-            imageUrl: imageUrl.isNotEmpty ? Environment.getAttachmentUrl(imageUrl) : null,
+            imageUrl: imageUrl.isNotEmpty
+                ? Environment.getAttachmentUrl(imageUrl)
+                : null,
             fallback: const Icon(Icons.person, color: Colors.white54, size: 36),
           ),
 
@@ -307,7 +332,11 @@ class AdvocateCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 5),
-                    const Icon(Icons.verified, color: AppColors.primaryGold, size: 15),
+                    const Icon(
+                      Icons.verified,
+                      color: AppColors.primaryGold,
+                      size: 15,
+                    ),
                   ],
                 ),
 
@@ -318,7 +347,10 @@ class AdvocateCard extends StatelessWidget {
                   specialization,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Color(0xFF9A9A9A), fontSize: 12),
+                  style: const TextStyle(
+                    color: Color(0xFF9A9A9A),
+                    fontSize: 12,
+                  ),
                 ),
 
                 const SizedBox(height: 5),
@@ -327,15 +359,21 @@ class AdvocateCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Icon(Icons.location_on_outlined,
-                        color: Color(0xFF9A9A9A), size: 13),
+                    const Icon(
+                      Icons.location_on_outlined,
+                      color: Color(0xFF9A9A9A),
+                      size: 13,
+                    ),
                     const SizedBox(width: 3),
                     Expanded(
                       child: Text(
                         location.isNotEmpty ? location : 'Hyderabad, Telangana',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Color(0xFF9A9A9A), fontSize: 12),
+                        style: const TextStyle(
+                          color: Color(0xFF9A9A9A),
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -354,8 +392,8 @@ class AdvocateCard extends StatelessWidget {
                         full
                             ? Icons.star_rounded
                             : half
-                                ? Icons.star_half_rounded
-                                : Icons.star_outline_rounded,
+                            ? Icons.star_half_rounded
+                            : Icons.star_outline_rounded,
                         color: AppColors.primaryGold,
                         size: 15,
                       );
@@ -363,7 +401,10 @@ class AdvocateCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       '($reviews)',
-                      style: const TextStyle(color: Color(0xFF9A9A9A), fontSize: 12),
+                      style: const TextStyle(
+                        color: Color(0xFF9A9A9A),
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -379,7 +420,9 @@ class AdvocateCard extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: AppColors.primaryGold, width: 1),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               backgroundColor: Colors.transparent,
               foregroundColor: AppColors.primaryGold,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,

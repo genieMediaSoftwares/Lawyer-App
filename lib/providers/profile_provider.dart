@@ -50,12 +50,16 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   Future<void> fetchProfileData() async {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
-      
+
       final profileFuture = _repository.getClientProfile();
       final activityFuture = _repository.getClientActivity();
       final statsFuture = _repository.getClientStats();
 
-      final results = await Future.wait([profileFuture, activityFuture, statsFuture]);
+      final results = await Future.wait([
+        profileFuture,
+        activityFuture,
+        statsFuture,
+      ]);
 
       final profile = results[0] as ClientProfileModel;
       final activities = results[1] as List<ActivityModel>;
@@ -68,13 +72,15 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         isLoading: false,
       );
 
-      _ref.read(authProvider.notifier).updateLocalDetails(
-        name: profile.fullName,
-        email: profile.email,
-        mobile: profile.mobile,
-        location: profile.location,
-        photoUrl: profile.profileImage,
-      );
+      _ref
+          .read(authProvider.notifier)
+          .updateLocalDetails(
+            name: profile.fullName,
+            email: profile.email,
+            mobile: profile.mobile,
+            location: profile.location,
+            photoUrl: profile.profileImage,
+          );
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
@@ -98,19 +104,18 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         gender: gender,
         languages: languages,
       );
-      state = state.copyWith(
-        profile: updatedProfile,
-        isLoading: false,
-      );
-      
-      _ref.read(authProvider.notifier).updateLocalDetails(
-        name: updatedProfile.fullName,
-        email: updatedProfile.email,
-        mobile: updatedProfile.mobile,
-        location: updatedProfile.location,
-        photoUrl: updatedProfile.profileImage,
-      );
-      
+      state = state.copyWith(profile: updatedProfile, isLoading: false);
+
+      _ref
+          .read(authProvider.notifier)
+          .updateLocalDetails(
+            name: updatedProfile.fullName,
+            email: updatedProfile.email,
+            mobile: updatedProfile.mobile,
+            location: updatedProfile.location,
+            photoUrl: updatedProfile.profileImage,
+          );
+
       await fetchProfileData();
       return true;
     } catch (e) {
@@ -122,18 +127,20 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   Future<bool> updateProfileImage(List<int> bytes, String fileName) async {
     try {
       state = state.copyWith(isLoading: true);
-      final updatedProfile = await _repository.uploadProfileImage(bytes, fileName);
-      state = state.copyWith(
-        profile: updatedProfile,
-        isLoading: false,
+      final updatedProfile = await _repository.uploadProfileImage(
+        bytes,
+        fileName,
       );
-      _ref.read(authProvider.notifier).updateLocalDetails(
-        name: updatedProfile.fullName,
-        email: updatedProfile.email,
-        mobile: updatedProfile.mobile,
-        location: updatedProfile.location,
-        photoUrl: updatedProfile.profileImage,
-      );
+      state = state.copyWith(profile: updatedProfile, isLoading: false);
+      _ref
+          .read(authProvider.notifier)
+          .updateLocalDetails(
+            name: updatedProfile.fullName,
+            email: updatedProfile.email,
+            mobile: updatedProfile.mobile,
+            location: updatedProfile.location,
+            photoUrl: updatedProfile.profileImage,
+          );
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
@@ -142,7 +149,9 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   }
 }
 
-final profileProvider = StateNotifierProvider<ProfileNotifier, ProfileState>((ref) {
+final profileProvider = StateNotifierProvider<ProfileNotifier, ProfileState>((
+  ref,
+) {
   final repo = ref.watch(profileRepositoryProvider);
   return ProfileNotifier(repo, ref);
 });

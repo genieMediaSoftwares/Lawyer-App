@@ -30,7 +30,8 @@ class LawyerDashboardScreen extends ConsumerStatefulWidget {
   const LawyerDashboardScreen({super.key, this.initialTab = 0});
 
   @override
-  ConsumerState<LawyerDashboardScreen> createState() => _LawyerDashboardScreenState();
+  ConsumerState<LawyerDashboardScreen> createState() =>
+      _LawyerDashboardScreenState();
 }
 
 class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
@@ -42,7 +43,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
   // Selected date in calendar tab
   DateTime _selectedCalendarDate = DateTime.now();
-  DateTime _focusedCalendarMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime _focusedCalendarMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    1,
+  );
   late ScrollController _calendarScrollController;
 
   // Lawyer insights state
@@ -66,8 +71,6 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     _calendarScrollController = ScrollController();
     _scrollToSelectedDate();
   }
-
-
 
   @override
   void didUpdateWidget(covariant LawyerDashboardScreen oldWidget) {
@@ -93,7 +96,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         // Each item in the vertical date strip has height 68.0
         final targetOffset = (dayIndex * 68.0) - 150.0;
         _calendarScrollController.animateTo(
-          targetOffset.clamp(0.0, _calendarScrollController.position.maxScrollExtent),
+          targetOffset.clamp(
+            0.0,
+            _calendarScrollController.position.maxScrollExtent,
+          ),
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
         );
@@ -135,7 +141,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         ),
         bottomNavigationBar: Container(
           decoration: BoxDecoration(
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, -2))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
           ),
           child: BottomNavigationBar(
             currentIndex: _currentIndex,
@@ -144,18 +156,51 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               _currentIndex = index;
             }),
             type: BottomNavigationBarType.fixed,
-            backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
-            selectedItemColor: Theme.of(context).bottomNavigationBarTheme.selectedItemColor,
-            unselectedItemColor: Theme.of(context).bottomNavigationBarTheme.unselectedItemColor,
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+            backgroundColor: Theme.of(
+              context,
+            ).bottomNavigationBarTheme.backgroundColor,
+            selectedItemColor: Theme.of(
+              context,
+            ).bottomNavigationBarTheme.selectedItemColor,
+            unselectedItemColor: Theme.of(
+              context,
+            ).bottomNavigationBarTheme.unselectedItemColor,
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
             unselectedLabelStyle: const TextStyle(fontSize: 10),
             items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.space_dashboard_outlined, size: 20), activeIcon: Icon(Icons.space_dashboard, size: 20), label: "Workspace"),
-              BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined, size: 20), activeIcon: Icon(Icons.bar_chart, size: 20), label: "Dashboard"),
-              BottomNavigationBarItem(icon: Icon(Icons.gavel_outlined, size: 20), activeIcon: Icon(Icons.gavel, size: 20), label: "Leads"),
-              BottomNavigationBarItem(icon: Icon(Icons.people_alt_outlined, size: 20), activeIcon: Icon(Icons.people_alt, size: 20), label: "Clients"),
-              BottomNavigationBarItem(icon: Icon(Icons.calendar_month_outlined, size: 20), activeIcon: Icon(Icons.calendar_month, size: 20), label: "Calendar"),
-              BottomNavigationBarItem(icon: Icon(Icons.person_outline, size: 20), activeIcon: Icon(Icons.person, size: 20), label: "Profile"),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.space_dashboard_outlined, size: 20),
+                activeIcon: Icon(Icons.space_dashboard, size: 20),
+                label: "Workspace",
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.bar_chart_outlined, size: 20),
+                activeIcon: Icon(Icons.bar_chart, size: 20),
+                label: "Dashboard",
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.gavel_outlined, size: 20),
+                activeIcon: Icon(Icons.gavel, size: 20),
+                label: "Leads",
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.people_alt_outlined, size: 20),
+                activeIcon: Icon(Icons.people_alt, size: 20),
+                label: "Clients",
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.calendar_month_outlined, size: 20),
+                activeIcon: Icon(Icons.calendar_month, size: 20),
+                label: "Calendar",
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline, size: 20),
+                activeIcon: Icon(Icons.person, size: 20),
+                label: "Profile",
+              ),
             ],
           ),
         ),
@@ -163,7 +208,9 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     }
 
     return Scaffold(
-      backgroundColor: _currentIndex == 2 ? const Color(0xFF0B0B0B) : Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: _currentIndex == 2
+          ? const Color(0xFF0B0B0B)
+          : Theme.of(context).scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: Text(
@@ -171,18 +218,26 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 20,
-            color: _currentIndex == 2 ? Colors.white : Theme.of(context).colorScheme.onSurface,
+            color: _currentIndex == 2
+                ? Colors.white
+                : Theme.of(context).colorScheme.onSurface,
           ),
         ),
         centerTitle: _currentIndex == 2 ? true : false,
-        backgroundColor: _currentIndex == 2 ? const Color(0xFF0B0B0B) : Theme.of(context).appBarTheme.backgroundColor,
-        foregroundColor: _currentIndex == 2 ? Colors.white : Theme.of(context).colorScheme.onSurface,
+        backgroundColor: _currentIndex == 2
+            ? const Color(0xFF0B0B0B)
+            : Theme.of(context).appBarTheme.backgroundColor,
+        foregroundColor: _currentIndex == 2
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurface,
         elevation: _currentIndex == 2 ? 0 : 0.5,
         leading: Builder(
           builder: (context) => IconButton(
             icon: Icon(
               Icons.menu,
-              color: _currentIndex == 2 ? Colors.white : Theme.of(context).colorScheme.onSurface,
+              color: _currentIndex == 2
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onSurface,
             ),
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
@@ -212,7 +267,9 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 IconButton(
                   icon: Icon(
                     Icons.notifications_none_outlined,
-                    color: _currentIndex == 2 ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                    color: _currentIndex == 2
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.onSurface,
                   ),
                   onPressed: () => setState(() => _showNotifications = true),
                 ),
@@ -222,15 +279,25 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     top: 8,
                     child: Container(
                       padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                      constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 14,
+                        minHeight: 14,
+                      ),
                       child: Text(
                         '$unreadCount',
-                        style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ),
-                  )
+                  ),
               ],
             ),
         ],
@@ -247,7 +314,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, -2))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
@@ -255,18 +328,51 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             _currentIndex = index;
           }),
           type: BottomNavigationBarType.fixed,
-          backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
-          selectedItemColor: Theme.of(context).bottomNavigationBarTheme.selectedItemColor,
-          unselectedItemColor: Theme.of(context).bottomNavigationBarTheme.unselectedItemColor,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+          backgroundColor: Theme.of(
+            context,
+          ).bottomNavigationBarTheme.backgroundColor,
+          selectedItemColor: Theme.of(
+            context,
+          ).bottomNavigationBarTheme.selectedItemColor,
+          unselectedItemColor: Theme.of(
+            context,
+          ).bottomNavigationBarTheme.unselectedItemColor,
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 10,
+          ),
           unselectedLabelStyle: const TextStyle(fontSize: 10),
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.space_dashboard_outlined, size: 20), activeIcon: Icon(Icons.space_dashboard, size: 20), label: "Workspace"),
-            BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined, size: 20), activeIcon: Icon(Icons.bar_chart, size: 20), label: "Dashboard"),
-            BottomNavigationBarItem(icon: Icon(Icons.gavel_outlined, size: 20), activeIcon: Icon(Icons.gavel, size: 20), label: "Leads"),
-            BottomNavigationBarItem(icon: Icon(Icons.people_alt_outlined, size: 20), activeIcon: Icon(Icons.people_alt, size: 20), label: "Clients"),
-            BottomNavigationBarItem(icon: Icon(Icons.calendar_month_outlined, size: 20), activeIcon: Icon(Icons.calendar_month, size: 20), label: "Calendar"),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline, size: 20), activeIcon: Icon(Icons.person, size: 20), label: "Profile"),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.space_dashboard_outlined, size: 20),
+              activeIcon: Icon(Icons.space_dashboard, size: 20),
+              label: "Workspace",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart_outlined, size: 20),
+              activeIcon: Icon(Icons.bar_chart, size: 20),
+              label: "Dashboard",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.gavel_outlined, size: 20),
+              activeIcon: Icon(Icons.gavel, size: 20),
+              label: "Leads",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people_alt_outlined, size: 20),
+              activeIcon: Icon(Icons.people_alt, size: 20),
+              label: "Clients",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_month_outlined, size: 20),
+              activeIcon: Icon(Icons.calendar_month, size: 20),
+              label: "Calendar",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline, size: 20),
+              activeIcon: Icon(Icons.person, size: 20),
+              label: "Profile",
+            ),
           ],
         ),
       ),
@@ -283,9 +389,22 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   ) {
     switch (_currentIndex) {
       case 0:
-        return _buildWorkspaceTab(lawyerName, userId, casesState, appointmentsState, lawyerState);
+        return _buildWorkspaceTab(
+          lawyerName,
+          userId,
+          casesState,
+          appointmentsState,
+          lawyerState,
+        );
       case 1:
-        return _buildHomeTab(lawyerName, userId, casesState, appointmentsState, chatsState, lawyerState);
+        return _buildHomeTab(
+          lawyerName,
+          userId,
+          casesState,
+          appointmentsState,
+          chatsState,
+          lawyerState,
+        );
       case 2:
         return const LawyerLeadsScreen();
       case 3:
@@ -295,7 +414,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
       case 5:
         return const LawyerProfileScreen();
       default:
-        return _buildWorkspaceTab(lawyerName, userId, casesState, appointmentsState, lawyerState);
+        return _buildWorkspaceTab(
+          lawyerName,
+          userId,
+          casesState,
+          appointmentsState,
+          lawyerState,
+        );
     }
   }
 
@@ -309,7 +434,6 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     AsyncValue<List<AppointmentModel>> appointmentsState,
     AsyncValue<LawyerModel> lawyerState,
   ) {
-
     final welcomeSection = lawyerState.when(
       data: (lawyer) {
         final name = lawyer.fullName;
@@ -326,15 +450,15 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
               "Manage client cases, review legal inquiries, respond to consultation requests, and organize your schedule—all from one secure workspace.",
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    height: 1.5,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(height: 1.5),
             ),
           ],
         );
@@ -369,15 +493,15 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
               "Manage client cases, review legal inquiries, respond to consultation requests, and organize your schedule—all from one secure workspace.",
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    height: 1.5,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(height: 1.5),
             ),
           ],
         );
@@ -409,7 +533,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           // Workspace Tools Title
           Text(
             "Workspace Tools",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onBackground),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Theme.of(context).colorScheme.onBackground,
+            ),
           ),
           const SizedBox(height: 12),
 
@@ -422,104 +550,117 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             mainAxisSpacing: 12,
             childAspectRatio: 1.4,
             children: [
-              ref.watch(lawyerWorkspaceLeadsProvider).when(
-                data: (leads) => _buildWorkspaceToolCard(
-                  icon: Icons.gavel,
-                  title: "${leads.length} New Leads",
-                  subtitle: "Waiting for your response",
-                  badgeCount: leads.isEmpty ? null : "${leads.length}",
-                  onTap: () => setState(() => _currentIndex = 2),
-                ),
-                loading: () => _buildWorkspaceToolCard(
-                  icon: Icons.gavel,
-                  title: "Loading Leads...",
-                  subtitle: "Waiting for your response",
-                  badgeCount: "...",
-                  onTap: () => setState(() => _currentIndex = 2),
-                ),
-                error: (e, s) => _buildWorkspaceToolCard(
-                  icon: Icons.gavel,
-                  title: "0 New Leads",
-                  subtitle: "Waiting for your response",
-                  onTap: () => setState(() => _currentIndex = 2),
-                ),
-              ),
-              ref.watch(lawyerWorkspaceClientsProvider).when(
-                data: (clientsMap) {
-                  final accepted = clientsMap['accepted'] as List? ?? [];
-                  final inProgress = clientsMap['inProgress'] as List? ?? [];
-                  final totalActive = accepted.length + inProgress.length;
-                  return _buildWorkspaceToolCard(
-                    icon: Icons.people_alt,
-                    title: "$totalActive Clients",
-                    subtitle: "Accepted, In Progress, Closed",
-                    badgeCount: totalActive == 0 ? null : "$totalActive",
-                    onTap: () => setState(() => _currentIndex = 3),
-                  );
-                },
-                loading: () => _buildWorkspaceToolCard(
-                  icon: Icons.people_alt,
-                  title: "Loading Clients...",
-                  subtitle: "Accepted, In Progress, Closed",
-                  badgeCount: "...",
-                  onTap: () => setState(() => _currentIndex = 3),
-                ),
-                error: (e, s) => _buildWorkspaceToolCard(
-                  icon: Icons.people_alt,
-                  title: "0 Clients",
-                  subtitle: "Accepted, In Progress, Closed",
-                  onTap: () => setState(() => _currentIndex = 3),
-                ),
-              ),
-              ref.watch(lawyerWorkspaceScheduleProvider).when(
-                data: (events) {
-                  final count = events.length;
-                  return _buildWorkspaceToolCard(
-                    icon: Icons.calendar_month,
-                    title: "Today's Schedule",
-                    subtitle: count > 0 ? "$count Events Today" : "No Events Today",
-                    badgeCount: count == 0 ? null : "$count",
-                    onTap: () => setState(() => _currentIndex = 4),
-                  );
-                },
-                loading: () => _buildWorkspaceToolCard(
-                  icon: Icons.calendar_month,
-                  title: "Today's Schedule",
-                  subtitle: "Loading events...",
-                  badgeCount: "...",
-                  onTap: () => setState(() => _currentIndex = 4),
-                ),
-                error: (e, s) => _buildWorkspaceToolCard(
-                  icon: Icons.calendar_month,
-                  title: "Today's Schedule",
-                  subtitle: "No Events Today",
-                  onTap: () => setState(() => _currentIndex = 4),
-                ),
-              ),
-              ref.watch(unreadMessagesCountProvider).when(
-                data: (unreadCount) {
-                  return _buildWorkspaceToolCard(
-                    icon: Icons.chat,
-                    title: "Messages",
-                    subtitle: unreadCount > 0 ? "$unreadCount Unread Chats" : "You're all caught up",
-                    badgeCount: unreadCount == 0 ? null : "$unreadCount",
-                    onTap: () => context.push(RouteNames.lawyerMessages),
-                  );
-                },
-                loading: () => _buildWorkspaceToolCard(
-                  icon: Icons.chat,
-                  title: "Messages",
-                  subtitle: "Checking messages...",
-                  badgeCount: "...",
-                  onTap: () => context.push(RouteNames.lawyerMessages),
-                ),
-                error: (e, s) => _buildWorkspaceToolCard(
-                  icon: Icons.chat,
-                  title: "Messages",
-                  subtitle: "You're all caught up",
-                  onTap: () => context.push(RouteNames.lawyerMessages),
-                ),
-              ),
+              ref
+                  .watch(lawyerWorkspaceLeadsProvider)
+                  .when(
+                    data: (leads) => _buildWorkspaceToolCard(
+                      icon: Icons.gavel,
+                      title: "${leads.length} New Leads",
+                      subtitle: "Waiting for your response",
+                      badgeCount: leads.isEmpty ? null : "${leads.length}",
+                      onTap: () => setState(() => _currentIndex = 2),
+                    ),
+                    loading: () => _buildWorkspaceToolCard(
+                      icon: Icons.gavel,
+                      title: "Loading Leads...",
+                      subtitle: "Waiting for your response",
+                      badgeCount: "...",
+                      onTap: () => setState(() => _currentIndex = 2),
+                    ),
+                    error: (e, s) => _buildWorkspaceToolCard(
+                      icon: Icons.gavel,
+                      title: "0 New Leads",
+                      subtitle: "Waiting for your response",
+                      onTap: () => setState(() => _currentIndex = 2),
+                    ),
+                  ),
+              ref
+                  .watch(lawyerWorkspaceClientsProvider)
+                  .when(
+                    data: (clientsMap) {
+                      final accepted = clientsMap['accepted'] as List? ?? [];
+                      final inProgress =
+                          clientsMap['inProgress'] as List? ?? [];
+                      final totalActive = accepted.length + inProgress.length;
+                      return _buildWorkspaceToolCard(
+                        icon: Icons.people_alt,
+                        title: "$totalActive Clients",
+                        subtitle: "Accepted, In Progress, Closed",
+                        badgeCount: totalActive == 0 ? null : "$totalActive",
+                        onTap: () => setState(() => _currentIndex = 3),
+                      );
+                    },
+                    loading: () => _buildWorkspaceToolCard(
+                      icon: Icons.people_alt,
+                      title: "Loading Clients...",
+                      subtitle: "Accepted, In Progress, Closed",
+                      badgeCount: "...",
+                      onTap: () => setState(() => _currentIndex = 3),
+                    ),
+                    error: (e, s) => _buildWorkspaceToolCard(
+                      icon: Icons.people_alt,
+                      title: "0 Clients",
+                      subtitle: "Accepted, In Progress, Closed",
+                      onTap: () => setState(() => _currentIndex = 3),
+                    ),
+                  ),
+              ref
+                  .watch(lawyerWorkspaceScheduleProvider)
+                  .when(
+                    data: (events) {
+                      final count = events.length;
+                      return _buildWorkspaceToolCard(
+                        icon: Icons.calendar_month,
+                        title: "Today's Schedule",
+                        subtitle: count > 0
+                            ? "$count Events Today"
+                            : "No Events Today",
+                        badgeCount: count == 0 ? null : "$count",
+                        onTap: () => _showTodaysScheduleBottomSheet(context),
+                      );
+                    },
+                    loading: () => _buildWorkspaceToolCard(
+                      icon: Icons.calendar_month,
+                      title: "Today's Schedule",
+                      subtitle: "Loading events...",
+                      badgeCount: "...",
+                      onTap: () => _showTodaysScheduleBottomSheet(context),
+                    ),
+                    error: (e, s) => _buildWorkspaceToolCard(
+                      icon: Icons.calendar_month,
+                      title: "Today's Schedule",
+                      subtitle: "No Events Today",
+                      onTap: () => _showTodaysScheduleBottomSheet(context),
+                    ),
+                  ),
+              ref
+                  .watch(unreadMessagesCountProvider)
+                  .when(
+                    data: (unreadCount) {
+                      return _buildWorkspaceToolCard(
+                        icon: Icons.chat,
+                        title: "Messages",
+                        subtitle: unreadCount > 0
+                            ? "$unreadCount Unread Chats"
+                            : "You're all caught up",
+                        badgeCount: unreadCount == 0 ? null : "$unreadCount",
+                        onTap: () => context.push(RouteNames.lawyerMessages),
+                      );
+                    },
+                    loading: () => _buildWorkspaceToolCard(
+                      icon: Icons.chat,
+                      title: "Messages",
+                      subtitle: "Checking messages...",
+                      badgeCount: "...",
+                      onTap: () => context.push(RouteNames.lawyerMessages),
+                    ),
+                    error: (e, s) => _buildWorkspaceToolCard(
+                      icon: Icons.chat,
+                      title: "Messages",
+                      subtitle: "You're all caught up",
+                      onTap: () => context.push(RouteNames.lawyerMessages),
+                    ),
+                  ),
             ],
           ),
           const SizedBox(height: 24),
@@ -530,10 +671,23 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               setState(() {
                 _currentInsight = LawyerInsightsService.getRandomInsight(
                   currentTipTextToExclude: _currentInsight.tip,
-                  specialization: ref.read(lawyerDetailsProvider(userId)).valueOrNull?.specialization,
-                  experience: ref.read(lawyerDetailsProvider(userId)).valueOrNull?.experience,
-                  rating: ref.read(lawyerDetailsProvider(userId)).valueOrNull?.rating,
-                  activeCases: ref.read(casesProvider).valueOrNull?.where((c) => c.status == 'active').length,
+                  specialization: ref
+                      .read(lawyerDetailsProvider(userId))
+                      .valueOrNull
+                      ?.specialization,
+                  experience: ref
+                      .read(lawyerDetailsProvider(userId))
+                      .valueOrNull
+                      ?.experience,
+                  rating: ref
+                      .read(lawyerDetailsProvider(userId))
+                      .valueOrNull
+                      ?.rating,
+                  activeCases: ref
+                      .read(casesProvider)
+                      .valueOrNull
+                      ?.where((c) => c.status == 'active')
+                      .length,
                 );
               });
             },
@@ -547,26 +701,42 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.lightbulb_outline, color: AppColors.gold, size: 24),
+                  const Icon(
+                    Icons.lightbulb_outline,
+                    color: AppColors.gold,
+                    size: 24,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
-                      transitionBuilder: (Widget child, Animation<double> animation) {
-                        return FadeTransition(opacity: animation, child: child);
-                      },
+                      transitionBuilder:
+                          (Widget child, Animation<double> animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            );
+                          },
                       child: Column(
                         key: ValueKey<String>(_currentInsight.tip),
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             _currentInsight.category,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Colors.white,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             _currentInsight.tip,
-                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondaryDark, height: 1.4),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondaryDark,
+                              height: 1.4,
+                            ),
                           ),
                         ],
                       ),
@@ -597,7 +767,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Theme.of(context).colorScheme.outline),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 6, offset: const Offset(0, 2))
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         child: Column(
@@ -614,11 +788,21 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 ),
                 if (badgeCount != null && badgeCount != "0")
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: Colors.red.shade600, borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade600,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     child: Text(
                       badgeCount,
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
               ],
@@ -626,11 +810,24 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onBackground,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryDark)),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.textSecondaryDark,
+                  ),
+                ),
               ],
-            )
+            ),
           ],
         ),
       ),
@@ -667,10 +864,16 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   child: AppCircleAvatar(
                     radius: 28,
                     backgroundColor: AppColors.navyBlueLight,
-                    imageUrl: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
+                    imageUrl:
+                        authState.userPhotoUrl != null &&
+                            authState.userPhotoUrl!.isNotEmpty
                         ? Environment.getAttachmentUrl(authState.userPhotoUrl)
                         : null,
-                    fallback: const Icon(Icons.person, color: Colors.white, size: 28),
+                    fallback: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -682,20 +885,44 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         children: [
                           Text(
                             "Adv. $lawyerName",
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onBackground),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Theme.of(context).colorScheme.onBackground,
+                            ),
                           ),
                           const SizedBox(width: 4),
-                          const Icon(Icons.verified, color: AppColors.gold, size: 16),
+                          const Icon(
+                            Icons.verified,
+                            color: AppColors.gold,
+                            size: 16,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(lawyer.specialization, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                      Text(
+                        lawyer.specialization,
+                        style: const TextStyle(
+                          color: AppColors.textSecondaryDark,
+                          fontSize: 12,
+                        ),
+                      ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.star, color: AppColors.gold, size: 14),
+                          const Icon(
+                            Icons.star,
+                            color: AppColors.gold,
+                            size: 14,
+                          ),
                           const SizedBox(width: 2),
-                          Text("${lawyer.rating} (${lawyer.totalReviews} Reviews)", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
+                          Text(
+                            "${lawyer.rating} (${lawyer.totalReviews} Reviews)",
+                            style: const TextStyle(
+                              color: AppColors.textSecondaryDark,
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -714,20 +941,39 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   child: AppCircleAvatar(
                     radius: 28,
                     backgroundColor: AppColors.navyBlueLight,
-                    imageUrl: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
+                    imageUrl:
+                        authState.userPhotoUrl != null &&
+                            authState.userPhotoUrl!.isNotEmpty
                         ? Environment.getAttachmentUrl(authState.userPhotoUrl)
                         : null,
-                    fallback: const Icon(Icons.person, color: Colors.white, size: 28),
+                    fallback: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 14),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Adv. $lawyerName", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onBackground)),
-                    const Text("Legal Practitioner", style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                    Text(
+                      "Adv. $lawyerName",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Theme.of(context).colorScheme.onBackground,
+                      ),
+                    ),
+                    const Text(
+                      "Legal Practitioner",
+                      style: TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -746,7 +992,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.gold.withOpacity(0.4), width: 1),
+              border: Border.all(
+                color: AppColors.gold.withOpacity(0.4),
+                width: 1,
+              ),
             ),
             child: Row(
               children: [
@@ -756,7 +1005,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.star, color: AppColors.gold, size: 16),
+                          const Icon(
+                            Icons.star,
+                            color: AppColors.gold,
+                            size: 16,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             "Premium Plan",
@@ -786,11 +1039,16 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.gold),
                     foregroundColor: AppColors.gold,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     minimumSize: const Size(90, 36),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                   ),
-                  child: const Text("View Plan", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    "View Plan",
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
@@ -800,7 +1058,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           // Today's Overview
           Text(
             "Today's Overview",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).colorScheme.onBackground),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onBackground,
+            ),
           ),
           const SizedBox(height: 12),
 
@@ -818,35 +1080,62 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   subtitle: "Awaiting response",
                   provider: newCaseRequestsCountProvider,
                 ),
-                const Divider(height: 1, indent: 50, endIndent: 16, color: Colors.white10),
+                const Divider(
+                  height: 1,
+                  indent: 50,
+                  endIndent: 16,
+                  color: Colors.white10,
+                ),
                 _buildOverviewRow(
                   icon: Icons.chat_bubble_outline,
                   title: "Unread Messages",
                   subtitle: "From active clients",
                   provider: unreadMessagesCountProvider,
                 ),
-                const Divider(height: 1, indent: 50, endIndent: 16, color: Colors.white10),
+                const Divider(
+                  height: 1,
+                  indent: 50,
+                  endIndent: 16,
+                  color: Colors.white10,
+                ),
                 _buildOverviewRow(
                   icon: Icons.calendar_today_outlined,
                   title: "Today's Consultations",
                   subtitle: "Scheduled for today",
                   provider: todayConsultationsCountProvider,
+                  onTap: () => _showTodaysScheduleBottomSheet(context),
                 ),
-                const Divider(height: 1, indent: 50, endIndent: 16, color: Colors.white10),
+                const Divider(
+                  height: 1,
+                  indent: 50,
+                  endIndent: 16,
+                  color: Colors.white10,
+                ),
                 _buildOverviewRow(
                   icon: Icons.scale_outlined,
                   title: "Today's Hearings",
                   subtitle: "Court hearings schedule",
                   provider: todayHearingsCountProvider,
+                  onTap: () => _showTodaysScheduleBottomSheet(context),
                 ),
-                const Divider(height: 1, indent: 50, endIndent: 16, color: Colors.white10),
+                const Divider(
+                  height: 1,
+                  indent: 50,
+                  endIndent: 16,
+                  color: Colors.white10,
+                ),
                 _buildOverviewRow(
                   icon: Icons.description_outlined,
                   title: "Pending Document Reviews",
                   subtitle: "Docs waiting for review",
                   provider: pendingDocumentReviewsCountProvider,
                 ),
-                const Divider(height: 1, indent: 50, endIndent: 16, color: Colors.white10),
+                const Divider(
+                  height: 1,
+                  indent: 50,
+                  endIndent: 16,
+                  color: Colors.white10,
+                ),
                 _buildOverviewRow(
                   icon: Icons.notifications_none_outlined,
                   title: "Pending Client Responses",
@@ -866,6 +1155,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     required String title,
     required String subtitle,
     required ProviderBase<AsyncValue<int>> provider,
+    VoidCallback? onTap,
   }) {
     return Consumer(
       builder: (context, ref, child) {
@@ -873,7 +1163,11 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         return countState.when(
           data: (count) {
             return ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              onTap: onTap,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
               leading: CircleAvatar(
                 radius: 16,
                 backgroundColor: AppColors.gold.withOpacity(0.1),
@@ -881,11 +1175,18 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               ),
               title: Text(
                 title,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).colorScheme.onBackground),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onBackground,
+                ),
               ),
               subtitle: Text(
                 subtitle,
-                style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryDark),
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: AppColors.textSecondaryDark,
+                ),
               ),
               trailing: Text(
                 count.toString().padLeft(2, '0'),
@@ -898,31 +1199,69 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             );
           },
           loading: () => ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             leading: CircleAvatar(
               radius: 16,
               backgroundColor: AppColors.gold.withOpacity(0.05),
               child: const SizedBox(
                 width: 12,
                 height: 12,
-                child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.gold),
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  color: AppColors.gold,
+                ),
               ),
             ),
-            title: const Text("Loading...", style: TextStyle(fontSize: 13, color: AppColors.textSecondaryDark)),
-            subtitle: const Text("Fetching...", style: TextStyle(fontSize: 10, color: AppColors.textSecondaryDark)),
+            title: const Text(
+              "Loading...",
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondaryDark,
+              ),
+            ),
+            subtitle: const Text(
+              "Fetching...",
+              style: TextStyle(
+                fontSize: 10,
+                color: AppColors.textSecondaryDark,
+              ),
+            ),
           ),
           error: (err, stack) => ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             leading: CircleAvatar(
               radius: 16,
               backgroundColor: Colors.red.withOpacity(0.1),
-              child: const Icon(Icons.error_outline, color: Colors.red, size: 16),
+              child: const Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 16,
+              ),
             ),
-            title: Text(title, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
-            subtitle: const Text("Error loading", style: TextStyle(fontSize: 10, color: Colors.red)),
+            title: Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onBackground,
+              ),
+            ),
+            subtitle: const Text(
+              "Error loading",
+              style: TextStyle(fontSize: 10, color: Colors.red),
+            ),
             trailing: const Text(
               "00",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textSecondaryDark),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: AppColors.textSecondaryDark,
+              ),
             ),
           ),
         );
@@ -932,6 +1271,344 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
   // ═══════════════════════════════════════════════════════════
 
+  void _showTodaysScheduleBottomSheet(BuildContext context) {
+    final todayStr = DateFormat('EEEE, dd MMM yyyy').format(DateTime.now());
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF131211),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, child) {
+            final appointmentsAsync = ref.watch(appointmentsProvider);
+            final casesAsync = ref.watch(casesProvider);
+            final now = DateTime.now();
+
+            final todaysAppointments = appointmentsAsync.maybeWhen(
+              data: (list) => list.where((app) {
+                return app.date.year == now.year &&
+                    app.date.month == now.month &&
+                    app.date.day == now.day;
+              }).toList(),
+              orElse: () => <AppointmentModel>[],
+            );
+
+            final todaysHearings = casesAsync.maybeWhen(
+              data: (cases) => cases.where((c) {
+                if (c.nextHearing == null) return false;
+                return c.nextHearing!.year == now.year &&
+                    c.nextHearing!.month == now.month &&
+                    c.nextHearing!.day == now.day;
+              }).toList(),
+              orElse: () => <CaseModel>[],
+            );
+
+            return DraggableScrollableSheet(
+              initialChildSize: 0.65,
+              minChildSize: 0.4,
+              maxChildSize: 0.9,
+              expand: false,
+              builder: (context, scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Handle bar
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Title & Date Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Today's Schedule & Updates",
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  fontFamily: 'Outfit',
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                todayStr,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.gold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.grey,
+                              size: 20,
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      const Divider(color: Colors.white12, height: 1),
+                      const SizedBox(height: 16),
+
+                      // List of appointments & hearings
+                      Expanded(
+                        child:
+                            (todaysAppointments.isEmpty &&
+                                todaysHearings.isEmpty)
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.gold.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.event_available_outlined,
+                                        color: AppColors.gold,
+                                        size: 40,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    const Text(
+                                      "No Schedule Updates for Today",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    const Text(
+                                      "All your consultations and hearings are up to date.",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white54,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView(
+                                controller: scrollController,
+                                children: [
+                                  if (todaysAppointments.isNotEmpty) ...[
+                                    const Text(
+                                      "Today's Consultations",
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.gold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    ...todaysAppointments.map((app) {
+                                      return Container(
+                                        margin: const EdgeInsets.only(
+                                          bottom: 12,
+                                        ),
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF1E2436),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color: AppColors.gold.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 20,
+                                              backgroundColor: AppColors.gold
+                                                  .withValues(alpha: 0.15),
+                                              child: const Icon(
+                                                Icons.person,
+                                                color: AppColors.gold,
+                                                size: 20,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    app.clientName,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 14,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    "${app.mode} • ${app.timeSlot}",
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: Colors.white70,
+                                                    ),
+                                                  ),
+                                                  if (app.caseTitle !=
+                                                      null) ...[
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      "Case: ${app.caseTitle}",
+                                                      style: const TextStyle(
+                                                        fontSize: 10,
+                                                        color: AppColors.gold,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            ),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.green.withValues(
+                                                  alpha: 0.2,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                app.status.toUpperCase(),
+                                                style: const TextStyle(
+                                                  color: Colors.green,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                    const SizedBox(height: 14),
+                                  ],
+                                  if (todaysHearings.isNotEmpty) ...[
+                                    const Text(
+                                      "Today's Court Hearings",
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.gold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    ...todaysHearings.map((c) {
+                                      return Container(
+                                        margin: const EdgeInsets.only(
+                                          bottom: 12,
+                                        ),
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF1E2436),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.blue.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const CircleAvatar(
+                                              radius: 20,
+                                              backgroundColor:
+                                                  Colors.blueAccent,
+                                              child: Icon(
+                                                Icons.gavel,
+                                                color: Colors.white,
+                                                size: 18,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    c.title,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 14,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    c.preferredCourt ??
+                                                        c.location,
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: Colors.white70,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ],
+                                ],
+                              ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
 
   // ═══════════════════════════════════════════════════════════
   // 3. CLIENTS TAB (Figma Screen 7)
@@ -941,20 +1618,32 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     AsyncValue<List<AppointmentModel>> appointmentsState,
     String currentUserId,
   ) {
-
     return casesState.when(
       data: (cases) {
-        final activeCasesList = cases.where((c) => 
-          c.assignedLawyerId == currentUserId && c.status == 'Accepted'
-        ).toList();
+        final activeCasesList = cases
+            .where(
+              (c) =>
+                  c.assignedLawyerId == currentUserId && c.status == 'Accepted',
+            )
+            .toList();
 
-        final inProgressCasesList = cases.where((c) => 
-          c.assignedLawyerId == currentUserId && c.status == 'In Progress'
-        ).toList();
+        final inProgressCasesList = cases
+            .where(
+              (c) =>
+                  c.assignedLawyerId == currentUserId &&
+                  c.status == 'In Progress',
+            )
+            .toList();
 
-        final completedCasesList = cases.where((c) => 
-          c.assignedLawyerId == currentUserId && (c.status == 'Completed' || c.status == 'resolved' || c.status == 'Closed')
-        ).toList();
+        final completedCasesList = cases
+            .where(
+              (c) =>
+                  c.assignedLawyerId == currentUserId &&
+                  (c.status == 'Completed' ||
+                      c.status == 'resolved' ||
+                      c.status == 'Closed'),
+            )
+            .toList();
 
         final activeCount = activeCasesList.length;
         final inProgressCount = inProgressCasesList.length;
@@ -988,7 +1677,9 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text("Error: $err", style: const TextStyle(color: Colors.red))),
+      error: (err, stack) => Center(
+        child: Text("Error: $err", style: const TextStyle(color: Colors.red)),
+      ),
     );
   }
 
@@ -1005,17 +1696,28 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.people_outline, size: 48, color: AppColors.textSecondaryDark),
+                Icon(
+                  Icons.people_outline,
+                  size: 48,
+                  color: AppColors.textSecondaryDark,
+                ),
                 SizedBox(height: 12),
                 Text(
                   "No accepted clients yet.",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 6),
                 Text(
                   "Accept a case request from My Leads to start building your client list.",
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondaryDark),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondaryDark,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -1049,68 +1751,136 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         backgroundImage: clientCase.clientImage.isNotEmpty
                             ? NetworkImage(clientCase.clientImage)
                             : null,
-                        child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.white, size: 20) : null,
+                        child: clientCase.clientImage.isEmpty
+                            ? const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 20,
+                              )
+                            : null,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(clientCase.clientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            Text(
+                              clientCase.clientName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text("ID: ${clientCase.id.length > 8 ? clientCase.id.substring(clientCase.id.length - 8) : clientCase.id}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
+                            Text(
+                              "ID: ${clientCase.id.length > 8 ? clientCase.id.substring(clientCase.id.length - 8) : clientCase.id}",
+                              style: const TextStyle(
+                                color: AppColors.textSecondaryDark,
+                                fontSize: 11,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: Colors.blue.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                        child: const Text("Accepted", style: TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          "Accepted",
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                   const Divider(height: 24),
                   Row(
                     children: [
-                      const Icon(Icons.category_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const Icon(
+                        Icons.category_outlined,
+                        size: 14,
+                        color: AppColors.textSecondaryDark,
+                      ),
                       const SizedBox(width: 6),
-                      Text("Category: ${clientCase.category}", style: const TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.title_outlined, size: 14, color: AppColors.textSecondaryDark),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text("Title: ${clientCase.title}", style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
+                      Text(
+                        "Category: ${clientCase.category}",
+                        style: const TextStyle(fontSize: 12),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const Icon(
+                        Icons.title_outlined,
+                        size: 14,
+                        color: AppColors.textSecondaryDark,
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
-                        child: Text("Location: ${clientCase.location}", style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          "Title: ${clientCase.title}",
+                          style: const TextStyle(fontSize: 12),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.gavel_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 14,
+                        color: AppColors.textSecondaryDark,
+                      ),
                       const SizedBox(width: 6),
-                      Text("Court: ${clientCase.preferredCourt?.isNotEmpty == true ? clientCase.preferredCourt! : 'Any Court'}", style: const TextStyle(fontSize: 12)),
+                      Expanded(
+                        child: Text(
+                          "Location: ${clientCase.location}",
+                          style: const TextStyle(fontSize: 12),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const Icon(
+                        Icons.gavel_outlined,
+                        size: 14,
+                        color: AppColors.textSecondaryDark,
+                      ),
                       const SizedBox(width: 6),
-                      Text("Accepted: ${clientCase.acceptedAt != null ? DateFormat('dd MMM yyyy, hh:mm a').format(clientCase.acceptedAt!) : DateFormat('dd MMM yyyy, hh:mm a').format(clientCase.createdAt)}", style: const TextStyle(fontSize: 12)),
+                      Text(
+                        "Court: ${clientCase.preferredCourt?.isNotEmpty == true ? clientCase.preferredCourt! : 'Any Court'}",
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 14,
+                        color: AppColors.textSecondaryDark,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        "Accepted: ${clientCase.acceptedAt != null ? DateFormat('dd MMM yyyy, hh:mm a').format(clientCase.acceptedAt!) : DateFormat('dd MMM yyyy, hh:mm a').format(clientCase.createdAt)}",
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -1122,29 +1892,52 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 36),
                             side: const BorderSide(color: AppColors.gold),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          child: const Text("View Client", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
+                          child: const Text(
+                            "View Client",
+                            style: TextStyle(
+                              color: AppColors.gold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () async {
-                            final success = await ref.read(casesProvider.notifier).startCase(clientCase.id);
+                            final success = await ref
+                                .read(casesProvider.notifier)
+                                .startCase(clientCase.id);
                             if (success && context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Case work started!")),
+                                const SnackBar(
+                                  content: Text("Case work started!"),
+                                ),
                               );
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
                             foregroundColor: Colors.black,
                             minimumSize: const Size(0, 36),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          child: const Text("Start Case", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                          child: const Text(
+                            "Start Case",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -1163,17 +1956,28 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.work_history_outlined, size: 48, color: AppColors.textSecondaryDark),
+                Icon(
+                  Icons.work_history_outlined,
+                  size: 48,
+                  color: AppColors.textSecondaryDark,
+                ),
                 SizedBox(height: 12),
                 Text(
                   "No active cases in progress.",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 6),
                 Text(
                   "Start working on an accepted client case to see it here.",
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondaryDark),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondaryDark,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -1207,58 +2011,121 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         backgroundImage: clientCase.clientImage.isNotEmpty
                             ? NetworkImage(clientCase.clientImage)
                             : null,
-                        child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.white, size: 20) : null,
+                        child: clientCase.clientImage.isEmpty
+                            ? const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 20,
+                              )
+                            : null,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(clientCase.clientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            Text(
+                              clientCase.clientName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text("Case: ${clientCase.title}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12), overflow: TextOverflow.ellipsis),
+                            Text(
+                              "Case: ${clientCase.title}",
+                              style: const TextStyle(
+                                color: AppColors.textSecondaryDark,
+                                fontSize: 12,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ],
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: Colors.orange.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                        child: const Text("In Progress", style: TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          "In Progress",
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                   const Divider(height: 24),
                   Row(
                     children: [
-                      const Icon(Icons.category_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const Icon(
+                        Icons.category_outlined,
+                        size: 14,
+                        color: AppColors.textSecondaryDark,
+                      ),
                       const SizedBox(width: 6),
-                      Text("Category: ${clientCase.category}", style: const TextStyle(fontSize: 12)),
+                      Text(
+                        "Category: ${clientCase.category}",
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.update_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const Icon(
+                        Icons.update_outlined,
+                        size: 14,
+                        color: AppColors.textSecondaryDark,
+                      ),
                       const SizedBox(width: 6),
-                      Text("Last Updated: ${DateFormat('dd MMM yyyy, hh:mm a').format(clientCase.createdAt)}", style: const TextStyle(fontSize: 12)),
+                      Text(
+                        "Last Updated: ${DateFormat('dd MMM yyyy, hh:mm a').format(clientCase.createdAt)}",
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ],
                   ),
                   if (clientCase.nextHearing != null) ...[
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.gavel_outlined, size: 14, color: AppColors.textSecondaryDark),
+                        const Icon(
+                          Icons.gavel_outlined,
+                          size: 14,
+                          color: AppColors.textSecondaryDark,
+                        ),
                         const SizedBox(width: 6),
-                        Text("Next Hearing: ${DateFormat('dd MMM yyyy').format(clientCase.nextHearing!)}", style: const TextStyle(fontSize: 12, color: Colors.redAccent)),
+                        Text(
+                          "Next Hearing: ${DateFormat('dd MMM yyyy').format(clientCase.nextHearing!)}",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.redAccent,
+                          ),
+                        ),
                       ],
                     ),
                   ],
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.checklist_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const Icon(
+                        Icons.checklist_outlined,
+                        size: 14,
+                        color: AppColors.textSecondaryDark,
+                      ),
                       const SizedBox(width: 6),
-                      const Text("Tasks: 2 tasks remaining", style: TextStyle(fontSize: 12)),
+                      const Text(
+                        "Tasks: 2 tasks remaining",
+                        style: TextStyle(fontSize: 12),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -1270,27 +2137,51 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 36),
                             side: const BorderSide(color: AppColors.gold),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          child: const Text("View Case", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
+                          child: const Text(
+                            "View Case",
+                            style: TextStyle(
+                              color: AppColors.gold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () async {
-                            final chatNotifier = ref.read(chatsProvider.notifier);
-                            final chat = await chatNotifier.getOrCreateChat(clientCase.clientId);
+                            final chatNotifier = ref.read(
+                              chatsProvider.notifier,
+                            );
+                            final chat = await chatNotifier.getOrCreateChat(
+                              clientCase.clientId,
+                            );
                             if (chat != null && context.mounted) {
-                              context.push('/chat/${chat.id}/${Uri.encodeComponent(clientCase.clientName)}');
+                              context.push(
+                                '/chat/${chat.id}/${Uri.encodeComponent(clientCase.clientName)}',
+                              );
                             }
                           },
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 36),
                             side: const BorderSide(color: AppColors.gold),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          child: const Text("Chat", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
+                          child: const Text(
+                            "Chat",
+                            style: TextStyle(
+                              color: AppColors.gold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -1304,19 +2195,46 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           context: context,
                           builder: (context) => AlertDialog(
                             backgroundColor: Theme.of(context).cardColor,
-                            title: const Text("Complete Case?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                            content: const Text("Are you sure you want to mark this case as completed?", style: TextStyle(color: Colors.white70)),
+                            title: const Text(
+                              "Complete Case?",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            content: const Text(
+                              "Are you sure you want to mark this case as completed?",
+                              style: TextStyle(color: Colors.white70),
+                            ),
                             actions: [
-                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.grey))),
-                              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Complete", style: TextStyle(color: AppColors.gold))),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text(
+                                  "Cancel",
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text(
+                                  "Complete",
+                                  style: TextStyle(color: AppColors.gold),
+                                ),
+                              ),
                             ],
                           ),
                         );
                         if (confirmed == true) {
-                          final success = await ref.read(casesProvider.notifier).markCaseCompleted(clientCase.id);
+                          final success = await ref
+                              .read(casesProvider.notifier)
+                              .markCaseCompleted(clientCase.id);
                           if (success && context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Case marked completed successfully!")),
+                              const SnackBar(
+                                content: Text(
+                                  "Case marked completed successfully!",
+                                ),
+                              ),
                             );
                           }
                         }
@@ -1325,9 +2243,17 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
                         minimumSize: const Size(0, 36),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      child: const Text("Mark Case Completed", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                      child: const Text(
+                        "Mark Case Completed",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -1344,17 +2270,28 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.verified_outlined, size: 48, color: AppColors.textSecondaryDark),
+                Icon(
+                  Icons.verified_outlined,
+                  size: 48,
+                  color: AppColors.textSecondaryDark,
+                ),
                 SizedBox(height: 12),
                 Text(
                   "No completed cases yet.",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 6),
                 Text(
                   "Completed client cases will appear here for future reference.",
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondaryDark),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondaryDark,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -1388,48 +2325,101 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         backgroundImage: clientCase.clientImage.isNotEmpty
                             ? NetworkImage(clientCase.clientImage)
                             : null,
-                        child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: Colors.white, size: 20) : null,
+                        child: clientCase.clientImage.isEmpty
+                            ? const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 20,
+                              )
+                            : null,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(clientCase.clientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            Text(
+                              clientCase.clientName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text("Case: ${clientCase.title}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12), overflow: TextOverflow.ellipsis),
+                            Text(
+                              "Case: ${clientCase.title}",
+                              style: const TextStyle(
+                                color: AppColors.textSecondaryDark,
+                                fontSize: 12,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ],
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: Colors.green.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                        child: const Text("Completed", style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          "Completed",
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                   const Divider(height: 24),
                   Row(
                     children: [
-                      const Icon(Icons.category_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const Icon(
+                        Icons.category_outlined,
+                        size: 14,
+                        color: AppColors.textSecondaryDark,
+                      ),
                       const SizedBox(width: 6),
-                      Text("Category: ${clientCase.category}", style: const TextStyle(fontSize: 12)),
+                      Text(
+                        "Category: ${clientCase.category}",
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.gavel_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const Icon(
+                        Icons.gavel_outlined,
+                        size: 14,
+                        color: AppColors.textSecondaryDark,
+                      ),
                       const SizedBox(width: 6),
-                      Text("Court: ${clientCase.preferredCourt?.isNotEmpty == true ? clientCase.preferredCourt! : 'Any Court'}", style: const TextStyle(fontSize: 12)),
+                      Text(
+                        "Court: ${clientCase.preferredCourt?.isNotEmpty == true ? clientCase.preferredCourt! : 'Any Court'}",
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.textSecondaryDark),
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 14,
+                        color: AppColors.textSecondaryDark,
+                      ),
                       const SizedBox(width: 6),
-                      Text("Completed Date: ${clientCase.completedAt != null ? DateFormat('dd MMM yyyy').format(clientCase.completedAt!) : DateFormat('dd MMM yyyy').format(clientCase.createdAt)}", style: const TextStyle(fontSize: 12)),
+                      Text(
+                        "Completed Date: ${clientCase.completedAt != null ? DateFormat('dd MMM yyyy').format(clientCase.completedAt!) : DateFormat('dd MMM yyyy').format(clientCase.createdAt)}",
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -1441,9 +2431,18 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 36),
                             side: const BorderSide(color: AppColors.gold),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          child: const Text("View Case Summary", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
+                          child: const Text(
+                            "View Case Summary",
+                            style: TextStyle(
+                              color: AppColors.gold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -1453,9 +2452,18 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 36),
                             side: const BorderSide(color: AppColors.gold),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          child: const Text("View Documents", style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 11)),
+                          child: const Text(
+                            "View Documents",
+                            style: TextStyle(
+                              color: AppColors.gold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -1481,7 +2489,9 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 label,
                 style: TextStyle(
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? AppColors.gold : AppColors.textSecondaryDark,
+                  color: isSelected
+                      ? AppColors.gold
+                      : AppColors.textSecondaryDark,
                   fontSize: 13,
                 ),
               ),
@@ -1489,7 +2499,9 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.gold.withOpacity(0.15) : Theme.of(context).scaffoldBackgroundColor,
+                  color: isSelected
+                      ? AppColors.gold.withOpacity(0.15)
+                      : Theme.of(context).scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -1497,10 +2509,12 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: isSelected ? AppColors.gold : AppColors.textSecondaryDark,
+                    color: isSelected
+                        ? AppColors.gold
+                        : AppColors.textSecondaryDark,
                   ),
                 ),
-              )
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -1521,7 +2535,6 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     String userId,
     AsyncValue<List<AppointmentModel>> appointmentsState,
   ) {
-
     final year = _focusedCalendarMonth.year;
     final month = _focusedCalendarMonth.month;
     final daysInMonth = DateTime(year, month + 1, 0).day;
@@ -1580,7 +2593,8 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           final dayNum = index - firstWeekdayOffset + 1;
           final cellDate = DateTime(year, month, dayNum);
 
-          final isSelected = _selectedCalendarDate.day == dayNum &&
+          final isSelected =
+              _selectedCalendarDate.day == dayNum &&
               _selectedCalendarDate.month == month &&
               _selectedCalendarDate.year == year;
 
@@ -1608,14 +2622,21 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         color: isSelected ? AppColors.gold : Colors.transparent,
                         border: isSelected
                             ? Border.all(color: AppColors.gold, width: 2.5)
-                            : (isToday ? Border.all(color: AppColors.gold.withOpacity(0.5), width: 1.5) : null),
+                            : (isToday
+                                  ? Border.all(
+                                      color: AppColors.gold.withOpacity(0.5),
+                                      width: 1.5,
+                                    )
+                                  : null),
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         '$dayNum',
                         style: TextStyle(
                           fontSize: 14,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                           color: isSelected
                               ? Colors.black
                               : Theme.of(context).colorScheme.onBackground,
@@ -1683,8 +2704,15 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       },
                       behavior: HitTestBehavior.opaque,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Icon(Icons.chevron_left, color: Theme.of(context).colorScheme.onBackground, size: 24),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: Icon(
+                          Icons.chevron_left,
+                          color: Theme.of(context).colorScheme.onBackground,
+                          size: 24,
+                        ),
                       ),
                     ),
                     Text(
@@ -1707,8 +2735,15 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       },
                       behavior: HitTestBehavior.opaque,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onBackground, size: 24),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: Icon(
+                          Icons.chevron_right,
+                          color: Theme.of(context).colorScheme.onBackground,
+                          size: 24,
+                        ),
                       ),
                     ),
                   ],
@@ -1739,8 +2774,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             data: (appointments) {
               final dailyAppts = appointments.where((appt) {
                 if (appt.lawyerId != userId) return false;
-                final apptDate = DateTime(appt.date.year, appt.date.month, appt.date.day);
-                return (apptDate.isAtSameMomentAs(_selectedCalendarDate) || apptDate.isAfter(_selectedCalendarDate)) &&
+                final apptDate = DateTime(
+                  appt.date.year,
+                  appt.date.month,
+                  appt.date.day,
+                );
+                return (apptDate.isAtSameMomentAs(_selectedCalendarDate) ||
+                        apptDate.isAfter(_selectedCalendarDate)) &&
                     appt.status != 'cancelled';
               }).toList();
 
@@ -1758,12 +2798,17 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   decoration: BoxDecoration(
                     color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Theme.of(context).colorScheme.outline),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
                   ),
                   child: const Center(
                     child: Text(
                       'No upcoming appointments scheduled.',
-                      style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
+                      style: TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 );
@@ -1780,20 +2825,32 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       offset: const Offset(0, 4),
                     ),
                   ],
-                  border: Border.all(color: Theme.of(context).colorScheme.outline),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: dailyAppts.length,
-                  separatorBuilder: (context, index) => Divider(color: Theme.of(context).dividerColor, height: 20),
+                  separatorBuilder: (context, index) => Divider(
+                    color: Theme.of(context).dividerColor,
+                    height: 20,
+                  ),
                   itemBuilder: (context, index) {
                     final appt = dailyAppts[index];
 
                     String dateBadge = "";
                     final todayVal = DateTime(now.year, now.month, now.day);
-                    final apptDayVal = DateTime(appt.date.year, appt.date.month, appt.date.day);
+                    final apptDayVal = DateTime(
+                      appt.date.year,
+                      appt.date.month,
+                      appt.date.day,
+                    );
 
                     if (apptDayVal.isAtSameMomentAs(todayVal)) {
                       dateBadge = "Today";
@@ -1814,7 +2871,9 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
-                                color: Theme.of(context).colorScheme.onBackground,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground,
                               ),
                             ),
                           ),
@@ -1829,12 +2888,17 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
-                                    color: Theme.of(context).colorScheme.onBackground,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onBackground,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  appt.caseTitle ?? (appt.mode.toLowerCase().contains("video") ? "Video Consultation" : "Voice Consultation"),
+                                  appt.caseTitle ??
+                                      (appt.mode.toLowerCase().contains("video")
+                                          ? "Video Consultation"
+                                          : "Voice Consultation"),
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: AppColors.textSecondaryDark,
@@ -1871,7 +2935,9 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   void _showAddAppointmentDialog() {
     final currentUserId = ref.read(authProvider).userId ?? "";
     final cases = ref.read(casesProvider).value ?? [];
-    final activeCases = cases.where((c) => c.assignedLawyerId == currentUserId).toList();
+    final activeCases = cases
+        .where((c) => c.assignedLawyerId == currentUserId)
+        .toList();
 
     // Get unique active clients list
     final List<Map<String, String>> clients = [];
@@ -1879,10 +2945,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     for (final c in activeCases) {
       if (c.clientId.isNotEmpty && !seen.contains(c.clientId)) {
         seen.add(c.clientId);
-        clients.add({
-          "id": c.clientId,
-          "name": c.clientName,
-        });
+        clients.add({"id": c.clientId, "name": c.clientName});
       }
     }
 
@@ -1910,10 +2973,16 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Theme.of(context).cardColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               title: Text(
                 "Add Appointment",
-                style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground, fontSize: 18),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontSize: 18,
+                ),
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -1922,7 +2991,14 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   children: [
                     // Client selection
                     if (clients.isNotEmpty) ...[
-                      const Text("Select Client", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textSecondaryDark)),
+                      const Text(
+                        "Select Client",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: AppColors.textSecondaryDark,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
                         value: selectedClientId,
@@ -1932,18 +3008,34 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           return clients.map((c) {
                             return Text(
                               c['name']!,
-                              style: TextStyle(color: Theme.of(context).colorScheme.onBackground, fontSize: 13),
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground,
+                                fontSize: 13,
+                              ),
                             );
                           }).toList();
                         },
                         decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           border: OutlineInputBorder(),
                         ),
                         items: clients.map((c) {
                           return DropdownMenuItem<String>(
                             value: c['id'],
-                            child: Text(c['name']!, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
+                            child: Text(
+                              c['name']!,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground,
+                              ),
+                            ),
                           );
                         }).toList(),
                         onChanged: (val) {
@@ -1951,15 +3043,31 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         },
                       ),
                     ] else ...[
-                      const Text("Client Name", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textSecondaryDark)),
+                      const Text(
+                        "Client Name",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: AppColors.textSecondaryDark,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       TextFormField(
                         controller: nameTextController,
-                        style: TextStyle(color: Theme.of(context).colorScheme.onBackground, fontSize: 13),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onBackground,
+                          fontSize: 13,
+                        ),
                         decoration: InputDecoration(
                           hintText: "Enter client name",
-                          hintStyle: TextStyle(color: AppColors.textSecondaryDark.withOpacity(0.5), fontSize: 13),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          hintStyle: TextStyle(
+                            color: AppColors.textSecondaryDark.withOpacity(0.5),
+                            fontSize: 13,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           border: const OutlineInputBorder(),
                         ),
                       ),
@@ -1967,32 +3075,60 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     const SizedBox(height: 12),
 
                     // Date Selection
-                    const Text("Appointment Date", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textSecondaryDark)),
+                    const Text(
+                      "Appointment Date",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: AppColors.textSecondaryDark,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     InkWell(
                       onTap: () async {
                         final picked = await showDatePicker(
                           context: context,
                           initialDate: selectedDate,
-                          firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                          firstDate: DateTime.now().subtract(
+                            const Duration(days: 365),
+                          ),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 365),
+                          ),
                         );
                         if (picked != null) {
                           setDialogState(() => selectedDate = picked);
                         }
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Theme.of(context).colorScheme.outline),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
                           borderRadius: BorderRadius.circular(4),
                           color: Theme.of(context).scaffoldBackgroundColor,
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(DateFormat('dd MMM yyyy').format(selectedDate), style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
-                            const Icon(Icons.calendar_today, size: 16, color: AppColors.gold),
+                            Text(
+                              DateFormat('dd MMM yyyy').format(selectedDate),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground,
+                              ),
+                            ),
+                            const Icon(
+                              Icons.calendar_today,
+                              size: 16,
+                              color: AppColors.gold,
+                            ),
                           ],
                         ),
                       ),
@@ -2000,7 +3136,14 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     const SizedBox(height: 12),
 
                     // Time Slot Selection
-                    const Text("Select Time Slot", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textSecondaryDark)),
+                    const Text(
+                      "Select Time Slot",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: AppColors.textSecondaryDark,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       value: selectedTimeSlot,
@@ -2010,18 +3153,30 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         return timeSlots.map((String slot) {
                           return Text(
                             slot,
-                            style: TextStyle(color: Theme.of(context).colorScheme.onBackground, fontSize: 13),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onBackground,
+                              fontSize: 13,
+                            ),
                           );
                         }).toList();
                       },
                       decoration: const InputDecoration(
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         border: OutlineInputBorder(),
                       ),
                       items: timeSlots.map((slot) {
                         return DropdownMenuItem<String>(
                           value: slot,
-                          child: Text(slot, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
+                          child: Text(
+                            slot,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.onBackground,
+                            ),
+                          ),
                         );
                       }).toList(),
                       onChanged: (val) {
@@ -2031,7 +3186,14 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     const SizedBox(height: 12),
 
                     // Mode Selection
-                    const Text("Consultation Mode", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textSecondaryDark)),
+                    const Text(
+                      "Consultation Mode",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: AppColors.textSecondaryDark,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       value: selectedMode,
@@ -2041,17 +3203,41 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         return ["Chat", "In-Person"].map((String mode) {
                           return Text(
                             mode,
-                            style: TextStyle(color: Theme.of(context).colorScheme.onBackground, fontSize: 13),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onBackground,
+                              fontSize: 13,
+                            ),
                           );
                         }).toList();
                       },
                       decoration: const InputDecoration(
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         border: OutlineInputBorder(),
                       ),
                       items: [
-                        DropdownMenuItem(value: "Chat", child: Text("Chat", style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground))),
-                        DropdownMenuItem(value: "In-Person", child: Text("In-Person", style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onBackground))),
+                        DropdownMenuItem(
+                          value: "Chat",
+                          child: Text(
+                            "Chat",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.onBackground,
+                            ),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: "In-Person",
+                          child: Text(
+                            "In-Person",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.onBackground,
+                            ),
+                          ),
+                        ),
                       ],
                       onChanged: (val) {
                         setDialogState(() => selectedMode = val!);
@@ -2063,14 +3249,19 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondaryDark)),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(color: AppColors.textSecondaryDark),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: isSaving
                       ? null
                       : () async {
                           setDialogState(() => isSaving = true);
-                          final success = await ref.read(appointmentsProvider.notifier).bookAppointment(
+                          final success = await ref
+                              .read(appointmentsProvider.notifier)
+                              .bookAppointment(
                                 lawyerId: currentUserId,
                                 clientId: selectedClientId,
                                 date: selectedDate,
@@ -2084,11 +3275,19 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                               ref.invalidate(appointmentsProvider);
                               ref.invalidate(calendarAppointmentsProvider);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Appointment added successfully!")),
+                                const SnackBar(
+                                  content: Text(
+                                    "Appointment added successfully!",
+                                  ),
+                                ),
                               );
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Failed to save appointment. Please try again.")),
+                                const SnackBar(
+                                  content: Text(
+                                    "Failed to save appointment. Please try again.",
+                                  ),
+                                ),
                               );
                             }
                           }
@@ -2098,7 +3297,14 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     foregroundColor: Colors.black,
                   ),
                   child: isSaving
-                      ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.black,
+                          ),
+                        )
                       : const Text("Add"),
                 ),
               ],
@@ -2109,10 +3315,6 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     );
   }
 
-
-
-
-
   // ═══════════════════════════════════════════════════════════
   // 6. POPUPS & HELPER DIALOGS (Figma Dialogs)
   // ═══════════════════════════════════════════════════════════
@@ -2122,11 +3324,19 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Theme.of(context).cardColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Row(
             children: [
               Expanded(
-                child: Text(lead.title, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onBackground)),
+                child: Text(
+                  lead.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onBackground,
+                  ),
+                ),
               ),
               if (lead.clientVerified) ...[
                 const SizedBox(width: 8),
@@ -2141,72 +3351,176 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.category_outlined, size: 16, color: AppColors.gold),
+                    const Icon(
+                      Icons.category_outlined,
+                      size: 16,
+                      color: AppColors.gold,
+                    ),
                     const SizedBox(width: 8),
-                    Text(lead.category, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.gold)),
+                    Text(
+                      lead.category,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: AppColors.gold,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.tag, size: 16, color: AppColors.textSecondaryDark),
+                    const Icon(
+                      Icons.tag,
+                      size: 16,
+                      color: AppColors.textSecondaryDark,
+                    ),
                     const SizedBox(width: 8),
-                    Text("Case ID: ${lead.id}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                    Text(
+                      "Case ID: ${lead.id}",
+                      style: const TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 16, color: AppColors.textSecondaryDark),
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 16,
+                      color: AppColors.textSecondaryDark,
+                    ),
                     const SizedBox(width: 8),
-                    Text(lead.location, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                    Text(
+                      lead.location,
+                      style: const TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.gavel_outlined, size: 16, color: AppColors.textSecondaryDark),
+                    const Icon(
+                      Icons.gavel_outlined,
+                      size: 16,
+                      color: AppColors.textSecondaryDark,
+                    ),
                     const SizedBox(width: 8),
-                    Text("Preferred Court: ${lead.preferredCourt?.isNotEmpty == true ? lead.preferredCourt! : "Any Court"}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                    Text(
+                      "Preferred Court: ${lead.preferredCourt?.isNotEmpty == true ? lead.preferredCourt! : "Any Court"}",
+                      style: const TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.currency_rupee, size: 16, color: AppColors.textSecondaryDark),
+                    const Icon(
+                      Icons.currency_rupee,
+                      size: 16,
+                      color: AppColors.textSecondaryDark,
+                    ),
                     const SizedBox(width: 8),
-                    Text("Budget: ${lead.budgetRange.isNotEmpty ? lead.budgetRange : "N/A"}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                    Text(
+                      "Budget: ${lead.budgetRange.isNotEmpty ? lead.budgetRange : "N/A"}",
+                      style: const TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 12,
+                      ),
+                    ),
                     const SizedBox(width: 24),
-                    const Icon(Icons.access_time_outlined, size: 16, color: AppColors.textSecondaryDark),
+                    const Icon(
+                      Icons.access_time_outlined,
+                      size: 16,
+                      color: AppColors.textSecondaryDark,
+                    ),
                     const SizedBox(width: 8),
-                    Text("Urgency: ${lead.urgency}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                    Text(
+                      "Urgency: ${lead.urgency}",
+                      style: const TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.person_outline, size: 16, color: AppColors.textSecondaryDark),
+                    const Icon(
+                      Icons.person_outline,
+                      size: 16,
+                      color: AppColors.textSecondaryDark,
+                    ),
                     const SizedBox(width: 8),
-                    Text("Selected Lawyer: ${lead.selectedLawyerName ?? "Direct Selection"}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                    Text(
+                      "Selected Lawyer: ${lead.selectedLawyerName ?? "Direct Selection"}",
+                      style: const TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_month_outlined, size: 16, color: AppColors.textSecondaryDark),
+                    const Icon(
+                      Icons.calendar_month_outlined,
+                      size: 16,
+                      color: AppColors.textSecondaryDark,
+                    ),
                     const SizedBox(width: 8),
-                    Text("Submitted on: ${DateFormat('dd MMM yyyy, hh:mm a').format(lead.createdAt)}", style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                    Text(
+                      "Submitted on: ${DateFormat('dd MMM yyyy, hh:mm a').format(lead.createdAt)}",
+                      style: const TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                Text("Case Description:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
+                Text(
+                  "Case Description:",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onBackground,
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Text(lead.description, style: const TextStyle(fontSize: 13, height: 1.4)),
+                Text(
+                  lead.description,
+                  style: const TextStyle(fontSize: 13, height: 1.4),
+                ),
                 const SizedBox(height: 16),
-                Text("Acknowledgement Documents:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).colorScheme.onBackground)),
+                Text(
+                  "Acknowledgement Documents:",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onBackground,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 if (lead.documents.isEmpty)
-                  const Text("No documents uploaded.", style: TextStyle(fontSize: 12, color: AppColors.textSecondaryDark))
+                  const Text(
+                    "No documents uploaded.",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondaryDark,
+                    ),
+                  )
                 else
                   Column(
                     children: lead.documents.map((doc) {
@@ -2215,26 +3529,55 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
-                          side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
                         ),
                         child: ListTile(
                           dense: true,
-                          leading: const Icon(Icons.description, color: AppColors.gold, size: 20),
-                          title: Text(doc.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                          subtitle: Text(doc.size, style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryDark)),
+                          leading: const Icon(
+                            Icons.description,
+                            color: AppColors.gold,
+                            size: 20,
+                          ),
+                          title: Text(
+                            doc.name,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          subtitle: Text(
+                            doc.size,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.textSecondaryDark,
+                            ),
+                          ),
                           trailing: IconButton(
-                            icon: const Icon(Icons.open_in_new, color: AppColors.gold, size: 18),
+                            icon: const Icon(
+                              Icons.open_in_new,
+                              color: AppColors.gold,
+                              size: 18,
+                            ),
                             onPressed: () async {
                               final String urlStr = doc.url.startsWith("http")
                                   ? doc.url
                                   : "${Environment.baseUrl}${doc.url}";
                               final Uri uri = Uri.parse(urlStr);
                               if (await canLaunchUrl(uri)) {
-                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                await launchUrl(
+                                  uri,
+                                  mode: LaunchMode.externalApplication,
+                                );
                               } else {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text("Could not open document: $urlStr")),
+                                    SnackBar(
+                                      content: Text(
+                                        "Could not open document: $urlStr",
+                                      ),
+                                    ),
                                   );
                                 }
                               }
@@ -2250,9 +3593,14 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("Close", style: TextStyle(color: AppColors.textSecondaryDark)),
+              child: const Text(
+                "Close",
+                style: TextStyle(color: AppColors.textSecondaryDark),
+              ),
             ),
-            if (lead.status == 'Pending Lawyer Response' || lead.status == 'Awaiting Lawyer Acceptance' || lead.status == 'Submitted')
+            if (lead.status == 'Pending Lawyer Response' ||
+                lead.status == 'Awaiting Lawyer Acceptance' ||
+                lead.status == 'Submitted')
               ElevatedButton(
                 onPressed: () async {
                   Navigator.pop(context);
@@ -2260,25 +3608,46 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     context: context,
                     builder: (context) => AlertDialog(
                       backgroundColor: Theme.of(context).cardColor,
-                      title: const Text("Accept Case Request?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      content: const Text("Are you sure you want to accept this case request?", style: TextStyle(color: Colors.white70)),
+                      title: const Text(
+                        "Accept Case Request?",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      content: const Text(
+                        "Are you sure you want to accept this case request?",
+                        style: TextStyle(color: Colors.white70),
+                      ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context, false),
-                          child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+                          child: const Text(
+                            "Cancel",
+                            style: TextStyle(color: Colors.grey),
+                          ),
                         ),
                         TextButton(
                           onPressed: () => Navigator.pop(context, true),
-                          child: const Text("Accept", style: TextStyle(color: AppColors.gold)),
+                          child: const Text(
+                            "Accept",
+                            style: TextStyle(color: AppColors.gold),
+                          ),
                         ),
                       ],
                     ),
                   );
                   if (confirmed == true) {
-                    final success = await ref.read(casesProvider.notifier).acceptCaseRequest(lead.id);
+                    final success = await ref
+                        .read(casesProvider.notifier)
+                        .acceptCaseRequest(lead.id);
                     if (success && context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Case request accepted! Case is now Accepted.")),
+                        const SnackBar(
+                          content: Text(
+                            "Case request accepted! Case is now Accepted.",
+                          ),
+                        ),
                       );
                     }
                   }
@@ -2288,16 +3657,12 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   foregroundColor: Colors.black,
                 ),
                 child: const Text("Accept Case"),
-              )
+              ),
           ],
         );
       },
     );
   }
-
-
-
-
 }
 
 class _ShimmerPulse extends StatefulWidget {
@@ -2315,7 +3680,8 @@ class _ShimmerPulse extends StatefulWidget {
   State<_ShimmerPulse> createState() => _ShimmerPulseState();
 }
 
-class _ShimmerPulseState extends State<_ShimmerPulse> with SingleTickerProviderStateMixin {
+class _ShimmerPulseState extends State<_ShimmerPulse>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -2381,92 +3747,112 @@ class LawyerInsightsService {
     // Today's Practice Tip
     LawyerInsight(
       category: "💡 Today's Practice Tip",
-      tip: "Respond to new client requests within 10 minutes to significantly improve your chances of being selected.",
+      tip:
+          "Respond to new client requests within 10 minutes to significantly improve your chances of being selected.",
     ),
     LawyerInsight(
       category: "💡 Today's Practice Tip",
-      tip: "Start your day by reviewing updates on active cases to stay ahead of client expectations.",
+      tip:
+          "Start your day by reviewing updates on active cases to stay ahead of client expectations.",
     ),
     // Business Growth Tip
     LawyerInsight(
       category: "📈 Business Growth Tip",
-      tip: "A complete lawyer profile with experience, languages, and certifications receives more client inquiries.",
+      tip:
+          "A complete lawyer profile with experience, languages, and certifications receives more client inquiries.",
     ),
     LawyerInsight(
       category: "📈 Business Growth Tip",
-      tip: "Requesting feedback from satisfied clients helps improve your professional rating and visibility.",
+      tip:
+          "Requesting feedback from satisfied clients helps improve your professional rating and visibility.",
     ),
     // Legal Practice Tip
     LawyerInsight(
       category: "⚖️ Legal Practice Tip",
-      tip: "Review uploaded documents before the first consultation to provide more accurate legal advice.",
+      tip:
+          "Review uploaded documents before the first consultation to provide more accurate legal advice.",
     ),
     LawyerInsight(
       category: "⚖️ Legal Practice Tip",
-      tip: "Ensure all regulatory changes are factored into your ongoing active case briefs.",
+      tip:
+          "Ensure all regulatory changes are factored into your ongoing active case briefs.",
     ),
     // Client Success Tip
     LawyerInsight(
       category: "⭐ Client Success Tip",
-      tip: "Keep clients informed about every milestone to build trust and increase repeat consultations.",
+      tip:
+          "Keep clients informed about every milestone to build trust and increase repeat consultations.",
     ),
     LawyerInsight(
       category: "⭐ Client Success Tip",
-      tip: "A clear, upfront fee breakdown prevents billing disputes and keeps client trust high.",
+      tip:
+          "A clear, upfront fee breakdown prevents billing disputes and keeps client trust high.",
     ),
     // Productivity Tip
     LawyerInsight(
       category: "🚀 Productivity Tip",
-      tip: "Schedule tomorrow's consultations before ending your workday to reduce missed appointments.",
+      tip:
+          "Schedule tomorrow's consultations before ending your workday to reduce missed appointments.",
     ),
     LawyerInsight(
       category: "🚀 Productivity Tip",
-      tip: "Allocate a dedicated hour each morning for reviewing active proposals and client bids.",
+      tip:
+          "Allocate a dedicated hour each morning for reviewing active proposals and client bids.",
     ),
     // Case Management Tip
     LawyerInsight(
       category: "📂 Case Management Tip",
-      tip: "Update case progress immediately after every consultation for better organization.",
+      tip:
+          "Update case progress immediately after every consultation for better organization.",
     ),
     LawyerInsight(
       category: "📂 Case Management Tip",
-      tip: "Organize all case documents under client folders as soon as they are received.",
+      tip:
+          "Organize all case documents under client folders as soon as they are received.",
     ),
     // Client Communication Tip
     LawyerInsight(
       category: "🤝 Client Communication Tip",
-      tip: "Simple explanations create stronger client confidence than complex legal terminology.",
+      tip:
+          "Simple explanations create stronger client confidence than complex legal terminology.",
     ),
     LawyerInsight(
       category: "🤝 Client Communication Tip",
-      tip: "Confirm key discussion points in writing after every phone call or meeting.",
+      tip:
+          "Confirm key discussion points in writing after every phone call or meeting.",
     ),
     // Compliance Reminder
     LawyerInsight(
       category: "🔒 Compliance Reminder",
-      tip: "Ensure all client documents remain confidential and securely stored.",
+      tip:
+          "Ensure all client documents remain confidential and securely stored.",
     ),
     LawyerInsight(
       category: "🔒 Compliance Reminder",
-      tip: "Double-check conflict of interest disclosures before accepting any new case bid.",
+      tip:
+          "Double-check conflict of interest disclosures before accepting any new case bid.",
     ),
     // Court Preparation Tip
     LawyerInsight(
       category: "📅 Court Preparation Tip",
-      tip: "Prepare hearing notes and supporting documents one day before court.",
+      tip:
+          "Prepare hearing notes and supporting documents one day before court.",
     ),
     LawyerInsight(
       category: "📅 Court Preparation Tip",
-      tip: "Perform a final case law search to ensure your arguments align with the latest precedents.",
+      tip:
+          "Perform a final case law search to ensure your arguments align with the latest precedents.",
     ),
     // Practice Management Tip
     LawyerInsight(
       category: "💼 Practice Management Tip",
-      tip: "Regularly review pending consultations and proposals to maximize monthly revenue.",
+      tip:
+          "Regularly review pending consultations and proposals to maximize monthly revenue.",
     ),
     LawyerInsight(
       category: "💼 Practice Management Tip",
-      tip: "Keep your working hours updated so clients can book convenient slots.",
+      tip:
+          "Keep your working hours updated so clients can book convenient slots.",
     ),
   ];
 
@@ -2506,5 +3892,3 @@ class LawyerInsightsService {
     return filtered[rand.nextInt(filtered.length)];
   }
 }
-
-

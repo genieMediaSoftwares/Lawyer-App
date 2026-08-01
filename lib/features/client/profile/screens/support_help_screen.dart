@@ -45,33 +45,58 @@ class SupportHelpScreen extends StatelessWidget {
                 children: [
                   _buildMenuRow(context, Icons.help_outline, "Help Center", () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => const HelpCenterScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const HelpCenterScreen(),
+                      ),
                     );
                   }),
                   const Divider(color: Color(0xFF2B2B2B), height: 1),
-                  _buildMenuRow(context, Icons.support_agent, "Contact Support", () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => const ContactSupportScreen()),
-                    );
-                  }),
+                  _buildMenuRow(
+                    context,
+                    Icons.support_agent,
+                    "Contact Support",
+                    () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const ContactSupportScreen(),
+                        ),
+                      );
+                    },
+                  ),
                   const Divider(color: Color(0xFF2B2B2B), height: 1),
                   _buildMenuRow(context, Icons.info_outline, "About Us", () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => const AboutUsScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const AboutUsScreen(),
+                      ),
                     );
                   }),
                   const Divider(color: Color(0xFF2B2B2B), height: 1),
-                  _buildMenuRow(context, Icons.privacy_tip_outlined, "Privacy Policy", () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
-                    );
-                  }),
+                  _buildMenuRow(
+                    context,
+                    Icons.privacy_tip_outlined,
+                    "Privacy Policy",
+                    () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const PrivacyPolicyScreen(),
+                        ),
+                      );
+                    },
+                  ),
                   const Divider(color: Color(0xFF2B2B2B), height: 1),
-                  _buildMenuRow(context, Icons.gavel_outlined, "Terms & Conditions", () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => const TermsConditionsScreen()),
-                    );
-                  }),
+                  _buildMenuRow(
+                    context,
+                    Icons.gavel_outlined,
+                    "Terms & Conditions",
+                    () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const TermsConditionsScreen(),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -81,16 +106,29 @@ class SupportHelpScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuRow(BuildContext context, IconData icon, String title, VoidCallback onTap) {
+  Widget _buildMenuRow(
+    BuildContext context,
+    IconData icon,
+    String title,
+    VoidCallback onTap,
+  ) {
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       leading: Icon(icon, color: const Color(0xFFD4AF37), size: 22),
       title: Text(
         title,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14.5),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 14.5,
+        ),
       ),
-      trailing: const Icon(Icons.chevron_right, color: Color(0xFFD4AF37), size: 18),
+      trailing: const Icon(
+        Icons.chevron_right,
+        color: Color(0xFFD4AF37),
+        size: 18,
+      ),
     );
   }
 }

@@ -8,7 +8,6 @@ import '../../../../models/client_profile_model.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
 import 'profile_screen.dart'; // To access EditProfileBottomSheet
 
-
 class MyProfileScreen extends ConsumerStatefulWidget {
   const MyProfileScreen({super.key});
 
@@ -22,21 +21,30 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
   Future<void> _pickAndUploadImage() async {
     try {
       final picker = ImagePicker();
-      final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+      final image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+      );
       if (image == null) return;
 
       final bytes = await image.readAsBytes();
-      
+
       setState(() => _isSavingImage = true);
 
-      final success = await ref.read(profileProvider.notifier).updateProfileImage(bytes, image.name);
+      final success = await ref
+          .read(profileProvider.notifier)
+          .updateProfileImage(bytes, image.name);
 
       setState(() => _isSavingImage = false);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(success ? "Profile image updated successfully!" : "Failed to upload profile image."),
+            content: Text(
+              success
+                  ? "Profile image updated successfully!"
+                  : "Failed to upload profile image.",
+            ),
             backgroundColor: success ? AppColors.success : AppColors.error,
           ),
         );
@@ -44,9 +52,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
     } catch (e) {
       setState(() => _isSavingImage = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error selecting image: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error selecting image: $e")));
       }
     }
   }
@@ -100,16 +108,23 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                         Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFD4AF37), width: 2),
+                            border: Border.all(
+                              color: const Color(0xFFD4AF37),
+                              width: 2,
+                            ),
                           ),
                           child: AppCircleAvatar(
                             radius: 56,
                             backgroundColor: const Color(0xFF2B2B2B),
                             imageUrl: profile.profileImage.isNotEmpty
-                                ? Environment.getAttachmentUrl(profile.profileImage)
+                                ? Environment.getAttachmentUrl(
+                                    profile.profileImage,
+                                  )
                                 : null,
                             fallback: Text(
-                              profile.fullName.isNotEmpty ? profile.fullName[0].toUpperCase() : 'C',
+                              profile.fullName.isNotEmpty
+                                  ? profile.fullName[0].toUpperCase()
+                                  : 'C',
                               style: const TextStyle(
                                 color: Color(0xFFD4AF37),
                                 fontSize: 36,
@@ -122,7 +137,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                           const Positioned.fill(
                             child: Center(
                               child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4AF37)),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFFD4AF37),
+                                ),
                               ),
                             ),
                           ),
@@ -134,7 +151,11 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                             child: const CircleAvatar(
                               radius: 18,
                               backgroundColor: Color(0xFFD4AF37),
-                              child: Icon(Icons.camera_alt, size: 16, color: Colors.black),
+                              child: Icon(
+                                Icons.camera_alt,
+                                size: 16,
+                                color: Colors.black,
+                              ),
                             ),
                           ),
                         ),
@@ -149,21 +170,38 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFF1B1B1B),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF2B2B2B), width: 1),
+                      border: Border.all(
+                        color: const Color(0xFF2B2B2B),
+                        width: 1,
+                      ),
                     ),
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
-                        _buildDetailRow(Icons.person_outline, "Full Name", profile.fullName),
+                        _buildDetailRow(
+                          Icons.person_outline,
+                          "Full Name",
+                          profile.fullName,
+                        ),
                         const Divider(color: Color(0xFF2B2B2B), height: 28),
-                        _buildDetailRow(Icons.email_outlined, "Email Address", profile.email),
+                        _buildDetailRow(
+                          Icons.email_outlined,
+                          "Email Address",
+                          profile.email,
+                        ),
                         const Divider(color: Color(0xFF2B2B2B), height: 28),
-                        _buildDetailRow(Icons.phone_outlined, "Phone Number", profile.mobile),
+                        _buildDetailRow(
+                          Icons.phone_outlined,
+                          "Phone Number",
+                          profile.mobile,
+                        ),
                         const Divider(color: Color(0xFF2B2B2B), height: 28),
                         _buildDetailRow(
                           Icons.location_on_outlined,
                           "Location",
-                          profile.location.isNotEmpty ? profile.location : "Location not set",
+                          profile.location.isNotEmpty
+                              ? profile.location
+                              : "Location not set",
                         ),
                       ],
                     ),
@@ -185,7 +223,10 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                       ),
                       child: const Text(
                         "Edit Profile Details",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),

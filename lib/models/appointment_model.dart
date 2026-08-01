@@ -30,14 +30,24 @@ class AppointmentModel {
   });
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
-    final clientData = json['client'] is Map<String, dynamic> ? json['client'] : {};
-    final cId = json['client'] is String ? json['client'] : (clientData['_id'] ?? '');
+    final clientData = json['client'] is Map<String, dynamic>
+        ? json['client']
+        : {};
+    final cId = json['client'] is String
+        ? json['client']
+        : (clientData['_id'] ?? '');
 
-    final lawyerData = json['lawyer'] is Map<String, dynamic> ? json['lawyer'] : {};
-    final lId = json['lawyer'] is String ? json['lawyer'] : (lawyerData['_id'] ?? '');
+    final lawyerData = json['lawyer'] is Map<String, dynamic>
+        ? json['lawyer']
+        : {};
+    final lId = json['lawyer'] is String
+        ? json['lawyer']
+        : (lawyerData['_id'] ?? '');
 
     final caseData = json['case'] is Map<String, dynamic> ? json['case'] : {};
-    final csId = json['case'] is String ? json['case'] : (caseData['_id'] ?? '');
+    final csId = json['case'] is String
+        ? json['case']
+        : (caseData['_id'] ?? '');
 
     return AppointmentModel(
       id: json['_id'] ?? '',
@@ -49,7 +59,9 @@ class AppointmentModel {
       lawyerImage: lawyerData['profileImage'] ?? '',
       caseId: csId.isNotEmpty ? csId : null,
       caseTitle: caseData['title'],
-      date: json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(),
+      date: json['date'] != null
+          ? DateTime.parse(json['date'])
+          : DateTime.now(),
       timeSlot: json['timeSlot'] ?? '',
       mode: json['mode'] ?? 'Chat',
       status: json['status'] ?? 'pending',

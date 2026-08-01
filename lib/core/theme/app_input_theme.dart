@@ -29,12 +29,8 @@ abstract final class AppInputTheme {
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: AppColors.error, width: 2),
       ),
-      labelStyle: const TextStyle(
-        color: AppColors.primaryText,
-      ),
-      hintStyle: const TextStyle(
-        color: AppColors.mutedText,
-      ),
+      labelStyle: const TextStyle(color: AppColors.primaryText),
+      hintStyle: const TextStyle(color: AppColors.mutedText),
     );
   }
 }

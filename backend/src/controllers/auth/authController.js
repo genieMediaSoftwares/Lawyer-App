@@ -91,8 +91,15 @@ class AuthController {
       if (!email) {
         return ApiResponse.error(res, "Email is required.", 400);
       }
-      const result = await authService.forgotPassword(email);
-      return ApiResponse.success(res, "Password reset code generated.", result);
+      await authService.forgotPassword(email);
+
+      // Deliberately neutral, and carries no payload: the reset code goes out
+      // by email only. Returning it here (or varying the response for unknown
+      // addresses) is what made account takeover trivial.
+      return ApiResponse.success(
+        res,
+        "If that email is registered, a reset code has been sent."
+      );
     } catch (error) {
       next(error);
     }
@@ -140,6 +147,18 @@ class AuthController {
         return ApiResponse.error(res, "Lawyer profile not found.", 404);
       }
       return ApiResponse.success(res, "Bar certificate uploaded successfully.", lawyer);
+    } catch (error) {
+      next(error);
+    }
+  }
+  async deleteAccount(req, res, next) {
+    try {
+      const { password } = req.body;
+      if (!password) {
+        return ApiResponse.error(res, "Password is required to delete account.", 400);
+      }
+      await authService.deleteAccount(req.user._id, password);
+      return ApiResponse.success(res, "Account deleted successfully.");
     } catch (error) {
       next(error);
     }

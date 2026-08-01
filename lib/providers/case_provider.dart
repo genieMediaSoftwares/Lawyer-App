@@ -2,17 +2,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../core/config/env.dart';
 import '../core/network/dio_client.dart';
+import '../core/storage/token_storage.dart';
+
 import '../models/case_model.dart';
 import '../models/document_model.dart';
 import 'auth_provider.dart';
 
-
-final casesProvider = StateNotifierProvider<CaseNotifier, AsyncValue<List<CaseModel>>>((ref) {
-  final authState = ref.watch(authProvider);
-  final notifier = CaseNotifier(ref);
-  notifier.syncSocket(authState.userId);
-  return notifier;
-});
+final casesProvider =
+    StateNotifierProvider<CaseNotifier, AsyncValue<List<CaseModel>>>((ref) {
+      final authState = ref.watch(authProvider);
+      final notifier = CaseNotifier(ref);
+      notifier.syncSocket(authState.userId);
+      return notifier;
+    });
 
 class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
   IO.Socket? _socket;
@@ -32,8 +34,13 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
         final raw = response.data['data'];
         final list = raw is List ? raw : List.from(raw as Iterable? ?? []);
         final cases = list
-            .map((item) => CaseModel.fromJson(
-                item is Map ? Map<String, dynamic>.from(item) : <String, dynamic>{}))
+            .map(
+              (item) => CaseModel.fromJson(
+                item is Map
+                    ? Map<String, dynamic>.from(item)
+                    : <String, dynamic>{},
+              ),
+            )
             .toList();
         state = AsyncValue.data(cases);
       } else {
@@ -64,31 +71,35 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     double? longitude,
   }) async {
     try {
-      final response = await DioClient.dio.post("/cases", data: {
-        "title": title,
-        "description": description,
-        "category": category,
-        "subcategory": subcategory ?? "",
-        "location": location,
-        "budgetRange": "",
-        "urgency": urgency,
-        "preferredCourt": preferredCourt ?? "",
-        "documents": documents?.map((d) => d.toJson()).toList() ?? [],
-        "selectedLawyer": selectedLawyer,
-        "voiceUrl": voiceUrl ?? "",
-        "voiceTranscript": voiceTranscript ?? "",
-        "city": city ?? "",
-        "district": district ?? "",
-        "state": stateName ?? "",
-        "country": country ?? "",
-        "latitude": latitude ?? 0.0,
-        "longitude": longitude ?? 0.0,
-      });
+      final response = await DioClient.dio.post(
+        "/cases",
+        data: {
+          "title": title,
+          "description": description,
+          "category": category,
+          "subcategory": subcategory ?? "",
+          "location": location,
+          "budgetRange": "",
+          "urgency": urgency,
+          "preferredCourt": preferredCourt ?? "",
+          "documents": documents?.map((d) => d.toJson()).toList() ?? [],
+          "selectedLawyer": selectedLawyer,
+          "voiceUrl": voiceUrl ?? "",
+          "voiceTranscript": voiceTranscript ?? "",
+          "city": city ?? "",
+          "district": district ?? "",
+          "state": stateName ?? "",
+          "country": country ?? "",
+          "latitude": latitude ?? 0.0,
+          "longitude": longitude ?? 0.0,
+        },
+      );
 
       if (response.data != null && response.data['success'] == true) {
         final raw = response.data['data'];
         final newCase = CaseModel.fromJson(
-            raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{});
+          raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{},
+        );
         state.whenData((currentCases) {
           state = AsyncValue.data([newCase, ...currentCases]);
         });
@@ -102,7 +113,9 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
 
   Future<bool> acceptCaseRequest(String caseId) async {
     try {
-      final response = await DioClient.dio.post("/cases/$caseId/accept-request");
+      final response = await DioClient.dio.post(
+        "/cases/$caseId/accept-request",
+      );
       if (response.data != null && response.data['success'] == true) {
         await fetchCases();
         return true;
@@ -141,7 +154,9 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
 
   Future<bool> rejectCaseRequest(String caseId) async {
     try {
-      final response = await DioClient.dio.post("/cases/$caseId/reject-request");
+      final response = await DioClient.dio.post(
+        "/cases/$caseId/reject-request",
+      );
       if (response.data != null && response.data['success'] == true) {
         await fetchCases();
         return true;
@@ -154,9 +169,10 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
 
   Future<bool> acceptProposal(String caseId, String lawyerId) async {
     try {
-      final response = await DioClient.dio.post("/cases/$caseId/accept", data: {
-        "lawyerId": lawyerId,
-      });
+      final response = await DioClient.dio.post(
+        "/cases/$caseId/accept",
+        data: {"lawyerId": lawyerId},
+      );
 
       if (response.data != null && response.data['success'] == true) {
         await fetchCases(); // Reload to refresh details
@@ -168,12 +184,16 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     return false;
   }
 
-  Future<bool> updateMilestone(String caseId, String milestoneTitle, bool isCompleted) async {
+  Future<bool> updateMilestone(
+    String caseId,
+    String milestoneTitle,
+    bool isCompleted,
+  ) async {
     try {
-      final response = await DioClient.dio.put("/cases/$caseId/milestones", data: {
-        "milestoneTitle": milestoneTitle,
-        "isCompleted": isCompleted,
-      });
+      final response = await DioClient.dio.put(
+        "/cases/$caseId/milestones",
+        data: {"milestoneTitle": milestoneTitle, "isCompleted": isCompleted},
+      );
 
       if (response.data != null && response.data['success'] == true) {
         await fetchCases();
@@ -195,13 +215,16 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     String availability = "Mon-Fri 9AM-5PM",
   }) async {
     try {
-      final response = await DioClient.dio.post("/cases/$caseId/proposals", data: {
-        "feeProposal": fee.toInt(),
-        "message": message,
-        "estimatedResponseTime": estimatedResponseTime,
-        "consultationMode": consultationMode,
-        "availability": availability,
-      });
+      final response = await DioClient.dio.post(
+        "/cases/$caseId/proposals",
+        data: {
+          "feeProposal": fee.toInt(),
+          "message": message,
+          "estimatedResponseTime": estimatedResponseTime,
+          "consultationMode": consultationMode,
+          "availability": availability,
+        },
+      );
 
       if (response.data != null && response.data['success'] == true) {
         await fetchCases();
@@ -213,12 +236,16 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     return false;
   }
 
-  Future<bool> submitCaseReview(String caseId, int rating, String review) async {
+  Future<bool> submitCaseReview(
+    String caseId,
+    int rating,
+    String review,
+  ) async {
     try {
-      final response = await DioClient.dio.post("/cases/$caseId/review", data: {
-        "rating": rating,
-        "review": review,
-      });
+      final response = await DioClient.dio.post(
+        "/cases/$caseId/review",
+        data: {"rating": rating, "review": review},
+      );
       if (response.data != null && response.data['success'] == true) {
         await fetchCases();
         return true;
@@ -229,7 +256,7 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     return false;
   }
 
-  void syncSocket(String? userId) {
+  Future<void> syncSocket(String? userId) async {
     if (userId == _currentUserId) return;
     _currentUserId = userId;
 
@@ -240,16 +267,18 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     if (userId == null || userId.isEmpty) return;
 
     try {
+      final token = await TokenStorage().getToken();
+      if (token == null || token.isEmpty) return;
+
       final base = Environment.baseSocketUrl;
-      _socket = IO.io('$base/cases', IO.OptionBuilder()
-        .setTransports(['websocket'])
-        .build());
+      _socket = IO.io(
+        '$base/cases',
+        IO.OptionBuilder().setTransports(['websocket']).setAuth({
+          'token': token,
+        }).build(),
+      );
 
       _socket!.connect();
-
-      _socket!.onConnect((_) {
-        _socket!.emit('join', {'userId': userId});
-      });
 
       _socket!.on('case_updated', (_) {
         fetchCases();
@@ -278,7 +307,7 @@ final filteredCasesProvider = Provider<AsyncValue<List<CaseModel>>>((ref) {
   return casesState.when(
     data: (cases) {
       var list = List<CaseModel>.from(cases);
-      
+
       // Search
       if (searchQuery.isNotEmpty) {
         list = list.where((c) {
@@ -286,9 +315,15 @@ final filteredCasesProvider = Provider<AsyncValue<List<CaseModel>>>((ref) {
           final titleMatch = c.title.toLowerCase().contains(searchQuery);
           final descMatch = c.description.toLowerCase().contains(searchQuery);
           final catMatch = c.category.toLowerCase().contains(searchQuery);
-          final lName = (c.selectedLawyerName ?? c.assignedLawyerName ?? "").toLowerCase();
+          final lName = (c.selectedLawyerName ?? c.assignedLawyerName ?? "")
+              .toLowerCase();
           final court = (c.preferredCourt ?? "").toLowerCase();
-          return idMatch || titleMatch || descMatch || catMatch || lName.contains(searchQuery) || court.contains(searchQuery);
+          return idMatch ||
+              titleMatch ||
+              descMatch ||
+              catMatch ||
+              lName.contains(searchQuery) ||
+              court.contains(searchQuery);
         }).toList();
       }
 
@@ -318,9 +353,14 @@ final filteredCasesProvider = Provider<AsyncValue<List<CaseModel>>>((ref) {
   );
 });
 
-final caseDetailsProvider = StateNotifierProvider.family<CaseDetailsNotifier, AsyncValue<CaseModel?>, String>((ref, caseId) {
-  return CaseDetailsNotifier(caseId);
-});
+final caseDetailsProvider =
+    StateNotifierProvider.family<
+      CaseDetailsNotifier,
+      AsyncValue<CaseModel?>,
+      String
+    >((ref, caseId) {
+      return CaseDetailsNotifier(caseId);
+    });
 
 class CaseDetailsNotifier extends StateNotifier<AsyncValue<CaseModel?>> {
   final String caseId;
@@ -336,10 +376,14 @@ class CaseDetailsNotifier extends StateNotifier<AsyncValue<CaseModel?>> {
       if (response.data != null && response.data['success'] == true) {
         final raw = response.data['data'];
         final caseItem = CaseModel.fromJson(
-            raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{});
+          raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{},
+        );
         state = AsyncValue.data(caseItem);
       } else {
-        state = AsyncValue.error("Failed to load case details", StackTrace.current);
+        state = AsyncValue.error(
+          "Failed to load case details",
+          StackTrace.current,
+        );
       }
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);

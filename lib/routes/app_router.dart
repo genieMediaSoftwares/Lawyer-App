@@ -18,6 +18,8 @@ import '../features/client/profile/screens/profile_screen.dart';
 import 'package:law/features/client/lawyer_profile/screens/lawyer_profile_screen.dart';
 import '../features/client/notifications/screens/notifications_screen.dart';
 import '../features/client/ai_chat/screens/ai_chat_screen.dart';
+import '../features/client/ai_smart_case/screens/ai_smart_case_intake_screen.dart';
+
 import '../features/client/post_case/screens/post_case_screen.dart';
 import '../features/client/case_tracking/screens/lawyers_responded_screen.dart';
 import '../features/client/case_tracking/screens/case_progress_screen.dart';
@@ -35,12 +37,30 @@ import '../features/client/case_tracking/screens/resolve_screen.dart';
 import '../features/client/lawyer_search/screens/category_detail_screen.dart';
 import '../features/client/documents/screens/my_documents_screen.dart';
 import '../features/client/profile/screens/settings_screen.dart';
+import '../features/client/profile/screens/change_password_screen.dart';
+
 import '../features/client/profile/screens/favorite_lawyers_screen.dart';
 import '../features/client/profile/screens/articles_screen.dart';
 import '../features/client/profile/screens/contact_support_screen.dart';
 import '../features/client/profile/screens/about_us_screen.dart';
 import '../features/client/profile/screens/privacy_policy_screen.dart';
 import '../features/client/profile/screens/terms_conditions_screen.dart';
+
+import '../features/admin/presentation/screens/admin_shell.dart';
+import '../features/admin/presentation/screens/admin_dashboard_screen.dart';
+import '../features/admin/presentation/screens/admin_clients_screen.dart';
+import '../features/admin/presentation/screens/admin_cases_screen.dart';
+import '../features/admin/presentation/screens/admin_lawyers_screen.dart';
+import '../features/admin/presentation/screens/admin_more_menu_screen.dart';
+import '../features/admin/presentation/screens/admin_lawyer_verification_screen.dart';
+import '../features/admin/presentation/screens/admin_appointments_screen.dart';
+import '../features/admin/presentation/screens/admin_ai_analytics_screen.dart';
+import '../features/admin/presentation/screens/admin_documents_screen.dart';
+import '../features/admin/presentation/screens/admin_support_tickets_screen.dart';
+import '../features/admin/presentation/screens/admin_notifications_screen.dart';
+import '../features/admin/presentation/screens/admin_reports_screen.dart';
+import '../features/admin/presentation/screens/admin_profile_screen.dart';
+import '../features/admin/presentation/screens/admin_analytics_screen.dart';
 
 final routerListenableProvider = Provider((ref) {
   final listenable = RouterListenable();
@@ -82,11 +102,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         RouteNames.forgotPassword,
       ];
 
-      if (!isLoggedIn && !authRoutes.contains(path) && path != RouteNames.onboarding) {
+      if (!isLoggedIn &&
+          !authRoutes.contains(path) &&
+          path != RouteNames.onboarding) {
         return RouteNames.login;
       }
 
       if (isLoggedIn && authRoutes.contains(path)) {
+        if (role == UserRole.admin) return RouteNames.adminDashboard;
         if (role == UserRole.client) return RouteNames.clientDashboard;
         if (role == UserRole.lawyer) return RouteNames.lawyerDashboard;
       }
@@ -107,6 +130,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         RouteNames.caseProgress,
         RouteNames.scheduleConsultation,
         RouteNames.notifications,
+        RouteNames.aiSmartCase,
         // NOTE: RouteNames.chat is intentionally excluded here so that
         // lawyers can also navigate to /chat/:chatId/:name from their
         // Messages screen without being redirected back to the dashboard.
@@ -116,6 +140,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         RouteNames.categoryDetail,
         RouteNames.myDocuments,
         RouteNames.settings,
+        RouteNames.changePassword,
         RouteNames.favorites,
         RouteNames.articles,
         RouteNames.contactSupport,
@@ -128,32 +153,58 @@ final routerProvider = Provider<GoRouter>((ref) {
         return RouteNames.lawyerDashboard;
       }
 
-
       return null;
     },
     routes: [
       GoRoute(path: RouteNames.splash, builder: (c, s) => const SplashScreen()),
-      GoRoute(path: RouteNames.onboarding, builder: (c, s) => const OnboardingScreen()),
+      GoRoute(
+        path: RouteNames.onboarding,
+        builder: (c, s) => const OnboardingScreen(),
+      ),
       GoRoute(path: RouteNames.login, builder: (c, s) => const LoginScreen()),
       GoRoute(path: RouteNames.signup, builder: (c, s) => const SignupScreen()),
-      GoRoute(path: RouteNames.forgotPassword, builder: (c, s) => const ForgotPasswordScreen()),
+      GoRoute(
+        path: RouteNames.forgotPassword,
+        builder: (c, s) => const ForgotPasswordScreen(),
+      ),
 
       // Bottom-nav tabs — IndexedStack keeps each tab's state alive when you switch
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
         branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(path: RouteNames.clientDashboard, builder: (c, s) => const ClientDashboardScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: RouteNames.myCases, builder: (c, s) => const MyCasesScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: RouteNames.advocates, builder: (c, s) => const AdvocatesScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: RouteNames.profile, builder: (c, s) => const ProfileScreen()),
-          ]),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.clientDashboard,
+                builder: (c, s) => const ClientDashboardScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.myCases,
+                builder: (c, s) => const MyCasesScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.advocates,
+                builder: (c, s) => const AdvocatesScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.profile,
+                builder: (c, s) => const ProfileScreen(),
+              ),
+            ],
+          ),
         ],
       ),
 
@@ -192,16 +243,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: RouteNames.lawyersResponded,
-        builder: (c, s) => LawyersRespondedScreen(
-          caseId: s.pathParameters['caseId']!,
-        ),
+        builder: (c, s) =>
+            LawyersRespondedScreen(caseId: s.pathParameters['caseId']!),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: RouteNames.caseProgress,
-        builder: (c, s) => CaseProgressScreen(
-          caseId: s.pathParameters['caseId']!,
-        ),
+        builder: (c, s) =>
+            CaseProgressScreen(caseId: s.pathParameters['caseId']!),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
@@ -220,6 +269,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: RouteNames.notifications,
         builder: (c, s) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.aiSmartCase,
+        builder: (c, s) => const AISmartCaseIntakeScreen(),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
@@ -268,6 +322,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.changePassword,
+        builder: (c, s) => const ChangePasswordScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
         path: RouteNames.favorites,
         builder: (c, s) => const FavoriteLawyersScreen(),
       ),
@@ -310,9 +369,108 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RouteNames.subscriptionPlans,
         builder: (c, s) => const SubscriptionPlansScreen(),
       ),
+      // Admin 5-tab Shell Route
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AdminShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.adminDashboard,
+                builder: (c, s) => const AdminDashboardScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.adminClients,
+                builder: (c, s) => const AdminClientsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.adminCases,
+                builder: (c, s) => const AdminCasesScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.adminLawyers,
+                builder: (c, s) => const AdminLawyersScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.adminMore,
+                builder: (c, s) => const AdminMoreMenuScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
+
+      // Admin pushed full-screen routes
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.adminLawyerVerification,
+        builder: (c, s) => const AdminLawyerVerificationScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.adminAppointments,
+        builder: (c, s) => const AdminAppointmentsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.adminAiAnalytics,
+        builder: (c, s) => const AdminAiAnalyticsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.adminDocuments,
+        builder: (c, s) => const AdminDocumentsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.adminSupportTickets,
+        builder: (c, s) => const AdminSupportTicketsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.adminNotifications,
+        builder: (c, s) => const AdminNotificationsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.adminReports,
+        builder: (c, s) => const AdminReportsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.adminProfile,
+        builder: (c, s) => const AdminProfileScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.adminAnalytics,
+        builder: (c, s) => const AdminAnalyticsScreen(),
+      ),
     ],
     errorBuilder: (context, state) => Scaffold(
-      body: Center(child: Text('Route Not Found\n${state.uri}', textAlign: TextAlign.center)),
+      body: Center(
+        child: Text(
+          'Route Not Found\n${state.uri}',
+          textAlign: TextAlign.center,
+        ),
+      ),
     ),
   );
 });

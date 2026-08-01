@@ -80,11 +80,13 @@ class RecentActivityScreen extends ConsumerWidget {
 
     if (titleLower.contains("case") || titleLower.contains("post")) {
       icon = Icons.gavel_outlined;
-    } else if (titleLower.contains("consult") || titleLower.contains("appointment")) {
+    } else if (titleLower.contains("consult") ||
+        titleLower.contains("appointment")) {
       icon = Icons.calendar_today_outlined;
     } else if (titleLower.contains("doc") || titleLower.contains("file")) {
       icon = Icons.description_outlined;
-    } else if (titleLower.contains("profile") || titleLower.contains("update")) {
+    } else if (titleLower.contains("profile") ||
+        titleLower.contains("update")) {
       icon = Icons.person_outline;
     }
 
@@ -106,10 +108,7 @@ class RecentActivityScreen extends ConsumerWidget {
               ),
               if (!isLast)
                 Expanded(
-                  child: Container(
-                    width: 2,
-                    color: const Color(0xFF2B2B2B),
-                  ),
+                  child: Container(width: 2, color: const Color(0xFF2B2B2B)),
                 ),
             ],
           ),
@@ -131,10 +130,7 @@ class RecentActivityScreen extends ConsumerWidget {
                   const SizedBox(height: 6),
                   Text(
                     timeStr,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                    ),
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 ],
               ),

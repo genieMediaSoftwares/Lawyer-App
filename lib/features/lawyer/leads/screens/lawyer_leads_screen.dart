@@ -7,17 +7,17 @@ import '../../../../providers/case_provider.dart';
 import '../../../../providers/auth_provider.dart';
 
 // ─── Design tokens (matching reference image exactly) ───────────────────────
-const _bg = Color(0xFF0A0A0A);          // pure black background
-const _card = Color(0xFF1A1A1A);        // dark card surface
-const _gold = Color(0xFFD4A32A);        // gold accent
-const _goldBg = Color(0xFF2A1F05);      // gold tint bg for "New" badge
-const _divider = Color(0xFF2A2A2A);     // subtle divider
-const _matchGreen = Color(0xFF4CE064);  // match % text
-const _matchBg = Color(0xFF0D2010);     // match % bg
-const _grey = Color(0xFF8A8A8A);        // secondary text
-const _tabActive = Color(0xFFD4A32A);   // active tab text
+const _bg = Color(0xFF0A0A0A); // pure black background
+const _card = Color(0xFF1A1A1A); // dark card surface
+const _gold = Color(0xFFD4A32A); // gold accent
+const _goldBg = Color(0xFF2A1F05); // gold tint bg for "New" badge
+const _divider = Color(0xFF2A2A2A); // subtle divider
+const _matchGreen = Color(0xFF4CE064); // match % text
+const _matchBg = Color(0xFF0D2010); // match % bg
+const _grey = Color(0xFF8A8A8A); // secondary text
+const _tabActive = Color(0xFFD4A32A); // active tab text
 const _tabInactive = Color(0xFF707070); // inactive tab text
-const _badgeBg = Color(0xFF2A1E05);     // number badge bg (inactive)
+const _badgeBg = Color(0xFF2A1E05); // number badge bg (inactive)
 
 class LawyerLeadsScreen extends ConsumerStatefulWidget {
   const LawyerLeadsScreen({super.key});
@@ -56,39 +56,49 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
   }
 
   // ── filter lists ──────────────────────────────────────────────────────────
-  List<CaseModel> _newLeads(List<CaseModel> all, String uid) =>
-      all.where((c) {
-        final direct = c.selectedLawyerId == uid &&
-            (c.status == 'Pending Lawyer Response' ||
-                c.status == 'Awaiting Lawyer Acceptance');
-        final open = c.status == 'Submitted' && c.selectedLawyerId == null;
-        return direct || open;
-      }).toList();
+  List<CaseModel> _newLeads(List<CaseModel> all, String uid) => all.where((c) {
+    final direct =
+        c.selectedLawyerId == uid &&
+        (c.status == 'Pending Lawyer Response' ||
+            c.status == 'Awaiting Lawyer Acceptance');
+    final open = c.status == 'Submitted' && c.selectedLawyerId == null;
+    return direct || open;
+  }).toList();
 
-  List<CaseModel> _accepted(List<CaseModel> all, String uid) =>
-      all.where((c) =>
-          c.assignedLawyerId == uid &&
-          (c.status == 'Accepted' ||
-              c.status == 'In Progress' ||
-              c.status == 'Awaiting Client')).toList();
+  List<CaseModel> _accepted(List<CaseModel> all, String uid) => all
+      .where(
+        (c) =>
+            c.assignedLawyerId == uid &&
+            (c.status == 'Accepted' ||
+                c.status == 'In Progress' ||
+                c.status == 'Awaiting Client'),
+      )
+      .toList();
 
-  List<CaseModel> _history(List<CaseModel> all, String uid) =>
-      all.where((c) =>
-          c.assignedLawyerId == uid &&
-          (c.status == 'Completed' ||
-              c.status == 'resolved' ||
-              c.status == 'Closed' ||
-              c.status == 'Rejected' ||
-              c.status == 'Expired')).toList();
+  List<CaseModel> _history(List<CaseModel> all, String uid) => all
+      .where(
+        (c) =>
+            c.assignedLawyerId == uid &&
+            (c.status == 'Completed' ||
+                c.status == 'resolved' ||
+                c.status == 'Closed' ||
+                c.status == 'Rejected' ||
+                c.status == 'Expired'),
+      )
+      .toList();
 
   List<CaseModel> _filter(List<CaseModel> list) {
     final q = _searchCtrl.text.trim().toLowerCase();
     if (q.isEmpty) return list;
-    return list.where((c) =>
-        c.title.toLowerCase().contains(q) ||
-        c.clientName.toLowerCase().contains(q) ||
-        c.category.toLowerCase().contains(q) ||
-        c.location.toLowerCase().contains(q)).toList();
+    return list
+        .where(
+          (c) =>
+              c.title.toLowerCase().contains(q) ||
+              c.clientName.toLowerCase().contains(q) ||
+              c.category.toLowerCase().contains(q) ||
+              c.location.toLowerCase().contains(q),
+        )
+        .toList();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -164,38 +174,74 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
 
   // ── Actions ───────────────────────────────────────────────────────────────
   Future<void> _accept(CaseModel c) async {
-    final ok = await _confirm('Accept Case?', 'Accept this case request?', 'Accept');
+    final ok = await _confirm(
+      'Accept Case?',
+      'Accept this case request?',
+      'Accept',
+    );
     if (ok != true || !mounted) return;
-    final success = await ref.read(casesProvider.notifier).acceptCaseRequest(c.id);
+    final success = await ref
+        .read(casesProvider.notifier)
+        .acceptCaseRequest(c.id);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(success ? 'Case accepted! Moved to Accepted.' : 'Failed to accept. Try again.'),
-        backgroundColor: success ? const Color(0xFF1B3A1B) : Colors.red.shade900,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'Case accepted! Moved to Accepted.'
+                : 'Failed to accept. Try again.',
+          ),
+          backgroundColor: success
+              ? const Color(0xFF1B3A1B)
+              : Colors.red.shade900,
+        ),
+      );
     }
   }
 
   Future<void> _reject(CaseModel c) async {
-    final ok = await _confirm('Reject Lead?', 'Reject this case lead?', 'Reject');
+    final ok = await _confirm(
+      'Reject Lead?',
+      'Reject this case lead?',
+      'Reject',
+    );
     if (ok != true || !mounted) return;
-    final success = await ref.read(casesProvider.notifier).rejectCaseRequest(c.id);
+    final success = await ref
+        .read(casesProvider.notifier)
+        .rejectCaseRequest(c.id);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(success ? 'Lead rejected.' : 'Failed to reject. Try again.'),
-        backgroundColor: success ? const Color(0xFF2A0A0A) : Colors.red.shade900,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success ? 'Lead rejected.' : 'Failed to reject. Try again.',
+          ),
+          backgroundColor: success
+              ? const Color(0xFF2A0A0A)
+              : Colors.red.shade900,
+        ),
+      );
     }
   }
 
   Future<void> _complete(CaseModel c) async {
-    final ok = await _confirm('Complete Case?', 'Mark this case as completed?', 'Complete');
+    final ok = await _confirm(
+      'Complete Case?',
+      'Mark this case as completed?',
+      'Complete',
+    );
     if (ok != true || !mounted) return;
-    final success = await ref.read(casesProvider.notifier).markCaseCompleted(c.id);
+    final success = await ref
+        .read(casesProvider.notifier)
+        .markCaseCompleted(c.id);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(success ? 'Case completed!' : 'Failed. Try again.'),
-        backgroundColor: success ? const Color(0xFF1B3A1B) : Colors.red.shade900,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Case completed!' : 'Failed. Try again.'),
+          backgroundColor: success
+              ? const Color(0xFF1B3A1B)
+              : Colors.red.shade900,
+        ),
+      );
     }
   }
 
@@ -207,10 +253,14 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _DetailsSheet(lead: c, tab: _tab, onAccept: () {
-        Navigator.pop(context);
-        _accept(c);
-      }),
+      builder: (_) => _DetailsSheet(
+        lead: c,
+        tab: _tab,
+        onAccept: () {
+          Navigator.pop(context);
+          _accept(c);
+        },
+      ),
     );
   }
 
@@ -220,7 +270,13 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: Text(body, style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
@@ -229,7 +285,10 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(action, style: const TextStyle(color: _gold, fontWeight: FontWeight.bold)),
+            child: Text(
+              action,
+              style: const TextStyle(color: _gold, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -260,9 +319,24 @@ class _TabRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
         children: [
-          _Tab(label: 'New Leads', count: newCount, active: tab == 0, onTap: () => onTap(0)),
-          _Tab(label: 'Accepted', count: accCount, active: tab == 1, onTap: () => onTap(1)),
-          _Tab(label: 'History', count: hisCount, active: tab == 2, onTap: () => onTap(2)),
+          _Tab(
+            label: 'New Leads',
+            count: newCount,
+            active: tab == 0,
+            onTap: () => onTap(0),
+          ),
+          _Tab(
+            label: 'Accepted',
+            count: accCount,
+            active: tab == 1,
+            onTap: () => onTap(1),
+          ),
+          _Tab(
+            label: 'History',
+            count: hisCount,
+            active: tab == 2,
+            onTap: () => onTap(2),
+          ),
         ],
       ),
     );
@@ -275,7 +349,12 @@ class _Tab extends StatelessWidget {
   final bool active;
   final VoidCallback onTap;
 
-  const _Tab({required this.label, required this.count, required this.active, required this.onTap});
+  const _Tab({
+    required this.label,
+    required this.count,
+    required this.active,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -349,7 +428,11 @@ class _SearchFilterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hints = ['Search new leads...', 'Search accepted...', 'Search history...'];
+    final hints = [
+      'Search new leads...',
+      'Search accepted...',
+      'Search history...',
+    ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Container(
@@ -477,11 +560,17 @@ class _LeadCard extends StatelessWidget {
                         if (tab == 0) ...[
                           const SizedBox(height: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: _goldBg,
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: _gold.withValues(alpha: 0.6), width: 1),
+                              border: Border.all(
+                                color: _gold.withValues(alpha: 0.6),
+                                width: 1,
+                              ),
                             ),
                             child: const Text(
                               'New',
@@ -505,7 +594,9 @@ class _LeadCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            lead.clientName.isNotEmpty ? lead.clientName : 'Client',
+                            lead.clientName.isNotEmpty
+                                ? lead.clientName
+                                : 'Client',
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -534,7 +625,10 @@ class _LeadCard extends StatelessWidget {
                       children: [
                         if (tab == 0)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: _matchBg,
                               borderRadius: BorderRadius.circular(8),
@@ -569,7 +663,9 @@ class _LeadCard extends StatelessWidget {
                     Expanded(
                       child: _InfoChip(
                         icon: Icons.location_on_outlined,
-                        text: lead.location.isNotEmpty ? lead.location : 'Any Location',
+                        text: lead.location.isNotEmpty
+                            ? lead.location
+                            : 'Any Location',
                       ),
                     ),
                     Expanded(
@@ -594,7 +690,8 @@ class _LeadCard extends StatelessWidget {
                     Expanded(
                       child: _InfoChip(
                         icon: Icons.insert_drive_file_outlined,
-                        text: '${lead.documents.length} '
+                        text:
+                            '${lead.documents.length} '
                             '${lead.documents.length == 1 ? 'doc' : 'docs'} uploaded',
                       ),
                     ),
@@ -605,7 +702,10 @@ class _LeadCard extends StatelessWidget {
                 // ── Date line ────────────────────────────────────────────
                 Text(
                   _dateLine(tab, lead),
-                  style: const TextStyle(color: Color(0xFF666666), fontSize: 12),
+                  style: const TextStyle(
+                    color: Color(0xFF666666),
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 14),
 
@@ -614,7 +714,10 @@ class _LeadCard extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: _OutlinedBtn(label: 'View Details', onTap: onDetails),
+                        child: _OutlinedBtn(
+                          label: 'View Details',
+                          onTap: onDetails,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -623,9 +726,17 @@ class _LeadCard extends StatelessWidget {
                     ],
                   )
                 else if (tab == 1)
-                  _OutlinedBtn(label: 'View Case', onTap: onDetails, fullWidth: true)
+                  _OutlinedBtn(
+                    label: 'View Case',
+                    onTap: onDetails,
+                    fullWidth: true,
+                  )
                 else
-                  _OutlinedBtn(label: 'View Details', onTap: onDetails, fullWidth: true),
+                  _OutlinedBtn(
+                    label: 'View Details',
+                    onTap: onDetails,
+                    fullWidth: true,
+                  ),
               ],
             ),
           ),
@@ -678,7 +789,8 @@ class _LeadCard extends StatelessWidget {
     final fmt = DateFormat('dd MMM yyyy, hh:mm a');
     final fmtShort = DateFormat('dd MMM yyyy');
     if (tab == 0) return 'Posted on: ${fmt.format(c.createdAt)}';
-    if (tab == 1) return 'Accepted on: ${fmt.format(c.acceptedAt ?? c.createdAt)}';
+    if (tab == 1)
+      return 'Accepted on: ${fmt.format(c.acceptedAt ?? c.createdAt)}';
     return 'Completed on: ${fmtShort.format(c.completedAt ?? c.closedDate ?? c.createdAt)}';
   }
 }
@@ -736,11 +848,21 @@ class _OverflowMenu extends StatelessWidget {
       color: const Color(0xFF222222),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       itemBuilder: (_) => [
-        _menuItem('details', Icons.info_outline, 'View Details', Colors.white70),
+        _menuItem(
+          'details',
+          Icons.info_outline,
+          'View Details',
+          Colors.white70,
+        ),
         if (tab == 0)
           _menuItem('reject', Icons.close, 'Reject Lead', Colors.redAccent),
         if (tab == 1 && status != 'Completed' && status != 'Closed')
-          _menuItem('complete', Icons.check_circle_outline, 'Mark Completed', _matchGreen),
+          _menuItem(
+            'complete',
+            Icons.check_circle_outline,
+            'Mark Completed',
+            _matchGreen,
+          ),
       ],
       onSelected: (v) {
         if (v == 'details') onDetails();
@@ -750,7 +872,12 @@ class _OverflowMenu extends StatelessWidget {
     );
   }
 
-  PopupMenuItem<String> _menuItem(String value, IconData icon, String label, Color color) {
+  PopupMenuItem<String> _menuItem(
+    String value,
+    IconData icon,
+    String label,
+    Color color,
+  ) {
     return PopupMenuItem(
       value: value,
       child: Row(
@@ -771,7 +898,11 @@ class _OutlinedBtn extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool fullWidth;
-  const _OutlinedBtn({required this.label, required this.onTap, this.fullWidth = false});
+  const _OutlinedBtn({
+    required this.label,
+    required this.onTap,
+    this.fullWidth = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -782,7 +913,9 @@ class _OutlinedBtn extends StatelessWidget {
         onPressed: onTap,
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: _gold, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           foregroundColor: _gold,
           minimumSize: const Size(0, 44),
         ),
@@ -815,7 +948,9 @@ class _SolidBtn extends StatelessWidget {
           foregroundColor: Colors.black,
           minimumSize: const Size(0, 44),
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
         child: Text(
           label,
@@ -857,7 +992,11 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             msgs[tab],
-            style: const TextStyle(color: Color(0xFF555555), fontSize: 14, height: 1.6),
+            style: const TextStyle(
+              color: Color(0xFF555555),
+              fontSize: 14,
+              height: 1.6,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -882,11 +1021,19 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.cloud_off_rounded, color: Color(0xFF555555), size: 60),
+            const Icon(
+              Icons.cloud_off_rounded,
+              color: Color(0xFF555555),
+              size: 60,
+            ),
             const SizedBox(height: 16),
             const Text(
               'Failed to load leads.',
-              style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 16),
+              style: TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -900,10 +1047,15 @@ class _ErrorState extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: _gold),
                 foregroundColor: _gold,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: const Text(
+                'Retry',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
@@ -920,7 +1072,11 @@ class _DetailsSheet extends StatelessWidget {
   final int tab;
   final VoidCallback onAccept;
 
-  const _DetailsSheet({required this.lead, required this.tab, required this.onAccept});
+  const _DetailsSheet({
+    required this.lead,
+    required this.tab,
+    required this.onAccept,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -946,11 +1102,19 @@ class _DetailsSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            Text(lead.title,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+            Text(
+              lead.title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text('Client: ${lead.clientName}',
-                style: const TextStyle(color: _grey, fontSize: 13)),
+            Text(
+              'Client: ${lead.clientName}',
+              style: const TextStyle(color: _grey, fontSize: 13),
+            ),
             const SizedBox(height: 14),
             const Divider(color: Color(0xFF2A2A2A)),
             const SizedBox(height: 12),
@@ -961,40 +1125,60 @@ class _DetailsSheet extends StatelessWidget {
             _row('Budget', lead.budgetRange),
             if (lead.description.isNotEmpty) ...[
               const SizedBox(height: 12),
-              const Text('Description',
-                  style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 12)),
+              const Text(
+                'Description',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
               const SizedBox(height: 6),
-              Text(lead.description,
-                  style: const TextStyle(color: _grey, fontSize: 13, height: 1.6)),
+              Text(
+                lead.description,
+                style: const TextStyle(color: _grey, fontSize: 13, height: 1.6),
+              ),
             ],
             const SizedBox(height: 24),
             if (tab == 0)
-              Row(children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: _gold),
-                      minimumSize: const Size(0, 44),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: _gold),
+                        minimumSize: const Size(0, 44),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Close',
+                        style: TextStyle(color: _gold),
+                      ),
                     ),
-                    child: const Text('Close', style: TextStyle(color: _gold)),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onAccept,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _gold,
-                      foregroundColor: Colors.black,
-                      minimumSize: const Size(0, 44),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onAccept,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _gold,
+                        foregroundColor: Colors.black,
+                        minimumSize: const Size(0, 44),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Accept',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
-                    child: const Text('Accept', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
-                ),
-              ]),
+                ],
+              ),
           ],
         ),
       ),
@@ -1002,21 +1186,24 @@ class _DetailsSheet extends StatelessWidget {
   }
 
   Widget _row(String label, String value) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 80,
-              child: Text(label, style: const TextStyle(color: Color(0xFF666666), fontSize: 12)),
-            ),
-            Expanded(
-              child: Text(
-                value.isNotEmpty ? value : '—',
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-              ),
-            ),
-          ],
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 80,
+          child: Text(
+            label,
+            style: const TextStyle(color: Color(0xFF666666), fontSize: 12),
+          ),
         ),
-      );
+        Expanded(
+          child: Text(
+            value.isNotEmpty ? value : '—',
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+          ),
+        ),
+      ],
+    ),
+  );
 }

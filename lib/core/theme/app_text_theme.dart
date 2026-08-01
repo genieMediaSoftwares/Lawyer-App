@@ -50,10 +50,7 @@ abstract final class AppTextTheme {
         fontSize: 14,
         color: AppColors.secondaryText,
       ),
-      bodySmall: GoogleFonts.inter(
-        fontSize: 12,
-        color: AppColors.mutedText,
-      ),
+      bodySmall: GoogleFonts.inter(fontSize: 12, color: AppColors.mutedText),
 
       // Captions / Labels (using muted/disabled text)
       labelLarge: GoogleFonts.inter(

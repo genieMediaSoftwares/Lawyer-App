@@ -10,14 +10,11 @@ class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  ConsumerState<OnboardingScreen> createState() =>
-      _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState
-    extends ConsumerState<OnboardingScreen> {
-  final PageController _pageController =
-  PageController();
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+  final PageController _pageController = PageController();
 
   int currentPage = 0;
 
@@ -25,33 +22,30 @@ class _OnboardingScreenState
     {
       "title": "Find Expert Lawyers",
       "description":
-      "Connect with experienced and verified lawyers across multiple legal domains.",
+          "Connect with experienced and verified lawyers across multiple legal domains.",
       "icon": Icons.search,
     },
     {
       "title": "Book Consultation",
       "description":
-      "Schedule appointments instantly with lawyers based on availability.",
+          "Schedule appointments instantly with lawyers based on availability.",
       "icon": Icons.calendar_month,
     },
     {
       "title": "Video Consultation",
       "description":
-      "Meet lawyers securely through online video consultations.",
+          "Meet lawyers securely through online video consultations.",
       "icon": Icons.video_call,
     },
     {
       "title": "Secure Legal Documents",
-      "description":
-      "Upload, manage and access legal documents safely.",
+      "description": "Upload, manage and access legal documents safely.",
       "icon": Icons.folder_copy,
     },
   ];
 
   void _completeOnboarding() {
-    ref
-        .read(authProvider.notifier)
-        .completeOnboarding();
+    ref.read(authProvider.notifier).completeOnboarding();
 
     context.go(RouteNames.signup);
   }
@@ -59,8 +53,7 @@ class _OnboardingScreenState
   void _nextPage() {
     if (currentPage < pages.length - 1) {
       _pageController.nextPage(
-        duration:
-        const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
@@ -79,26 +72,20 @@ class _OnboardingScreenState
     final theme = Theme.of(context);
 
     return AnimatedContainer(
-      duration:
-      const Duration(milliseconds: 300),
-      margin:
-      const EdgeInsets.symmetric(horizontal: 4),
+      duration: const Duration(milliseconds: 300),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
       width: isActive ? 24 : 8,
       height: 8,
       decoration: BoxDecoration(
-        color: isActive
-            ? theme.colorScheme.primary
-            : theme.colorScheme.outline,
-        borderRadius:
-        BorderRadius.circular(20),
+        color: isActive ? theme.colorScheme.primary : theme.colorScheme.outline,
+        borderRadius: BorderRadius.circular(20),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLastPage =
-        currentPage == pages.length - 1;
+    final isLastPage = currentPage == pages.length - 1;
 
     return Scaffold(
       body: SafeArea(
@@ -106,13 +93,11 @@ class _OnboardingScreenState
           children: [
             /// Skip Button
             Padding(
-              padding:
-              const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.only(right: 16),
               child: Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed:
-                  _completeOnboarding,
+                  onPressed: _completeOnboarding,
                   child: const Text("Skip"),
                 ),
               ),
@@ -131,9 +116,7 @@ class _OnboardingScreenState
                 itemBuilder: (context, index) {
                   return OnboardingPage(
                     title: pages[index]["title"],
-                    description:
-                    pages[index]
-                    ["description"],
+                    description: pages[index]["description"],
                     icon: pages[index]["icon"],
                   );
                 },
@@ -142,33 +125,23 @@ class _OnboardingScreenState
 
             /// Indicator
             Row(
-              mainAxisAlignment:
-              MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
                 pages.length,
-                    (index) =>
-                    buildIndicator(index),
+                (index) => buildIndicator(index),
               ),
             ),
 
             const SizedBox(height: 30),
 
             Padding(
-              padding:
-              const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 20,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
                   onPressed: _nextPage,
-                  child: Text(
-                    isLastPage
-                        ? "Get Started"
-                        : "Next",
-                  ),
+                  child: Text(isLastPage ? "Get Started" : "Next"),
                 ),
               ),
             ),

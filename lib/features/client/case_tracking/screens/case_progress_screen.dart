@@ -33,7 +33,11 @@ class CaseProgressScreen extends ConsumerWidget {
         ),
         title: const Text(
           "Case Details",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         centerTitle: true,
       ),
@@ -80,7 +84,11 @@ class CaseProgressScreen extends ConsumerWidget {
                   // Case Timeline Stepper progress tracker
                   const Text(
                     "Case Progress Tracker",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _buildProgressTimeline(context, caseItem),
@@ -94,10 +102,18 @@ class CaseProgressScreen extends ConsumerWidget {
                   if (caseItem.assignedLawyerId != null) ...[
                     const Text(
                       "Next Consultation",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 10),
-                    _buildNextConsultationCard(context, caseItem, nextAppointment),
+                    _buildNextConsultationCard(
+                      context,
+                      caseItem,
+                      nextAppointment,
+                    ),
                     const SizedBox(height: 20),
                   ],
 
@@ -105,7 +121,11 @@ class CaseProgressScreen extends ConsumerWidget {
                   if (caseItem.documents.isNotEmpty) ...[
                     const Text(
                       "Supporting Documents",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     _buildDocumentsCard(context, caseItem),
@@ -125,8 +145,8 @@ class CaseProgressScreen extends ConsumerWidget {
   Widget _buildHeaderCard(BuildContext context, CaseModel caseItem) {
     final formattedDate = DateFormat('dd MMM yyyy').format(caseItem.createdAt);
     final statusColor = _getStatusColor(caseItem.status);
-    final caseSuffix = caseItem.id.length > 6 
-        ? caseItem.id.substring(caseItem.id.length - 6).toUpperCase() 
+    final caseSuffix = caseItem.id.length > 6
+        ? caseItem.id.substring(caseItem.id.length - 6).toUpperCase()
         : caseItem.id.toUpperCase();
 
     return Container(
@@ -150,7 +170,11 @@ class CaseProgressScreen extends ConsumerWidget {
                 ),
                 child: Text(
                   caseItem.category.toUpperCase(),
-                  style: const TextStyle(color: Color(0xFFE6B325), fontWeight: FontWeight.bold, fontSize: 9),
+                  style: const TextStyle(
+                    color: Color(0xFFE6B325),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 9,
+                  ),
                 ),
               ),
               Container(
@@ -162,7 +186,11 @@ class CaseProgressScreen extends ConsumerWidget {
                 ),
                 child: Text(
                   caseItem.status,
-                  style: TextStyle(color: statusColor, fontSize: 9, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -170,7 +198,11 @@ class CaseProgressScreen extends ConsumerWidget {
           const SizedBox(height: 14),
           Text(
             caseItem.title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -187,12 +219,20 @@ class CaseProgressScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           const Text(
             "Description",
-            style: TextStyle(color: Color(0xFFE6B325), fontSize: 12, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Color(0xFFE6B325),
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             caseItem.description,
-            style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              height: 1.4,
+            ),
           ),
           if (caseItem.voiceUrl != null && caseItem.voiceUrl!.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -227,21 +267,31 @@ class CaseProgressScreen extends ConsumerWidget {
                       height: 22,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: milestone.isCompleted ? const Color(0xFFE6B325) : const Color(0xFF181818),
+                        color: milestone.isCompleted
+                            ? const Color(0xFFE6B325)
+                            : const Color(0xFF181818),
                         border: Border.all(
-                          color: milestone.isCompleted ? const Color(0xFFE6B325) : const Color(0xFF282828),
+                          color: milestone.isCompleted
+                              ? const Color(0xFFE6B325)
+                              : const Color(0xFF282828),
                           width: 2,
                         ),
                       ),
                       child: milestone.isCompleted
-                          ? const Icon(Icons.check, color: Colors.black, size: 12)
+                          ? const Icon(
+                              Icons.check,
+                              color: Colors.black,
+                              size: 12,
+                            )
                           : null,
                     ),
                     if (!isLast)
                       Expanded(
                         child: Container(
                           width: 2,
-                          color: milestone.isCompleted ? const Color(0xFFE6B325) : const Color(0xFF282828),
+                          color: milestone.isCompleted
+                              ? const Color(0xFFE6B325)
+                              : const Color(0xFF282828),
                         ),
                       ),
                   ],
@@ -258,7 +308,9 @@ class CaseProgressScreen extends ConsumerWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
-                            color: milestone.isCompleted ? Colors.white : Colors.grey,
+                            color: milestone.isCompleted
+                                ? Colors.white
+                                : Colors.grey,
                           ),
                         ),
                         const SizedBox(height: 3),
@@ -266,7 +318,9 @@ class CaseProgressScreen extends ConsumerWidget {
                           milestone.isCompleted ? "Completed" : "Pending",
                           style: TextStyle(
                             fontSize: 11,
-                            color: milestone.isCompleted ? const Color(0xFFE6B325) : Colors.grey,
+                            color: milestone.isCompleted
+                                ? const Color(0xFFE6B325)
+                                : Colors.grey,
                           ),
                         ),
                       ],
@@ -281,8 +335,13 @@ class CaseProgressScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCounselCard(BuildContext context, CaseModel caseItem, WidgetRef ref) {
-    final hasLawyer = caseItem.selectedLawyerId != null || caseItem.assignedLawyerId != null;
+  Widget _buildCounselCard(
+    BuildContext context,
+    CaseModel caseItem,
+    WidgetRef ref,
+  ) {
+    final hasLawyer =
+        caseItem.selectedLawyerId != null || caseItem.assignedLawyerId != null;
     if (!hasLawyer) {
       return Container(
         padding: const EdgeInsets.all(16),
@@ -306,11 +365,22 @@ class CaseProgressScreen extends ConsumerWidget {
       );
     }
 
-    final lawyerName = caseItem.selectedLawyerName ?? caseItem.assignedLawyerName ?? "Advocate";
-    final lawyerImage = caseItem.selectedLawyerImage ?? caseItem.assignedLawyerImage ?? "";
-    final lawyerSpec = caseItem.selectedLawyerSpecialization ?? caseItem.assignedLawyerSpecialization ?? "Legal Expert";
-    final isVerified = caseItem.selectedLawyerVerified ?? caseItem.assignedLawyerVerified ?? true;
-    final rating = caseItem.selectedLawyerRating ?? caseItem.assignedLawyerRating ?? 4.8;
+    final lawyerName =
+        caseItem.selectedLawyerName ??
+        caseItem.assignedLawyerName ??
+        "Advocate";
+    final lawyerImage =
+        caseItem.selectedLawyerImage ?? caseItem.assignedLawyerImage ?? "";
+    final lawyerSpec =
+        caseItem.selectedLawyerSpecialization ??
+        caseItem.assignedLawyerSpecialization ??
+        "";
+    final isVerified =
+        caseItem.selectedLawyerVerified ??
+        caseItem.assignedLawyerVerified ??
+        false;
+    final rating =
+        caseItem.selectedLawyerRating ?? caseItem.assignedLawyerRating;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -339,12 +409,20 @@ class CaseProgressScreen extends ConsumerWidget {
                     Flexible(
                       child: Text(
                         lawyerName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                     if (isVerified) ...[
                       const SizedBox(width: 4),
-                      const Icon(Icons.verified, color: Color(0xFFE6B325), size: 14),
+                      const Icon(
+                        Icons.verified,
+                        color: Color(0xFFE6B325),
+                        size: 14,
+                      ),
                     ],
                   ],
                 ),
@@ -354,25 +432,37 @@ class CaseProgressScreen extends ConsumerWidget {
                   style: const TextStyle(color: Colors.grey, fontSize: 11),
                 ),
                 const SizedBox(height: 3),
-                Row(
-                  children: [
-                    const Icon(Icons.star, color: Color(0xFFE6B325), size: 12),
-                    const SizedBox(width: 3),
-                    Text(
-                      rating.toStringAsFixed(1),
-                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
+                if (rating != null)
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.star,
+                        color: Color(0xFFE6B325),
+                        size: 12,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        rating.toStringAsFixed(1),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
           // Action nodes
           IconButton(
             onPressed: () async {
-              final otherUserId = caseItem.selectedLawyerId ?? caseItem.assignedLawyerId;
+              final otherUserId =
+                  caseItem.selectedLawyerId ?? caseItem.assignedLawyerId;
               if (otherUserId != null) {
-                final chat = await ref.read(chatsProvider.notifier).getOrCreateChat(otherUserId);
+                final chat = await ref
+                    .read(chatsProvider.notifier)
+                    .getOrCreateChat(otherUserId);
                 if (chat != null) {
                   context.push('/chat/${chat.id}/$lawyerName');
                 }
@@ -386,10 +476,18 @@ class CaseProgressScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildNextConsultationCard(BuildContext context, CaseModel caseItem, dynamic appointment) {
+  Widget _buildNextConsultationCard(
+    BuildContext context,
+    CaseModel caseItem,
+    dynamic appointment,
+  ) {
     final hasAppointment = appointment != null;
-    final formattedDate = hasAppointment ? DateFormat('dd MMM yyyy').format(appointment.date) : "TBD";
-    final timeSlot = hasAppointment ? appointment.timeSlot : "Consultation Pending";
+    final formattedDate = hasAppointment
+        ? DateFormat('dd MMM yyyy').format(appointment.date)
+        : "TBD";
+    final timeSlot = hasAppointment
+        ? appointment.timeSlot
+        : "Consultation Pending";
     final mode = hasAppointment ? appointment.mode : "Chat";
 
     return Container(
@@ -407,7 +505,11 @@ class CaseProgressScreen extends ConsumerWidget {
               color: const Color(0xFFE6B325).withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.calendar_today, color: Color(0xFFE6B325), size: 18),
+            child: const Icon(
+              Icons.calendar_today,
+              color: Color(0xFFE6B325),
+              size: 18,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -416,7 +518,11 @@ class CaseProgressScreen extends ConsumerWidget {
               children: [
                 Text(
                   timeSlot,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Text(
@@ -456,13 +562,21 @@ class CaseProgressScreen extends ConsumerWidget {
           return ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.description, color: Color(0xFFE6B325)),
-            title: Text(doc.name, style: const TextStyle(color: Colors.white, fontSize: 13)),
-            subtitle: Text(doc.size, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            title: Text(
+              doc.name,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+            ),
+            subtitle: Text(
+              doc.size,
+              style: const TextStyle(color: Colors.grey, fontSize: 11),
+            ),
             trailing: IconButton(
               icon: const Icon(Icons.download, color: Colors.grey),
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Downloading ${doc.name}... (Simulated)")),
+                  SnackBar(
+                    content: Text("Downloading ${doc.name}... (Simulated)"),
+                  ),
                 );
               },
             ),
@@ -523,7 +637,10 @@ class CaseProgressScreen extends ConsumerWidget {
               onPressed: () {
                 ref.invalidate(caseDetailsProvider(caseId));
               },
-              child: const Text("Retry", style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                "Retry",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
@@ -565,7 +682,8 @@ class ShimmerPulse extends StatefulWidget {
   State<ShimmerPulse> createState() => _ShimmerPulseState();
 }
 
-class _ShimmerPulseState extends State<ShimmerPulse> with SingleTickerProviderStateMixin {
+class _ShimmerPulseState extends State<ShimmerPulse>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 

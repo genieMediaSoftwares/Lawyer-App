@@ -23,7 +23,7 @@ class FavoriteItem {
   factory FavoriteItem.fromJson(Map<String, dynamic> json) {
     final lawyerUser = json['lawyer'] ?? {};
     final profile = json['profile'] ?? {};
-    
+
     return FavoriteItem(
       id: json['_id'] ?? '',
       lawyerUserId: lawyerUser['_id'] ?? '',
@@ -36,9 +36,12 @@ class FavoriteItem {
   }
 }
 
-final favoritesProvider = StateNotifierProvider<FavoriteNotifier, AsyncValue<List<FavoriteItem>>>((ref) {
-  return FavoriteNotifier();
-});
+final favoritesProvider =
+    StateNotifierProvider<FavoriteNotifier, AsyncValue<List<FavoriteItem>>>((
+      ref,
+    ) {
+      return FavoriteNotifier();
+    });
 
 class FavoriteNotifier extends StateNotifier<AsyncValue<List<FavoriteItem>>> {
   FavoriteNotifier() : super(const AsyncValue.loading()) {
@@ -54,7 +57,10 @@ class FavoriteNotifier extends StateNotifier<AsyncValue<List<FavoriteItem>>> {
         final items = list.map((item) => FavoriteItem.fromJson(item)).toList();
         state = AsyncValue.data(items);
       } else {
-        state = AsyncValue.error("Failed to load favorites", StackTrace.current);
+        state = AsyncValue.error(
+          "Failed to load favorites",
+          StackTrace.current,
+        );
       }
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -63,9 +69,10 @@ class FavoriteNotifier extends StateNotifier<AsyncValue<List<FavoriteItem>>> {
 
   Future<bool> toggleFavorite(String lawyerUserId) async {
     try {
-      final response = await DioClient.dio.post("/favorites", data: {
-        "lawyerId": lawyerUserId,
-      });
+      final response = await DioClient.dio.post(
+        "/favorites",
+        data: {"lawyerId": lawyerUserId},
+      );
       if (response.data != null && response.data['success'] == true) {
         await fetchFavorites();
         return true;
@@ -81,7 +88,9 @@ class FavoriteNotifier extends StateNotifier<AsyncValue<List<FavoriteItem>>> {
       final response = await DioClient.dio.delete("/favorites/$favoriteId");
       if (response.data != null && response.data['success'] == true) {
         state.whenData((currentFavs) {
-          state = AsyncValue.data(currentFavs.where((f) => f.id != favoriteId).toList());
+          state = AsyncValue.data(
+            currentFavs.where((f) => f.id != favoriteId).toList(),
+          );
         });
         return true;
       }

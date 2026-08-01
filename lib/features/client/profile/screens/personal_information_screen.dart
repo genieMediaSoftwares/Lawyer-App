@@ -9,10 +9,12 @@ class PersonalInformationScreen extends ConsumerStatefulWidget {
   const PersonalInformationScreen({super.key});
 
   @override
-  ConsumerState<PersonalInformationScreen> createState() => _PersonalInformationScreenState();
+  ConsumerState<PersonalInformationScreen> createState() =>
+      _PersonalInformationScreenState();
 }
 
-class _PersonalInformationScreenState extends ConsumerState<PersonalInformationScreen> {
+class _PersonalInformationScreenState
+    extends ConsumerState<PersonalInformationScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _dobController;
   late TextEditingController _genderController;
@@ -31,7 +33,9 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
       if (profile != null) {
         _dobController = TextEditingController(text: profile.dob);
         _genderController = TextEditingController(text: profile.gender);
-        _languagesController = TextEditingController(text: profile.languages.join(", "));
+        _languagesController = TextEditingController(
+          text: profile.languages.join(", "),
+        );
         _phoneController = TextEditingController(text: profile.mobile);
         _locationController = TextEditingController(text: profile.location);
         _initialized = true;
@@ -99,7 +103,9 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
 
     final profile = ref.read(profileProvider).profile!;
 
-    final success = await ref.read(profileProvider.notifier).updateProfile(
+    final success = await ref
+        .read(profileProvider.notifier)
+        .updateProfile(
           fullName: profile.fullName,
           mobile: _phoneController.text.trim(),
           location: _locationController.text.trim(),
@@ -113,7 +119,11 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? "Personal information updated successfully!" : "Failed to update details."),
+          content: Text(
+            success
+                ? "Personal information updated successfully!"
+                : "Failed to update details.",
+          ),
           backgroundColor: success ? AppColors.success : AppColors.error,
         ),
       );
@@ -177,7 +187,11 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
                   child: _buildTextField(
                     controller: _dobController,
                     labelText: "Date of Birth",
-                    suffixIcon: const Icon(Icons.calendar_today_outlined, color: Color(0xFFD4AF37), size: 20),
+                    suffixIcon: const Icon(
+                      Icons.calendar_today_outlined,
+                      color: Color(0xFFD4AF37),
+                      size: 20,
+                    ),
                   ),
                 ),
               ),
@@ -191,7 +205,9 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
               _buildTextField(
                 controller: _languagesController,
                 labelText: "Languages (e.g. English, Hindi, Spanish)",
-                validator: (val) => val == null || val.trim().isEmpty ? "Languages are required" : null,
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? "Languages are required"
+                    : null,
               ),
               const SizedBox(height: 16),
 
@@ -200,14 +216,19 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
                 controller: _phoneController,
                 labelText: "Phone Number",
                 keyboardType: TextInputType.phone,
-                validator: (val) => val == null || val.trim().isEmpty ? "Phone number is required" : null,
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? "Phone number is required"
+                    : null,
               ),
               const SizedBox(height: 16),
 
               // Address / Location
               GestureDetector(
                 onTap: () async {
-                  final loc = await LocationPickerSheet.show(context, initialLocation: _locationController.text);
+                  final loc = await LocationPickerSheet.show(
+                    context,
+                    initialLocation: _locationController.text,
+                  );
                   if (loc != null) {
                     setState(() {
                       _locationController.text = loc;
@@ -218,8 +239,14 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
                   child: _buildTextField(
                     controller: _locationController,
                     labelText: "Address / Location",
-                    suffixIcon: const Icon(Icons.my_location, color: Color(0xFFD4AF37), size: 20),
-                    validator: (val) => val == null || val.trim().isEmpty ? "Location is required" : null,
+                    suffixIcon: const Icon(
+                      Icons.my_location,
+                      color: Color(0xFFD4AF37),
+                      size: 20,
+                    ),
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? "Location is required"
+                        : null,
                   ),
                 ),
               ),
@@ -244,12 +271,17 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.black,
+                            ),
                           ),
                         )
                       : const Text(
                           "Save Changes",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                 ),
               ),

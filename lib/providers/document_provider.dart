@@ -35,14 +35,19 @@ class DocumentRecord {
       filePath: json['filePath'] ?? '',
       mimeType: json['mimeType'] ?? '',
       fileSize: json['fileSize'] ?? 0,
-      uploadedAt: json['uploadedAt'] != null ? DateTime.parse(json['uploadedAt']) : DateTime.now(),
+      uploadedAt: json['uploadedAt'] != null
+          ? DateTime.parse(json['uploadedAt'])
+          : DateTime.now(),
     );
   }
 }
 
-final documentsProvider = StateNotifierProvider<DocumentNotifier, AsyncValue<List<DocumentRecord>>>((ref) {
-  return DocumentNotifier();
-});
+final documentsProvider =
+    StateNotifierProvider<DocumentNotifier, AsyncValue<List<DocumentRecord>>>((
+      ref,
+    ) {
+      return DocumentNotifier();
+    });
 
 class DocumentNotifier extends StateNotifier<AsyncValue<List<DocumentRecord>>> {
   DocumentNotifier() : super(const AsyncValue.loading()) {
@@ -58,7 +63,10 @@ class DocumentNotifier extends StateNotifier<AsyncValue<List<DocumentRecord>>> {
         final docs = list.map((item) => DocumentRecord.fromJson(item)).toList();
         state = AsyncValue.data(docs);
       } else {
-        state = AsyncValue.error("Failed to load documents", StackTrace.current);
+        state = AsyncValue.error(
+          "Failed to load documents",
+          StackTrace.current,
+        );
       }
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -74,10 +82,7 @@ class DocumentNotifier extends StateNotifier<AsyncValue<List<DocumentRecord>>> {
     try {
       MultipartFile filePayload;
       if (bytes != null) {
-        filePayload = MultipartFile.fromBytes(
-          bytes,
-          filename: fileName,
-        );
+        filePayload = MultipartFile.fromBytes(bytes, filename: fileName);
       } else if (localPath != null) {
         filePayload = await MultipartFile.fromFile(
           localPath,
@@ -105,7 +110,9 @@ class DocumentNotifier extends StateNotifier<AsyncValue<List<DocumentRecord>>> {
         return newDoc;
       }
     } catch (e) {
-      if (e is DioException && e.response?.data != null && e.response?.data['message'] != null) {
+      if (e is DioException &&
+          e.response?.data != null &&
+          e.response?.data['message'] != null) {
         throw Exception(e.response!.data['message']);
       }
       rethrow;
@@ -118,7 +125,9 @@ class DocumentNotifier extends StateNotifier<AsyncValue<List<DocumentRecord>>> {
       final response = await DioClient.dio.delete("/documents/$docId");
       if (response.data != null && response.data['success'] == true) {
         state.whenData((currentDocs) {
-          state = AsyncValue.data(currentDocs.where((d) => d.id != docId).toList());
+          state = AsyncValue.data(
+            currentDocs.where((d) => d.id != docId).toList(),
+          );
         });
         return true;
       }

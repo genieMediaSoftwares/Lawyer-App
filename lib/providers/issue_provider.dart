@@ -3,9 +3,10 @@ import '../core/network/dio_client.dart';
 import '../models/issue_model.dart';
 import '../models/document_model.dart';
 
-final issuesProvider = StateNotifierProvider<IssueNotifier, AsyncValue<List<IssueModel>>>((ref) {
-  return IssueNotifier();
-});
+final issuesProvider =
+    StateNotifierProvider<IssueNotifier, AsyncValue<List<IssueModel>>>((ref) {
+      return IssueNotifier();
+    });
 
 class IssueNotifier extends StateNotifier<AsyncValue<List<IssueModel>>> {
   IssueNotifier() : super(const AsyncValue.loading()) {
@@ -40,17 +41,20 @@ class IssueNotifier extends StateNotifier<AsyncValue<List<IssueModel>>> {
     List<DocumentModel>? images,
   }) async {
     try {
-      final response = await DioClient.dio.post("/issues/create", data: {
-        "title": title,
-        "description": description,
-        "category": category,
-        "urgency": urgency,
-        "preferredLanguage": preferredLanguage,
-        "location": location,
-        "preferredMode": preferredMode,
-        "documents": documents?.map((d) => d.toJson()).toList() ?? [],
-        "images": images?.map((d) => d.toJson()).toList() ?? [],
-      });
+      final response = await DioClient.dio.post(
+        "/issues/create",
+        data: {
+          "title": title,
+          "description": description,
+          "category": category,
+          "urgency": urgency,
+          "preferredLanguage": preferredLanguage,
+          "location": location,
+          "preferredMode": preferredMode,
+          "documents": documents?.map((d) => d.toJson()).toList() ?? [],
+          "images": images?.map((d) => d.toJson()).toList() ?? [],
+        },
+      );
 
       if (response.data != null && response.data['success'] == true) {
         final newIssue = IssueModel.fromJson(response.data['data']);
@@ -67,9 +71,10 @@ class IssueNotifier extends StateNotifier<AsyncValue<List<IssueModel>>> {
 
   Future<bool> updateIssueStatus(String issueId, String status) async {
     try {
-      final response = await DioClient.dio.put("/issues/$issueId", data: {
-        "status": status,
-      });
+      final response = await DioClient.dio.put(
+        "/issues/$issueId",
+        data: {"status": status},
+      );
 
       if (response.data != null && response.data['success'] == true) {
         await fetchIssues();
@@ -86,7 +91,9 @@ class IssueNotifier extends StateNotifier<AsyncValue<List<IssueModel>>> {
       final response = await DioClient.dio.delete("/issues/$issueId");
       if (response.data != null && response.data['success'] == true) {
         state.whenData((currentIssues) {
-          state = AsyncValue.data(currentIssues.where((i) => i.id != issueId).toList());
+          state = AsyncValue.data(
+            currentIssues.where((i) => i.id != issueId).toList(),
+          );
         });
         return true;
       }

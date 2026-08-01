@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 import '../config/env.dart';
@@ -29,15 +30,19 @@ class DioClient {
       ApiInterceptor(),
       RetryInterceptor(dio: client),
       ErrorInterceptor(),
-      PrettyDioLogger(
-        requestBody: true,
-        requestHeader: true,
-        responseBody: true,
-        responseHeader: false,
-        error: true,
-      ),
     ]);
 
+    if (kDebugMode) {
+      client.interceptors.add(
+        PrettyDioLogger(
+          requestBody: true,
+          requestHeader: true,
+          responseBody: true,
+          responseHeader: false,
+          error: true,
+        ),
+      );
+    }
     return client;
   }
 }
@@ -53,24 +58,39 @@ class RetryInterceptor extends Interceptor {
     this.retryDelay = const Duration(seconds: 2),
   });
 
+  static const _idempotentMethods = {'GET', 'HEAD', 'OPTIONS'};
+
   @override
-  Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
     final requestOptions = err.requestOptions;
 
     // Check if the request is retryable (retry on timeouts or connection issues)
-    final isRetryable = err.type == DioExceptionType.connectionTimeout ||
+    final isRetryableError =
+        err.type == DioExceptionType.connectionTimeout ||
         err.type == DioExceptionType.sendTimeout ||
         err.type == DioExceptionType.receiveTimeout ||
         err.type == DioExceptionType.connectionError ||
         (err.type == DioExceptionType.unknown && err.error is SocketException);
 
+    final isIdempotent = _idempotentMethods.contains(
+      requestOptions.method.toUpperCase(),
+    );
+
+    final neverReachedServer =
+        err.type == DioExceptionType.connectionTimeout ||
+        (err.type == DioExceptionType.unknown && err.error is SocketException);
+
+    final isRetryable =
+        isRetryableError && (isIdempotent || neverReachedServer);
     final retryCount = requestOptions.extra['retry_count'] ?? 0;
 
     if (isRetryable && retryCount < maxRetries) {
       requestOptions.extra['retry_count'] = retryCount + 1;
 
-      // Wait before retry
-      await Future.delayed(retryDelay);
+      await Future.delayed(retryDelay * (1 << (retryCount as int)));
 
       try {
         final response = await dio.request(
@@ -102,7 +122,10 @@ class ErrorInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     // Map the error using our unified ErrorHandler
-    final mappedException = ErrorHandler.handleDioError(err, StackTrace.current);
+    final mappedException = ErrorHandler.handleDioError(
+      err,
+      StackTrace.current,
+    );
 
     // Reject with the mapped exception as the custom error object
     handler.next(

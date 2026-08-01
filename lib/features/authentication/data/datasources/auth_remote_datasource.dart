@@ -12,10 +12,7 @@ abstract class AuthRemoteDataSource {
     required String role,
   });
 
-  Future<AuthResponse> login({
-    required String email,
-    required String password,
-  });
+  Future<AuthResponse> login({required String email, required String password});
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -49,7 +46,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return AuthResponse(token: token, user: user);
     } on DioException catch (e) {
       final responseData = e.response?.data;
-      final errorMessage = (responseData != null && responseData is Map && responseData.containsKey('message'))
+      final errorMessage =
+          (responseData != null &&
+              responseData is Map &&
+              responseData.containsKey('message'))
           ? responseData['message']
           : (e.message ?? 'An error occurred during signup');
       throw ServerException(errorMessage.toString());
@@ -66,10 +66,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final response = await dio.post(
         '/auth/login',
-        data: {
-          'email': email,
-          'password': password,
-        },
+        data: {'email': email, 'password': password},
       );
 
       final data = response.data['data'];
@@ -78,7 +75,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return AuthResponse(token: token, user: user);
     } on DioException catch (e) {
       final responseData = e.response?.data;
-      final errorMessage = (responseData != null && responseData is Map && responseData.containsKey('message'))
+      final errorMessage =
+          (responseData != null &&
+              responseData is Map &&
+              responseData.containsKey('message'))
           ? responseData['message']
           : (e.message ?? 'An error occurred during login');
       throw ServerException(errorMessage.toString());

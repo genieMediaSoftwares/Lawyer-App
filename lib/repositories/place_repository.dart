@@ -11,7 +11,9 @@ class PlaceRepository {
       final list = response.data['data'] as List;
       return list.map((item) => PlaceSuggestionModel.fromJson(item)).toList();
     }
-    throw Exception(response.data?['message'] ?? "Failed to fetch autocomplete suggestions");
+    throw Exception(
+      response.data?['message'] ?? "Failed to fetch autocomplete suggestions",
+    );
   }
 
   Future<PlaceDetailsModel> getDetails(String placeId) async {
@@ -22,6 +24,8 @@ class PlaceRepository {
     if (response.data != null && response.data['success'] == true) {
       return PlaceDetailsModel.fromJson(response.data['data']);
     }
-    throw Exception(response.data?['message'] ?? "Failed to fetch place details");
+    throw Exception(
+      response.data?['message'] ?? "Failed to fetch place details",
+    );
   }
 }

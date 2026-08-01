@@ -1,4 +1,6 @@
 const notificationService = require("../services/notification/notificationService");
+const socketAuth = require("./socketAuth");
+
 
 module.exports = (io) => {
   const notificationNamespace = io.of("/notifications");
@@ -6,16 +8,15 @@ module.exports = (io) => {
   // Initialize service with Socket.IO
   notificationService.init(io);
 
-  notificationNamespace.on("connection", (socket) => {
-    console.log(`🔌 Notification Socket connected: ${socket.id}`);
+  notificationNamespace.use(socketAuth);
 
-    // Join personal user room to receive targeted alerts
-    socket.on("register", ({ userId }) => {
-      if (userId) {
-        socket.join(userId);
-        console.log(`🔔 User registered notifications: ${userId}`);
-      }
-    });
+  notificationNamespace.on("connection", (socket) => {
+    const userId = socket.userId;
+    console.log(`🔌 Notification Socket connected: ${socket.id} (user ${userId})`);
+
+    socket.join(userId);
+    console.log(`🔔 User registered notifications: ${userId}`);
+
 
     socket.on("disconnect", () => {
       console.log(`🔌 Notification Socket disconnected: ${socket.id}`);

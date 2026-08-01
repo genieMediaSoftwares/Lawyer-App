@@ -86,7 +86,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       textAlign: TextAlign.center,
                     ),
                   ),
-                )
+                ),
             ],
           ),
           const SizedBox(width: 8),
@@ -103,32 +103,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               )
             : state.errorMessage != null && state.profile == null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                          const SizedBox(height: 16),
-                          Text(
-                            "Failed to load profile details.",
-                            style: TextStyle(color: Colors.grey[400], fontSize: 16),
-                          ),
-                          const SizedBox(height: 12),
-                          ElevatedButton(
-                            onPressed: () => ref.read(profileProvider.notifier).fetchProfileData(),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFD4AF37),
-                              foregroundColor: Colors.black,
-                            ),
-                            child: const Text("Retry"),
-                          )
-                        ],
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 48,
                       ),
-                    ),
-                  )
-                : _buildProfileContent(state.profile!),
+                      const SizedBox(height: 16),
+                      Text(
+                        "Failed to load profile details.",
+                        style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: () => ref
+                            .read(profileProvider.notifier)
+                            .fetchProfileData(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD4AF37),
+                          foregroundColor: Colors.black,
+                        ),
+                        child: const Text("Retry"),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : _buildProfileContent(state.profile!),
       ),
     );
   }
@@ -154,7 +160,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             padding: EdgeInsets.only(left: 4, bottom: 10),
             child: Text(
               "ACCOUNT & PERSONAL DETAILS",
-              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
+              style: TextStyle(
+                color: Colors.grey,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
             ),
           ),
 
@@ -173,7 +183,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   title: "My Profile",
                   subtitle: "Photo, name, contact info",
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const MyProfileScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const MyProfileScreen(),
+                    ),
                   ),
                 ),
                 const Divider(color: Color(0xFF2B2B2B), height: 1),
@@ -182,7 +194,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   title: "Personal Information",
                   subtitle: "DOB, gender, address, languages",
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const PersonalInformationScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const PersonalInformationScreen(),
+                    ),
                   ),
                 ),
                 const Divider(color: Color(0xFF2B2B2B), height: 1),
@@ -191,7 +205,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   title: "Recent Activity",
                   subtitle: "Your timeline of activity logs",
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const RecentActivityScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const RecentActivityScreen(),
+                    ),
                   ),
                 ),
                 const Divider(color: Color(0xFF2B2B2B), height: 1),
@@ -200,7 +216,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   title: "Support & Help",
                   subtitle: "Help center, privacy, terms, support",
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const SupportHelpScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const SupportHelpScreen(),
+                    ),
                   ),
                 ),
               ],
@@ -213,7 +231,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             padding: EdgeInsets.only(left: 4, bottom: 10),
             child: Text(
               "LEGAL DESK & SERVICES",
-              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
+              style: TextStyle(
+                color: Colors.grey,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
             ),
           ),
 
@@ -244,7 +266,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 32),
-          
+
           // Red Logout Button Card
           InkWell(
             onTap: () => ref.read(authProvider.notifier).logout(),
@@ -298,7 +320,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ? Environment.getAttachmentUrl(profile.profileImage)
                 : null,
             fallback: Text(
-              profile.fullName.isNotEmpty ? profile.fullName[0].toUpperCase() : 'C',
+              profile.fullName.isNotEmpty
+                  ? profile.fullName[0].toUpperCase()
+                  : 'C',
               style: const TextStyle(
                 color: Color(0xFFD4AF37),
                 fontSize: 22,
@@ -359,13 +383,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       leading: Icon(icon, color: const Color(0xFFD4AF37), size: 24),
       title: Text(
         title,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 15,
+        ),
       ),
       subtitle: Text(
         subtitle,
         style: const TextStyle(color: Colors.grey, fontSize: 12),
       ),
-      trailing: const Icon(Icons.chevron_right, color: Color(0xFFD4AF37), size: 20),
+      trailing: const Icon(
+        Icons.chevron_right,
+        color: Color(0xFFD4AF37),
+        size: 20,
+      ),
     );
   }
 }
@@ -375,10 +407,12 @@ class EditProfileBottomSheet extends ConsumerStatefulWidget {
   const EditProfileBottomSheet({super.key, required this.profile});
 
   @override
-  ConsumerState<EditProfileBottomSheet> createState() => _EditProfileBottomSheetState();
+  ConsumerState<EditProfileBottomSheet> createState() =>
+      _EditProfileBottomSheetState();
 }
 
-class _EditProfileBottomSheetState extends ConsumerState<EditProfileBottomSheet> {
+class _EditProfileBottomSheetState
+    extends ConsumerState<EditProfileBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
@@ -444,14 +478,16 @@ class _EditProfileBottomSheetState extends ConsumerState<EditProfileBottomSheet>
     super.initState();
     _nameController = TextEditingController(text: widget.profile.fullName);
     _phoneController = TextEditingController(text: widget.profile.mobile);
-    
+
     final parsed = _parseDOB(widget.profile.dob);
     _dobController = TextEditingController(
       text: parsed != null ? DateFormat("dd/MM/yyyy").format(parsed) : "",
     );
-    
+
     _genderController = TextEditingController(text: widget.profile.gender);
-    _languagesController = TextEditingController(text: widget.profile.languages.join(", "));
+    _languagesController = TextEditingController(
+      text: widget.profile.languages.join(", "),
+    );
     _locationController = TextEditingController(text: widget.profile.location);
   }
 
@@ -477,7 +513,9 @@ class _EditProfileBottomSheetState extends ConsumerState<EditProfileBottomSheet>
         .where((e) => e.isNotEmpty)
         .toList();
 
-    final success = await ref.read(profileProvider.notifier).updateProfile(
+    final success = await ref
+        .read(profileProvider.notifier)
+        .updateProfile(
           fullName: _nameController.text.trim(),
           mobile: _phoneController.text.trim(),
           location: _locationController.text.trim(),
@@ -492,7 +530,11 @@ class _EditProfileBottomSheetState extends ConsumerState<EditProfileBottomSheet>
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? "Personal details saved successfully!" : "Failed to update profile details."),
+          content: Text(
+            success
+                ? "Personal details saved successfully!"
+                : "Failed to update profile details.",
+          ),
           backgroundColor: success ? AppColors.success : AppColors.error,
         ),
       );
@@ -540,12 +582,14 @@ class _EditProfileBottomSheetState extends ConsumerState<EditProfileBottomSheet>
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // Full Name
               _buildTextField(
                 controller: _nameController,
                 labelText: "Full Name",
-                validator: (val) => val == null || val.trim().isEmpty ? "Name is required" : null,
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? "Name is required"
+                    : null,
               ),
               const SizedBox(height: 12),
 
@@ -573,7 +617,10 @@ class _EditProfileBottomSheetState extends ConsumerState<EditProfileBottomSheet>
                   labelStyle: const TextStyle(color: Colors.grey),
                   hintText: "dd/mm/yyyy",
                   hintStyle: const TextStyle(color: Colors.grey),
-                  suffixIcon: const Icon(Icons.calendar_today_outlined, color: AppColors.primaryGold),
+                  suffixIcon: const Icon(
+                    Icons.calendar_today_outlined,
+                    color: AppColors.primaryGold,
+                  ),
                   filled: true,
                   fillColor: const Color(0xFF2B2B2B),
                   enabledBorder: OutlineInputBorder(
@@ -598,12 +645,21 @@ class _EditProfileBottomSheetState extends ConsumerState<EditProfileBottomSheet>
 
               // Gender
               DropdownButtonFormField<String>(
-                value: ['Male', 'Female', 'Other', 'Prefer Not To Say'].contains(_genderController.text)
+                value:
+                    [
+                      'Male',
+                      'Female',
+                      'Other',
+                      'Prefer Not To Say',
+                    ].contains(_genderController.text)
                     ? _genderController.text
                     : null,
                 dropdownColor: const Color(0xFF1B1B1B),
                 style: const TextStyle(color: Colors.white),
-                icon: const Icon(Icons.arrow_drop_down, color: AppColors.primaryGold),
+                icon: const Icon(
+                  Icons.arrow_drop_down,
+                  color: AppColors.primaryGold,
+                ),
                 hint: const Text(
                   "Select Gender",
                   style: TextStyle(color: Colors.grey, fontSize: 14),
@@ -634,9 +690,13 @@ class _EditProfileBottomSheetState extends ConsumerState<EditProfileBottomSheet>
                   DropdownMenuItem(value: "Male", child: Text("Male")),
                   DropdownMenuItem(value: "Female", child: Text("Female")),
                   DropdownMenuItem(value: "Other", child: Text("Other")),
-                  DropdownMenuItem(value: "Prefer Not To Say", child: Text("Prefer Not To Say")),
+                  DropdownMenuItem(
+                    value: "Prefer Not To Say",
+                    child: Text("Prefer Not To Say"),
+                  ),
                 ],
-                validator: (val) => val == null || val.isEmpty ? "Gender is required" : null,
+                validator: (val) =>
+                    val == null || val.isEmpty ? "Gender is required" : null,
                 onChanged: (val) {
                   if (val != null) {
                     setState(() {
@@ -660,14 +720,19 @@ class _EditProfileBottomSheetState extends ConsumerState<EditProfileBottomSheet>
                 controller: _phoneController,
                 labelText: "Phone Number",
                 keyboardType: TextInputType.phone,
-                validator: (val) => val == null || val.trim().isEmpty ? "Phone number is required" : null,
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? "Phone number is required"
+                    : null,
               ),
               const SizedBox(height: 12),
 
               // Address / Location
               GestureDetector(
                 onTap: () async {
-                  final loc = await LocationPickerSheet.show(context, initialLocation: _locationController.text);
+                  final loc = await LocationPickerSheet.show(
+                    context,
+                    initialLocation: _locationController.text,
+                  );
                   if (loc != null) {
                     setState(() {
                       _locationController.text = loc;
@@ -678,14 +743,17 @@ class _EditProfileBottomSheetState extends ConsumerState<EditProfileBottomSheet>
                   child: _buildTextField(
                     controller: _locationController,
                     labelText: "Address / Location",
-                    suffixIcon: const Icon(Icons.my_location, color: Color(0xFFD4AF37)),
+                    suffixIcon: const Icon(
+                      Icons.my_location,
+                      color: Color(0xFFD4AF37),
+                    ),
                     validator: (val) => null,
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Save Button
               SizedBox(
                 width: double.infinity,
@@ -705,12 +773,17 @@ class _EditProfileBottomSheetState extends ConsumerState<EditProfileBottomSheet>
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.black,
+                            ),
                           ),
                         )
                       : const Text(
                           "Save Changes",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                 ),
               ),

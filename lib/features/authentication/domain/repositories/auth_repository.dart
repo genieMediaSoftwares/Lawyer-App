@@ -4,10 +4,7 @@ class AuthResponse {
   final String token;
   final UserEntity user;
 
-  AuthResponse({
-    required this.token,
-    required this.user,
-  });
+  AuthResponse({required this.token, required this.user});
 }
 
 abstract class AuthRepository {
@@ -19,8 +16,5 @@ abstract class AuthRepository {
     required String role,
   });
 
-  Future<AuthResponse> login({
-    required String email,
-    required String password,
-  });
+  Future<AuthResponse> login({required String email, required String password});
 }

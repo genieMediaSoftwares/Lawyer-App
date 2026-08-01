@@ -3,7 +3,9 @@ import '../services/calendar_api_service.dart';
 import '../repositories/calendar_repository.dart';
 import '../../../../models/appointment_model.dart';
 
-final calendarApiServiceProvider = Provider<CalendarApiService>((ref) => CalendarApiService());
+final calendarApiServiceProvider = Provider<CalendarApiService>(
+  (ref) => CalendarApiService(),
+);
 
 final calendarRepositoryProvider = Provider<CalendarRepository>((ref) {
   final apiService = ref.watch(calendarApiServiceProvider);
@@ -23,15 +25,21 @@ final focusedMonthProvider = StateProvider<DateTime>((ref) {
 });
 
 // StateNotifierProvider for fetching MongoDB appointments
-final calendarAppointmentsProvider = StateNotifierProvider<CalendarAppointmentsNotifier, AsyncValue<List<AppointmentModel>>>((ref) {
-  final repository = ref.watch(calendarRepositoryProvider);
-  return CalendarAppointmentsNotifier(repository);
-});
+final calendarAppointmentsProvider =
+    StateNotifierProvider<
+      CalendarAppointmentsNotifier,
+      AsyncValue<List<AppointmentModel>>
+    >((ref) {
+      final repository = ref.watch(calendarRepositoryProvider);
+      return CalendarAppointmentsNotifier(repository);
+    });
 
-class CalendarAppointmentsNotifier extends StateNotifier<AsyncValue<List<AppointmentModel>>> {
+class CalendarAppointmentsNotifier
+    extends StateNotifier<AsyncValue<List<AppointmentModel>>> {
   final CalendarRepository _repository;
 
-  CalendarAppointmentsNotifier(this._repository) : super(const AsyncValue.loading()) {
+  CalendarAppointmentsNotifier(this._repository)
+    : super(const AsyncValue.loading()) {
     loadAppointments();
   }
 

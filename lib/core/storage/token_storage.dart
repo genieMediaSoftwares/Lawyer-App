@@ -9,6 +9,12 @@ class TokenStorage {
   static const String _roleKey = 'user_role';
   static const String _onboardingKey = 'onboarding_completed';
 
+  /// In-memory mirror of the stored JWT.
+  static String? _cachedToken;
+
+  /// Last known JWT, or null when signed out.
+  static String? get cachedToken => _cachedToken;
+
   static const String _idKey = 'user_id';
   static const String _nameKey = 'user_name';
   static const String _emailKey = 'user_email';
@@ -17,6 +23,7 @@ class TokenStorage {
   static const String _locationKey = 'user_location';
 
   Future<void> saveToken(String token) async {
+    _cachedToken = token;
     try {
       await _secureStorage.write(key: _tokenKey, value: token);
     } catch (_) {}
@@ -24,13 +31,16 @@ class TokenStorage {
 
   Future<String?> getToken() async {
     try {
-      return await _secureStorage.read(key: _tokenKey);
+      final token = await _secureStorage.read(key: _tokenKey);
+      _cachedToken = token;
+      return token;
     } catch (_) {
       return null;
     }
   }
 
   Future<void> deleteToken() async {
+    _cachedToken = null;
     try {
       await _secureStorage.delete(key: _tokenKey);
     } catch (_) {}
@@ -130,6 +140,7 @@ class TokenStorage {
   }
 
   Future<void> clearAll() async {
+    _cachedToken = null;
     try {
       await _secureStorage.delete(key: _tokenKey);
       await _secureStorage.delete(key: _roleKey);

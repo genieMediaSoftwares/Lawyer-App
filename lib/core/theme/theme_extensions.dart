@@ -34,13 +34,24 @@ class LuxuryThemeExtension extends ThemeExtension<LuxuryThemeExtension> {
   }
 
   @override
-  LuxuryThemeExtension lerp(ThemeExtension<LuxuryThemeExtension>? other, double t) {
+  LuxuryThemeExtension lerp(
+    ThemeExtension<LuxuryThemeExtension>? other,
+    double t,
+  ) {
     if (other is! LuxuryThemeExtension) {
       return this;
     }
     return LuxuryThemeExtension(
-      primaryBackground: Color.lerp(primaryBackground, other.primaryBackground, t)!,
-      secondaryBackground: Color.lerp(secondaryBackground, other.secondaryBackground, t)!,
+      primaryBackground: Color.lerp(
+        primaryBackground,
+        other.primaryBackground,
+        t,
+      )!,
+      secondaryBackground: Color.lerp(
+        secondaryBackground,
+        other.secondaryBackground,
+        t,
+      )!,
       border: Color.lerp(border, other.border, t)!,
       goldHover: Color.lerp(goldHover, other.goldHover, t)!,
       primaryGold: Color.lerp(primaryGold, other.primaryGold, t)!,
@@ -48,14 +59,16 @@ class LuxuryThemeExtension extends ThemeExtension<LuxuryThemeExtension> {
   }
 
   static LuxuryThemeExtension get value => const LuxuryThemeExtension(
-        primaryBackground: AppColors.primaryBackground,
-        secondaryBackground: AppColors.secondaryBackground,
-        border: AppColors.border,
-        goldHover: AppColors.goldHover,
-        primaryGold: AppColors.primaryGold,
-      );
+    primaryBackground: AppColors.primaryBackground,
+    secondaryBackground: AppColors.secondaryBackground,
+    border: AppColors.border,
+    goldHover: AppColors.goldHover,
+    primaryGold: AppColors.primaryGold,
+  );
 }
 
 extension BuildContextThemeExtension on BuildContext {
-  LuxuryThemeExtension get luxuryTheme => Theme.of(this).extension<LuxuryThemeExtension>() ?? LuxuryThemeExtension.value;
+  LuxuryThemeExtension get luxuryTheme =>
+      Theme.of(this).extension<LuxuryThemeExtension>() ??
+      LuxuryThemeExtension.value;
 }

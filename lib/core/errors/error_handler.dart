@@ -51,48 +51,76 @@ class ErrorHandler {
 
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
-        return NetworkException("Connection timed out. Please check your internet connection.");
+        return NetworkException(
+          "Connection timed out. Please check your internet connection.",
+        );
       case DioExceptionType.sendTimeout:
         return NetworkException("Send timeout. Please try again.");
       case DioExceptionType.receiveTimeout:
-        return NetworkException("Receive timeout. Server is taking too long to respond.");
+        return NetworkException(
+          "Receive timeout. Server is taking too long to respond.",
+        );
       case DioExceptionType.badCertificate:
-        return ServerException("Secure connection failed. Invalid SSL certificate.");
+        return ServerException(
+          "Secure connection failed. Invalid SSL certificate.",
+        );
       case DioExceptionType.badResponse:
         final statusCode = error.response?.statusCode;
         final responseData = error.response?.data;
         String? serverMsg;
         if (responseData is Map) {
-          serverMsg = responseData['message']?.toString() ?? responseData['error']?.toString();
+          serverMsg =
+              responseData['message']?.toString() ??
+              responseData['error']?.toString();
         }
 
         if (statusCode == 400) {
-          return ServerException(serverMsg ?? "Bad Request. Please check your inputs.");
+          return ServerException(
+            serverMsg ?? "Bad Request. Please check your inputs.",
+          );
         } else if (statusCode == 401) {
-          return ServerException(serverMsg ?? "Unauthorized. Please login again.");
+          return ServerException(
+            serverMsg ?? "Unauthorized. Please login again.",
+          );
         } else if (statusCode == 403) {
-          return ServerException(serverMsg ?? "Access forbidden. You do not have permission.");
+          return ServerException(
+            serverMsg ?? "Access forbidden. You do not have permission.",
+          );
         } else if (statusCode == 404) {
-          return ServerException(serverMsg ?? "Resource not found on the server.");
+          return ServerException(
+            serverMsg ?? "Resource not found on the server.",
+          );
         } else if (statusCode == 500) {
-          return ServerException(serverMsg ?? "Internal Server Error. Please try again later.");
+          return ServerException(
+            serverMsg ?? "Internal Server Error. Please try again later.",
+          );
         }
-        return ServerException(serverMsg ?? "Server returned error: $statusCode");
+        return ServerException(
+          serverMsg ?? "Server returned error: $statusCode",
+        );
 
       case DioExceptionType.cancel:
         return ServerException("Request was cancelled.");
       case DioExceptionType.connectionError:
         if (error.error is SocketException) {
           final socketError = error.error as SocketException;
-          return NetworkException("Connection failed: ${socketError.message}. Ensure your device is on the same network as the server.");
+          return NetworkException(
+            "Connection failed: ${socketError.message}. Ensure your device is on the same network as the server.",
+          );
         }
-        return NetworkException("Connection failed. Please check if the server is running and reachable.");
+        return NetworkException(
+          "Connection failed. Please check if the server is running and reachable.",
+        );
       case DioExceptionType.unknown:
         if (error.error is SocketException) {
           final socketError = error.error as SocketException;
-          return NetworkException("Network error: ${socketError.message}. Please check your connection.");
+          return NetworkException(
+            "Network error: ${socketError.message}. Please check your connection.",
+          );
         }
-        return ServerException("An unexpected error occurred: ${error.message}");
+        return ServerException(
+          "An unexpected error occurred: ${error.message}",
+        );
       default:
         return ServerException("An unexpected network error occurred.");
     }

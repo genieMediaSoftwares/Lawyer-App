@@ -184,10 +184,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
               ),
               child: const Text(
                 "Back to Support",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
           ),
@@ -216,59 +213,65 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
           const SizedBox(height: 10),
 
           // Cards for Channels
-          LayoutBuilder(builder: (context, constraints) {
-            final cardWidth = (constraints.maxWidth - 12) / 2;
-            return Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _buildChannelCard(
-                  width: cardWidth,
-                  icon: Icons.chat_bubble_outline_rounded,
-                  title: "Live Chat",
-                  subtitle: "Immediate response",
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Launching secure chat...")),
-                    );
-                  },
-                ),
-                _buildChannelCard(
-                  width: cardWidth,
-                  icon: Icons.email_outlined,
-                  title: "Email Support",
-                  subtitle: "support@genielaw.com",
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Opening email app...")),
-                    );
-                  },
-                ),
-                _buildChannelCard(
-                  width: cardWidth,
-                  icon: Icons.phone_outlined,
-                  title: "Phone Support",
-                  subtitle: "+1 (800) 555-0199",
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Dialing support line...")),
-                    );
-                  },
-                ),
-                _buildChannelCard(
-                  width: cardWidth,
-                  icon: Icons.message_outlined,
-                  title: "WhatsApp",
-                  subtitle: "Instant Messenger",
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Opening WhatsApp...")),
-                    );
-                  },
-                ),
-              ],
-            );
-          }),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cardWidth = (constraints.maxWidth - 12) / 2;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _buildChannelCard(
+                    width: cardWidth,
+                    icon: Icons.chat_bubble_outline_rounded,
+                    title: "Live Chat",
+                    subtitle: "Immediate response",
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Launching secure chat..."),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildChannelCard(
+                    width: cardWidth,
+                    icon: Icons.email_outlined,
+                    title: "Email Support",
+                    subtitle: "support@genielaw.com",
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Opening email app...")),
+                      );
+                    },
+                  ),
+                  _buildChannelCard(
+                    width: cardWidth,
+                    icon: Icons.phone_outlined,
+                    title: "Phone Support",
+                    subtitle: "+1 (800) 555-0199",
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Dialing support line..."),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildChannelCard(
+                    width: cardWidth,
+                    icon: Icons.message_outlined,
+                    title: "WhatsApp",
+                    subtitle: "Instant Messenger",
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Opening WhatsApp...")),
+                      );
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
 
           const SizedBox(height: 24),
 
@@ -299,19 +302,31 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                   // Subject
                   const Text(
                     "Subject",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _subjectController,
                     style: const TextStyle(color: Colors.white, fontSize: 14),
-                    validator: (val) => val == null || val.trim().isEmpty ? "Subject is required" : null,
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? "Subject is required"
+                        : null,
                     decoration: InputDecoration(
                       hintText: "Short summary of your issue",
-                      hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                      hintStyle: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 13,
+                      ),
                       filled: true,
                       fillColor: const Color(0xFF2B2B2B),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(color: Color(0xFF3B3B3B)),
@@ -335,7 +350,11 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                   // Category
                   const Text(
                     "Category",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
@@ -350,7 +369,10 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: const Color(0xFF2B2B2B),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(color: Color(0xFF3B3B3B)),
@@ -361,10 +383,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                       ),
                     ),
                     items: _ticketCategories.map((cat) {
-                      return DropdownMenuItem(
-                        value: cat,
-                        child: Text(cat),
-                      );
+                      return DropdownMenuItem(value: cat, child: Text(cat));
                     }).toList(),
                   ),
                   const SizedBox(height: 16),
@@ -372,17 +391,27 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                   // Description
                   const Text(
                     "Description",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _descriptionController,
                     style: const TextStyle(color: Colors.white, fontSize: 14),
                     maxLines: 4,
-                    validator: (val) => val == null || val.trim().isEmpty ? "Description details are required" : null,
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? "Description details are required"
+                        : null,
                     decoration: InputDecoration(
-                      hintText: "Explain the details of your request or error...",
-                      hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                      hintText:
+                          "Explain the details of your request or error...",
+                      hintStyle: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 13,
+                      ),
                       filled: true,
                       fillColor: const Color(0xFF2B2B2B),
                       contentPadding: const EdgeInsets.all(14),
@@ -418,30 +447,47 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                         ),
                       ),
                       icon: const Icon(Icons.attach_file, size: 18),
-                      label: const Text("Attach Screenshot", style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        "Attach Screenshot",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     )
                   else
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF2B2B2B),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.image, color: Color(0xFFD4AF37), size: 20),
+                          const Icon(
+                            Icons.image,
+                            color: Color(0xFFD4AF37),
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _attachedFileName!,
-                              style: const TextStyle(color: Colors.white, fontSize: 12),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           IconButton(
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
-                            icon: const Icon(Icons.close, color: Colors.red, size: 18),
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.red,
+                              size: 18,
+                            ),
                             onPressed: _removeScreenshot,
                           ),
                         ],
@@ -469,12 +515,17 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.black,
+                                ),
                               ),
                             )
                           : const Text(
                               "Submit Ticket",
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
                             ),
                     ),
                   ),
@@ -503,7 +554,11 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                     SizedBox(width: 8),
                     Text(
                       "Business Hours & SLA",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
@@ -512,7 +567,11 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                   "• Support Channels: Available 24/7 (Live Chat & Phone)\n"
                   "• Support Ticket Desk: 9:00 AM - 6:00 PM (Monday - Saturday)\n"
                   "• SLA Response SLA: Tickets are processed within 2 to 4 business hours.",
-                  style: TextStyle(color: Colors.grey, fontSize: 12.5, height: 1.5),
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 12.5,
+                    height: 1.5,
+                  ),
                 ),
               ],
             ),
@@ -534,7 +593,11 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
               children: const [
                 Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded, color: Color(0xFFFFB300), size: 20),
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Color(0xFFFFB300),
+                      size: 20,
+                    ),
                     SizedBox(width: 8),
                     Text(
                       "EMERGENCY LEGAL DISCLAIMER",
@@ -590,7 +653,11 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
             const SizedBox(height: 12),
             Text(
               title,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13.5,
+              ),
             ),
             const SizedBox(height: 4),
             Text(

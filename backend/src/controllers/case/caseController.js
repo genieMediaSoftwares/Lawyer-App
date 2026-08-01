@@ -184,10 +184,13 @@ class CaseController {
         return ApiResponse.error(res, "Case not found.", 404);
       }
 
+      const parsedFee = Number(feeProposal);
+      const feeToUse = Number.isFinite(parsedFee) && parsedFee >= 0 ? parsedFee : 1500;
+
       // 1. Create or update in Proposal collection
       let proposal = await Proposal.findOne({ caseId: id, lawyerId });
       if (proposal) {
-        proposal.consultationFee = feeProposal || 1500;
+        proposal.consultationFee = feeToUse;
         proposal.proposalMessage = message || "";
         proposal.estimatedResponseTime = estimatedResponseTime || "24 hours";
         proposal.consultationMode = consultationMode || "Video";
@@ -198,7 +201,7 @@ class CaseController {
           caseId: id,
           lawyerId,
           clientId: caseItem.client,
-          consultationFee: feeProposal || 1500,
+          consultationFee: feeToUse,
           proposalMessage: message || "",
           estimatedResponseTime: estimatedResponseTime || "24 hours",
           consultationMode: consultationMode || "Video",
@@ -213,12 +216,12 @@ class CaseController {
       );
 
       if (existingProposalIndex > -1) {
-        caseItem.proposals[existingProposalIndex].feeProposal = feeProposal || 1500;
+        caseItem.proposals[existingProposalIndex].feeProposal = feeToUse;
         caseItem.proposals[existingProposalIndex].message = message || "";
       } else {
         caseItem.proposals.push({
           lawyer: lawyerId,
-          feeProposal: feeProposal || 1500,
+          feeProposal: feeToUse,
           message: message || ""
         });
       }

@@ -10,7 +10,8 @@ class FavoriteLawyersScreen extends ConsumerStatefulWidget {
   const FavoriteLawyersScreen({super.key});
 
   @override
-  ConsumerState<FavoriteLawyersScreen> createState() => _FavoriteLawyersScreenState();
+  ConsumerState<FavoriteLawyersScreen> createState() =>
+      _FavoriteLawyersScreenState();
 }
 
 class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
@@ -28,7 +29,10 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: const Text("Favorite Lawyers", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Favorite Lawyers",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(
             icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view),
@@ -45,11 +49,26 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.favorite_border, size: 72, color: theme.colorScheme.outline),
+                    Icon(
+                      Icons.favorite_border,
+                      size: 72,
+                      color: theme.colorScheme.outline,
+                    ),
                     const SizedBox(height: 16),
-                    Text("No Favorites Added Yet", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color)),
+                    Text(
+                      "No Favorites Added Yet",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: theme.textTheme.titleMedium?.color,
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    Text("Select the heart icon on any lawyer's profile page to save them here.", textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodySmall?.color)),
+                    Text(
+                      "Select the heart icon on any lawyer's profile page to save them here.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: theme.textTheme.bodySmall?.color),
+                    ),
                   ],
                 ),
               ),
@@ -74,14 +93,19 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
         return Card(
           elevation: 0,
           margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: theme.colorScheme.outline)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: theme.colorScheme.outline),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
                 AppCircleAvatar(
                   radius: 26,
-                  imageUrl: fav.lawyerImage.isNotEmpty ? Environment.getAttachmentUrl(fav.lawyerImage) : null,
+                  imageUrl: fav.lawyerImage.isNotEmpty
+                      ? Environment.getAttachmentUrl(fav.lawyerImage)
+                      : null,
                   fallback: const Icon(Icons.person),
                 ),
                 const SizedBox(width: 12),
@@ -89,13 +113,36 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(fav.lawyerName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.titleMedium?.color)),
-                      Text(fav.specialization, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12)),
+                      Text(
+                        fav.lawyerName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: theme.textTheme.titleMedium?.color,
+                        ),
+                      ),
+                      Text(
+                        fav.specialization,
+                        style: TextStyle(
+                          color: theme.textTheme.bodySmall?.color,
+                          fontSize: 12,
+                        ),
+                      ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.star, color: theme.colorScheme.primary, size: 14),
-                          Text(" ${fav.rating}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          Icon(
+                            Icons.star,
+                            color: theme.colorScheme.primary,
+                            size: 14,
+                          ),
+                          Text(
+                            " ${fav.rating}",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -104,15 +151,20 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                 Column(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.favorite, color: AppColors.error, size: 20),
+                      icon: const Icon(
+                        Icons.favorite,
+                        color: AppColors.error,
+                        size: 20,
+                      ),
                       onPressed: () => _removeFavorite(fav.id),
                     ),
                     ElevatedButton(
-                      onPressed: () => context.push('/lawyer-profile/${fav.lawyerUserId}'),
+                      onPressed: () =>
+                          context.push('/lawyer-profile/${fav.lawyerUserId}'),
                       child: const Text("Book"),
-                    )
+                    ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -136,7 +188,10 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
         final fav = items[index];
         return Card(
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: theme.colorScheme.outline)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: theme.colorScheme.outline),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -147,35 +202,69 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                   children: [
                     AppCircleAvatar(
                       radius: 28,
-                      imageUrl: fav.lawyerImage.isNotEmpty ? Environment.getAttachmentUrl(fav.lawyerImage) : null,
+                      imageUrl: fav.lawyerImage.isNotEmpty
+                          ? Environment.getAttachmentUrl(fav.lawyerImage)
+                          : null,
                       fallback: const Icon(Icons.person),
                     ),
                     Positioned(
                       right: -10,
                       top: -10,
                       child: IconButton(
-                        icon: const Icon(Icons.favorite, color: AppColors.error, size: 18),
+                        icon: const Icon(
+                          Icons.favorite,
+                          color: AppColors.error,
+                          size: 18,
+                        ),
                         onPressed: () => _removeFavorite(fav.id),
                       ),
-                    )
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(fav.lawyerName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: theme.textTheme.titleMedium?.color), textAlign: TextAlign.center, maxLines: 1),
-                Text(fav.specialization, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 11), textAlign: TextAlign.center, maxLines: 1),
+                Text(
+                  fav.lawyerName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: theme.textTheme.titleMedium?.color,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                ),
+                Text(
+                  fav.specialization,
+                  style: TextStyle(
+                    color: theme.textTheme.bodySmall?.color,
+                    fontSize: 11,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                ),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.star, color: theme.colorScheme.primary, size: 14),
-                    Text(" ${fav.rating}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                    Icon(
+                      Icons.star,
+                      color: theme.colorScheme.primary,
+                      size: 14,
+                    ),
+                    Text(
+                      " ${fav.rating}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 ElevatedButton(
-                  onPressed: () => context.push('/lawyer-profile/${fav.lawyerUserId}'),
+                  onPressed: () =>
+                      context.push('/lawyer-profile/${fav.lawyerUserId}'),
                   child: const Text("Book Now"),
-                )
+                ),
               ],
             ),
           ),
@@ -185,9 +274,13 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
   }
 
   Future<void> _removeFavorite(String favoriteId) async {
-    final success = await ref.read(favoritesProvider.notifier).removeFavorite(favoriteId);
+    final success = await ref
+        .read(favoritesProvider.notifier)
+        .removeFavorite(favoriteId);
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Removed from favorite lawyers.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Removed from favorite lawyers.")),
+      );
     }
   }
 }

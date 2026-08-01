@@ -29,10 +29,12 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
   }
 
   void _triggerSearch() {
-    ref.read(articlesProvider.notifier).fetchArticles(
-      category: _selectedCategory,
-      search: _searchController.text,
-    );
+    ref
+        .read(articlesProvider.notifier)
+        .fetchArticles(
+          category: _selectedCategory,
+          search: _searchController.text,
+        );
   }
 
   @override
@@ -50,7 +52,10 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text("Legal Articles", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Legal Articles",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
       body: Column(
         children: [
@@ -64,8 +69,13 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: "Search legal articles...",
-                    prefixIcon: Icon(Icons.search, color: theme.colorScheme.primary),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: theme.colorScheme.primary,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
                   onChanged: (_) => _triggerSearch(),
@@ -90,7 +100,9 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                             color: isSelected
                                 ? Colors.black
                                 : theme.textTheme.bodySmall?.color,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                           onSelected: (val) {
                             if (val) {
@@ -102,7 +114,7 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                       );
                     },
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -118,10 +130,25 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.article_outlined, size: 64, color: theme.colorScheme.outline),
+                          Icon(
+                            Icons.article_outlined,
+                            size: 64,
+                            color: theme.colorScheme.outline,
+                          ),
                           const SizedBox(height: 12),
-                          Text("No Articles Found", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
-                          Text("Try updating your search query or categories.", style: TextStyle(color: secondaryTextColor), textAlign: TextAlign.center),
+                          Text(
+                            "No Articles Found",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: primaryTextColor,
+                            ),
+                          ),
+                          Text(
+                            "Try updating your search query or categories.",
+                            style: TextStyle(color: secondaryTextColor),
+                            textAlign: TextAlign.center,
+                          ),
                         ],
                       ),
                     ),
@@ -140,7 +167,7 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, stack) => Center(child: Text("Error: $err")),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -163,13 +190,19 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
         children: [
           if (article.image.isNotEmpty)
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: Image.network(
                 article.image,
                 height: 150,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (c, e, s) => Container(height: 150, color: theme.colorScheme.surface, child: const Icon(Icons.image)),
+                errorBuilder: (c, e, s) => Container(
+                  height: 150,
+                  color: theme.colorScheme.surface,
+                  child: const Icon(Icons.image),
+                ),
               ),
             ),
           Padding(
@@ -181,7 +214,10 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
@@ -197,21 +233,42 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                     ),
                     Row(
                       children: [
-                        Icon(Icons.timer_outlined, size: 14, color: theme.colorScheme.primary),
+                        Icon(
+                          Icons.timer_outlined,
+                          size: 14,
+                          color: theme.colorScheme.primary,
+                        ),
                         const SizedBox(width: 4),
-                        Text(article.readTime, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 11)),
+                        Text(
+                          article.readTime,
+                          style: TextStyle(
+                            color: theme.textTheme.bodySmall?.color,
+                            fontSize: 11,
+                          ),
+                        ),
                       ],
-                    )
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(article.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
+                Text(
+                  article.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: primaryTextColor,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   article.content,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: secondaryTextColor, fontSize: 12, height: 1.4),
+                  style: TextStyle(
+                    color: secondaryTextColor,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
                 ),
                 const Divider(height: 24),
                 Row(
@@ -222,17 +279,25 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                       style: TextButton.styleFrom(
                         foregroundColor: theme.colorScheme.primary,
                       ),
-                      child: const Text("Read Full Article", style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        "Read Full Article",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.bookmark_border, color: theme.colorScheme.primary),
-                      onPressed: () => ref.read(articlesProvider.notifier).toggleBookmark(article.id),
-                    )
+                      icon: Icon(
+                        Icons.bookmark_border,
+                        color: theme.colorScheme.primary,
+                      ),
+                      onPressed: () => ref
+                          .read(articlesProvider.notifier)
+                          .toggleBookmark(article.id),
+                    ),
                   ],
-                )
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -244,7 +309,9 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: theme.scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) => DraggableScrollableSheet(
         initialChildSize: 0.8,
         maxChildSize: 0.95,
@@ -254,23 +321,59 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
           controller: scrollController,
           padding: const EdgeInsets.all(24),
           children: [
-            Container(height: 4, width: 40, decoration: BoxDecoration(color: theme.colorScheme.outline, borderRadius: BorderRadius.circular(2)), margin: const EdgeInsets.symmetric(horizontal: 140, vertical: 8)),
+            Container(
+              height: 4,
+              width: 40,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.outline,
+                borderRadius: BorderRadius.circular(2),
+              ),
+              margin: const EdgeInsets.symmetric(horizontal: 140, vertical: 8),
+            ),
             const SizedBox(height: 16),
-            Text(article.category.toUpperCase(), style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 11)),
+            Text(
+              article.category.toUpperCase(),
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
             const SizedBox(height: 6),
-            Text(article.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: theme.textTheme.titleLarge?.color)),
+            Text(
+              article.title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+                color: theme.textTheme.titleLarge?.color,
+              ),
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.timer_outlined, size: 14, color: theme.colorScheme.primary),
+                Icon(
+                  Icons.timer_outlined,
+                  size: 14,
+                  color: theme.colorScheme.primary,
+                ),
                 const SizedBox(width: 4),
-                Text(article.readTime, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12)),
+                Text(
+                  article.readTime,
+                  style: TextStyle(
+                    color: theme.textTheme.bodySmall?.color,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
             const Divider(height: 32),
             Text(
               "${article.content}\n\n${_getLongContentPlaceholder()}",
-              style: TextStyle(fontSize: 14, height: 1.6, color: theme.textTheme.bodyMedium?.color),
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.6,
+                color: theme.textTheme.bodyMedium?.color,
+              ),
             ),
           ],
         ),

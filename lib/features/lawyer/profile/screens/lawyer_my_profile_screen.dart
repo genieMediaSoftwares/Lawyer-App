@@ -11,7 +11,8 @@ class LawyerMyProfileScreen extends ConsumerStatefulWidget {
   const LawyerMyProfileScreen({super.key});
 
   @override
-  ConsumerState<LawyerMyProfileScreen> createState() => _LawyerMyProfileScreenState();
+  ConsumerState<LawyerMyProfileScreen> createState() =>
+      _LawyerMyProfileScreenState();
 }
 
 class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
@@ -20,15 +21,20 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
   Future<void> _pickAndUploadImage() async {
     try {
       final picker = ImagePicker();
-      final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+      final image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+      );
       if (image == null) return;
 
       final bytes = await image.readAsBytes();
 
       setState(() => _isSavingImage = true);
 
-      final success = await ref.read(authProvider.notifier).updateProfileImage(bytes, image.name);
-      
+      final success = await ref
+          .read(authProvider.notifier)
+          .updateProfileImage(bytes, image.name);
+
       // Invalidate lawyer details to sync photo across all providers
       final auth = ref.read(authProvider);
       if (auth.userId != null) {
@@ -40,7 +46,11 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(success ? "Profile image updated successfully!" : "Failed to upload profile image."),
+            content: Text(
+              success
+                  ? "Profile image updated successfully!"
+                  : "Failed to upload profile image.",
+            ),
             backgroundColor: success ? AppColors.success : AppColors.error,
           ),
         );
@@ -48,9 +58,9 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
     } catch (e) {
       setState(() => _isSavingImage = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error selecting image: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error selecting image: $e")));
       }
     }
   }
@@ -98,23 +108,33 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: theme.colorScheme.primary, width: 2),
+                      border: Border.all(
+                        color: theme.colorScheme.primary,
+                        width: 2,
+                      ),
                     ),
                     child: CircleAvatar(
                       radius: 56,
                       backgroundColor: theme.colorScheme.outline,
-                      backgroundImage: auth.userPhotoUrl != null && auth.userPhotoUrl!.isNotEmpty
-                          ? NetworkImage(Environment.getAttachmentUrl(auth.userPhotoUrl))
+                      backgroundImage:
+                          auth.userPhotoUrl != null &&
+                              auth.userPhotoUrl!.isNotEmpty
+                          ? NetworkImage(
+                              Environment.getAttachmentUrl(auth.userPhotoUrl),
+                            )
                           : null,
-                      child: (auth.userPhotoUrl == null || auth.userPhotoUrl!.isEmpty)
+                      child:
+                          (auth.userPhotoUrl == null ||
+                              auth.userPhotoUrl!.isEmpty)
                           ? Text(
                               auth.userName != null && auth.userName!.isNotEmpty
                                   ? auth.userName![0].toUpperCase()
                                   : 'A',
                               style: TextStyle(
-                                  color: theme.colorScheme.primary,
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.bold),
+                                color: theme.colorScheme.primary,
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                              ),
                             )
                           : null,
                     ),
@@ -126,9 +146,7 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
                           color: Colors.black45,
                           shape: BoxShape.circle,
                         ),
-                        child: const Center(
-                          child: CircularProgressIndicator(),
-                        ),
+                        child: const Center(child: CircularProgressIndicator()),
                       ),
                     ),
                   Positioned(
@@ -139,7 +157,11 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
                       child: CircleAvatar(
                         radius: 18,
                         backgroundColor: theme.colorScheme.primary,
-                        child: const Icon(Icons.camera_alt, size: 16, color: Colors.black),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          size: 16,
+                          color: Colors.black,
+                        ),
                       ),
                     ),
                   ),
@@ -159,11 +181,26 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  _buildDetailRow(context, Icons.person_outline, "Full Name", auth.userName ?? ""),
+                  _buildDetailRow(
+                    context,
+                    Icons.person_outline,
+                    "Full Name",
+                    auth.userName ?? "",
+                  ),
                   Divider(color: theme.colorScheme.outline, height: 28),
-                  _buildDetailRow(context, Icons.email_outlined, "Email Address", auth.userEmail ?? ""),
+                  _buildDetailRow(
+                    context,
+                    Icons.email_outlined,
+                    "Email Address",
+                    auth.userEmail ?? "",
+                  ),
                   Divider(color: theme.colorScheme.outline, height: 28),
-                  _buildDetailRow(context, Icons.phone_outlined, "Phone Number", auth.userMobile ?? ""),
+                  _buildDetailRow(
+                    context,
+                    Icons.phone_outlined,
+                    "Phone Number",
+                    auth.userMobile ?? "",
+                  ),
                   Divider(color: theme.colorScheme.outline, height: 28),
                   _buildDetailRow(
                     context,
@@ -203,7 +240,12 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
     );
   }
 
-  Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value) {
+  Widget _buildDetailRow(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value,
+  ) {
     final theme = Theme.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,7 +258,12 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
             children: [
               Text(
                 label,
-                style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey, fontSize: 12),
+                style: TextStyle(
+                  color:
+                      theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ??
+                      Colors.grey,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -240,10 +287,12 @@ class LawyerEditPersonalBottomSheet extends ConsumerStatefulWidget {
   const LawyerEditPersonalBottomSheet({super.key, required this.auth});
 
   @override
-  ConsumerState<LawyerEditPersonalBottomSheet> createState() => _LawyerEditPersonalBottomSheetState();
+  ConsumerState<LawyerEditPersonalBottomSheet> createState() =>
+      _LawyerEditPersonalBottomSheetState();
 }
 
-class _LawyerEditPersonalBottomSheetState extends ConsumerState<LawyerEditPersonalBottomSheet> {
+class _LawyerEditPersonalBottomSheetState
+    extends ConsumerState<LawyerEditPersonalBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
@@ -271,7 +320,9 @@ class _LawyerEditPersonalBottomSheetState extends ConsumerState<LawyerEditPerson
 
     setState(() => _isSaving = true);
 
-    final success = await ref.read(authProvider.notifier).updateUserProfile(
+    final success = await ref
+        .read(authProvider.notifier)
+        .updateUserProfile(
           name: _nameController.text.trim(),
           mobile: _phoneController.text.trim(),
           location: _locationController.text.trim(),
@@ -288,7 +339,11 @@ class _LawyerEditPersonalBottomSheetState extends ConsumerState<LawyerEditPerson
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? "Personal details saved successfully!" : "Failed to update profile details."),
+          content: Text(
+            success
+                ? "Personal details saved successfully!"
+                : "Failed to update profile details.",
+          ),
           backgroundColor: success ? AppColors.success : AppColors.error,
         ),
       );
@@ -301,7 +356,8 @@ class _LawyerEditPersonalBottomSheetState extends ConsumerState<LawyerEditPerson
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.bottomSheetTheme.backgroundColor ?? theme.colorScheme.surface,
+        color:
+            theme.bottomSheetTheme.backgroundColor ?? theme.colorScheme.surface,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -343,7 +399,9 @@ class _LawyerEditPersonalBottomSheetState extends ConsumerState<LawyerEditPerson
               _buildTextField(
                 controller: _nameController,
                 labelText: "Full Name",
-                validator: (val) => val == null || val.trim().isEmpty ? "Name is required" : null,
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? "Name is required"
+                    : null,
               ),
               const SizedBox(height: 12),
 
@@ -352,14 +410,19 @@ class _LawyerEditPersonalBottomSheetState extends ConsumerState<LawyerEditPerson
                 controller: _phoneController,
                 labelText: "Phone Number",
                 keyboardType: TextInputType.phone,
-                validator: (val) => val == null || val.trim().isEmpty ? "Phone number is required" : null,
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? "Phone number is required"
+                    : null,
               ),
               const SizedBox(height: 12),
 
               // Address / Location
               GestureDetector(
                 onTap: () async {
-                  final loc = await LocationPickerSheet.show(context, initialLocation: _locationController.text);
+                  final loc = await LocationPickerSheet.show(
+                    context,
+                    initialLocation: _locationController.text,
+                  );
                   if (loc != null) {
                     setState(() {
                       _locationController.text = loc;
@@ -370,8 +433,13 @@ class _LawyerEditPersonalBottomSheetState extends ConsumerState<LawyerEditPerson
                   child: _buildTextField(
                     controller: _locationController,
                     labelText: "Location",
-                    suffixIcon: Icon(Icons.my_location, color: theme.colorScheme.primary),
-                    validator: (val) => val == null || val.trim().isEmpty ? "Location is required" : null,
+                    suffixIcon: Icon(
+                      Icons.my_location,
+                      color: theme.colorScheme.primary,
+                    ),
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? "Location is required"
+                        : null,
                   ),
                 ),
               ),
@@ -397,12 +465,17 @@ class _LawyerEditPersonalBottomSheetState extends ConsumerState<LawyerEditPerson
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.black,
+                            ),
                           ),
                         )
                       : const Text(
                           "Save Changes",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                 ),
               ),
@@ -428,7 +501,9 @@ class _LawyerEditPersonalBottomSheetState extends ConsumerState<LawyerEditPerson
       validator: validator,
       decoration: InputDecoration(
         labelText: labelText,
-        labelStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6)),
+        labelStyle: TextStyle(
+          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+        ),
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: theme.colorScheme.surface,

@@ -44,7 +44,11 @@ class _ScheduleConsultationScreenState
       appBar: AppBar(
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: theme.appBarTheme.iconTheme?.color, size: 24),
+          icon: Icon(
+            Icons.arrow_back,
+            color: theme.appBarTheme.iconTheme?.color,
+            size: 24,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -132,7 +136,7 @@ class _ScheduleConsultationScreenState
         const spacing = 12.0;
         final itemWidth =
             (constraints.maxWidth - spacing * (crossAxisCount - 1)) /
-                crossAxisCount;
+            crossAxisCount;
         const itemHeight = 44.0;
 
         return Wrap(
@@ -146,10 +150,14 @@ class _ScheduleConsultationScreenState
                 width: itemWidth,
                 height: itemHeight,
                 decoration: BoxDecoration(
-                  color: isSelected ? theme.colorScheme.primary : theme.colorScheme.surface,
+                  color: isSelected
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline,
+                    color: isSelected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.outline,
                     width: 1,
                   ),
                 ),
@@ -159,7 +167,9 @@ class _ScheduleConsultationScreenState
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? Colors.black : theme.textTheme.bodyMedium?.color,
+                    color: isSelected
+                        ? Colors.black
+                        : theme.textTheme.bodyMedium?.color,
                   ),
                 ),
               ),
@@ -193,7 +203,9 @@ class _ScheduleConsultationScreenState
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline,
+            color: isSelected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -207,7 +219,9 @@ class _ScheduleConsultationScreenState
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline,
+                  color: isSelected
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.outline,
                   width: 2,
                 ),
               ),
@@ -249,10 +263,7 @@ class _ScheduleConsultationScreenState
           onPressed: _selectedTimeSlot == null ? null : _confirmBooking,
           child: const Text(
             'Confirm Appointment',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
         ),
       ),
@@ -279,8 +290,7 @@ class _ScheduleConsultationScreenState
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Appointment scheduled successfully!')),
+          const SnackBar(content: Text('Appointment scheduled successfully!')),
         );
         context.go('/my-cases');
       }
@@ -288,7 +298,8 @@ class _ScheduleConsultationScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Failed to book appointment. Please try again.')),
+            content: Text('Failed to book appointment. Please try again.'),
+          ),
         );
       }
     }

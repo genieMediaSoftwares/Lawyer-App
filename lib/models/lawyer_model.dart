@@ -21,7 +21,7 @@ class LawyerModel {
   final Map<String, dynamic> bankDetails;
   final int casesHandled;
   final int winPercentage;
-  
+
   // Custom match/recommendation properties
   final bool isVerified;
   final String responseTime;
@@ -60,8 +60,8 @@ class LawyerModel {
   factory LawyerModel.fromJson(Map<String, dynamic> json) {
     // Handling populated user or user ID
     final userData = json['user'] is Map<String, dynamic> ? json['user'] : {};
-    final uId = json['user'] is String 
-        ? json['user'] 
+    final uId = json['user'] is String
+        ? json['user']
         : (userData['_id'] ?? (json['userId'] ?? ''));
     final idVal = json['_id'] ?? (json['lawyerId'] ?? '');
 
@@ -91,7 +91,7 @@ class LawyerModel {
       isVerified: json['verified'] ?? (userData['isVerified'] ?? false),
       responseTime: json['responseTime'] ?? 'Responds in 15 mins',
       matchPercentage: json['matchPercentage'] ?? 80,
-      onlineStatus: json['onlineStatus'] ?? (userData['isActive'] ?? true),
+      onlineStatus: json['onlineStatus'] ?? (userData['isActive'] ?? false),
     );
   }
 }

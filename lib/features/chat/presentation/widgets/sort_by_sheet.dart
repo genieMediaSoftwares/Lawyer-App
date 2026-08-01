@@ -30,7 +30,9 @@ class _SortBySheetState extends ConsumerState<SortBySheet> {
 
   void _applySort() {
     final filters = ref.read(advocateFiltersProvider);
-    ref.read(advocateFiltersProvider.notifier).state = filters.copyWith(sortBy: _selectedSort);
+    ref.read(advocateFiltersProvider.notifier).state = filters.copyWith(
+      sortBy: _selectedSort,
+    );
     Navigator.pop(context);
   }
 
@@ -93,9 +95,13 @@ class _SortBySheetState extends ConsumerState<SortBySheet> {
                           Text(
                             opt,
                             style: TextStyle(
-                              color: isSelected ? Colors.white : const Color(0xFF9A9A9A),
+                              color: isSelected
+                                  ? Colors.white
+                                  : const Color(0xFF9A9A9A),
                               fontSize: 15,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                           Container(
@@ -104,7 +110,9 @@ class _SortBySheetState extends ConsumerState<SortBySheet> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: isSelected ? AppColors.primaryGold : const Color(0xFF2A2A2A),
+                                color: isSelected
+                                    ? AppColors.primaryGold
+                                    : const Color(0xFF2A2A2A),
                                 width: 2,
                               ),
                             ),

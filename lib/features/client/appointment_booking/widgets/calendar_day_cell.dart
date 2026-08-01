@@ -41,7 +41,9 @@ class CalendarDayCell extends StatelessWidget {
               height: 36,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+                color: isSelected
+                    ? theme.colorScheme.primary
+                    : Colors.transparent,
                 border: isSelected
                     ? Border.all(color: Colors.black12, width: 1.5)
                     : null,
@@ -55,8 +57,8 @@ class CalendarDayCell extends StatelessWidget {
                   color: isSelected
                       ? Colors.black
                       : isDisabled
-                          ? theme.disabledColor
-                          : theme.textTheme.bodyMedium?.color,
+                      ? theme.disabledColor
+                      : theme.textTheme.bodyMedium?.color,
                   height: 1.0,
                 ),
               ),

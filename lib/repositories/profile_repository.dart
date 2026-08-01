@@ -4,7 +4,6 @@ import '../models/client_profile_model.dart';
 import '../models/activity_model.dart';
 import '../models/client_stats_model.dart';
 
-
 class ProfileRepository {
   Future<ClientProfileModel> getClientProfile() async {
     final response = await DioClient.dio.get("/client/profile");
@@ -38,6 +37,7 @@ class ProfileRepository {
     }
     throw Exception(response.data?['message'] ?? "Failed to update profile");
   }
+
   Future<List<ActivityModel>> getClientActivity() async {
     final response = await DioClient.dio.get("/client/activity");
     if (response.data != null && response.data['success'] == true) {
@@ -55,12 +55,12 @@ class ProfileRepository {
     throw Exception(response.data?['message'] ?? "Failed to fetch stats");
   }
 
-  Future<ClientProfileModel> uploadProfileImage(List<int> bytes, String fileName) async {
+  Future<ClientProfileModel> uploadProfileImage(
+    List<int> bytes,
+    String fileName,
+  ) async {
     final formData = FormData.fromMap({
-      "image": MultipartFile.fromBytes(
-        bytes,
-        filename: fileName,
-      ),
+      "image": MultipartFile.fromBytes(bytes, filename: fileName),
     });
 
     final response = await DioClient.dio.post(

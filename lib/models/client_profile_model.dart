@@ -26,7 +26,9 @@ class ClientProfileModel {
   factory ClientProfileModel.fromJson(Map<String, dynamic> json) {
     final user = json['user'] ?? {};
     final list = user['languages'] as List?;
-    final langs = list != null ? list.map((e) => e.toString()).toList() : <String>[];
+    final langs = list != null
+        ? list.map((e) => e.toString()).toList()
+        : <String>[];
     return ClientProfileModel(
       id: user['_id'] ?? '',
       fullName: user['fullName'] ?? '',

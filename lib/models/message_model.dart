@@ -22,8 +22,12 @@ class MessageModel {
   });
 
   factory MessageModel.fromJson(Map<String, dynamic> json) {
-    final senderData = json['sender'] is Map<String, dynamic> ? json['sender'] : {};
-    final sId = json['sender'] is String ? json['sender'] : (senderData['_id'] ?? '');
+    final senderData = json['sender'] is Map<String, dynamic>
+        ? json['sender']
+        : {};
+    final sId = json['sender'] is String
+        ? json['sender']
+        : (senderData['_id'] ?? '');
 
     return MessageModel(
       id: json['_id'] ?? '',
@@ -36,7 +40,8 @@ class MessageModel {
           ? DateTime.parse(json['createdAt']).toLocal()
           : DateTime.now(),
       isRead: json['isRead'] ?? false,
-      attachments: (json['attachments'] as List?)
+      attachments:
+          (json['attachments'] as List?)
               ?.map((a) => MessageAttachmentModel.fromJson(a))
               .toList() ??
           [],

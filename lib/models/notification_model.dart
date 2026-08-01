@@ -90,12 +90,18 @@ class NotificationModel {
       message: json['message'] ?? '',
       type: json['type'] ?? 'general',
       priority: json['priority'] ?? 'low',
-      metadata: json['metadata'] is Map ? Map<String, dynamic>.from(json['metadata']) : {},
+      metadata: json['metadata'] is Map
+          ? Map<String, dynamic>.from(json['metadata'])
+          : {},
       referenceId: json['referenceId']?.toString(),
       isRead: json['isRead'] ?? json['read'] ?? false,
       softDelete: json['softDelete'] ?? false,
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
-      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : DateTime.now(),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : DateTime.now(),
     );
   }
 

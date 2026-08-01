@@ -11,6 +11,7 @@ import 'package:law/models/category_item.dart';
 import '../widgets/category_card.dart';
 import '../widgets/hero_carousel_widget.dart';
 import '../widgets/ai_legal_assistant_card.dart';
+import '../widgets/ai_smart_case_assistant_card.dart';
 
 class ClientDashboardScreen extends ConsumerWidget {
   const ClientDashboardScreen({super.key});
@@ -62,7 +63,11 @@ class ClientDashboardScreen extends ConsumerWidget {
             children: [
               IconButton(
                 onPressed: () => context.push(RouteNames.notifications),
-                icon: Icon(Icons.notifications_none_outlined, color: primaryTextColor, size: 26),
+                icon: Icon(
+                  Icons.notifications_none_outlined,
+                  color: primaryTextColor,
+                  size: 26,
+                ),
               ),
               if (unreadCount > 0)
                 Positioned(
@@ -88,7 +93,7 @@ class ClientDashboardScreen extends ConsumerWidget {
                       textAlign: TextAlign.center,
                     ),
                   ),
-                )
+                ),
             ],
           ),
           const SizedBox(width: 8),
@@ -108,6 +113,10 @@ class ClientDashboardScreen extends ConsumerWidget {
                   "assets/images/banner3.png",
                 ],
               ),
+              const SizedBox(height: 20),
+
+              // AI Smart Case Assistant Card (Immediately below Hero Banner)
+              AISmartCaseAssistantCard(),
               const SizedBox(height: 24),
 
               // 2. Categories Section Header
@@ -146,7 +155,9 @@ class ClientDashboardScreen extends ConsumerWidget {
                   crossAxisCount: 4,
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 10,
-                  childAspectRatio: MediaQuery.of(context).size.width < 360 ? 0.63 : 0.76,
+                  childAspectRatio: MediaQuery.of(context).size.width < 360
+                      ? 0.63
+                      : 0.76,
                 ),
                 itemBuilder: (context, index) {
                   final category = allCategories[index];
@@ -154,8 +165,12 @@ class ClientDashboardScreen extends ConsumerWidget {
                     title: category.title,
                     icon: category.icon,
                     onTap: () {
-                      ref.read(selectedCategoryProvider.notifier).selectCategory(category.id);
-                      context.push('${RouteNames.postCase}?categoryId=${category.id}');
+                      ref
+                          .read(selectedCategoryProvider.notifier)
+                          .selectCategory(category.id);
+                      context.push(
+                        '${RouteNames.postCase}?categoryId=${category.id}',
+                      );
                     },
                   );
                 },
@@ -213,15 +228,18 @@ class _HowItWorksTimelineState extends State<HowItWorksTimeline> {
   Widget _buildDottedLine() {
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: List.generate(6, (index) => Container(
-        width: 3,
-        height: 3,
-        margin: const EdgeInsets.symmetric(horizontal: 1.5),
-        decoration: const BoxDecoration(
-          color: AppColors.primaryGold,
-          shape: BoxShape.circle,
+      children: List.generate(
+        6,
+        (index) => Container(
+          width: 3,
+          height: 3,
+          margin: const EdgeInsets.symmetric(horizontal: 1.5),
+          decoration: const BoxDecoration(
+            color: AppColors.primaryGold,
+            shape: BoxShape.circle,
+          ),
         ),
-      )),
+      ),
     );
   }
 
@@ -235,7 +253,11 @@ class _HowItWorksTimelineState extends State<HowItWorksTimeline> {
       children: [
         Text(
           "How It Works?",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: primaryTextColor,
+          ),
         ),
         const SizedBox(height: 16),
         SingleChildScrollView(
@@ -265,7 +287,8 @@ class _HowItWorksTimelineState extends State<HowItWorksTimeline> {
                 _StepItem(
                   number: 2,
                   title: "Case Details",
-                  description: "Add your issue description, location, court preference and urgency.",
+                  description:
+                      "Add your issue description, location, court preference and urgency.",
                   iconData: Icons.assignment_outlined,
                   isActive: _activeStep == 1,
                   onTap: () {
@@ -281,7 +304,8 @@ class _HowItWorksTimelineState extends State<HowItWorksTimeline> {
                 _StepItem(
                   number: 3,
                   title: "Upload Document",
-                  description: "Upload your acknowledgement or supporting document.",
+                  description:
+                      "Upload your acknowledgement or supporting document.",
                   iconData: Icons.upload_file_outlined,
                   isActive: _activeStep == 2,
                   onTap: () {
@@ -297,7 +321,8 @@ class _HowItWorksTimelineState extends State<HowItWorksTimeline> {
                 _StepItem(
                   number: 4,
                   title: "Recommended Lawyer",
-                  description: "AI recommends the best lawyers based on your issue type and location. Select one lawyer to continue.",
+                  description:
+                      "AI recommends the best lawyers based on your issue type and location. Select one lawyer to continue.",
                   iconData: Icons.verified_user_outlined,
                   isActive: _activeStep == 3,
                   onTap: () {
@@ -364,10 +389,14 @@ class _StepItem extends StatelessWidget {
                   width: 58,
                   height: 58,
                   decoration: BoxDecoration(
-                    color: isActive ? AppColors.primaryGold.withOpacity(0.12) : AppColors.cardBackground,
+                    color: isActive
+                        ? AppColors.primaryGold.withOpacity(0.12)
+                        : AppColors.cardBackground,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isActive ? AppColors.primaryGold : AppColors.border,
+                      color: isActive
+                          ? AppColors.primaryGold
+                          : AppColors.border,
                       width: isActive ? 2 : 1,
                     ),
                     boxShadow: [
@@ -381,7 +410,9 @@ class _StepItem extends StatelessWidget {
                   ),
                   child: Icon(
                     iconData,
-                    color: isActive ? AppColors.primaryGold : AppColors.mutedText,
+                    color: isActive
+                        ? AppColors.primaryGold
+                        : AppColors.mutedText,
                     size: 24,
                   ),
                 ),
@@ -393,7 +424,9 @@ class _StepItem extends StatelessWidget {
                     width: 18,
                     height: 18,
                     decoration: BoxDecoration(
-                      color: isActive ? AppColors.primaryGold : AppColors.border,
+                      color: isActive
+                          ? AppColors.primaryGold
+                          : AppColors.border,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,

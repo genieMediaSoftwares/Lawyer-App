@@ -36,8 +36,10 @@ class IssueModel {
   factory IssueModel.fromJson(Map<String, dynamic> json) {
     var docsList = json['documents'] as List? ?? [];
     var imgsList = json['images'] as List? ?? [];
-    
-    final clientVal = json['clientId'] is Map ? (json['clientId']['_id'] ?? '') : (json['clientId'] ?? '');
+
+    final clientVal = json['clientId'] is Map
+        ? (json['clientId']['_id'] ?? '')
+        : (json['clientId'] ?? '');
 
     return IssueModel(
       id: json['_id'] ?? '',
@@ -52,8 +54,12 @@ class IssueModel {
       documents: docsList.map((d) => DocumentModel.fromJson(d)).toList(),
       images: imgsList.map((d) => DocumentModel.fromJson(d)).toList(),
       clientId: clientVal,
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
-      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : DateTime.now(),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : DateTime.now(),
     );
   }
 

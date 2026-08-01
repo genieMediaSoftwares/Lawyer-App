@@ -1105,36 +1105,24 @@ class AppTheme {
       elevation: 2,
       color: AppColors.lightCard,
       shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     ),
 
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 16,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: AppColors.borderLight,
-        ),
+        borderSide: const BorderSide(color: AppColors.borderLight),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: AppColors.borderLight,
-        ),
+        borderSide: const BorderSide(color: AppColors.borderLight),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: AppColors.gold,
-          width: 2,
-        ),
+        borderSide: const BorderSide(color: AppColors.gold, width: 2),
       ),
     ),
 
@@ -1144,13 +1132,8 @@ class AppTheme {
         minimumSize: const Size(double.infinity, 56),
         backgroundColor: AppColors.gold,
         foregroundColor: AppColors.navyBlue,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        textStyle: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
       ),
     ),
 
@@ -1170,14 +1153,8 @@ class AppTheme {
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimaryLight,
       ),
-      bodyLarge: TextStyle(
-        fontSize: 16,
-        color: AppColors.textPrimaryLight,
-      ),
-      bodyMedium: TextStyle(
-        fontSize: 14,
-        color: AppColors.textSecondaryLight,
-      ),
+      bodyLarge: TextStyle(fontSize: 16, color: AppColors.textPrimaryLight),
+      bodyMedium: TextStyle(fontSize: 14, color: AppColors.textSecondaryLight),
     ),
 
     dividerTheme: const DividerThemeData(
@@ -1215,33 +1192,21 @@ class AppTheme {
     cardTheme: CardThemeData(
       elevation: 2,
       color: AppColors.darkCard,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     ),
 
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.darkSurface,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 16,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: AppColors.borderDark,
-        ),
+        borderSide: const BorderSide(color: AppColors.borderDark),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: AppColors.gold,
-          width: 2,
-        ),
+        borderSide: const BorderSide(color: AppColors.gold, width: 2),
       ),
     ),
 
@@ -1250,13 +1215,8 @@ class AppTheme {
         minimumSize: const Size(double.infinity, 56),
         backgroundColor: AppColors.gold,
         foregroundColor: AppColors.navyBlue,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        textStyle: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
       ),
     ),
 
@@ -1276,14 +1236,8 @@ class AppTheme {
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimaryDark,
       ),
-      bodyLarge: TextStyle(
-        fontSize: 16,
-        color: AppColors.textPrimaryDark,
-      ),
-      bodyMedium: TextStyle(
-        fontSize: 14,
-        color: AppColors.textSecondaryDark,
-      ),
+      bodyLarge: TextStyle(fontSize: 16, color: AppColors.textPrimaryDark),
+      bodyMedium: TextStyle(fontSize: 14, color: AppColors.textSecondaryDark),
     ),
 
     dividerTheme: const DividerThemeData(

@@ -9,10 +9,12 @@ class LawyerProfessionalDetailsScreen extends ConsumerStatefulWidget {
   const LawyerProfessionalDetailsScreen({super.key});
 
   @override
-  ConsumerState<LawyerProfessionalDetailsScreen> createState() => _LawyerProfessionalDetailsScreenState();
+  ConsumerState<LawyerProfessionalDetailsScreen> createState() =>
+      _LawyerProfessionalDetailsScreenState();
 }
 
-class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessionalDetailsScreen> {
+class _LawyerProfessionalDetailsScreenState
+    extends ConsumerState<LawyerProfessionalDetailsScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _specController;
   late TextEditingController _expController;
@@ -57,7 +59,9 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
 
     setState(() => _isSaving = true);
 
-    final success = await ref.read(lawyerProfileUpdaterProvider).updateProfile(
+    final success = await ref
+        .read(lawyerProfileUpdaterProvider)
+        .updateProfile(
           specialization: _specController.text.trim(),
           experience: int.tryParse(_expController.text.trim()) ?? 0,
           education: _eduController.text.trim(),
@@ -75,7 +79,11 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? "Professional details updated successfully!" : "Failed to update details."),
+          content: Text(
+            success
+                ? "Professional details updated successfully!"
+                : "Failed to update details.",
+          ),
           backgroundColor: success ? AppColors.success : AppColors.error,
         ),
       );
@@ -111,13 +119,21 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
       ),
       body: lawyerState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text("Error: $err", style: const TextStyle(color: Colors.red))),
+        error: (err, stack) => Center(
+          child: Text("Error: $err", style: const TextStyle(color: Colors.red)),
+        ),
         data: (lawyer) {
           if (!_initialized) {
-            _specController = TextEditingController(text: lawyer.specialization);
-            _expController = TextEditingController(text: "${lawyer.experience}");
+            _specController = TextEditingController(
+              text: lawyer.specialization,
+            );
+            _expController = TextEditingController(
+              text: "${lawyer.experience}",
+            );
             _eduController = TextEditingController(text: lawyer.education);
-            _barController = TextEditingController(text: lawyer.barCouncilNumber);
+            _barController = TextEditingController(
+              text: lawyer.barCouncilNumber,
+            );
             _bioController = TextEditingController(text: lawyer.bio);
             _initialized = true;
           }
@@ -132,7 +148,9 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
                   Text(
                     "Update your professional details to attract more client consultation bookings.",
                     style: TextStyle(
-                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey,
+                      color:
+                          theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ??
+                          Colors.grey,
                       fontSize: 13,
                       height: 1.4,
                     ),
@@ -142,8 +160,11 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
                   // Specialization
                   _buildTextField(
                     controller: _specController,
-                    labelText: "Specialization (e.g. Family Law, Criminal Defense)",
-                    validator: (val) => val == null || val.trim().isEmpty ? "Specialization is required" : null,
+                    labelText:
+                        "Specialization (e.g. Family Law, Criminal Defense)",
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? "Specialization is required"
+                        : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -167,8 +188,11 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
                   // Education
                   _buildTextField(
                     controller: _eduController,
-                    labelText: "Education / Qualifications (e.g. LL.B., Harvard Law)",
-                    validator: (val) => val == null || val.trim().isEmpty ? "Education is required" : null,
+                    labelText:
+                        "Education / Qualifications (e.g. LL.B., Harvard Law)",
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? "Education is required"
+                        : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -176,7 +200,9 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
                   _buildTextField(
                     controller: _barController,
                     labelText: "Bar Council Registration Number",
-                    validator: (val) => val == null || val.trim().isEmpty ? "Registration number is required" : null,
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? "Registration number is required"
+                        : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -185,7 +211,9 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
                     controller: _bioController,
                     labelText: "About Me / Professional Bio",
                     maxLines: 4,
-                    validator: (val) => val == null || val.trim().isEmpty ? "Bio summary is required" : null,
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? "Bio summary is required"
+                        : null,
                   ),
                   const SizedBox(height: 36),
 
@@ -208,12 +236,17 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.black,
+                                ),
                               ),
                             )
                           : const Text(
                               "Save Changes",
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
                     ),
                   ),
@@ -242,7 +275,10 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
       validator: validator,
       decoration: InputDecoration(
         labelText: labelText,
-        labelStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6), fontSize: 14),
+        labelStyle: TextStyle(
+          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+          fontSize: 14,
+        ),
         filled: true,
         fillColor: theme.colorScheme.surface,
         enabledBorder: OutlineInputBorder(

@@ -20,8 +20,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _emailController = TextEditingController();
   final _mobileController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController =
-  TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -80,10 +79,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
       );
     }
   }
@@ -105,9 +101,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       return "Please enter email";
     }
 
-    final emailRegex = RegExp(
-      r'^[\w-\.]+@([\w-]+\.)+[\w]{2,4}$',
-    );
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w]{2,4}$');
 
     if (!emailRegex.hasMatch(value)) {
       return "Invalid email";
@@ -121,8 +115,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       return "Enter mobile number";
     }
 
-    if (!RegExp(r'^[0-9]{10}$')
-        .hasMatch(value)) {
+    if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
       return "Invalid mobile";
     }
 
@@ -141,8 +134,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     return null;
   }
 
-  String? _validateConfirmPassword(
-      String? value) {
+  String? _validateConfirmPassword(String? value) {
     if (value != _passwordController.text) {
       return "Passwords do not match";
     }
@@ -156,20 +148,15 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Create Account"),
-      ),
+      appBar: AppBar(title: const Text("Create Account")),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding:
-          const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
             child: Column(
               children: [
-                SizedBox(
-                  height: size.height * 0.02,
-                ),
+                SizedBox(height: size.height * 0.02),
 
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
@@ -181,253 +168,150 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   ),
                 ),
 
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
 
                 Text(
                   "Join LawConnect",
-                  style: theme
-                      .textTheme
-                      .headlineMedium
-                      ?.copyWith(
-                    fontWeight:
-                    FontWeight.bold,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
 
-                const SizedBox(
-                  height: 8,
-                ),
+                const SizedBox(height: 8),
 
-                Text(
-                  "Create your account",
-                  style: theme
-                      .textTheme
-                      .bodyMedium,
-                ),
+                Text("Create your account", style: theme.textTheme.bodyMedium),
 
-                const SizedBox(
-                  height: 30,
-                ),
+                const SizedBox(height: 30),
 
                 TextFormField(
-                  controller:
-                  _nameController,
-                  validator:
-                  _validateName,
-                  decoration:
-                  const InputDecoration(
-                    labelText:
-                    "Full Name",
-                    prefixIcon:
-                    Icon(Icons.person),
-                    border:
-                    OutlineInputBorder(),
+                  controller: _nameController,
+                  validator: _validateName,
+                  decoration: const InputDecoration(
+                    labelText: "Full Name",
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(),
                   ),
                 ),
 
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
 
                 TextFormField(
-                  controller:
-                  _emailController,
-                  validator:
-                  _validateEmail,
-                  keyboardType:
-                  TextInputType
-                      .emailAddress,
-                  decoration:
-                  const InputDecoration(
-                    labelText:
-                    "Email",
-                    prefixIcon:
-                    Icon(Icons.email),
-                    border:
-                    OutlineInputBorder(),
+                  controller: _emailController,
+                  validator: _validateEmail,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: "Email",
+                    prefixIcon: Icon(Icons.email),
+                    border: OutlineInputBorder(),
                   ),
                 ),
 
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
 
                 TextFormField(
-                  controller:
-                  _mobileController,
-                  validator:
-                  _validateMobile,
-                  keyboardType:
-                  TextInputType.phone,
-                  decoration:
-                  const InputDecoration(
-                    labelText:
-                    "Mobile Number",
-                    prefixIcon:
-                    Icon(Icons.phone),
-                    border:
-                    OutlineInputBorder(),
+                  controller: _mobileController,
+                  validator: _validateMobile,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: "Mobile Number",
+                    prefixIcon: Icon(Icons.phone),
+                    border: OutlineInputBorder(),
                   ),
                 ),
 
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
 
-                DropdownButtonFormField<
-                    String>(
+                DropdownButtonFormField<String>(
                   value: _selectedRole,
-                  decoration:
-                  const InputDecoration(
-                    labelText:
-                    "Select Role",
-                    border:
-                    OutlineInputBorder(),
+                  decoration: const InputDecoration(
+                    labelText: "Select Role",
+                    border: OutlineInputBorder(),
                   ),
                   items: const [
-                    DropdownMenuItem(
-                      value: "client",
-                      child:
-                      Text("Client"),
-                    ),
-                    DropdownMenuItem(
-                      value: "lawyer",
-                      child:
-                      Text("Lawyer"),
-                    ),
+                    DropdownMenuItem(value: "client", child: Text("Client")),
+                    DropdownMenuItem(value: "lawyer", child: Text("Lawyer")),
                   ],
                   onChanged: (value) {
                     setState(() {
-                      _selectedRole =
-                      value!;
+                      _selectedRole = value!;
                     });
                   },
                 ),
 
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
 
                 TextFormField(
-                  controller:
-                  _passwordController,
-                  validator:
-                  _validatePassword,
-                  obscureText:
-                  _obscurePassword,
-                  decoration:
-                  InputDecoration(
-                    labelText:
-                    "Password",
-                    prefixIcon:
-                    const Icon(
-                        Icons.lock),
-                    border:
-                    const OutlineInputBorder(),
-                    suffixIcon:
-                    IconButton(
+                  controller: _passwordController,
+                  validator: _validatePassword,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: "Password",
+                    prefixIcon: const Icon(Icons.lock),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
-                            ? Icons
-                            .visibility
-                            : Icons
-                            .visibility_off,
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                       ),
                       onPressed: () {
                         setState(() {
-                          _obscurePassword =
-                          !_obscurePassword;
+                          _obscurePassword = !_obscurePassword;
                         });
                       },
                     ),
                   ),
                 ),
 
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
 
                 TextFormField(
-                  controller:
-                  _confirmPasswordController,
-                  validator:
-                  _validateConfirmPassword,
-                  obscureText:
-                  _obscureConfirmPassword,
-                  decoration:
-                  InputDecoration(
-                    labelText:
-                    "Confirm Password",
-                    prefixIcon:
-                    const Icon(
-                        Icons.lock),
-                    border:
-                    const OutlineInputBorder(),
-                    suffixIcon:
-                    IconButton(
+                  controller: _confirmPasswordController,
+                  validator: _validateConfirmPassword,
+                  obscureText: _obscureConfirmPassword,
+                  decoration: InputDecoration(
+                    labelText: "Confirm Password",
+                    prefixIcon: const Icon(Icons.lock),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirmPassword
-                            ? Icons
-                            .visibility
-                            : Icons
-                            .visibility_off,
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                       ),
                       onPressed: () {
                         setState(() {
-                          _obscureConfirmPassword =
-                          !_obscureConfirmPassword;
+                          _obscureConfirmPassword = !_obscureConfirmPassword;
                         });
                       },
                     ),
                   ),
                 ),
 
-                const SizedBox(
-                  height: 30,
-                ),
+                const SizedBox(height: 30),
 
                 SizedBox(
-                  width:
-                  double.infinity,
+                  width: double.infinity,
                   height: 55,
-                  child:
-                  ElevatedButton(
-                    onPressed:
-                    _isLoading
-                        ? null
-                        : _signup,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _signup,
                     child: _isLoading
                         ? const CircularProgressIndicator()
-                        : const Text(
-                      "Create Account",
-                    ),
+                        : const Text("Create Account"),
                   ),
                 ),
 
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
 
                 Row(
-                  mainAxisAlignment:
-                  MainAxisAlignment
-                      .center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      "Already have an account?",
-                    ),
+                    const Text("Already have an account?"),
                     TextButton(
                       onPressed: () {
-                        context.go(
-                          RouteNames
-                              .login,
-                        );
+                        context.go(RouteNames.login);
                       },
-                      child: const Text(
-                        "Login",
-                      ),
+                      child: const Text("Login"),
                     ),
                   ],
                 ),

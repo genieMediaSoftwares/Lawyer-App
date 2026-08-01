@@ -108,9 +108,7 @@ class CaseModel {
     List<T> safeList<T>(dynamic raw, T Function(dynamic) mapper) {
       if (raw == null) return [];
       try {
-        return List<dynamic>.from(raw as Iterable)
-            .map(mapper)
-            .toList();
+        return List<dynamic>.from(raw as Iterable).map(mapper).toList();
       } catch (_) {
         return [];
       }
@@ -132,26 +130,42 @@ class CaseModel {
     DateTime? safeDate(dynamic v) {
       if (v == null) return null;
       if (v is String && v.isNotEmpty) {
-        try { return DateTime.parse(v); } catch (_) { return null; }
+        try {
+          return DateTime.parse(v);
+        } catch (_) {
+          return null;
+        }
       }
       return null;
     }
 
     final clientRaw = json['client'];
-    final clientData = clientRaw is Map ? Map<String, dynamic>.from(clientRaw) : <String, dynamic>{};
-    final cId = clientRaw is String ? clientRaw : (clientData['_id']?.toString() ?? '');
+    final clientData = clientRaw is Map
+        ? Map<String, dynamic>.from(clientRaw)
+        : <String, dynamic>{};
+    final cId = clientRaw is String
+        ? clientRaw
+        : (clientData['_id']?.toString() ?? '');
 
     final lawyerRaw = json['assignedLawyer'];
-    final lawyerData = lawyerRaw is Map ? Map<String, dynamic>.from(lawyerRaw) : <String, dynamic>{};
-    final lId = lawyerRaw is String ? lawyerRaw : (lawyerData['_id']?.toString() ?? '');
+    final lawyerData = lawyerRaw is Map
+        ? Map<String, dynamic>.from(lawyerRaw)
+        : <String, dynamic>{};
+    final lId = lawyerRaw is String
+        ? lawyerRaw
+        : (lawyerData['_id']?.toString() ?? '');
     final assignedProfileRaw = json['assignedLawyerProfile'];
     final assignedLawyerProfile = assignedProfileRaw is Map
         ? Map<String, dynamic>.from(assignedProfileRaw)
         : <String, dynamic>{};
 
     final selRaw = json['selectedLawyer'];
-    final selLawyerData = selRaw is Map ? Map<String, dynamic>.from(selRaw) : <String, dynamic>{};
-    final selLawyerId = selRaw is String ? selRaw : (selLawyerData['_id']?.toString() ?? '');
+    final selLawyerData = selRaw is Map
+        ? Map<String, dynamic>.from(selRaw)
+        : <String, dynamic>{};
+    final selLawyerId = selRaw is String
+        ? selRaw
+        : (selLawyerData['_id']?.toString() ?? '');
     final selProfileRaw = json['selectedLawyerProfile'];
     final selLawyerProfile = selProfileRaw is Map
         ? Map<String, dynamic>.from(selProfileRaw)
@@ -172,25 +186,39 @@ class CaseModel {
       urgency: json['urgency']?.toString() ?? 'Flexible',
       status: json['status']?.toString() ?? 'Submitted',
       preferredCourt: json['preferredCourt']?.toString(),
-      documents: safeList(json['documents'],
-          (d) => DocumentModel.fromJson(Map<String, dynamic>.from(d is Map ? d : {}))),
-      proposals: safeList(json['proposals'],
-          (p) => CaseProposalModel.fromJson(Map<String, dynamic>.from(p is Map ? p : {}))),
+      documents: safeList(
+        json['documents'],
+        (d) => DocumentModel.fromJson(
+          Map<String, dynamic>.from(d is Map ? d : {}),
+        ),
+      ),
+      proposals: safeList(
+        json['proposals'],
+        (p) => CaseProposalModel.fromJson(
+          Map<String, dynamic>.from(p is Map ? p : {}),
+        ),
+      ),
       assignedLawyerId: lId.isNotEmpty ? lId : null,
       assignedLawyerName: lawyerData['fullName']?.toString(),
       assignedLawyerImage: lawyerData['profileImage']?.toString(),
-      milestones: safeList(json['milestones'],
-          (m) => MilestoneModel.fromJson(Map<String, dynamic>.from(m is Map ? m : {}))),
+      milestones: safeList(
+        json['milestones'],
+        (m) => MilestoneModel.fromJson(
+          Map<String, dynamic>.from(m is Map ? m : {}),
+        ),
+      ),
       createdAt: safeDate(json['createdAt']) ?? DateTime.now(),
       selectedLawyerId: selLawyerId.isNotEmpty ? selLawyerId : null,
       selectedLawyerName: selLawyerData['fullName']?.toString(),
       selectedLawyerImage: selLawyerData['profileImage']?.toString(),
-      selectedLawyerSpecialization: selLawyerProfile['specialization']?.toString(),
+      selectedLawyerSpecialization: selLawyerProfile['specialization']
+          ?.toString(),
       selectedLawyerExperience: safeInt(selLawyerProfile['experience']),
       selectedLawyerRating: safeDouble(selLawyerProfile['rating']),
       selectedLawyerFee: safeInt(selLawyerProfile['consultationFee']),
       selectedLawyerVerified: selLawyerData['isVerified'] == true,
-      assignedLawyerSpecialization: assignedLawyerProfile['specialization']?.toString(),
+      assignedLawyerSpecialization: assignedLawyerProfile['specialization']
+          ?.toString(),
       assignedLawyerExperience: safeInt(assignedLawyerProfile['experience']),
       assignedLawyerRating: safeDouble(assignedLawyerProfile['rating']),
       assignedLawyerFee: safeInt(assignedLawyerProfile['consultationFee']),
@@ -241,7 +269,11 @@ class CaseProposalModel {
     DateTime? safeDate(dynamic v) {
       if (v == null) return null;
       if (v is String && v.isNotEmpty) {
-        try { return DateTime.parse(v); } catch (_) { return null; }
+        try {
+          return DateTime.parse(v);
+        } catch (_) {
+          return null;
+        }
       }
       return null;
     }
@@ -274,7 +306,11 @@ class MilestoneModel {
     DateTime safeDate(dynamic v) {
       if (v == null) return DateTime.now();
       if (v is String && v.isNotEmpty) {
-        try { return DateTime.parse(v); } catch (_) { return DateTime.now(); }
+        try {
+          return DateTime.parse(v);
+        } catch (_) {
+          return DateTime.now();
+        }
       }
       return DateTime.now();
     }

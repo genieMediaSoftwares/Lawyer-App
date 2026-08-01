@@ -14,11 +14,7 @@ class LawyerProfileScreen extends ConsumerWidget {
   final String userId;
   final String? caseId;
 
-  const LawyerProfileScreen({
-    super.key,
-    required this.userId,
-    this.caseId,
-  });
+  const LawyerProfileScreen({super.key, required this.userId, this.caseId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,18 +30,27 @@ class LawyerProfileScreen extends ConsumerWidget {
         ),
         title: const Text("Lawyer Profile"),
         actions: [
-          ref.watch(favoritesProvider).maybeWhen(
-            data: (favs) {
-              final isFav = favs.any((f) => f.lawyerUserId == userId);
-              return IconButton(
-                icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: isFav ? AppColors.error : theme.appBarTheme.iconTheme?.color),
-                onPressed: () async {
-                  await ref.read(favoritesProvider.notifier).toggleFavorite(userId);
+          ref
+              .watch(favoritesProvider)
+              .maybeWhen(
+                data: (favs) {
+                  final isFav = favs.any((f) => f.lawyerUserId == userId);
+                  return IconButton(
+                    icon: Icon(
+                      isFav ? Icons.favorite : Icons.favorite_border,
+                      color: isFav
+                          ? AppColors.error
+                          : theme.appBarTheme.iconTheme?.color,
+                    ),
+                    onPressed: () async {
+                      await ref
+                          .read(favoritesProvider.notifier)
+                          .toggleFavorite(userId);
+                    },
+                  );
                 },
-              );
-            },
-            orElse: () => const SizedBox.shrink(),
-          ),
+                orElse: () => const SizedBox.shrink(),
+              ),
         ],
       ),
       body: lawyerState.when(
@@ -63,30 +68,48 @@ class LawyerProfileScreen extends ConsumerWidget {
                       const SizedBox(height: 24),
 
                       // About Me
-                      Text("About Me", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.textTheme.titleMedium?.color)),
+                      Text(
+                        "About Me",
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.textTheme.titleMedium?.color,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Text(
                         lawyer.bio.isNotEmpty
                             ? lawyer.bio
                             : "No bio available for this lawyer.",
-                        style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color, height: 1.6),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: theme.textTheme.bodyMedium?.color,
+                          height: 1.6,
+                        ),
                       ),
                       const SizedBox(height: 24),
 
                       // Expertise
-                      Text("Expertise", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.textTheme.titleMedium?.color)),
+                      Text(
+                        "Expertise",
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.textTheme.titleMedium?.color,
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
                           _buildExpertiseChip(context, lawyer.specialization),
-                          if (lawyer.specialization.toLowerCase() == "property disputes") ...[
+                          if (lawyer.specialization.toLowerCase() ==
+                              "property disputes") ...[
                             _buildExpertiseChip(context, "Civil Cases"),
                             _buildExpertiseChip(context, "Injunction"),
                             _buildExpertiseChip(context, "Title Verification"),
                             _buildExpertiseChip(context, "RERA Matters"),
-                          ] else if (lawyer.specialization.toLowerCase() == "divorce & family") ...[
+                          ] else if (lawyer.specialization.toLowerCase() ==
+                              "divorce & family") ...[
                             _buildExpertiseChip(context, "Family Law"),
                             _buildExpertiseChip(context, "Child Custody"),
                             _buildExpertiseChip(context, "Alimony"),
@@ -95,46 +118,79 @@ class LawyerProfileScreen extends ConsumerWidget {
                             _buildExpertiseChip(context, "Criminal Defense"),
                             _buildExpertiseChip(context, "Bail Matters"),
                             _buildExpertiseChip(context, "Litigation"),
-                          ]
+                          ],
                         ],
                       ),
                       const SizedBox(height: 24),
 
                       // Education
                       if (lawyer.education.isNotEmpty) ...[
-                        Text("Education", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.textTheme.titleMedium?.color)),
+                        Text(
+                          "Education",
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.textTheme.titleMedium?.color,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           lawyer.education,
-                          style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: theme.textTheme.bodyMedium?.color,
+                          ),
                         ),
                         const SizedBox(height: 24),
                       ],
 
                       // Bar Registration
                       if (lawyer.barCouncilNumber.isNotEmpty) ...[
-                        Text("Bar Council Registration", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.textTheme.titleMedium?.color)),
+                        Text(
+                          "Bar Council Registration",
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.textTheme.titleMedium?.color,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           lawyer.barCouncilNumber,
-                          style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: theme.textTheme.bodyMedium?.color,
+                          ),
                         ),
                         const SizedBox(height: 24),
                       ],
 
                       // Languages
                       if (lawyer.languages.isNotEmpty) ...[
-                        Text("Languages spoken", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.textTheme.titleMedium?.color)),
+                        Text(
+                          "Languages spoken",
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.textTheme.titleMedium?.color,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           lawyer.languages.join(", "),
-                          style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: theme.textTheme.bodyMedium?.color,
+                          ),
                         ),
                         const SizedBox(height: 24),
                       ],
 
                       // Fees
-                      Text("Fees", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.textTheme.titleMedium?.color)),
+                      Text(
+                        "Fees",
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.textTheme.titleMedium?.color,
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -146,8 +202,21 @@ class LawyerProfileScreen extends ConsumerWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text("Consultation Fee", style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyMedium?.color)),
-                            Text("₹${lawyer.consultationFee}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.colorScheme.primary)),
+                            Text(
+                              "Consultation Fee",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: theme.textTheme.bodyMedium?.color,
+                              ),
+                            ),
+                            Text(
+                              "₹${lawyer.consultationFee}",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -180,28 +249,46 @@ class LawyerProfileScreen extends ConsumerWidget {
         children: [
           AppCircleAvatar(
             radius: 45,
-            imageUrl: lawyer.profileImage.isNotEmpty ? Environment.getAttachmentUrl(lawyer.profileImage) : null,
+            imageUrl: lawyer.profileImage.isNotEmpty
+                ? Environment.getAttachmentUrl(lawyer.profileImage)
+                : null,
             fallback: const Icon(Icons.person, size: 45),
           ),
           const SizedBox(height: 16),
           Text(
             lawyer.fullName,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleLarge?.color),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: theme.textTheme.titleLarge?.color,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             lawyer.specialization,
-            style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13),
+            style: TextStyle(
+              color: theme.textTheme.bodySmall?.color,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.location_on_outlined, size: 14, color: theme.colorScheme.primary),
+              Icon(
+                Icons.location_on_outlined,
+                size: 14,
+                color: theme.colorScheme.primary,
+              ),
               const SizedBox(width: 4),
               Text(
-                lawyer.location.isNotEmpty ? lawyer.location : "Hyderabad, Telangana",
-                style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12),
+                lawyer.location.isNotEmpty
+                    ? lawyer.location
+                    : "Hyderabad, Telangana",
+                style: TextStyle(
+                  color: theme.textTheme.bodySmall?.color,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -213,18 +300,27 @@ class LawyerProfileScreen extends ConsumerWidget {
               const SizedBox(width: 4),
               Text(
                 "${lawyer.rating}",
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
               Text(
                 " (${lawyer.totalReviews} Reviews)",
-                style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12),
+                style: TextStyle(
+                  color: theme.textTheme.bodySmall?.color,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(width: 16),
               Icon(Icons.work, color: theme.colorScheme.primary, size: 16),
               const SizedBox(width: 4),
               Text(
                 "${lawyer.experience}+ Years Exp.",
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -236,7 +332,10 @@ class LawyerProfileScreen extends ConsumerWidget {
   Widget _buildExpertiseChip(BuildContext context, String label) {
     final theme = Theme.of(context);
     return Chip(
-      label: Text(label, style: TextStyle(color: theme.colorScheme.primary, fontSize: 12)),
+      label: Text(
+        label,
+        style: TextStyle(color: theme.colorScheme.primary, fontSize: 12),
+      ),
       backgroundColor: theme.colorScheme.surface,
       elevation: 0,
       side: BorderSide(color: theme.colorScheme.outline),
@@ -245,7 +344,11 @@ class LawyerProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildBottomActions(BuildContext context, WidgetRef ref, LawyerModel lawyer) {
+  Widget _buildBottomActions(
+    BuildContext context,
+    WidgetRef ref,
+    LawyerModel lawyer,
+  ) {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -256,7 +359,9 @@ class LawyerProfileScreen extends ConsumerWidget {
           ElevatedButton(
             onPressed: () async {
               // Initialize or retrieve chat session and navigate to ChatScreen
-              final chat = await ref.read(chatsProvider.notifier).getOrCreateChat(lawyer.userId);
+              final chat = await ref
+                  .read(chatsProvider.notifier)
+                  .getOrCreateChat(lawyer.userId);
               if (chat != null && context.mounted) {
                 context.push('/chat/${chat.id}/${lawyer.fullName}');
               }
@@ -267,7 +372,9 @@ class LawyerProfileScreen extends ConsumerWidget {
           OutlinedButton(
             onPressed: () {
               // Navigate to Schedule Consultation passing lawyer user ID
-              context.push('/schedule-consultation/${lawyer.userId}${caseId != null ? "?caseId=$caseId" : ""}');
+              context.push(
+                '/schedule-consultation/${lawyer.userId}${caseId != null ? "?caseId=$caseId" : ""}',
+              );
             },
             child: const Text("Book Appointment"),
           ),

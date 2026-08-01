@@ -391,22 +391,17 @@ class CustomButton extends StatelessWidget {
         ),
         child: isLoading
             ? const SizedBox(
-          height: 22,
-          width: 22,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-          ),
-        )
+                height: 22,
+                width: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
             : Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon),
-              const SizedBox(width: 8),
-            ],
-            Text(text),
-          ],
-        ),
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[Icon(icon), const SizedBox(width: 8)],
+                  Text(text),
+                ],
+              ),
       ),
     );
   }

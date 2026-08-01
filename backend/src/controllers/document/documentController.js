@@ -1,6 +1,43 @@
 const Document = require("../../models/Document");
+const Case = require("../../models/Case");
 const storageService = require("../../services/storageService");
 const ApiResponse = require("../../config/ApiResponse");
+
+/**
+ * The set of client user-ids a lawyer is entitled to see documents for: the
+ * clients on cases where this lawyer is selected or assigned.
+ *
+ * `Document.issueId` is not usable for this — it is nullable and the client
+ * uploads documents before a case exists — so entitlement is derived from the
+ * case relationship instead.
+ */
+const clientIdsVisibleToLawyer = (lawyerId) =>
+  Case.find({
+    $or: [{ assignedLawyer: lawyerId }, { selectedLawyer: lawyerId }],
+  }).distinct("client");
+
+/**
+ * Builds the ownership filter for a document query. Admins are unrestricted;
+ * everyone else is scoped. Note the default branch denies rather than allows —
+ * a future role added to the enum must opt in explicitly instead of silently
+ * inheriting access to every document in the system.
+ */
+const scopeForUser = async (user) => {
+  if (user.role === "admin") return {};
+  if (user.role === "lawyer") {
+    return { clientId: { $in: await clientIdsVisibleToLawyer(user._id) } };
+  }
+  return { clientId: user._id };
+};
+
+const canAccessDocument = async (user, document) => {
+  if (user.role === "admin") return true;
+  if (user.role === "lawyer") {
+    const clientIds = await clientIdsVisibleToLawyer(user._id);
+    return clientIds.some((id) => id.toString() === document.clientId.toString());
+  }
+  return document.clientId.toString() === user._id.toString();
+};
 
 class DocumentController {
   async uploadDocument(req, res, next) {
@@ -40,8 +77,7 @@ class DocumentController {
         return ApiResponse.error(res, "Document not found.", 404);
       }
 
-      // Check ownership
-      if (req.user.role === "client" && document.clientId.toString() !== req.user._id.toString()) {
+      if (!(await canAccessDocument(req.user, document))) {
         return ApiResponse.error(res, "Unauthorized.", 403);
       }
 
@@ -53,11 +89,8 @@ class DocumentController {
 
   async getDocuments(req, res, next) {
     try {
-      let query = {};
-      if (req.user.role === "client") {
-        query.clientId = req.user._id;
-      }
-      
+      const query = await scopeForUser(req.user);
+
       const documents = await Document.find(query).sort({ uploadedAt: -1 });
       return ApiResponse.success(res, "Documents fetched successfully.", documents);
     } catch (error) {
@@ -74,8 +107,8 @@ class DocumentController {
         return ApiResponse.error(res, "Document not found.", 404);
       }
 
-      // Check ownership
-      if (req.user.role === "client" && document.clientId.toString() !== req.user._id.toString()) {
+      const isOwner = document.clientId.toString() === req.user._id.toString();
+      if (!isOwner && req.user.role !== "admin") {
         return ApiResponse.error(res, "Unauthorized.", 403);
       }
 

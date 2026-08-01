@@ -1,6 +1,31 @@
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
+
+// Canonical extension per accepted MIME type. Membership in this map *is* the
+// allowlist — a type absent here cannot be uploaded and cannot be named.
+const EXTENSION_BY_MIME = {
+  "application/pdf": ".pdf",
+  "image/jpeg": ".jpg",
+  "image/jpg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "application/msword": ".doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+  "audio/mpeg": ".mp3",
+  "audio/mp3": ".mp3",
+  "audio/wav": ".wav",
+  "audio/m4a": ".m4a",
+  "audio/x-m4a": ".m4a",
+  "audio/mp4": ".m4a",
+  "audio/webm": ".webm",
+  "audio/ogg": ".ogg",
+  "audio/aac": ".aac",
+  "audio/3gpp": ".3gp",
+  "audio/amr": ".amr",
+};
+
 
 // Define storage configuration
 const storage = multer.diskStorage({
@@ -26,36 +51,20 @@ const storage = multer.diskStorage({
     cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    const uniqueSuffix =
+      Date.now() + "-" + crypto.randomBytes(8).toString("hex");
+
+    const ext = EXTENSION_BY_MIME[file.mimetype] || path.extname(file.originalname);
+    cb(null, uniqueSuffix + ext);
   }
 });
 
 // File filter validation
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    "application/pdf",
-    "image/jpeg",
-    "image/jpg",
-    "image/png",
-    "audio/mpeg",
-    "audio/mp3",
-    "audio/wav",
-    "audio/m4a",
-    "audio/mp4",
-    "audio/webm",
-    "audio/ogg",
-    "audio/x-m4a",
-    "audio/aac",
-    "audio/3gpp",
-    "audio/amr",
-    "application/octet-stream"
-  ];
-  
-  if (allowedTypes.includes(file.mimetype)) {
+  if (Object.prototype.hasOwnProperty.call(EXTENSION_BY_MIME, file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only PDF, JPG, JPEG, PNG and standard Audio files are allowed."), false);
+    cb(new Error("Only PDF, PNG, JPG, JPEG, DOCX and Audio files are allowed."), false);
   }
 };
 

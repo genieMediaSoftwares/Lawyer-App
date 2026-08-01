@@ -100,10 +100,14 @@ class AILegalAssistantCard extends StatelessWidget {
           width: double.infinity,
           height: cardHeight,
           decoration: BoxDecoration(
-            color: const Color(0xFF060713), // Deep midnight blue/black background
+            color: const Color(
+              0xFF060713,
+            ), // Deep midnight blue/black background
             borderRadius: BorderRadius.circular(24), // Rounded corners (24px)
             border: Border.all(
-              color: const Color(0xFF1E3A8A).withOpacity(0.4), // Thin blue border
+              color: const Color(
+                0xFF1E3A8A,
+              ).withOpacity(0.4), // Thin blue border
               width: 1.0,
             ),
             boxShadow: [
@@ -120,15 +124,16 @@ class AILegalAssistantCard extends StatelessWidget {
               Positioned.fill(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(24),
-                  child: const CustomPaint(
-                    painter: _ConstellationPainter(),
-                  ),
+                  child: const CustomPaint(painter: _ConstellationPainter()),
                 ),
               ),
 
               // Horizontal Row content
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: padding, vertical: 12),
+                padding: EdgeInsets.symmetric(
+                  horizontal: padding,
+                  vertical: 12,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -180,7 +185,9 @@ class AILegalAssistantCard extends StatelessWidget {
                           Text(
                             "Get instant answers to your legal questions.\nYour personal legal companion.",
                             style: TextStyle(
-                              color: const Color(0xFF94A3B8), // Muted grey-blue text
+                              color: const Color(
+                                0xFF94A3B8,
+                              ), // Muted grey-blue text
                               fontSize: isExtraSmall ? 10 : (isSmall ? 11 : 12),
                               height: 1.3,
                               fontWeight: FontWeight.w400,
@@ -202,7 +209,8 @@ class AILegalAssistantCard extends StatelessWidget {
                               const _GlowingScaleWidget(size: 38),
                               const SizedBox(height: 8),
                               PremiumButton(
-                                onPressed: () => context.push(RouteNames.aiChat),
+                                onPressed: () =>
+                                    context.push(RouteNames.aiChat),
                                 isSmall: true,
                               ),
                             ],
@@ -211,7 +219,8 @@ class AILegalAssistantCard extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               PremiumButton(
-                                onPressed: () => context.push(RouteNames.aiChat),
+                                onPressed: () =>
+                                    context.push(RouteNames.aiChat),
                                 isSmall: false,
                               ),
                               const SizedBox(width: 14),
@@ -289,7 +298,14 @@ class _ConstellationPainter extends CustomPainter {
     ];
 
     final connections = [
-      [0, 1], [0, 3], [1, 2], [1, 4], [3, 4], [4, 5], [4, 6], [3, 6]
+      [0, 1],
+      [0, 3],
+      [1, 2],
+      [1, 4],
+      [3, 4],
+      [4, 5],
+      [4, 6],
+      [3, 6],
     ];
 
     for (final conn in connections) {
@@ -327,9 +343,10 @@ class _FloatingRobotHeadState extends State<_FloatingRobotHead>
       duration: const Duration(milliseconds: 2400),
     )..repeat(reverse: true);
 
-    _animation = Tween<double>(begin: 0.0, end: -4.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _animation = Tween<double>(
+      begin: 0.0,
+      end: -4.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -348,10 +365,7 @@ class _FloatingRobotHeadState extends State<_FloatingRobotHead>
           child: child,
         );
       },
-      child: SvgPicture.string(
-        robotBodySvg,
-        fit: BoxFit.contain,
-      ),
+      child: SvgPicture.string(robotBodySvg, fit: BoxFit.contain),
     );
   }
 }
@@ -378,9 +392,10 @@ class _GlowingScaleWidgetState extends State<_GlowingScaleWidget>
       duration: const Duration(milliseconds: 2800),
     )..repeat(reverse: true);
 
-    _animation = Tween<double>(begin: 0.35, end: 0.85).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _animation = Tween<double>(
+      begin: 0.35,
+      end: 0.85,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -401,12 +416,16 @@ class _GlowingScaleWidgetState extends State<_GlowingScaleWidget>
             shape: BoxShape.circle,
             color: const Color(0xFF030712).withOpacity(0.5),
             border: Border.all(
-              color: const Color(0xFF1D4ED8).withOpacity(0.2 + 0.3 * _animation.value),
+              color: const Color(
+                0xFF1D4ED8,
+              ).withOpacity(0.2 + 0.3 * _animation.value),
               width: 1.0,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF3B82F6).withOpacity(0.06 * _animation.value),
+                color: const Color(
+                  0xFF3B82F6,
+                ).withOpacity(0.06 * _animation.value),
                 blurRadius: 10,
                 spreadRadius: 3 * _animation.value,
               ),
@@ -417,10 +436,7 @@ class _GlowingScaleWidgetState extends State<_GlowingScaleWidget>
       },
       child: Padding(
         padding: const EdgeInsets.all(4.0),
-        child: SvgPicture.string(
-          scaleSvg,
-          fit: BoxFit.contain,
-        ),
+        child: SvgPicture.string(scaleSvg, fit: BoxFit.contain),
       ),
     );
   }
@@ -489,7 +505,9 @@ class _PremiumButtonState extends State<PremiumButton>
             padding: const EdgeInsets.symmetric(horizontal: 16),
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              color: const Color(0xFF0A0A0F), // Dark pill-shaped button background
+              color: const Color(
+                0xFF0A0A0F,
+              ), // Dark pill-shaped button background
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: const Color(0xFFF59E0B), // Outlined gold border
@@ -497,7 +515,9 @@ class _PremiumButtonState extends State<PremiumButton>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFF59E0B).withOpacity(_isHovered ? 0.25 : 0.12),
+                  color: const Color(
+                    0xFFF59E0B,
+                  ).withOpacity(_isHovered ? 0.25 : 0.12),
                   blurRadius: _isHovered ? 12 : 6,
                   spreadRadius: 1,
                   offset: const Offset(0, 2),

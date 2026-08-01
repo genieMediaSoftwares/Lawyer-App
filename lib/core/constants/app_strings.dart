@@ -545,8 +545,7 @@ class AppStrings {
   static const String welcome = "Welcome";
   static const String searchLawyer = "Search Lawyers";
   static const String topRatedLawyers = "Top Rated Lawyers";
-  static const String upcomingAppointments =
-      "Upcoming Appointments";
+  static const String upcomingAppointments = "Upcoming Appointments";
 
   // Lawyer Profile
   static const String experience = "Experience";
@@ -556,8 +555,7 @@ class AppStrings {
 
   // Appointment
   static const String bookAppointment = "Book Appointment";
-  static const String appointmentDetails =
-      "Appointment Details";
+  static const String appointmentDetails = "Appointment Details";
 
   // Chat
   static const String chat = "Chat";
@@ -581,15 +579,11 @@ class AppStrings {
   static const String noDataFound = "No Data Found";
 
   // Validation
-  static const String mobileRequired =
-      "Mobile number is required";
+  static const String mobileRequired = "Mobile number is required";
 
-  static const String invalidMobile =
-      "Enter valid mobile number";
+  static const String invalidMobile = "Enter valid mobile number";
 
-  static const String otpRequired =
-      "Please enter OTP";
+  static const String otpRequired = "Please enter OTP";
 
-  static const String somethingWentWrong =
-      "Something went wrong";
+  static const String somethingWentWrong = "Something went wrong";
 }

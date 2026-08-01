@@ -41,7 +41,9 @@ class VoiceRecordingVisualizer extends StatelessWidget {
             height: isRecording ? height : 4,
             margin: const EdgeInsets.symmetric(horizontal: 1.5),
             decoration: BoxDecoration(
-              color: isRecording ? goldColor : AppColors.mutedText.withOpacity(0.3),
+              color: isRecording
+                  ? goldColor
+                  : AppColors.mutedText.withOpacity(0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           );

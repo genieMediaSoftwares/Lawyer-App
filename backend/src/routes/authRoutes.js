@@ -51,6 +51,8 @@ router.post(
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password", authController.resetPassword);
 router.post("/change-password", authMiddleware, authController.changePassword);
+router.post("/delete-account", authMiddleware, authController.deleteAccount);
+
 
 router.post("/logout", authMiddleware, (req, res) => {
   return res.status(200).json({ success: true, message: "Logged out successfully." });

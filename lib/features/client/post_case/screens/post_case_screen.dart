@@ -17,12 +17,9 @@ import '../../../../providers/case_provider.dart';
 import '../../../../providers/document_provider.dart';
 import '../../../../providers/category_provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:record/record.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:http_parser/http_parser.dart';
-import '../widgets/voice_recording_visualizer.dart';
 import '../widgets/premium_audio_player.dart';
+import '../../../../core/widgets/voice_recorder_button.dart';
 import '../../../../core/widgets/location_picker_sheet.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../models/category_item.dart';
@@ -53,7 +50,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     final activeState = ref.read(selectedCategoryProvider);
     if (activeState.categoryId == null) return null;
     try {
-      return _categories.firstWhere((c) => c.id == activeState.categoryId).title;
+      return _categories
+          .firstWhere((c) => c.id == activeState.categoryId)
+          .title;
     } catch (_) {
       return null;
     }
@@ -66,13 +65,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   String? _expandedCategory;
   final Map<String, GlobalKey> _categoryKeys = {};
 
-  // Voice Recording & Transcription State
-  late final AudioRecorder _audioRecorder;
-  StreamSubscription<Amplitude>? _amplitudeSubscription;
+  // Voice Recording & Transcription State.
+  final GlobalKey _recorderKey = GlobalKey();
   bool _isRecording = false;
-  int _recordingSeconds = 0;
-  Timer? _recordingTimer;
-  List<double> _amplitudes = [];
   String? _recordedFilePath;
 
   // Transcription states
@@ -123,7 +118,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   @override
   void initState() {
     super.initState();
-    _audioRecorder = AudioRecorder();
+
     _cityFocusNode = FocusNode();
 
     _loadDraft().then((_) {
@@ -133,7 +128,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           final matchedCategory = _categories.firstWhere(
             (c) => c.id == preselectedId,
           );
-          ref.read(selectedCategoryProvider.notifier).selectCategory(matchedCategory.id);
+          ref
+              .read(selectedCategoryProvider.notifier)
+              .selectCategory(matchedCategory.id);
           setState(() {
             _expandedCategory = matchedCategory.title;
           });
@@ -147,7 +144,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         final activeState = ref.read(selectedCategoryProvider);
         if (activeState.categoryId != null) {
           try {
-            final cat = _categories.firstWhere((c) => c.id == activeState.categoryId);
+            final cat = _categories.firstWhere(
+              (c) => c.id == activeState.categoryId,
+            );
             setState(() {
               _expandedCategory = cat.title;
             });
@@ -166,7 +165,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         _selectedStateName = parts[1].trim();
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(courtsProvider.notifier).fetchCourtsForLocation(
+        ref
+            .read(courtsProvider.notifier)
+            .fetchCourtsForLocation(
               city: _selectedCityName!,
               district: _selectedDistrictName,
               stateName: _selectedStateName ?? "",
@@ -191,9 +192,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   @override
   void dispose() {
     _cityFocusNode.dispose();
-    _amplitudeSubscription?.cancel();
-    _recordingTimer?.cancel();
-    _audioRecorder.dispose();
+
     _descriptionController.dispose();
     _cityController.dispose();
     _courtController.dispose();
@@ -205,8 +204,14 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final activeState = ref.read(selectedCategoryProvider);
-      await prefs.setString("draft_selectedCategoryId", activeState.categoryId ?? "");
-      await prefs.setString("draft_selectedSubcategory", activeState.subcategory ?? "");
+      await prefs.setString(
+        "draft_selectedCategoryId",
+        activeState.categoryId ?? "",
+      );
+      await prefs.setString(
+        "draft_selectedSubcategory",
+        activeState.subcategory ?? "",
+      );
       await prefs.setString("draft_expandedCategory", _expandedCategory ?? "");
       await prefs.setString("draft_description", _descriptionController.text);
       await prefs.setString("draft_recordedFilePath", _recordedFilePath ?? "");
@@ -236,7 +241,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
       if (mounted) {
         if (catId != null && catId.isNotEmpty) {
-          ref.read(selectedCategoryProvider.notifier).selectSubcategory(catId, sub);
+          ref
+              .read(selectedCategoryProvider.notifier)
+              .selectSubcategory(catId, sub);
         }
         setState(() {
           if (exp != null && exp.isNotEmpty) {
@@ -247,14 +254,16 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               _expandedCategory = cat.title;
             } catch (_) {}
           }
-          if (desc != null && desc.isNotEmpty) _descriptionController.text = desc;
+          if (desc != null && desc.isNotEmpty)
+            _descriptionController.text = desc;
           if (path != null && path.isNotEmpty) {
             _recordedFilePath = path;
             _audioPlayerSource = path;
           }
           if (city != null && city.isNotEmpty) _selectedCityName = city;
           if (state != null && state.isNotEmpty) _selectedStateName = state;
-          if (cityText != null && cityText.isNotEmpty) _cityController.text = cityText;
+          if (cityText != null && cityText.isNotEmpty)
+            _cityController.text = cityText;
           if (court != null && court.isNotEmpty) _selectedCourtName = court;
           if (urgency != null && urgency.isNotEmpty) _selectedUrgency = urgency;
         });
@@ -286,121 +295,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     } catch (e) {
       debugPrint("Error clearing draft: $e");
     }
-  }
-
-  Future<void> _startRecording() async {
-    try {
-      final hasPermission = await Permission.microphone.request().isGranted;
-      if (!hasPermission) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Microphone permission is required to record audio.")),
-        );
-        return;
-      }
-
-      final tempDir = await getTemporaryDirectory();
-      final String path = "${tempDir.path}/case_desc_${DateTime.now().millisecondsSinceEpoch}.m4a";
-
-      setState(() {
-        _isRecording = true;
-        _recordingSeconds = 0;
-        _amplitudes = [];
-        _recordedFilePath = null;
-        _audioPlayerSource = null;
-        _transcribeError = null;
-      });
-
-      await _audioRecorder.start(
-        const RecordConfig(encoder: AudioEncoder.aacLc),
-        path: path,
-      );
-
-      _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (mounted) {
-          setState(() {
-            _recordingSeconds++;
-          });
-          _saveDraft();
-        }
-      });
-
-      _amplitudeSubscription = _audioRecorder
-          .onAmplitudeChanged(const Duration(milliseconds: 100))
-          .listen((amp) {
-        if (mounted) {
-          setState(() {
-            double val = (amp.current + 160.0) / 160.0;
-            if (val < 0.0) val = 0.0;
-            _amplitudes.add(val);
-            if (_amplitudes.length > 25) {
-              _amplitudes.removeAt(0);
-            }
-          });
-        }
-      });
-      _saveDraft();
-    } catch (e) {
-      debugPrint("Error starting recording: $e");
-      setState(() {
-        _isRecording = false;
-      });
-    }
-  }
-
-  Future<void> _stopRecording({bool cancel = false}) async {
-    _recordingTimer?.cancel();
-    _amplitudeSubscription?.cancel();
-
-    try {
-      final path = await _audioRecorder.stop();
-      if (cancel) {
-        if (path != null) {
-          final file = File(path);
-          if (await file.exists()) {
-            await file.delete();
-          }
-        }
-        setState(() {
-          _isRecording = false;
-          _recordingSeconds = 0;
-          _amplitudes = [];
-          _recordedFilePath = null;
-          _audioPlayerSource = null;
-        });
-        _saveDraft();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Recording cancelled")),
-          );
-        }
-        return;
-      }
-
-      if (path != null) {
-        setState(() {
-          _isRecording = false;
-          _recordedFilePath = path;
-          _audioPlayerSource = path;
-        });
-        _saveDraft();
-        _transcribeAudio(path);
-      } else {
-        setState(() {
-          _isRecording = false;
-        });
-        _saveDraft();
-      }
-    } catch (e) {
-      debugPrint("Error stopping recording: $e");
-      setState(() {
-        _isRecording = false;
-      });
-      _saveDraft();
-    }
-  }
-
-  Future<void> _cancelRecording() async {
-    await _stopRecording(cancel: true);
   }
 
   Future<void> _transcribeAudio(String path) async {
@@ -480,7 +374,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   });
                   _saveDraft();
                 },
-                child: const Text("APPEND", style: TextStyle(color: AppColors.primaryGold)),
+                child: const Text(
+                  "APPEND",
+                  style: TextStyle(color: AppColors.primaryGold),
+                ),
               ),
               TextButton(
                 onPressed: () {
@@ -491,7 +388,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   });
                   _saveDraft();
                 },
-                child: const Text("REPLACE", style: TextStyle(color: AppColors.primaryGold)),
+                child: const Text(
+                  "REPLACE",
+                  style: TextStyle(color: AppColors.primaryGold),
+                ),
               ),
             ],
           );
@@ -500,7 +400,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     }
   }
 
-  Widget _buildDescriptionSection(ThemeData theme, Color? primaryTextColor, Color? secondaryTextColor) {
+  Widget _buildDescriptionSection(
+    ThemeData theme,
+    Color? primaryTextColor,
+    Color? secondaryTextColor,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -519,34 +423,41 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               decoration: InputDecoration(
                 hintText: "Briefly explain your legal issue...",
                 hintStyle: TextStyle(color: secondaryTextColor),
-                errorText: _hasTouchedDescription && _descriptionError != null 
-                    ? _descriptionError 
+                errorText: _hasTouchedDescription && _descriptionError != null
+                    ? _descriptionError
                     : null,
                 contentPadding: const EdgeInsets.only(
                   left: 16,
                   right: 48, // Leave space for microphone button
                   top: 16,
-                  bottom: 40, // Space so text doesn't hide behind positioned mic button
+                  bottom:
+                      40, // Space so text doesn't hide behind positioned mic button
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
             Positioned(
-              bottom: 8,
-              right: 8,
-              child: _isRecording
-                  ? IconButton(
-                      onPressed: () => _stopRecording(),
-                      icon: const Icon(Icons.stop_circle_rounded, color: Colors.red, size: 28),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    )
-                  : IconButton(
-                      onPressed: () => _startRecording(),
-                      icon: const Icon(Icons.mic, color: AppColors.primaryGold, size: 28),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
+              bottom: 4,
+              right: 4,
+              child: VoiceRecorderButton(
+                key: _recorderKey,
+                filePrefix: 'case_desc',
+                onRecordingStateChanged: (recording) {
+                  setState(() => _isRecording = recording);
+                  if (!recording) _saveDraft();
+                },
+                onRecordingComplete: (file) {
+                  setState(() {
+                    _recordedFilePath = file.path;
+                    _audioPlayerSource = file.path;
+                    _transcribeError = null;
+                  });
+                  _saveDraft();
+                  _transcribeAudio(file.path);
+                },
+              ),
             ),
             if (_isTranscribing)
               Positioned.fill(
@@ -575,37 +486,19 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           ],
         ),
         if (_isRecording) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.colorScheme.outline),
-            ),
-            child: Row(
-              children: [
-                const _PulsingRecordDot(),
-                const SizedBox(width: 8),
-                Text(
-                  "Recording: ${(_recordingSeconds ~/ 60).toString().padLeft(2, '0')}:${(_recordingSeconds % 60).toString().padLeft(2, '0')}",
-                  style: TextStyle(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const _PulsingRecordDot(),
+              const SizedBox(width: 8),
+              Text(
+                "Recording — tap stop when you're done",
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontSize: 12,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: VoiceRecordingVisualizer(amplitudes: _amplitudes, isRecording: _isRecording),
-                ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: () => _cancelRecording(),
-                  child: const Text("Cancel", style: TextStyle(color: AppColors.mutedText, fontSize: 12)),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
         if (_transcribeError != null) ...[
@@ -651,9 +544,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               setState(() {
                 _audioPlayerSource = null;
                 _recordedFilePath = null;
+                _transcribeError = null;
               });
               _saveDraft();
-              _startRecording();
             },
           ),
         ],
@@ -690,7 +583,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
     _locationDebounce = Timer(const Duration(milliseconds: 500), () async {
       try {
-        final suggestions = await ref.read(placeServiceProvider).autocomplete(query);
+        final suggestions = await ref
+            .read(placeServiceProvider)
+            .autocomplete(query);
         if (mounted) {
           setState(() {
             _locationSuggestions = suggestions;
@@ -736,7 +631,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           _courtFilter = "";
         });
 
-        ref.read(courtsProvider.notifier).fetchCourtsForLocation(
+        ref
+            .read(courtsProvider.notifier)
+            .fetchCourtsForLocation(
               city: details.city,
               district: details.district,
               stateName: details.state,
@@ -755,7 +652,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     }
   }
 
-
   Future<void> _submitCase() async {
     if (_selectedCategory == null ||
         _selectedSubcategory == null ||
@@ -764,7 +660,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         _selectedLawyer == null ||
         !_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please complete all required fields and agree to the terms.")),
+        const SnackBar(
+          content: Text(
+            "Please complete all required fields and agree to the terms.",
+          ),
+        ),
       );
       return;
     }
@@ -772,13 +672,17 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     String? voiceUrl;
     if (_recordedFilePath != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Uploading voice description recording...")),
+        const SnackBar(
+          content: Text("Uploading voice description recording..."),
+        ),
       );
       try {
-        final docRecord = await ref.read(documentsProvider.notifier).uploadDocument(
-          _recordedFilePath!,
-          "voice_description_${DateTime.now().millisecondsSinceEpoch}.m4a",
-        );
+        final docRecord = await ref
+            .read(documentsProvider.notifier)
+            .uploadDocument(
+              _recordedFilePath!,
+              "voice_description_${DateTime.now().millisecondsSinceEpoch}.m4a",
+            );
         if (docRecord != null) {
           voiceUrl = Environment.getAttachmentUrl(docRecord.filePath);
         }
@@ -791,7 +695,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       }
     }
 
-    final newCase = await ref.read(casesProvider.notifier).createCase(
+    final newCase = await ref
+        .read(casesProvider.notifier)
+        .createCase(
           title: _selectedSubcategory!,
           description: _descriptionController.text,
           category: _selectedCategory!,
@@ -802,7 +708,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           documents: _uploadedDocs,
           selectedLawyer: _selectedLawyer!.userId,
           voiceUrl: voiceUrl,
-          voiceTranscript: _recordedFilePath != null ? _descriptionController.text : null,
+          voiceTranscript: _recordedFilePath != null
+              ? _descriptionController.text
+              : null,
           city: _selectedCityName,
           district: _selectedDistrictName,
           stateName: _selectedStateName,
@@ -902,9 +810,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           child: Text(
             "$stepNum",
             style: TextStyle(
-              color: isActive
-                  ? Colors.black
-                  : theme.textTheme.bodySmall?.color,
+              color: isActive ? Colors.black : theme.textTheme.bodySmall?.color,
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),
@@ -920,7 +826,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             fontSize: 10,
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
           ),
-        )
+        ),
       ],
     );
   }
@@ -930,9 +836,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     return Expanded(
       child: Container(
         height: 2,
-        color: isActive
-            ? theme.colorScheme.primary
-            : theme.colorScheme.outline,
+        color: isActive ? theme.colorScheme.primary : theme.colorScheme.outline,
         margin: const EdgeInsets.only(bottom: 16),
       ),
     );
@@ -963,7 +867,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       children: [
         Text(
           "Select Category",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: primaryTextColor,
+          ),
         ),
         const SizedBox(height: 16),
         ListView.builder(
@@ -1003,7 +911,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   color: theme.colorScheme.primary.withOpacity(0.08),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
-                )
+                ),
               ]
             : null,
       ),
@@ -1016,11 +924,15 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                 if (isExpanded) {
                   _expandedCategory = null;
                   if (selectedCategoryState.subcategory == null) {
-                    ref.read(selectedCategoryProvider.notifier).clearSelection();
+                    ref
+                        .read(selectedCategoryProvider.notifier)
+                        .clearSelection();
                   }
                 } else {
                   _expandedCategory = cat.title;
-                  ref.read(selectedCategoryProvider.notifier).selectCategory(cat.id);
+                  ref
+                      .read(selectedCategoryProvider.notifier)
+                      .selectCategory(cat.id);
                   _scrollToCategory(cat.title);
                 }
               });
@@ -1036,7 +948,8 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                     size: 24,
                     color: isHighlighted
                         ? theme.colorScheme.primary
-                        : theme.textTheme.bodyMedium?.color?.withOpacity(0.7) ?? Colors.white70,
+                        : theme.textTheme.bodyMedium?.color?.withOpacity(0.7) ??
+                              Colors.white70,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1068,12 +981,20 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             alignment: Alignment.topCenter,
             child: isExpanded
                 ? Padding(
-                    padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                    padding: const EdgeInsets.only(
+                      left: 16,
+                      right: 16,
+                      bottom: 16,
+                    ),
                     child: Column(
                       children: [
-                        Divider(color: theme.colorScheme.outline.withOpacity(0.5)),
+                        Divider(
+                          color: theme.colorScheme.outline.withOpacity(0.5),
+                        ),
                         const SizedBox(height: 12),
-                        ...cat.subcategories.map((sub) => _buildSubcategoryItem(cat.id, sub)),
+                        ...cat.subcategories.map(
+                          (sub) => _buildSubcategoryItem(cat.id, sub),
+                        ),
                       ],
                     ),
                   )
@@ -1086,15 +1007,21 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
   Widget _buildSubcategoryItem(String categoryId, String subcategoryName) {
     final selectedCategoryState = ref.watch(selectedCategoryProvider);
-    final isSelected = selectedCategoryState.categoryId == categoryId && selectedCategoryState.subcategory == subcategoryName;
+    final isSelected =
+        selectedCategoryState.categoryId == categoryId &&
+        selectedCategoryState.subcategory == subcategoryName;
     final theme = Theme.of(context);
     return GestureDetector(
       onTap: () {
         setState(() {
           if (isSelected) {
-            ref.read(selectedCategoryProvider.notifier).selectCategory(categoryId);
+            ref
+                .read(selectedCategoryProvider.notifier)
+                .selectCategory(categoryId);
           } else {
-            ref.read(selectedCategoryProvider.notifier).selectSubcategory(categoryId, subcategoryName);
+            ref
+                .read(selectedCategoryProvider.notifier)
+                .selectSubcategory(categoryId, subcategoryName);
           }
         });
         _saveDraft();
@@ -1151,7 +1078,12 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     return null;
   }
 
-  Widget _buildHighlightedText(String text, String query, TextStyle defaultStyle, TextStyle highlightStyle) {
+  Widget _buildHighlightedText(
+    String text,
+    String query,
+    TextStyle defaultStyle,
+    TextStyle highlightStyle,
+  ) {
     if (query.isEmpty) {
       return Text(text, style: defaultStyle);
     }
@@ -1165,13 +1097,20 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
     while (indexOfMatch != -1) {
       if (indexOfMatch > start) {
-        spans.add(TextSpan(text: text.substring(start, indexOfMatch), style: defaultStyle));
+        spans.add(
+          TextSpan(
+            text: text.substring(start, indexOfMatch),
+            style: defaultStyle,
+          ),
+        );
       }
 
-      spans.add(TextSpan(
-        text: text.substring(indexOfMatch, indexOfMatch + query.length),
-        style: highlightStyle,
-      ));
+      spans.add(
+        TextSpan(
+          text: text.substring(indexOfMatch, indexOfMatch + query.length),
+          style: highlightStyle,
+        ),
+      );
 
       start = indexOfMatch + query.length;
       indexOfMatch = lowerText.indexOf(lowerQuery, start);
@@ -1181,9 +1120,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       spans.add(TextSpan(text: text.substring(start), style: defaultStyle));
     }
 
-    return RichText(
-      text: TextSpan(children: spans),
-    );
+    return RichText(text: TextSpan(children: spans));
   }
 
   Widget _buildStep2Details() {
@@ -1197,16 +1134,24 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       children: [
         Text(
           "Case Details",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: primaryTextColor,
+          ),
         ),
         const SizedBox(height: 16),
-        
+
         // 1. Brief Description of Your Case *
         Row(
           children: [
             Text(
               "Brief Description of Your Case",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryTextColor),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: primaryTextColor,
+              ),
             ),
             const Text(
               " *",
@@ -1223,7 +1168,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           children: [
             Text(
               "City / Location",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryTextColor),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: primaryTextColor,
+              ),
             ),
             const Text(
               " *",
@@ -1259,17 +1208,25 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                     itemCount: listOptions.length,
                     itemBuilder: (context, index) {
                       final option = listOptions[index];
-                      final isFocused = AutocompleteHighlightedOption.of(context) == index;
+                      final isFocused =
+                          AutocompleteHighlightedOption.of(context) == index;
                       return InkWell(
                         onTap: () => onSelected(option),
                         child: Container(
-                          color: isFocused ? theme.colorScheme.primary.withOpacity(0.08) : Colors.transparent,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          color: isFocused
+                              ? theme.colorScheme.primary.withOpacity(0.08)
+                              : Colors.transparent,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           child: Row(
                             children: [
                               Icon(
                                 Icons.location_on_outlined,
-                                color: isFocused ? theme.colorScheme.primary : AppColors.mutedText,
+                                color: isFocused
+                                    ? theme.colorScheme.primary
+                                    : AppColors.mutedText,
                                 size: 20,
                               ),
                               const SizedBox(width: 12),
@@ -1278,8 +1235,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                                   option.description,
                                   _cityController.text,
                                   theme.textTheme.bodyMedium?.copyWith(
-                                    color: isFocused ? theme.colorScheme.primary : theme.textTheme.bodyMedium?.color,
-                                  ) ?? const TextStyle(),
+                                        color: isFocused
+                                            ? theme.colorScheme.primary
+                                            : theme.textTheme.bodyMedium?.color,
+                                      ) ??
+                                      const TextStyle(),
                                   TextStyle(
                                     color: theme.colorScheme.primary,
                                     fontWeight: FontWeight.bold,
@@ -1299,44 +1259,47 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           onSelected: (option) {
             _selectPlace(option);
           },
-          fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-            return TextField(
-              controller: textEditingController,
-              focusNode: focusNode,
-              style: TextStyle(color: primaryTextColor),
-              onChanged: (val) {
-                setState(() {
-                  _selectedCityName = null;
-                  _selectedDistrictName = null;
-                  _selectedStateName = null;
-                  _selectedCountryName = null;
-                  _selectedLatitude = null;
-                  _selectedLongitude = null;
-                  _selectedGooglePlaceId = null;
+          fieldViewBuilder:
+              (context, textEditingController, focusNode, onFieldSubmitted) {
+                return TextField(
+                  controller: textEditingController,
+                  focusNode: focusNode,
+                  style: TextStyle(color: primaryTextColor),
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedCityName = null;
+                      _selectedDistrictName = null;
+                      _selectedStateName = null;
+                      _selectedCountryName = null;
+                      _selectedLatitude = null;
+                      _selectedLongitude = null;
+                      _selectedGooglePlaceId = null;
 
-                  _selectedCourtName = null;
-                  _courtController.clear();
-                  ref.read(courtsProvider.notifier).clear();
-                });
-                _onCitySearchChanged(val);
+                      _selectedCourtName = null;
+                      _courtController.clear();
+                      ref.read(courtsProvider.notifier).clear();
+                    });
+                    _onCitySearchChanged(val);
+                  },
+                  decoration: InputDecoration(
+                    hintText: "Start typing your city name...",
+                    hintStyle: TextStyle(color: secondaryTextColor),
+                    suffixIcon: _isLocationLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: Padding(
+                              padding: EdgeInsets.all(12.0),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
               },
-              decoration: InputDecoration(
-                hintText: "Start typing your city name...",
-                hintStyle: TextStyle(color: secondaryTextColor),
-                suffixIcon: _isLocationLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: Padding(
-                          padding: EdgeInsets.all(12.0),
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                    : const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            );
-          },
         ),
         if (_locationError != null) ...[
           const SizedBox(height: 6),
@@ -1372,8 +1335,8 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 13,
-            color: _selectedCityName == null 
-                ? theme.textTheme.bodySmall?.color?.withOpacity(0.5) 
+            color: _selectedCityName == null
+                ? theme.textTheme.bodySmall?.color?.withOpacity(0.5)
                 : primaryTextColor,
           ),
         ),
@@ -1394,9 +1357,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             });
           },
           decoration: InputDecoration(
-            hintText: _selectedCityName == null 
-                ? "Select a city first" 
-                : (courtsState.isLoading ? "Loading courts..." : "Select court location"),
+            hintText: _selectedCityName == null
+                ? "Select a city first"
+                : (courtsState.isLoading
+                      ? "Loading courts..."
+                      : "Select court location"),
             hintStyle: TextStyle(color: secondaryTextColor),
             suffixIcon: courtsState.isLoading
                 ? const SizedBox(
@@ -1415,14 +1380,23 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           const SizedBox(height: 8),
           const Center(child: CircularProgressIndicator()),
         ],
-        if (_selectedCityName != null && !courtsState.isLoading && courtsState.courts.isEmpty) ...[
+        if (_selectedCityName != null &&
+            !courtsState.isLoading &&
+            courtsState.courts.isEmpty) ...[
           const SizedBox(height: 8),
           const Text(
             "No courts available.",
-            style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: Colors.red,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
-        if (_selectedCityName != null && _showCourtSuggestions && !courtsState.isLoading && courtsState.courts.isNotEmpty) ...[
+        if (_selectedCityName != null &&
+            _showCourtSuggestions &&
+            !courtsState.isLoading &&
+            courtsState.courts.isNotEmpty) ...[
           const SizedBox(height: 4),
           Container(
             decoration: BoxDecoration(
@@ -1434,9 +1408,13 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             child: Builder(
               builder: (context) {
                 final filtered = courtsState.courts
-                    .where((court) => court.courtName.toLowerCase().contains(_courtFilter.toLowerCase()))
+                    .where(
+                      (court) => court.courtName.toLowerCase().contains(
+                        _courtFilter.toLowerCase(),
+                      ),
+                    )
                     .toList();
-                
+
                 if (filtered.isEmpty) {
                   return Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -1454,8 +1432,20 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                     final court = filtered[index];
                     return ListTile(
                       dense: true,
-                      title: Text(court.courtName, style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold)),
-                      subtitle: Text("${court.courtType} • ${court.courtAddress}", style: TextStyle(color: secondaryTextColor, fontSize: 11)),
+                      title: Text(
+                        court.courtName,
+                        style: TextStyle(
+                          color: primaryTextColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text(
+                        "${court.courtType} • ${court.courtAddress}",
+                        style: TextStyle(
+                          color: secondaryTextColor,
+                          fontSize: 11,
+                        ),
+                      ),
                       onTap: () {
                         setState(() {
                           _courtController.text = court.courtName;
@@ -1467,14 +1457,21 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                     );
                   },
                 );
-              }
+              },
             ),
           ),
         ],
         const SizedBox(height: 16),
 
         // 4. When do you need help?
-        Text("When do you need help?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryTextColor)),
+        Text(
+          "When do you need help?",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            color: primaryTextColor,
+          ),
+        ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _selectedUrgency,
@@ -1483,19 +1480,31 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           decoration: InputDecoration(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
-          items: [
-            "Immediately (Within 24 Hours)",
-            "This Week",
-            "Within 15 Days",
-            "Within One Month"
-          ]
-              .map((val) => DropdownMenuItem(value: val, child: Text(val, style: TextStyle(color: primaryTextColor))))
-              .toList(),
+          items:
+              [
+                    "Immediately (Within 24 Hours)",
+                    "This Week",
+                    "Within 15 Days",
+                    "Within One Month",
+                  ]
+                  .map(
+                    (val) => DropdownMenuItem(
+                      value: val,
+                      child: Text(
+                        val,
+                        style: TextStyle(color: primaryTextColor),
+                      ),
+                    ),
+                  )
+                  .toList(),
           onChanged: (val) {
             setState(() => _selectedUrgency = val);
             _saveDraft();
           },
-          hint: Text("Select urgency", style: TextStyle(color: secondaryTextColor)),
+          hint: Text(
+            "Select urgency",
+            style: TextStyle(color: secondaryTextColor),
+          ),
         ),
         const SizedBox(height: 24),
 
@@ -1534,11 +1543,19 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           children: [
             Text(
               "Upload Acknowledgement",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: primaryTextColor,
+              ),
             ),
             const Text(
               " *",
-              style: TextStyle(color: Colors.red, fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -1564,7 +1581,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                 children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 16),
-                  Text("Uploading document...", style: TextStyle(color: Colors.grey)),
+                  Text(
+                    "Uploading document...",
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
             ),
@@ -1576,14 +1596,19 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: theme.colorScheme.primary.withOpacity(0.5), width: 1.5),
+              border: Border.all(
+                color: theme.colorScheme.primary.withOpacity(0.5),
+                width: 1.5,
+              ),
             ),
             child: Column(
               children: [
                 Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                      backgroundColor: theme.colorScheme.primary.withOpacity(
+                        0.1,
+                      ),
                       radius: 28,
                       child: Icon(
                         _uploadedDocRecord!.mimeType.contains("pdf")
@@ -1602,23 +1627,38 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                         children: [
                           Text(
                             _uploadedDocRecord!.originalName,
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primaryTextColor),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: primaryTextColor,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
                           Text(
                             "${(_uploadedDocRecord!.fileSize / (1024 * 1024)).toStringAsFixed(1)} MB",
-                            style: TextStyle(color: secondaryTextColor, fontSize: 12),
+                            style: TextStyle(
+                              color: secondaryTextColor,
+                              fontSize: 12,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           const Row(
                             children: [
-                              Icon(Icons.check_circle, color: Colors.green, size: 14),
+                              Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: 14,
+                              ),
                               SizedBox(width: 4),
                               Text(
                                 "Uploaded Successfully",
-                                style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -1645,8 +1685,15 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                     ),
                     TextButton.icon(
                       onPressed: _deleteDocument,
-                      icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 18),
-                      label: const Text("Delete", style: TextStyle(color: AppColors.error)),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: AppColors.error,
+                        size: 18,
+                      ),
+                      label: const Text(
+                        "Delete",
+                        style: TextStyle(color: AppColors.error),
+                      ),
                     ),
                   ],
                 ),
@@ -1669,13 +1716,33 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: theme.colorScheme.primary.withOpacity(0.1), shape: BoxShape.circle),
-                    child: Icon(Icons.cloud_upload_outlined, size: 36, color: theme.colorScheme.primary),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.cloud_upload_outlined,
+                      size: 36,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  Text("Upload Documents", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: primaryTextColor)),
+                  Text(
+                    "Upload Documents",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: primaryTextColor,
+                    ),
+                  ),
                   const SizedBox(height: 6),
-                  Text("PDF, JPG, JPEG, PNG (Max 10MB)", style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12)),
+                  Text(
+                    "PDF, JPG, JPEG, PNG (Max 10MB)",
+                    style: TextStyle(
+                      color: theme.textTheme.bodySmall?.color,
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1685,7 +1752,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           const SizedBox(height: 12),
           Text(
             _docErrorText!,
-            style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: Colors.red,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ],
@@ -1740,23 +1811,25 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       });
 
       if (_uploadedDocRecord != null) {
-        await ref.read(documentsProvider.notifier).deleteDocument(_uploadedDocRecord!.id);
+        await ref
+            .read(documentsProvider.notifier)
+            .deleteDocument(_uploadedDocRecord!.id);
       }
 
-      final doc = await ref.read(documentsProvider.notifier).uploadDocument(
-            kIsWeb ? null : filePath,
-            fileName,
-            bytes: bytes,
-          );
+      final doc = await ref
+          .read(documentsProvider.notifier)
+          .uploadDocument(kIsWeb ? null : filePath, fileName, bytes: bytes);
       if (doc != null) {
         setState(() {
           _uploadedDocRecord = doc;
           _uploadedDocs.clear();
-          _uploadedDocs.add(DocumentModel(
-            name: doc.originalName,
-            url: Environment.getAttachmentUrl(doc.filePath),
-            size: "${(doc.fileSize / (1024 * 1024)).toStringAsFixed(1)} MB",
-          ));
+          _uploadedDocs.add(
+            DocumentModel(
+              name: doc.originalName,
+              url: Environment.getAttachmentUrl(doc.filePath),
+              size: "${(doc.fileSize / (1024 * 1024)).toStringAsFixed(1)} MB",
+            ),
+          );
           _isDocUploading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1790,12 +1863,20 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primaryGold),
-                title: Text("Take Photo", style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
+                leading: const Icon(
+                  Icons.camera_alt_outlined,
+                  color: AppColors.primaryGold,
+                ),
+                title: Text(
+                  "Take Photo",
+                  style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+                ),
                 onTap: () async {
                   Navigator.pop(context);
                   final ImagePicker picker = ImagePicker();
-                  final XFile? photo = await picker.pickImage(source: ImageSource.camera);
+                  final XFile? photo = await picker.pickImage(
+                    source: ImageSource.camera,
+                  );
                   if (photo != null) {
                     final bytes = await photo.readAsBytes();
                     _processPickedFile(
@@ -1808,12 +1889,20 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library_outlined, color: AppColors.primaryGold),
-                title: Text("Choose From Gallery", style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
+                leading: const Icon(
+                  Icons.photo_library_outlined,
+                  color: AppColors.primaryGold,
+                ),
+                title: Text(
+                  "Choose From Gallery",
+                  style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+                ),
                 onTap: () async {
                   Navigator.pop(context);
                   final ImagePicker picker = ImagePicker();
-                  final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+                  final XFile? image = await picker.pickImage(
+                    source: ImageSource.gallery,
+                  );
                   if (image != null) {
                     final bytes = await image.readAsBytes();
                     _processPickedFile(
@@ -1826,8 +1915,14 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.primaryGold),
-                title: Text("Choose PDF", style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
+                leading: const Icon(
+                  Icons.picture_as_pdf_outlined,
+                  color: AppColors.primaryGold,
+                ),
+                title: Text(
+                  "Choose PDF",
+                  style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+                ),
                 onTap: () async {
                   Navigator.pop(context);
                   final FilePickerResult? result = await FilePicker.pickFiles(
@@ -1849,7 +1944,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.close, color: Colors.grey),
-                title: Text("Cancel", style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
+                title: Text(
+                  "Cancel",
+                  style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                 },
@@ -1863,10 +1961,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
   void _viewDocument() {
     if (_uploadedDocRecord == null) return;
-    
+
     final url = Environment.getAttachmentUrl(_uploadedDocRecord!.filePath);
     final isPdf = _uploadedDocRecord!.mimeType.contains("pdf");
-    
+
     showDialog(
       context: context,
       useSafeArea: false,
@@ -1875,7 +1973,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           backgroundColor: Colors.black,
           appBar: AppBar(
             backgroundColor: Colors.black,
-            title: Text(_uploadedDocRecord!.originalName, style: const TextStyle(color: Colors.white)),
+            title: Text(
+              _uploadedDocRecord!.originalName,
+              style: const TextStyle(color: Colors.white),
+            ),
             leading: IconButton(
               icon: const Icon(Icons.close, color: Colors.white),
               onPressed: () => Navigator.pop(context),
@@ -1886,11 +1987,19 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                 ? Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.picture_as_pdf, size: 80, color: Colors.red),
+                      const Icon(
+                        Icons.picture_as_pdf,
+                        size: 80,
+                        color: Colors.red,
+                      ),
                       const SizedBox(height: 16),
                       const Text(
                         "PDF Reader Mode",
-                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -1918,7 +2027,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                       },
                       errorBuilder: (context, error, stackTrace) {
                         return const Center(
-                          child: Text("Error loading image", style: TextStyle(color: Colors.white)),
+                          child: Text(
+                            "Error loading image",
+                            style: TextStyle(color: Colors.white),
+                          ),
                         );
                       },
                     ),
@@ -1931,12 +2043,14 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
   Future<void> _deleteDocument() async {
     if (_uploadedDocRecord == null) return;
-    
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Delete Acknowledgement?"),
-        content: const Text("Are you sure you want to delete this acknowledgement document?"),
+        content: const Text(
+          "Are you sure you want to delete this acknowledgement document?",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -1944,7 +2058,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("Delete", style: TextStyle(color: AppColors.error)),
+            child: const Text(
+              "Delete",
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -1954,7 +2071,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       setState(() {
         _isDocUploading = true;
       });
-      final success = await ref.read(documentsProvider.notifier).deleteDocument(_uploadedDocRecord!.id);
+      final success = await ref
+          .read(documentsProvider.notifier)
+          .deleteDocument(_uploadedDocRecord!.id);
       if (success) {
         setState(() {
           _uploadedDocRecord = null;
@@ -1976,12 +2095,14 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   void _replaceDocument() {
     _showUploadOptionsBottomSheet();
   }
+
   Widget _buildStep4RecommendedLawyers() {
     final theme = Theme.of(context);
     final primaryTextColor = theme.textTheme.titleMedium?.color;
     final secondaryTextColor = theme.textTheme.bodySmall?.color;
 
-    final queryKey = "category=${Uri.encodeComponent(_selectedCategory ?? '')}"
+    final queryKey =
+        "category=${Uri.encodeComponent(_selectedCategory ?? '')}"
         "&subcategory=${Uri.encodeComponent(_selectedSubcategory ?? '')}"
         "&city=${Uri.encodeComponent(_selectedCityName ?? '')}"
         "&district=${Uri.encodeComponent(_selectedDistrictName ?? '')}"
@@ -2003,12 +2124,20 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                 children: [
                   Text(
                     "Recommended Lawyers",
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primaryTextColor),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: primaryTextColor,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     "We've matched the best lawyers for your issue (${_selectedSubcategory ?? _selectedCategory}) in ${_selectedCityName ?? 'your area'} and nearby areas.",
-                    style: TextStyle(color: secondaryTextColor, fontSize: 13, height: 1.4),
+                    style: TextStyle(
+                      color: secondaryTextColor,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
                   ),
                 ],
               ),
@@ -2031,16 +2160,27 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 40.0),
                   child: Column(
                     children: [
-                      Icon(Icons.person_search_outlined, size: 64, color: AppColors.mutedText.withOpacity(0.5)),
+                      Icon(
+                        Icons.person_search_outlined,
+                        size: 64,
+                        color: AppColors.mutedText.withOpacity(0.5),
+                      ),
                       const SizedBox(height: 16),
                       const Text(
                         "No Recommended Lawyers Found",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primaryText),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: AppColors.primaryText,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         "Try picking a different city or location in the previous step.",
-                        style: TextStyle(color: secondaryTextColor, fontSize: 13),
+                        style: TextStyle(
+                          color: secondaryTextColor,
+                          fontSize: 13,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -2049,7 +2189,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               );
             }
 
-            final visibleCount = _viewAllLawyers ? lawyers.length : (lawyers.length > 5 ? 5 : lawyers.length);
+            final visibleCount = _viewAllLawyers
+                ? lawyers.length
+                : (lawyers.length > 5 ? 5 : lawyers.length);
             final visibleLawyers = lawyers.take(visibleCount).toList();
 
             return Column(
@@ -2059,7 +2201,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   return _buildLawyerCard(lawyer, isSelected);
                 }),
                 const SizedBox(height: 16),
-                
+
                 // Bottom Dotted prompt
                 _buildViewMorePrompt(),
               ],
@@ -2073,12 +2215,20 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               padding: const EdgeInsets.symmetric(vertical: 40.0),
               child: Column(
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: AppColors.error,
+                  ),
                   const SizedBox(height: 16),
-                  Text("Error loading recommendations: $err", style: TextStyle(color: primaryTextColor)),
+                  Text(
+                    "Error loading recommendations: $err",
+                    style: TextStyle(color: primaryTextColor),
+                  ),
                   const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: () => ref.invalidate(recommendedLawyersProvider(queryKey)),
+                    onPressed: () =>
+                        ref.invalidate(recommendedLawyersProvider(queryKey)),
                     child: const Text("Retry"),
                   ),
                 ],
@@ -2097,7 +2247,13 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           context: context,
           builder: (context) => AlertDialog(
             backgroundColor: const Color(0xFF1B1B1B),
-            title: const Text("Why these lawyers?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            title: const Text(
+              "Why these lawyers?",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             content: const Text(
               "GenieLaw matches the best lawyers based on your category, subcategory, and location.\n\n"
               "We prioritize lawyers in your Same City first, followed by your Same District, and then Same State, "
@@ -2107,7 +2263,13 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text("Got It", style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
+                child: const Text(
+                  "Got It",
+                  style: TextStyle(
+                    color: Color(0xFFD4AF37),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
@@ -2125,7 +2287,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           children: const [
             Text(
               "Why these lawyers?",
-              style: TextStyle(color: Color(0xFFD4AF37), fontSize: 11, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Color(0xFFD4AF37),
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             SizedBox(width: 4),
             Icon(Icons.info_outline, color: Color(0xFFD4AF37), size: 12),
@@ -2140,13 +2306,23 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _buildFilterChip("Best Match", isSelected: _sortByFilter == "Best Match", hasStar: true),
+          _buildFilterChip(
+            "Best Match",
+            isSelected: _sortByFilter == "Best Match",
+            hasStar: true,
+          ),
           const SizedBox(width: 8),
-          _buildFilterChip("Experience", isSelected: _sortByFilter == "Experience"),
+          _buildFilterChip(
+            "Experience",
+            isSelected: _sortByFilter == "Experience",
+          ),
           const SizedBox(width: 8),
           _buildFilterChip("Rating", isSelected: _sortByFilter == "Rating"),
           const SizedBox(width: 8),
-          _buildFilterChip("Fees: Low to High", isSelected: _sortByFilter == "Fees: Low to High"),
+          _buildFilterChip(
+            "Fees: Low to High",
+            isSelected: _sortByFilter == "Fees: Low to High",
+          ),
           const SizedBox(width: 8),
           _buildFilterIconButton(),
         ],
@@ -2154,7 +2330,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, {required bool isSelected, bool hasStar = false}) {
+  Widget _buildFilterChip(
+    String label, {
+    required bool isSelected,
+    bool hasStar = false,
+  }) {
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -2167,7 +2347,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           color: isSelected ? const Color(0xFFD4AF37) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFFD4AF37) : const Color(0xFF2B2B2B),
+            color: isSelected
+                ? const Color(0xFFD4AF37)
+                : const Color(0xFF2B2B2B),
             width: 1,
           ),
         ),
@@ -2187,7 +2369,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               style: TextStyle(
                 color: isSelected ? Colors.black : Colors.white70,
                 fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : const TextStyle().fontWeight,
+                fontWeight: isSelected
+                    ? FontWeight.bold
+                    : const TextStyle().fontWeight,
               ),
             ),
           ],
@@ -2209,7 +2393,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         children: [
           Text(
             "Filter",
-            style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           SizedBox(width: 6),
           Icon(Icons.filter_list, color: Colors.white70, size: 14),
@@ -2241,7 +2429,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.folder_shared_outlined, color: Color(0xFFD4AF37), size: 20),
+              const Icon(
+                Icons.folder_shared_outlined,
+                color: Color(0xFFD4AF37),
+                size: 20,
+              ),
               const SizedBox(width: 12),
               const Expanded(
                 child: Text(
@@ -2253,7 +2445,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   ),
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Color(0xFFD4AF37), size: 18),
+              const Icon(
+                Icons.chevron_right,
+                color: Color(0xFFD4AF37),
+                size: 18,
+              ),
             ],
           ),
         ),
@@ -2298,7 +2494,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               color: const Color(0xFFD4AF37).withOpacity(0.08),
               blurRadius: 10,
               offset: const Offset(0, 4),
-            )
+            ),
         ],
       ),
       child: Padding(
@@ -2324,14 +2520,22 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                                 width: 80,
                                 height: 88,
                                 color: const Color(0xFF2B2B2B),
-                                child: const Icon(Icons.person, color: Colors.white54, size: 40),
+                                child: const Icon(
+                                  Icons.person,
+                                  color: Colors.white54,
+                                  size: 40,
+                                ),
                               ),
                             )
                           : Container(
                               width: 80,
                               height: 88,
                               color: const Color(0xFF2B2B2B),
-                              child: const Icon(Icons.person, color: Colors.white54, size: 40),
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.white54,
+                                size: 40,
+                              ),
                             ),
                     ),
                     if (lawyer.onlineStatus)
@@ -2342,7 +2546,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.black.withOpacity(0.6),
-                            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                            borderRadius: const BorderRadius.vertical(
+                              bottom: Radius.circular(12),
+                            ),
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 3),
                           alignment: Alignment.center,
@@ -2360,7 +2566,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                               const SizedBox(width: 4),
                               const Text(
                                 "Online",
-                                style: TextStyle(color: Colors.green, fontSize: 9, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -2376,7 +2586,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                             color: Colors.green,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.verified, color: Colors.white, size: 12),
+                          child: const Icon(
+                            Icons.verified,
+                            color: Colors.white,
+                            size: 12,
+                          ),
                         ),
                       ),
                   ],
@@ -2401,17 +2615,28 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                       const SizedBox(height: 2),
                       Text(
                         lawyer.specialization,
-                        style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 13, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Color(0xFFD4AF37),
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.location_on_outlined, color: Colors.grey, size: 13),
+                          const Icon(
+                            Icons.location_on_outlined,
+                            color: Colors.grey,
+                            size: 13,
+                          ),
                           const SizedBox(width: 3),
                           Expanded(
                             child: Text(
                               lawyer.location,
-                              style: const TextStyle(color: Colors.grey, fontSize: 12),
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -2421,18 +2646,29 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.star, color: Color(0xFFD4AF37), size: 14),
+                          const Icon(
+                            Icons.star,
+                            color: Color(0xFFD4AF37),
+                            size: 14,
+                          ),
                           const SizedBox(width: 3),
                           Text(
                             "${lawyer.rating}  (${lawyer.totalReviews} Reviews)",
-                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Text(
                         "${lawyer.experience}+ Years Exp  •  ${lawyer.casesHandled}+ Cases",
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -2445,19 +2681,31 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   children: [
                     // Gold Circular Tick Selection Indicator
                     Icon(
-                      isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                      color: isSelected ? const Color(0xFFD4AF37) : Colors.white30,
+                      isSelected
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
+                      color: isSelected
+                          ? const Color(0xFFD4AF37)
+                          : Colors.white30,
                       size: 20,
                     ),
                     const SizedBox(height: 10),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.gps_fixed, color: Colors.green, size: 12),
+                        const Icon(
+                          Icons.gps_fixed,
+                          color: Colors.green,
+                          size: 12,
+                        ),
                         const SizedBox(width: 3),
                         Text(
                           "${lawyer.matchPercentage}% Match",
-                          style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -2465,11 +2713,18 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.access_time, color: Colors.grey, size: 12),
+                        const Icon(
+                          Icons.access_time,
+                          color: Colors.grey,
+                          size: 12,
+                        ),
                         const SizedBox(width: 3),
                         Text(
                           lawyer.responseTime,
-                          style: const TextStyle(color: Colors.grey, fontSize: 10),
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 10,
+                          ),
                         ),
                       ],
                     ),
@@ -2483,7 +2738,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                         ),
                         Text(
                           "₹${lawyer.consultationFee}",
-                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -2492,27 +2751,35 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            
+
             // Practice Area Tag Chips row
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: [
-                ...displayedTags.map((tag) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1B1B1C),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFF2B2B2C)),
-                      ),
-                      child: Text(
-                        tag,
-                        style: const TextStyle(color: Colors.grey, fontSize: 10),
-                      ),
-                    )),
+                ...displayedTags.map(
+                  (tag) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1B1B1C),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFF2B2B2C)),
+                    ),
+                    child: Text(
+                      tag,
+                      style: const TextStyle(color: Colors.grey, fontSize: 10),
+                    ),
+                  ),
+                ),
                 if (remainingTagsCount > 0)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1B1B1C),
                       borderRadius: BorderRadius.circular(6),
@@ -2520,7 +2787,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                     ),
                     child: Text(
                       "+$remainingTagsCount",
-                      style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 10, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Color(0xFFD4AF37),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
               ],
@@ -2535,11 +2806,22 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                     onPressed: () => _viewLawyerProfileBottomSheet(lawyer),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFD4AF37),
-                      side: const BorderSide(color: Color(0xFFD4AF37), width: 1.0),
+                      side: const BorderSide(
+                        color: Color(0xFFD4AF37),
+                        width: 1.0,
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    child: const Text("View Profile", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      "View Profile",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -2555,11 +2837,22 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                       });
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isSelected ? const Color(0xFFD4AF37).withOpacity(0.1) : const Color(0xFFD4AF37),
-                      foregroundColor: isSelected ? const Color(0xFFD4AF37) : Colors.black,
-                      side: isSelected ? const BorderSide(color: Color(0xFFD4AF37), width: 1.2) : null,
+                      backgroundColor: isSelected
+                          ? const Color(0xFFD4AF37).withOpacity(0.1)
+                          : const Color(0xFFD4AF37),
+                      foregroundColor: isSelected
+                          ? const Color(0xFFD4AF37)
+                          : Colors.black,
+                      side: isSelected
+                          ? const BorderSide(
+                              color: Color(0xFFD4AF37),
+                              width: 1.2,
+                            )
+                          : null,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -2567,9 +2860,21 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                         if (isSelected) ...[
                           const Icon(Icons.check, size: 14),
                           const SizedBox(width: 4),
-                          const Text("Selected", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          const Text(
+                            "Selected",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ] else ...[
-                          const Text("Select Lawyer", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          const Text(
+                            "Select Lawyer",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ],
                     ),
@@ -2622,7 +2927,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                         imageUrl: lawyer.profileImage.isNotEmpty
                             ? Environment.getAttachmentUrl(lawyer.profileImage)
                             : null,
-                        fallback: const Icon(Icons.person, size: 40, color: Colors.grey),
+                        fallback: const Icon(
+                          Icons.person,
+                          size: 40,
+                          color: Colors.grey,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -2641,18 +2950,29 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                                     ),
                                   ),
                                 ),
-                                const Icon(Icons.verified, color: AppColors.primaryGold, size: 20),
+                                const Icon(
+                                  Icons.verified,
+                                  color: AppColors.primaryGold,
+                                  size: 20,
+                                ),
                               ],
                             ),
                             const SizedBox(height: 4),
                             Text(
                               lawyer.specialization,
-                              style: const TextStyle(color: AppColors.primaryGold, fontSize: 14, fontWeight: FontWeight.w600),
+                              style: const TextStyle(
+                                color: AppColors.primaryGold,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               lawyer.location,
-                              style: const TextStyle(color: AppColors.mutedText, fontSize: 13),
+                              style: const TextStyle(
+                                color: AppColors.mutedText,
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
@@ -2663,7 +2983,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildProfileStat("Experience", "${lawyer.experience} Yrs"),
+                      _buildProfileStat(
+                        "Experience",
+                        "${lawyer.experience} Yrs",
+                      ),
                       _buildProfileStat("Rating", "${lawyer.rating} ★"),
                       _buildProfileStat("Cases", "${lawyer.casesHandled}"),
                       _buildProfileStat("Win Rate", "${lawyer.winPercentage}%"),
@@ -2672,16 +2995,36 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   const SizedBox(height: 24),
                   const Divider(color: AppColors.border),
                   const SizedBox(height: 16),
-                  
-                  const Text("About Lawyer", style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 16)),
+
+                  const Text(
+                    "About Lawyer",
+                    style: TextStyle(
+                      color: AppColors.primaryText,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Text(
-                    lawyer.bio.isNotEmpty ? lawyer.bio : "Professional legal counsel.",
-                    style: const TextStyle(color: AppColors.secondaryText, fontSize: 14, height: 1.5),
+                    lawyer.bio.isNotEmpty
+                        ? lawyer.bio
+                        : "Professional legal counsel.",
+                    style: const TextStyle(
+                      color: AppColors.secondaryText,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: 20),
 
-                  const Text("Practice Areas", style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text(
+                    "Practice Areas",
+                    style: TextStyle(
+                      color: AppColors.primaryText,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -2694,12 +3037,37 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  _buildDetailRow("Education", lawyer.education.isNotEmpty ? lawyer.education : "LLB, Law University"),
-                  _buildDetailRow("Bar Council Reg", lawyer.barCouncilNumber.isNotEmpty ? lawyer.barCouncilNumber : "IND/2026/BAR"),
-                  _buildDetailRow("Languages", lawyer.languages.isEmpty ? 'English' : lawyer.languages.join(", ")),
-                  _buildDetailRow("Office Address", lawyer.officeAddress.isNotEmpty ? lawyer.officeAddress : "Office Suite, City Center"),
+                  _buildDetailRow(
+                    "Education",
+                    lawyer.education.isNotEmpty
+                        ? lawyer.education
+                        : "LLB, Law University",
+                  ),
+                  _buildDetailRow(
+                    "Bar Council Reg",
+                    lawyer.barCouncilNumber.isNotEmpty
+                        ? lawyer.barCouncilNumber
+                        : "IND/2026/BAR",
+                  ),
+                  _buildDetailRow(
+                    "Languages",
+                    lawyer.languages.isEmpty
+                        ? 'English'
+                        : lawyer.languages.join(", "),
+                  ),
+                  _buildDetailRow(
+                    "Office Address",
+                    lawyer.officeAddress.isNotEmpty
+                        ? lawyer.officeAddress
+                        : "Office Suite, City Center",
+                  ),
                   _buildDetailRow("Working Hours", lawyer.workingHours),
-                  _buildDetailRow("Consultation Fee", "₹${lawyer.consultationFee}", valueColor: AppColors.primaryGold, isBoldValue: true),
+                  _buildDetailRow(
+                    "Consultation Fee",
+                    "₹${lawyer.consultationFee}",
+                    valueColor: AppColors.primaryGold,
+                    isBoldValue: true,
+                  ),
 
                   const SizedBox(height: 32),
                   SizedBox(
@@ -2726,9 +3094,19 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   Widget _buildProfileStat(String label, String value) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: AppColors.primaryGold,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: AppColors.mutedText, fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
+        ),
       ],
     );
   }
@@ -2741,11 +3119,19 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
       ),
-      child: Text(label, style: const TextStyle(color: AppColors.primaryGold, fontSize: 12)),
+      child: Text(
+        label,
+        style: const TextStyle(color: AppColors.primaryGold, fontSize: 12),
+      ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value, {Color? valueColor, bool isBoldValue = false}) {
+  Widget _buildDetailRow(
+    String label,
+    String value, {
+    Color? valueColor,
+    bool isBoldValue = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
@@ -2753,7 +3139,14 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         children: [
           SizedBox(
             width: 120,
-            child: Text(label, style: const TextStyle(color: AppColors.mutedText, fontSize: 13, fontWeight: FontWeight.bold)),
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.mutedText,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           Expanded(
             child: Text(
@@ -2778,7 +3171,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       children: [
         Text(
           "Review Your Case",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: primaryTextColor,
+          ),
         ),
         const SizedBox(height: 16),
         Container(
@@ -2799,7 +3196,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                     : (_selectedCategory ?? "Not Selected"),
               ),
               const Divider(height: 24),
-              _buildReviewRow("Description", _descriptionController.text, isMultiline: true),
+              _buildReviewRow(
+                "Description",
+                _descriptionController.text,
+                isMultiline: true,
+              ),
               const Divider(height: 24),
               _buildReviewRow("Location", _cityController.text),
               if (_selectedCourtName != null) ...[
@@ -2809,7 +3210,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               const Divider(height: 24),
               _buildReviewRow("Urgency", _selectedUrgency ?? "Flexible"),
               const Divider(height: 24),
-              _buildReviewRow("Uploaded Acknowledgement", _uploadedDocRecord?.originalName ?? "None Uploaded"),
+              _buildReviewRow(
+                "Uploaded Acknowledgement",
+                _uploadedDocRecord?.originalName ?? "None Uploaded",
+              ),
             ],
           ),
         ),
@@ -2817,7 +3221,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         if (_selectedLawyer != null) ...[
           Text(
             "Selected Lawyer",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: primaryTextColor,
+            ),
           ),
           const SizedBox(height: 12),
           Container(
@@ -2832,7 +3240,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                 AppCircleAvatar(
                   radius: 28,
                   imageUrl: _selectedLawyer!.profileImage.isNotEmpty
-                      ? Environment.getAttachmentUrl(_selectedLawyer!.profileImage)
+                      ? Environment.getAttachmentUrl(
+                          _selectedLawyer!.profileImage,
+                        )
                       : null,
                   fallback: const Icon(Icons.person, color: Colors.grey),
                 ),
@@ -2846,30 +3256,53 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                           Expanded(
                             child: Text(
                               _selectedLawyer!.fullName,
-                              style: const TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 16),
+                              style: const TextStyle(
+                                color: AppColors.primaryText,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
-                          const Icon(Icons.verified, color: AppColors.primaryGold, size: 16),
+                          const Icon(
+                            Icons.verified,
+                            color: AppColors.primaryGold,
+                            size: 16,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Text(
                         "${_selectedLawyer!.specialization} • ${_selectedLawyer!.experience} Yrs Exp",
-                        style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
+                        style: const TextStyle(
+                          color: AppColors.mutedText,
+                          fontSize: 12,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.star, color: AppColors.primaryGold, size: 14),
+                          const Icon(
+                            Icons.star,
+                            color: AppColors.primaryGold,
+                            size: 14,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             "${_selectedLawyer!.rating} (${_selectedLawyer!.totalReviews} Reviews)",
-                            style: const TextStyle(color: AppColors.primaryText, fontSize: 11, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              color: AppColors.primaryText,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Text(
                             "Fee: ₹${_selectedLawyer!.consultationFee}",
-                            style: const TextStyle(color: AppColors.primaryGold, fontSize: 12, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              color: AppColors.primaryGold,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
@@ -2884,14 +3317,25 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     );
   }
 
-  Widget _buildReviewRow(String label, String value, {bool isMultiline = false}) {
+  Widget _buildReviewRow(
+    String label,
+    String value, {
+    bool isMultiline = false,
+  }) {
     final theme = Theme.of(context);
     final primaryTextColor = theme.textTheme.bodyMedium?.color;
     final secondaryTextColor = theme.textTheme.bodySmall?.color;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: TextStyle(
+            color: secondaryTextColor,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 4),
         Text(
           value,
@@ -2904,13 +3348,15 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   Widget _buildBottomActionBar() {
     final bool isLast = _currentStep == 4;
     final theme = Theme.of(context);
-    
-    final bool isForm1Valid = _descriptionController.text.trim().length >= 20 &&
+
+    final bool isForm1Valid =
+        _descriptionController.text.trim().length >= 20 &&
         _selectedCityName != null &&
         _selectedUrgency != null &&
         _agreedToTerms;
 
-    final bool nextDisabled = (_currentStep == 0 && _selectedSubcategory == null) ||
+    final bool nextDisabled =
+        (_currentStep == 0 && _selectedSubcategory == null) ||
         (_currentStep == 1 && !isForm1Valid) ||
         (_currentStep == 2 && _uploadedDocRecord == null) ||
         (_currentStep == 3 && _selectedLawyer == null);
@@ -2951,13 +3397,23 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(isLast ? "Submit Case" : "Next", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text(
+                    isLast ? "Submit Case" : "Next",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
                   if (!isLast && _currentStep == 3 && nextDisabled)
                     const Padding(
                       padding: EdgeInsets.only(top: 2),
                       child: Text(
                         "(Select a lawyer to continue)",
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.normal, color: Colors.white54),
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.normal,
+                          color: Colors.white54,
+                        ),
                       ),
                     ),
                 ],
@@ -2992,15 +3448,43 @@ class DashedBorderPainter extends CustomPainter {
     final double height = size.height;
 
     _drawDashedLine(canvas, const Offset(12, 0), Offset(width - 12, 0), paint);
-    _drawDashedLine(canvas, Offset(width, 12), Offset(width, height - 12), paint);
-    _drawDashedLine(canvas, Offset(width - 12, height), Offset(12, height), paint);
+    _drawDashedLine(
+      canvas,
+      Offset(width, 12),
+      Offset(width, height - 12),
+      paint,
+    );
+    _drawDashedLine(
+      canvas,
+      Offset(width - 12, height),
+      Offset(12, height),
+      paint,
+    );
     _drawDashedLine(canvas, Offset(0, height - 12), const Offset(0, 12), paint);
-    
+
     // Draw corners
     canvas.drawArc(const Rect.fromLTWH(0, 0, 24, 24), 3.14, 1.57, false, paint);
-    canvas.drawArc(Rect.fromLTWH(width - 24, 0, 24, 24), 4.71, 1.57, false, paint);
-    canvas.drawArc(Rect.fromLTWH(width - 24, height - 24, 24, 24), 0, 1.57, false, paint);
-    canvas.drawArc(Rect.fromLTWH(0, height - 24, 24, 24), 1.57, 1.57, false, paint);
+    canvas.drawArc(
+      Rect.fromLTWH(width - 24, 0, 24, 24),
+      4.71,
+      1.57,
+      false,
+      paint,
+    );
+    canvas.drawArc(
+      Rect.fromLTWH(width - 24, height - 24, 24, 24),
+      0,
+      1.57,
+      false,
+      paint,
+    );
+    canvas.drawArc(
+      Rect.fromLTWH(0, height - 24, 24, 24),
+      1.57,
+      1.57,
+      false,
+      paint,
+    );
   }
 
   void _drawDashedLine(Canvas canvas, Offset p1, Offset p2, Paint paint) {
@@ -3030,7 +3514,8 @@ class _PulsingRecordDot extends StatefulWidget {
   State<_PulsingRecordDot> createState() => _PulsingRecordDotState();
 }
 
-class _PulsingRecordDotState extends State<_PulsingRecordDot> with SingleTickerProviderStateMixin {
+class _PulsingRecordDotState extends State<_PulsingRecordDot>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
@@ -3063,6 +3548,3 @@ class _PulsingRecordDotState extends State<_PulsingRecordDot> with SingleTickerP
     );
   }
 }
-
-
-

@@ -13,16 +13,24 @@ class CourtService {
   }) async {
     // 1. Try exact city + state
     try {
-      final exactCourts = await _repository.getCourtsByLocation(city: city, state: state);
+      final exactCourts = await _repository.getCourtsByLocation(
+        city: city,
+        state: state,
+      );
       if (exactCourts.isNotEmpty) {
         return exactCourts;
       }
     } catch (_) {}
 
     // 2. Fallback to district + state
-    if (district != null && district.isNotEmpty && district.toLowerCase() != city.toLowerCase()) {
+    if (district != null &&
+        district.isNotEmpty &&
+        district.toLowerCase() != city.toLowerCase()) {
       try {
-        final districtCourts = await _repository.getCourtsByLocation(city: district, state: state);
+        final districtCourts = await _repository.getCourtsByLocation(
+          city: district,
+          state: state,
+        );
         if (districtCourts.isNotEmpty) {
           return districtCourts;
         }

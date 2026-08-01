@@ -41,13 +41,15 @@ class CategoryCard extends StatelessWidget {
                         color: theme.colorScheme.primary.withOpacity(0.12),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
-                      )
+                      ),
                     ]
                   : null,
             ),
             child: Icon(
               icon,
-              color: isSelected ? theme.colorScheme.primary : theme.colorScheme.primary.withOpacity(0.7),
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.primary.withOpacity(0.7),
               size: 24,
             ),
           ),

@@ -2,10 +2,7 @@ class PlaceSuggestionModel {
   final String description;
   final String placeId;
 
-  PlaceSuggestionModel({
-    required this.description,
-    required this.placeId,
-  });
+  PlaceSuggestionModel({required this.description, required this.placeId});
 
   factory PlaceSuggestionModel.fromJson(Map<String, dynamic> json) {
     return PlaceSuggestionModel(

@@ -562,11 +562,7 @@ class CustomLoader extends StatelessWidget {
   final double size;
   final String? message;
 
-  const CustomLoader({
-    super.key,
-    this.size = 40,
-    this.message,
-  });
+  const CustomLoader({super.key, this.size = 40, this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -581,11 +577,8 @@ class CustomLoader extends StatelessWidget {
           ),
           if (message != null) ...[
             const SizedBox(height: 12),
-            Text(
-              message!,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ]
+            Text(message!, style: Theme.of(context).textTheme.bodyMedium),
+          ],
         ],
       ),
     );

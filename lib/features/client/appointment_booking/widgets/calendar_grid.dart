@@ -88,7 +88,8 @@ class CalendarGrid extends ConsumerWidget {
           final dayNum = index - firstWeekdayOffset + 1;
           final cellDate = DateTime(year, month, dayNum);
 
-          final isSelected = selectedDate.day == dayNum &&
+          final isSelected =
+              selectedDate.day == dayNum &&
               selectedDate.month == month &&
               selectedDate.year == year;
 
@@ -117,9 +118,6 @@ class CalendarGrid extends ConsumerWidget {
       rows.add(TableRow(children: cells));
     }
 
-    return Table(
-      defaultColumnWidth: const FlexColumnWidth(1),
-      children: rows,
-    );
+    return Table(defaultColumnWidth: const FlexColumnWidth(1), children: rows);
   }
 }

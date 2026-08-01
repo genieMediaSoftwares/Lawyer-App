@@ -27,7 +27,10 @@ class LawyersRespondedScreen extends ConsumerWidget {
       ),
       body: casesState.when(
         data: (cases) {
-          final caseItem = cases.firstWhere((c) => c.id == caseId, orElse: () => throw Exception("Case not found"));
+          final caseItem = cases.firstWhere(
+            (c) => c.id == caseId,
+            orElse: () => throw Exception("Case not found"),
+          );
           final proposals = caseItem.proposals;
 
           return Column(
@@ -43,7 +46,11 @@ class LawyersRespondedScreen extends ConsumerWidget {
                         separatorBuilder: (c, i) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final proposal = proposals[index];
-                          return _buildLawyerProposalCard(context, proposal, caseItem.id);
+                          return _buildLawyerProposalCard(
+                            context,
+                            proposal,
+                            caseItem.id,
+                          );
                         },
                       ),
               ),
@@ -71,26 +78,41 @@ class LawyersRespondedScreen extends ConsumerWidget {
               const SizedBox(width: 8),
               Text(
                 caseItem.title,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: theme.textTheme.titleMedium?.color,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             "Case ID: ${caseItem.id.substring(Math.max(0, caseItem.id.length - 8)).toUpperCase()}",
-            style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12),
+            style: TextStyle(
+              color: theme.textTheme.bodySmall?.color,
+              fontSize: 12,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             "${caseItem.proposals.length} Proposals Received",
-            style: TextStyle(color: theme.colorScheme.primary, fontSize: 13, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: theme.colorScheme.primary,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLawyerProposalCard(BuildContext context, CaseProposalModel proposal, String caseId) {
+  Widget _buildLawyerProposalCard(
+    BuildContext context,
+    CaseProposalModel proposal,
+    String caseId,
+  ) {
     final theme = Theme.of(context);
     return Card(
       elevation: 0,
@@ -105,7 +127,9 @@ class LawyersRespondedScreen extends ConsumerWidget {
           children: [
             AppCircleAvatar(
               radius: 30,
-              imageUrl: proposal.profileImage.isNotEmpty ? Environment.getAttachmentUrl(proposal.profileImage) : null,
+              imageUrl: proposal.profileImage.isNotEmpty
+                  ? Environment.getAttachmentUrl(proposal.profileImage)
+                  : null,
               fallback: const Icon(Icons.person, size: 30),
             ),
             const SizedBox(width: 16),
@@ -115,7 +139,11 @@ class LawyersRespondedScreen extends ConsumerWidget {
                 children: [
                   Text(
                     proposal.fullName,
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.titleMedium?.color),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: theme.textTheme.titleMedium?.color,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -124,19 +152,29 @@ class LawyersRespondedScreen extends ConsumerWidget {
                       const SizedBox(width: 4),
                       const Text(
                         "4.8", // Static for rating in proposal
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         "10+ Years Exp.",
-                        style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 12),
+                        style: TextStyle(
+                          color: theme.textTheme.bodySmall?.color,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
                     "₹${proposal.feeProposal} Consultation Fee",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: theme.colorScheme.primary),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                   if (proposal.message.isNotEmpty) ...[
                     const SizedBox(height: 10),
@@ -148,7 +186,11 @@ class LawyersRespondedScreen extends ConsumerWidget {
                       ),
                       child: Text(
                         proposal.message,
-                        style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color, height: 1.4),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.textTheme.bodyMedium?.color,
+                          height: 1.4,
+                        ),
                       ),
                     ),
                   ],
@@ -159,12 +201,14 @@ class LawyersRespondedScreen extends ConsumerWidget {
                       OutlinedButton(
                         onPressed: () {
                           // Navigate to lawyer profile page passing lawyer's user ID
-                          context.push('/lawyer-profile/${proposal.lawyerId}?caseId=$caseId');
+                          context.push(
+                            '/lawyer-profile/${proposal.lawyerId}?caseId=$caseId',
+                          );
                         },
                         child: const Text("View Profile"),
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),

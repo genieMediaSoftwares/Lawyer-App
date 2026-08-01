@@ -17,16 +17,14 @@ class CourtsState {
   final String? error;
   final List<CourtModel> courts;
 
-  CourtsState({
-    required this.isLoading,
-    this.error,
-    required this.courts,
-  });
+  CourtsState({required this.isLoading, this.error, required this.courts});
 
   factory CourtsState.initial() => CourtsState(isLoading: false, courts: []);
   factory CourtsState.loading() => CourtsState(isLoading: true, courts: []);
-  factory CourtsState.error(String err) => CourtsState(isLoading: false, error: err, courts: []);
-  factory CourtsState.success(List<CourtModel> list) => CourtsState(isLoading: false, courts: list);
+  factory CourtsState.error(String err) =>
+      CourtsState(isLoading: false, error: err, courts: []);
+  factory CourtsState.success(List<CourtModel> list) =>
+      CourtsState(isLoading: false, courts: list);
 }
 
 class CourtsNotifier extends StateNotifier<CourtsState> {
@@ -41,10 +39,16 @@ class CourtsNotifier extends StateNotifier<CourtsState> {
   }) async {
     try {
       state = CourtsState.loading();
-      final courtsList = await _service.getCourts(city: city, district: district, state: stateName);
+      final courtsList = await _service.getCourts(
+        city: city,
+        district: district,
+        state: stateName,
+      );
       state = CourtsState.success(courtsList);
     } catch (e) {
-      state = CourtsState.error("Failed to load courts for the selected location.");
+      state = CourtsState.error(
+        "Failed to load courts for the selected location.",
+      );
     }
   }
 
@@ -53,7 +57,9 @@ class CourtsNotifier extends StateNotifier<CourtsState> {
   }
 }
 
-final courtsProvider = StateNotifierProvider<CourtsNotifier, CourtsState>((ref) {
+final courtsProvider = StateNotifierProvider<CourtsNotifier, CourtsState>((
+  ref,
+) {
   final service = ref.watch(courtServiceProvider);
   return CourtsNotifier(service);
 });

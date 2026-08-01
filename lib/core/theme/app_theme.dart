@@ -65,24 +65,22 @@ class AppTheme {
       ),
 
       // Drawer Theme
-      drawerTheme: const DrawerThemeData(
-        backgroundColor: Colors.black,
-      ),
+      drawerTheme: const DrawerThemeData(backgroundColor: Colors.black),
 
       // Icon Theme
-      iconTheme: const IconThemeData(
-        color: AppColors.primaryGold,
-      ),
-      primaryIconTheme: const IconThemeData(
-        color: AppColors.primaryGold,
-      ),
+      iconTheme: const IconThemeData(color: AppColors.primaryGold),
+      primaryIconTheme: const IconThemeData(color: AppColors.primaryGold),
 
       // List Tile Theme
       listTileTheme: const ListTileThemeData(
         tileColor: Colors.transparent,
         leadingAndTrailingTextStyle: TextStyle(color: Colors.grey),
         iconColor: AppColors.primaryGold,
-        titleTextStyle: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
         subtitleTextStyle: TextStyle(color: Colors.grey, fontSize: 13),
       ),
 
@@ -93,8 +91,16 @@ class AppTheme {
         selectedColor: AppColors.primaryGold,
         secondarySelectedColor: AppColors.primaryGold,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        labelStyle: const TextStyle(color: AppColors.primaryGold, fontSize: 13, fontWeight: FontWeight.w500),
-        secondaryLabelStyle: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.w600),
+        labelStyle: const TextStyle(
+          color: AppColors.primaryGold,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+        secondaryLabelStyle: const TextStyle(
+          color: Colors.black,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
         brightness: Brightness.dark,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -154,9 +160,7 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.cardBackground,
         elevation: 6,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         titleTextStyle: const TextStyle(
           color: Colors.white,
           fontSize: 20,
@@ -181,9 +185,7 @@ class AppTheme {
       ),
 
       // Extensions
-      extensions: [
-        LuxuryThemeExtension.value,
-      ],
+      extensions: [LuxuryThemeExtension.value],
     );
   }
 }

@@ -38,7 +38,10 @@ class AboutUsScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: const Color(0xFFD4AF37).withOpacity(0.1),
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFD4AF37), width: 1.5),
+                      border: Border.all(
+                        color: const Color(0xFFD4AF37),
+                        width: 1.5,
+                      ),
                     ),
                     child: const Icon(
                       Icons.gavel_rounded,
@@ -59,10 +62,7 @@ class AboutUsScreen extends StatelessWidget {
                   const SizedBox(height: 6),
                   const Text(
                     "Version 1.4.2",
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 ],
               ),
@@ -105,14 +105,16 @@ class AboutUsScreen extends StatelessWidget {
                 Expanded(
                   child: _buildInfoCard(
                     title: "Our Mission",
-                    description: "To democratize access to legal counsel, making professional representation affordable, transparent, and accessible to everyone, everywhere.",
+                    description:
+                        "To democratize access to legal counsel, making professional representation affordable, transparent, and accessible to everyone, everywhere.",
                   ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: _buildInfoCard(
                     title: "Our Vision",
-                    description: "To build the world's most trusted legal service ecosystem powered by state-of-the-art secure collaboration technology.",
+                    description:
+                        "To build the world's most trusted legal service ecosystem powered by state-of-the-art secure collaboration technology.",
                   ),
                 ),
               ],
@@ -139,13 +141,25 @@ class AboutUsScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _buildBulletRow("Expert Legal Consultations", "Virtual case review and advisory"),
+                  _buildBulletRow(
+                    "Expert Legal Consultations",
+                    "Virtual case review and advisory",
+                  ),
                   const Divider(color: Color(0xFF2B2B2B), height: 1),
-                  _buildBulletRow("Secure Document Workspace", "File storage and digital drafting"),
+                  _buildBulletRow(
+                    "Secure Document Workspace",
+                    "File storage and digital drafting",
+                  ),
                   const Divider(color: Color(0xFF2B2B2B), height: 1),
-                  _buildBulletRow("Advocate Matchmaking", "Direct matching based on specialty"),
+                  _buildBulletRow(
+                    "Advocate Matchmaking",
+                    "Direct matching based on specialty",
+                  ),
                   const Divider(color: Color(0xFF2B2B2B), height: 1),
-                  _buildBulletRow("Real-Time Case Progress", "Milestone tracking and task logs"),
+                  _buildBulletRow(
+                    "Real-Time Case Progress",
+                    "Milestone tracking and task logs",
+                  ),
                 ],
               ),
             ),
@@ -175,7 +189,9 @@ class AboutUsScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   _buildCheckmarkRow("End-to-End Encryption for Case Files"),
                   const SizedBox(height: 8),
-                  _buildCheckmarkRow("Transparent Billing & Flat Consultation Fees"),
+                  _buildCheckmarkRow(
+                    "Transparent Billing & Flat Consultation Fees",
+                  ),
                   const SizedBox(height: 8),
                   _buildCheckmarkRow("24/7 Priority Support Panel"),
                 ],
@@ -232,7 +248,10 @@ class AboutUsScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _buildContactRow(Icons.location_on_outlined, "12, Justice Chambers, High Court Road, Hyderabad, Telangana - 500066"),
+                  _buildContactRow(
+                    Icons.location_on_outlined,
+                    "12, Justice Chambers, High Court Road, Hyderabad, Telangana - 500066",
+                  ),
                   const SizedBox(height: 14),
                   _buildContactRow(Icons.email_outlined, "info@genielaw.com"),
                   const SizedBox(height: 14),
@@ -316,7 +335,11 @@ class AboutUsScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -356,7 +379,11 @@ class AboutUsScreen extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              height: 1.4,
+            ),
           ),
         ),
       ],
@@ -371,11 +398,7 @@ class AboutUsScreen extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: const Color(0xFF2B2B2B)),
       ),
-      child: Icon(
-        icon,
-        color: const Color(0xFFD4AF37),
-        size: 20,
-      ),
+      child: Icon(icon, color: const Color(0xFFD4AF37), size: 20),
     );
   }
 }

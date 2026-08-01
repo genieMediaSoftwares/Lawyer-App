@@ -47,26 +47,126 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
   ];
 
   final List<Map<String, String>> _localLocations = [
-    {"city": "Gachibowli", "district": "Rangareddy", "state": "Telangana", "pincode": "500032"},
-    {"city": "Madhapur", "district": "Rangareddy", "state": "Telangana", "pincode": "500081"},
-    {"city": "Banjara Hills", "district": "Hyderabad", "state": "Telangana", "pincode": "500034"},
-    {"city": "Jubilee Hills", "district": "Hyderabad", "state": "Telangana", "pincode": "500033"},
-    {"city": "Secunderabad", "district": "Hyderabad", "state": "Telangana", "pincode": "500003"},
-    {"city": "Connaught Place", "district": "New Delhi", "state": "Delhi", "pincode": "110001"},
-    {"city": "Dwarka", "district": "South West Delhi", "state": "Delhi", "pincode": "110075"},
-    {"city": "Saket", "district": "South Delhi", "state": "Delhi", "pincode": "110017"},
-    {"city": "Andheri West", "district": "Mumbai Suburban", "state": "Maharashtra", "pincode": "400053"},
-    {"city": "Bandra West", "district": "Mumbai Suburban", "state": "Maharashtra", "pincode": "400050"},
-    {"city": "Nariman Point", "district": "Mumbai", "state": "Maharashtra", "pincode": "400021"},
-    {"city": "Indiranagar", "district": "Bangalore Urban", "state": "Karnataka", "pincode": "560038"},
-    {"city": "Koramangala", "district": "Bangalore Urban", "state": "Karnataka", "pincode": "560034"},
-    {"city": "Whitefield", "district": "Bangalore Urban", "state": "Karnataka", "pincode": "560066"},
-    {"city": "Adyar", "district": "Chennai", "state": "Tamil Nadu", "pincode": "600020"},
-    {"city": "T Nagar", "district": "Chennai", "state": "Tamil Nadu", "pincode": "600017"},
-    {"city": "Salt Lake", "district": "North 24 Parganas", "state": "West Bengal", "pincode": "700091"},
-    {"city": "Park Street", "district": "Kolkata", "state": "West Bengal", "pincode": "700016"},
-    {"city": "Kothrud", "district": "Pune", "state": "Maharashtra", "pincode": "411038"},
-    {"city": "Viman Nagar", "district": "Pune", "state": "Maharashtra", "pincode": "411014"},
+    {
+      "city": "Gachibowli",
+      "district": "Rangareddy",
+      "state": "Telangana",
+      "pincode": "500032",
+    },
+    {
+      "city": "Madhapur",
+      "district": "Rangareddy",
+      "state": "Telangana",
+      "pincode": "500081",
+    },
+    {
+      "city": "Banjara Hills",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "500034",
+    },
+    {
+      "city": "Jubilee Hills",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "500033",
+    },
+    {
+      "city": "Secunderabad",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "500003",
+    },
+    {
+      "city": "Connaught Place",
+      "district": "New Delhi",
+      "state": "Delhi",
+      "pincode": "110001",
+    },
+    {
+      "city": "Dwarka",
+      "district": "South West Delhi",
+      "state": "Delhi",
+      "pincode": "110075",
+    },
+    {
+      "city": "Saket",
+      "district": "South Delhi",
+      "state": "Delhi",
+      "pincode": "110017",
+    },
+    {
+      "city": "Andheri West",
+      "district": "Mumbai Suburban",
+      "state": "Maharashtra",
+      "pincode": "400053",
+    },
+    {
+      "city": "Bandra West",
+      "district": "Mumbai Suburban",
+      "state": "Maharashtra",
+      "pincode": "400050",
+    },
+    {
+      "city": "Nariman Point",
+      "district": "Mumbai",
+      "state": "Maharashtra",
+      "pincode": "400021",
+    },
+    {
+      "city": "Indiranagar",
+      "district": "Bangalore Urban",
+      "state": "Karnataka",
+      "pincode": "560038",
+    },
+    {
+      "city": "Koramangala",
+      "district": "Bangalore Urban",
+      "state": "Karnataka",
+      "pincode": "560034",
+    },
+    {
+      "city": "Whitefield",
+      "district": "Bangalore Urban",
+      "state": "Karnataka",
+      "pincode": "560066",
+    },
+    {
+      "city": "Adyar",
+      "district": "Chennai",
+      "state": "Tamil Nadu",
+      "pincode": "600020",
+    },
+    {
+      "city": "T Nagar",
+      "district": "Chennai",
+      "state": "Tamil Nadu",
+      "pincode": "600017",
+    },
+    {
+      "city": "Salt Lake",
+      "district": "North 24 Parganas",
+      "state": "West Bengal",
+      "pincode": "700091",
+    },
+    {
+      "city": "Park Street",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "pincode": "700016",
+    },
+    {
+      "city": "Kothrud",
+      "district": "Pune",
+      "state": "Maharashtra",
+      "pincode": "411038",
+    },
+    {
+      "city": "Viman Nagar",
+      "district": "Pune",
+      "state": "Maharashtra",
+      "pincode": "411014",
+    },
   ];
 
   @override
@@ -98,9 +198,15 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
 
     // Fast local matching
     final localMatches = _localLocations.where((loc) {
-      final cityMatch = loc['city']!.toLowerCase().contains(query.toLowerCase());
-      final districtMatch = loc['district']!.toLowerCase().contains(query.toLowerCase());
-      final stateMatch = loc['state']!.toLowerCase().contains(query.toLowerCase());
+      final cityMatch = loc['city']!.toLowerCase().contains(
+        query.toLowerCase(),
+      );
+      final districtMatch = loc['district']!.toLowerCase().contains(
+        query.toLowerCase(),
+      );
+      final stateMatch = loc['state']!.toLowerCase().contains(
+        query.toLowerCase(),
+      );
       final pincodeMatch = loc['pincode']!.contains(query);
       return cityMatch || districtMatch || stateMatch || pincodeMatch;
     }).toList();
@@ -132,7 +238,9 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
 
     try {
       final response = await _dio.get(url, cancelToken: _cancelToken);
-      if (response.data != null && response.data is List && response.data.isNotEmpty) {
+      if (response.data != null &&
+          response.data is List &&
+          response.data.isNotEmpty) {
         final data = response.data[0];
         if (data['Status'] == 'Success' && data['PostOffice'] != null) {
           final list = data['PostOffice'] as List;
@@ -152,10 +260,14 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
               // Combine and remove duplicates
               final Map<String, Map<String, String>> uniqueResults = {};
               for (var res in _searchResults) {
-                uniqueResults["${res['city']}_${res['pincode']}".toLowerCase()] = res;
+                uniqueResults["${res['city']}_${res['pincode']}"
+                        .toLowerCase()] =
+                    res;
               }
               for (var res in apiResults) {
-                uniqueResults["${res['city']}_${res['pincode']}".toLowerCase()] = res;
+                uniqueResults["${res['city']}_${res['pincode']}"
+                        .toLowerCase()] =
+                    res;
               }
               _searchResults = uniqueResults.values.toList();
               _isLoading = false;
@@ -228,7 +340,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
               IconButton(
                 icon: Icon(Icons.close, color: textTheme.bodySmall?.color),
                 onPressed: () => Navigator.pop(context),
-              )
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -244,7 +356,10 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
               prefixIcon: Icon(Icons.search, color: textTheme.bodySmall?.color),
               suffixIcon: hasQuery
                   ? IconButton(
-                      icon: Icon(Icons.clear, color: textTheme.bodySmall?.color),
+                      icon: Icon(
+                        Icons.clear,
+                        color: textTheme.bodySmall?.color,
+                      ),
                       onPressed: () => _searchController.clear(),
                     )
                   : null,
@@ -287,17 +402,26 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                       spacing: 10,
                       runSpacing: 10,
                       children: _popularCities.map((city) {
-                        final isSelected = widget.initialLocation?.toLowerCase().trim() == city.toLowerCase().trim();
+                        final isSelected =
+                            widget.initialLocation?.toLowerCase().trim() ==
+                            city.toLowerCase().trim();
                         return InkWell(
                           onTap: () => Navigator.pop(context, city),
                           borderRadius: BorderRadius.circular(20),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
-                              color: isSelected ? colorScheme.primary : colorScheme.surface,
+                              color: isSelected
+                                  ? colorScheme.primary
+                                  : colorScheme.surface,
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: isSelected ? colorScheme.primary : colorScheme.outline,
+                                color: isSelected
+                                    ? colorScheme.primary
+                                    : colorScheme.outline,
                               ),
                             ),
                             child: Row(
@@ -306,15 +430,21 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                                 Icon(
                                   Icons.location_on_outlined,
                                   size: 14,
-                                  color: isSelected ? Colors.black : colorScheme.primary,
+                                  color: isSelected
+                                      ? Colors.black
+                                      : colorScheme.primary,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   city.split(',')[0],
                                   style: TextStyle(
                                     fontSize: 13,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                    color: isSelected ? Colors.black : textTheme.bodyMedium?.color,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: isSelected
+                                        ? Colors.black
+                                        : textTheme.bodyMedium?.color,
                                   ),
                                 ),
                               ],
@@ -341,7 +471,10 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                           SizedBox(
                             width: 14,
                             height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 1.5, color: colorScheme.primary),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1.5,
+                              color: colorScheme.primary,
+                            ),
                           ),
                       ],
                     ),
@@ -349,18 +482,28 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
 
                     // Custom direct entry option as backup
                     InkWell(
-                      onTap: () => Navigator.pop(context, _searchController.text.trim()),
+                      onTap: () =>
+                          Navigator.pop(context, _searchController.text.trim()),
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: colorScheme.primary.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: colorScheme.primary.withOpacity(0.15)),
+                          border: Border.all(
+                            color: colorScheme.primary.withOpacity(0.15),
+                          ),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.location_searching, color: colorScheme.primary, size: 18),
+                            Icon(
+                              Icons.location_searching,
+                              color: colorScheme.primary,
+                              size: 18,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -376,12 +519,19 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                                   ),
                                   Text(
                                     "Select this if your exact area isn't listed below.",
-                                    style: TextStyle(color: textTheme.bodySmall?.color, fontSize: 11),
+                                    style: TextStyle(
+                                      color: textTheme.bodySmall?.color,
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right, color: textTheme.bodySmall?.color, size: 18),
+                            Icon(
+                              Icons.chevron_right,
+                              color: textTheme.bodySmall?.color,
+                              size: 18,
+                            ),
                           ],
                         ),
                       ),
@@ -393,15 +543,21 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: _searchResults.length,
-                        separatorBuilder: (context, index) => Divider(height: 1, color: theme.dividerTheme.color),
+                        separatorBuilder: (context, index) =>
+                            Divider(height: 1, color: theme.dividerTheme.color),
                         itemBuilder: (context, index) {
                           final loc = _searchResults[index];
                           final formattedStr = _formatLocationString(loc);
-                          final isSelected = widget.initialLocation?.toLowerCase().trim() == formattedStr.toLowerCase().trim();
+                          final isSelected =
+                              widget.initialLocation?.toLowerCase().trim() ==
+                              formattedStr.toLowerCase().trim();
 
                           return ListTile(
                             onTap: () => Navigator.pop(context, formattedStr),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
                             leading: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
@@ -410,7 +566,9 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                               ),
                               child: Icon(
                                 Icons.location_on,
-                                color: isSelected ? colorScheme.primary : textTheme.bodySmall?.color,
+                                color: isSelected
+                                    ? colorScheme.primary
+                                    : textTheme.bodySmall?.color,
                                 size: 18,
                               ),
                             ),
@@ -418,7 +576,9 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                               loc['city'] ?? '',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: isSelected ? colorScheme.primary : textTheme.titleMedium?.color,
+                                color: isSelected
+                                    ? colorScheme.primary
+                                    : textTheme.titleMedium?.color,
                                 fontSize: 14,
                               ),
                             ),
@@ -430,8 +590,16 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                               ),
                             ),
                             trailing: isSelected
-                                ? Icon(Icons.check_circle, color: colorScheme.primary, size: 20)
-                                : Icon(Icons.chevron_right, color: textTheme.bodySmall?.color, size: 20),
+                                ? Icon(
+                                    Icons.check_circle,
+                                    color: colorScheme.primary,
+                                    size: 20,
+                                  )
+                                : Icon(
+                                    Icons.chevron_right,
+                                    color: textTheme.bodySmall?.color,
+                                    size: 20,
+                                  ),
                           );
                         },
                       )
@@ -441,17 +609,29 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                           padding: const EdgeInsets.symmetric(vertical: 36),
                           child: Column(
                             children: [
-                              Icon(Icons.search_off_outlined, size: 48, color: textTheme.bodySmall?.color),
+                              Icon(
+                                Icons.search_off_outlined,
+                                size: 48,
+                                color: textTheme.bodySmall?.color,
+                              ),
                               const SizedBox(height: 12),
                               Text(
                                 "No matches found on live directory",
-                                style: TextStyle(color: textTheme.bodySmall?.color, fontWeight: FontWeight.bold, fontSize: 14),
+                                style: TextStyle(
+                                  color: textTheme.bodySmall?.color,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 "Please verify spelling or try typing a pincode.",
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: textTheme.bodySmall?.color?.withOpacity(0.7), fontSize: 11),
+                                style: TextStyle(
+                                  color: textTheme.bodySmall?.color
+                                      ?.withOpacity(0.7),
+                                  fontSize: 11,
+                                ),
                               ),
                             ],
                           ),

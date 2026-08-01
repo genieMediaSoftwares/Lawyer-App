@@ -8,7 +8,8 @@ class LawyerSettingsScreen extends ConsumerStatefulWidget {
   const LawyerSettingsScreen({super.key});
 
   @override
-  ConsumerState<LawyerSettingsScreen> createState() => _LawyerSettingsScreenState();
+  ConsumerState<LawyerSettingsScreen> createState() =>
+      _LawyerSettingsScreenState();
 }
 
 class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
@@ -52,16 +53,28 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
                 SwitchListTile(
                   value: _pushNotifications,
                   activeColor: theme.colorScheme.primary,
-                  title: const Text("Push Notifications", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: const Text("Receive alerts about active cases, client requests, and chats", style: TextStyle(fontSize: 11)),
+                  title: const Text(
+                    "Push Notifications",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  subtitle: const Text(
+                    "Receive alerts about active cases, client requests, and chats",
+                    style: TextStyle(fontSize: 11),
+                  ),
                   onChanged: (val) => setState(() => _pushNotifications = val),
                 ),
                 Divider(color: theme.colorScheme.outline, height: 1),
                 SwitchListTile(
                   value: _emailAlerts,
                   activeColor: theme.colorScheme.primary,
-                  title: const Text("Email Notifications", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: const Text("Receive updates regarding weekly briefings and payout settlements", style: TextStyle(fontSize: 11)),
+                  title: const Text(
+                    "Email Notifications",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  subtitle: const Text(
+                    "Receive updates regarding weekly briefings and payout settlements",
+                    style: TextStyle(fontSize: 11),
+                  ),
                   onChanged: (val) => setState(() => _emailAlerts = val),
                 ),
               ],
@@ -82,15 +95,31 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
                 SwitchListTile(
                   value: _darkMode,
                   activeColor: theme.colorScheme.primary,
-                  title: const Text("Dark Theme Mode", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: const Text("Switch to dark color schemes (Simulated)", style: TextStyle(fontSize: 11)),
+                  title: const Text(
+                    "Dark Theme Mode",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  subtitle: const Text(
+                    "Switch to dark color schemes (Simulated)",
+                    style: TextStyle(fontSize: 11),
+                  ),
                   onChanged: (val) => setState(() => _darkMode = val),
                 ),
                 Divider(color: theme.colorScheme.outline, height: 1),
                 ListTile(
-                  title: const Text("Language Selection", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: Text("Current: $_selectedLanguage", style: const TextStyle(fontSize: 11)),
-                  trailing: Icon(Icons.arrow_forward_ios, size: 14, color: theme.colorScheme.primary),
+                  title: const Text(
+                    "Language Selection",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  subtitle: Text(
+                    "Current: $_selectedLanguage",
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  trailing: Icon(
+                    Icons.arrow_forward_ios,
+                    size: 14,
+                    color: theme.colorScheme.primary,
+                  ),
                   onTap: _showLanguageSelector,
                 ),
               ],
@@ -114,9 +143,23 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
             child: Column(
               children: [
                 ListTile(
-                  title: const Text("Delete Account Permanently", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.error)),
-                  leading: const Icon(Icons.delete_forever, color: AppColors.error),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.error),
+                  title: const Text(
+                    "Delete Account Permanently",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: AppColors.error,
+                    ),
+                  ),
+                  leading: const Icon(
+                    Icons.delete_forever,
+                    color: AppColors.error,
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 14,
+                    color: AppColors.error,
+                  ),
                   onTap: _confirmDeleteAccount,
                 ),
               ],
@@ -133,7 +176,11 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         label,
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: theme.colorScheme.primary),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 13,
+          color: theme.colorScheme.primary,
+        ),
       ),
     );
   }
@@ -145,10 +192,14 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: ["English", "Hindi", "Telugu", "Tamil", "Kannada"].map((lang) {
+          children: ["English", "Hindi", "Telugu", "Tamil", "Kannada"].map((
+            lang,
+          ) {
             return ListTile(
               title: Text(lang),
-              trailing: _selectedLanguage == lang ? Icon(Icons.check, color: theme.colorScheme.primary) : null,
+              trailing: _selectedLanguage == lang
+                  ? Icon(Icons.check, color: theme.colorScheme.primary)
+                  : null,
               onTap: () {
                 setState(() => _selectedLanguage = lang);
                 Navigator.pop(context);
@@ -164,20 +215,35 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Delete Account", style: TextStyle(color: AppColors.error)),
-        content: const Text("Deleting your account is permanent. All cases, payout history, and certifications will be erased from Genie Law. Proceed?"),
+        title: const Text(
+          "Delete Account",
+          style: TextStyle(color: AppColors.error),
+        ),
+        content: const Text(
+          "Deleting your account is permanent. All cases, payout history, and certifications will be erased from Genie Law. Proceed?",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("Delete Account", style: TextStyle(color: AppColors.error)),
+            child: const Text(
+              "Delete Account",
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
     );
 
     if (confirmed == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Account deletion simulated successfully.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Account deletion simulated successfully."),
+        ),
+      );
     }
   }
 
@@ -198,7 +264,11 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
             CircleAvatar(
               backgroundColor: Colors.red.shade50.withOpacity(0.1),
               radius: 20,
-              child: const Icon(Icons.calendar_month, color: AppColors.primaryGold, size: 22),
+              child: const Icon(
+                Icons.calendar_month,
+                color: AppColors.primaryGold,
+                size: 22,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -216,7 +286,9 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
                         : "Sync your appointments with Google Calendar",
                     style: TextStyle(
                       fontSize: 11,
-                      color: googleCalState.isConnected ? AppColors.success : theme.textTheme.bodySmall?.color,
+                      color: googleCalState.isConnected
+                          ? AppColors.success
+                          : theme.textTheme.bodySmall?.color,
                     ),
                   ),
                 ],
@@ -231,17 +303,30 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
             else if (googleCalState.isConnected)
               TextButton(
                 onPressed: () => _disconnectGoogleCalendar(),
-                child: const Text("Disconnect", style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 12)),
+                child: const Text(
+                  "Disconnect",
+                  style: TextStyle(
+                    color: AppColors.error,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
               )
             else
               ElevatedButton(
                 onPressed: () => _showConnectGoogleDialog(),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: const Text("Connect", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  "Connect",
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
               ),
           ],
         ),
@@ -254,14 +339,16 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
     final success = await notifier.disconnect();
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Google Calendar disconnected successfully.")),
+        const SnackBar(
+          content: Text("Google Calendar disconnected successfully."),
+        ),
       );
     }
   }
 
   void _showConnectGoogleDialog() {
     final emailController = TextEditingController();
-    
+
     final auth = ref.read(authProvider);
     emailController.text = auth.userEmail ?? "";
 
@@ -307,22 +394,34 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
               final email = emailController.text.trim();
               if (email.isEmpty || !email.contains("@")) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Please enter a valid Google email address.")),
+                  const SnackBar(
+                    content: Text("Please enter a valid Google email address."),
+                  ),
                 );
                 return;
               }
-              
+
               final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
-              
-              final success = await ref.read(googleCalendarProvider.notifier).connect(email);
+
+              final success = await ref
+                  .read(googleCalendarProvider.notifier)
+                  .connect(email);
               if (success && mounted) {
                 messenger.showSnackBar(
-                  SnackBar(content: Text("Successfully connected to Google Calendar for $email")),
+                  SnackBar(
+                    content: Text(
+                      "Successfully connected to Google Calendar for $email",
+                    ),
+                  ),
                 );
               } else if (mounted) {
                 messenger.showSnackBar(
-                  const SnackBar(content: Text("Failed to connect Google Calendar. Please try again.")),
+                  const SnackBar(
+                    content: Text(
+                      "Failed to connect Google Calendar. Please try again.",
+                    ),
+                  ),
                 );
               }
             },

@@ -12,12 +12,10 @@ class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  ConsumerState<SplashScreen> createState() =>
-      _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState
-    extends ConsumerState<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _logoController;
   late AnimationController _loadingController;
@@ -31,10 +29,7 @@ class _SplashScreenState
 
     _initializeAnimations();
 
-    Future.delayed(
-      const Duration(seconds: 3),
-      _handleNavigation,
-    );
+    Future.delayed(const Duration(seconds: 3), _handleNavigation);
   }
 
   void _initializeAnimations() {
@@ -48,25 +43,14 @@ class _SplashScreenState
       duration: const Duration(seconds: 2),
     );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.7,
-      end: 1,
-    ).animate(
-      CurvedAnimation(
-        parent: _logoController,
-        curve: Curves.easeOutBack,
-      ),
+    _scaleAnimation = Tween<double>(begin: 0.7, end: 1).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.easeOutBack),
     );
 
     _fadeAnimation = Tween<double>(
       begin: 0,
       end: 1,
-    ).animate(
-      CurvedAnimation(
-        parent: _logoController,
-        curve: Curves.easeIn,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: _logoController, curve: Curves.easeIn));
 
     _logoController.forward();
     _loadingController.repeat();
@@ -123,12 +107,9 @@ class _SplashScreenState
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
-              mainAxisAlignment:
-              MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 /// Animated Logo
                 AnimatedBuilder(
@@ -147,8 +128,7 @@ class _SplashScreenState
                     height: logoSize,
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primary,
-                      borderRadius:
-                      BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(24),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(24),
@@ -168,8 +148,7 @@ class _SplashScreenState
                   textAlign: TextAlign.center,
                   style: theme.textTheme.headlineMedium?.copyWith(
                     color: theme.textTheme.headlineMedium?.color,
-                    fontWeight:
-                    FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
 
@@ -192,8 +171,7 @@ class _SplashScreenState
                   height: 34,
                   child: CircularProgressIndicator(
                     strokeWidth: 3,
-                    valueColor:
-                    AlwaysStoppedAnimation(
+                    valueColor: AlwaysStoppedAnimation(
                       theme.colorScheme.primary,
                     ),
                   ),

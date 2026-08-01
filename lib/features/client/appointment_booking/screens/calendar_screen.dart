@@ -30,7 +30,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final lawyers = ref.read(lawyersProvider).value ?? [];
     if (lawyers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No lawyers available to book at the moment.")),
+        const SnackBar(
+          content: Text("No lawyers available to book at the moment."),
+        ),
       );
       return;
     }
@@ -58,7 +60,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               title: const Text(
                 "Book Consultation",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -70,19 +74,35 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   children: [
                     // Lawyer dropdown (if not already locked to a lawyer)
                     if (widget.lawyerUserId == null) ...[
-                      Text("Select Lawyer", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: theme.textTheme.bodySmall?.color)),
+                      Text(
+                        "Select Lawyer",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: theme.textTheme.bodySmall?.color,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
                         value: selectedLawyerId,
                         dropdownColor: theme.colorScheme.surface,
                         decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           border: OutlineInputBorder(),
                         ),
                         items: lawyers.map((lawyer) {
                           return DropdownMenuItem<String>(
                             value: lawyer.userId,
-                            child: Text(lawyer.fullName, style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color)),
+                            child: Text(
+                              lawyer.fullName,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: theme.textTheme.bodyMedium?.color,
+                              ),
+                            ),
                           );
                         }).toList(),
                         onChanged: (val) {
@@ -93,22 +113,36 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     ],
 
                     // Date Picker Display
-                    Text("Consultation Date", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: theme.textTheme.bodySmall?.color)),
+                    Text(
+                      "Consultation Date",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: theme.textTheme.bodySmall?.color,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     InkWell(
                       onTap: () async {
                         final picked = await showDatePicker(
                           context: context,
                           initialDate: selectedDate,
-                          firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                          firstDate: DateTime.now().subtract(
+                            const Duration(days: 365),
+                          ),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 365),
+                          ),
                         );
                         if (picked != null) {
                           setDialogState(() => selectedDate = picked);
                         }
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           border: Border.all(color: theme.colorScheme.outline),
                           borderRadius: BorderRadius.circular(4),
@@ -116,8 +150,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(DateFormat('dd MMM yyyy').format(selectedDate), style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color)),
-                            Icon(Icons.calendar_today, size: 16, color: theme.colorScheme.primary),
+                            Text(
+                              DateFormat('dd MMM yyyy').format(selectedDate),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: theme.textTheme.bodyMedium?.color,
+                              ),
+                            ),
+                            Icon(
+                              Icons.calendar_today,
+                              size: 16,
+                              color: theme.colorScheme.primary,
+                            ),
                           ],
                         ),
                       ),
@@ -125,19 +169,35 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     const SizedBox(height: 12),
 
                     // Time slot dropdown
-                    Text("Select Time Slot", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: theme.textTheme.bodySmall?.color)),
+                    Text(
+                      "Select Time Slot",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: theme.textTheme.bodySmall?.color,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       value: selectedTimeSlot,
                       dropdownColor: theme.colorScheme.surface,
                       decoration: const InputDecoration(
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         border: OutlineInputBorder(),
                       ),
                       items: timeSlots.map((slot) {
                         return DropdownMenuItem<String>(
                           value: slot,
-                          child: Text(slot, style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color)),
+                          child: Text(
+                            slot,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: theme.textTheme.bodyMedium?.color,
+                            ),
+                          ),
                         );
                       }).toList(),
                       onChanged: (val) {
@@ -147,18 +207,46 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     const SizedBox(height: 12),
 
                     // Mode dropdown
-                    Text("Consultation Mode", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: theme.textTheme.bodySmall?.color)),
+                    Text(
+                      "Consultation Mode",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: theme.textTheme.bodySmall?.color,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       value: selectedMode,
                       dropdownColor: theme.colorScheme.surface,
                       decoration: const InputDecoration(
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         border: OutlineInputBorder(),
                       ),
                       items: [
-                        DropdownMenuItem(value: "Chat", child: Text("Chat", style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color))),
-                        DropdownMenuItem(value: "In-Person", child: Text("In-Person", style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color))),
+                        DropdownMenuItem(
+                          value: "Chat",
+                          child: Text(
+                            "Chat",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: theme.textTheme.bodyMedium?.color,
+                            ),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: "In-Person",
+                          child: Text(
+                            "In-Person",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: theme.textTheme.bodyMedium?.color,
+                            ),
+                          ),
+                        ),
                       ],
                       onChanged: (val) {
                         setDialogState(() => selectedMode = val!);
@@ -170,14 +258,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text("Cancel", style: TextStyle(color: theme.textTheme.bodySmall?.color)),
+                  child: Text(
+                    "Cancel",
+                    style: TextStyle(color: theme.textTheme.bodySmall?.color),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: _isBooking
                       ? null
                       : () async {
                           setDialogState(() => _isBooking = true);
-                          final success = await ref.read(appointmentsProvider.notifier).bookAppointment(
+                          final success = await ref
+                              .read(appointmentsProvider.notifier)
+                              .bookAppointment(
                                 lawyerId: selectedLawyerId!,
                                 date: selectedDate,
                                 timeSlot: selectedTimeSlot,
@@ -189,17 +282,29 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                             if (success) {
                               ref.invalidate(calendarAppointmentsProvider);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Consultation booked successfully!")),
+                                const SnackBar(
+                                  content: Text(
+                                    "Consultation booked successfully!",
+                                  ),
+                                ),
                               );
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Failed to book appointment. Please try again.")),
+                                const SnackBar(
+                                  content: Text(
+                                    "Failed to book appointment. Please try again.",
+                                  ),
+                                ),
                               );
                             }
                           }
                         },
                   child: _isBooking
-                      ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Text("Book"),
                 ),
               ],
@@ -222,7 +327,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: theme.appBarTheme.iconTheme?.color, size: 24),
+          icon: Icon(
+            Icons.arrow_back,
+            color: theme.appBarTheme.iconTheme?.color,
+            size: 24,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -280,11 +389,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               appointmentsState.when(
                 data: (appointments) {
                   final dailyAppts = appointments.where((appt) {
-                    if (widget.lawyerUserId != null && appt.lawyerId != widget.lawyerUserId) {
+                    if (widget.lawyerUserId != null &&
+                        appt.lawyerId != widget.lawyerUserId) {
                       return false;
                     }
-                    final apptDate = DateTime(appt.date.year, appt.date.month, appt.date.day);
-                    return (apptDate.isAtSameMomentAs(selectedDate) || apptDate.isAfter(selectedDate)) &&
+                    final apptDate = DateTime(
+                      appt.date.year,
+                      appt.date.month,
+                      appt.date.day,
+                    );
+                    return (apptDate.isAtSameMomentAs(selectedDate) ||
+                            apptDate.isAfter(selectedDate)) &&
                         appt.status != 'cancelled';
                   }).toList();
 
@@ -307,7 +422,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       child: Center(
                         child: Text(
                           'No upcoming appointments scheduled.',
-                          style: TextStyle(color: textTheme.bodySmall?.color, fontSize: 13),
+                          style: TextStyle(
+                            color: textTheme.bodySmall?.color,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     );
@@ -326,19 +444,27 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       ],
                       border: Border.all(color: colorScheme.outline),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: dailyAppts.length,
-                      separatorBuilder: (context, index) => Divider(color: theme.dividerTheme.color, height: 20),
+                      separatorBuilder: (context, index) =>
+                          Divider(color: theme.dividerTheme.color, height: 20),
                       itemBuilder: (context, index) {
                         final appt = dailyAppts[index];
 
                         String dateBadge = "";
                         final now = DateTime.now();
                         final today = DateTime(now.year, now.month, now.day);
-                        final apptDay = DateTime(appt.date.year, appt.date.month, appt.date.day);
+                        final apptDay = DateTime(
+                          appt.date.year,
+                          appt.date.month,
+                          appt.date.day,
+                        );
 
                         if (apptDay.isAtSameMomentAs(today)) {
                           dateBadge = "Today";
@@ -370,7 +496,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      appt.lawyerName.isNotEmpty ? appt.lawyerName : appt.clientName,
+                                      appt.lawyerName.isNotEmpty
+                                          ? appt.lawyerName
+                                          : appt.clientName,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14,
@@ -379,7 +507,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      appt.caseTitle ?? (appt.mode.toLowerCase().contains("video") ? "Video Consultation" : "Voice Consultation"),
+                                      appt.caseTitle ??
+                                          (appt.mode.toLowerCase().contains(
+                                                "video",
+                                              )
+                                              ? "Video Consultation"
+                                              : "Voice Consultation"),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: textTheme.bodySmall?.color,

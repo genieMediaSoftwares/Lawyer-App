@@ -11,9 +11,7 @@ abstract final class AppButtonTheme {
         backgroundColor: AppColors.primaryGold,
         foregroundColor: Colors.black, // Black text on Gold button
         minimumSize: const Size(double.infinity, 56),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         textStyle: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w700,
@@ -30,9 +28,7 @@ abstract final class AppButtonTheme {
         foregroundColor: AppColors.primaryGold, // Gold text
         side: const BorderSide(color: AppColors.primaryGold, width: 1.5),
         minimumSize: const Size(double.infinity, 56),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         textStyle: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w700,
@@ -46,10 +42,7 @@ abstract final class AppButtonTheme {
     return TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: AppColors.primaryGold,
-        textStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-        ),
+        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       ),
     );
   }

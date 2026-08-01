@@ -26,7 +26,10 @@ class SelectedCategoryNotifier extends StateNotifier<SelectedCategoryState> {
   }
 
   void selectSubcategory(String? categoryId, String? subcategory) {
-    state = SelectedCategoryState(categoryId: categoryId, subcategory: subcategory);
+    state = SelectedCategoryState(
+      categoryId: categoryId,
+      subcategory: subcategory,
+    );
   }
 
   void clearSelection() {
@@ -35,6 +38,8 @@ class SelectedCategoryNotifier extends StateNotifier<SelectedCategoryState> {
 }
 
 final selectedCategoryProvider =
-    StateNotifierProvider<SelectedCategoryNotifier, SelectedCategoryState>((ref) {
-  return SelectedCategoryNotifier();
-});
+    StateNotifierProvider<SelectedCategoryNotifier, SelectedCategoryState>((
+      ref,
+    ) {
+      return SelectedCategoryNotifier();
+    });

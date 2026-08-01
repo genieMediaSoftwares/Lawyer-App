@@ -66,9 +66,13 @@ class AdvocateFilters {
   }
 }
 
-final advocateFiltersProvider = StateProvider<AdvocateFilters>((ref) => AdvocateFilters());
+final advocateFiltersProvider = StateProvider<AdvocateFilters>(
+  (ref) => AdvocateFilters(),
+);
 
-final filterOptionsProvider = FutureProvider<Map<String, List<String>>>((ref) async {
+final filterOptionsProvider = FutureProvider<Map<String, List<String>>>((
+  ref,
+) async {
   try {
     final repository = ref.watch(lawyerRepositoryProvider);
     final allAdvocates = await repository.getAdvocates();
@@ -121,7 +125,10 @@ final lawyersProvider = FutureProvider<List<LawyerModel>>((ref) async {
   return [];
 });
 
-final lawyerDetailsProvider = FutureProvider.family<LawyerModel, String>((ref, userId) async {
+final lawyerDetailsProvider = FutureProvider.family<LawyerModel, String>((
+  ref,
+  userId,
+) async {
   final response = await DioClient.dio.get("/lawyers/$userId");
   if (response.data != null && response.data['success'] == true) {
     return LawyerModel.fromJson(response.data['data']);
@@ -129,16 +136,21 @@ final lawyerDetailsProvider = FutureProvider.family<LawyerModel, String>((ref, u
   throw Exception("Failed to load lawyer profile");
 });
 
-final recommendedLawyersProvider = FutureProvider.family<List<LawyerModel>, String>((ref, queryString) async {
-  final response = await DioClient.dio.get("/lawyers/recommend?$queryString");
-  if (response.data != null && response.data['success'] == true) {
-    final list = response.data['data'] as List;
-    return list.map((item) => LawyerModel.fromJson(item)).toList();
-  }
-  return [];
-});
+final recommendedLawyersProvider =
+    FutureProvider.family<List<LawyerModel>, String>((ref, queryString) async {
+      final response = await DioClient.dio.get(
+        "/lawyers/recommend?$queryString",
+      );
+      if (response.data != null && response.data['success'] == true) {
+        final list = response.data['data'] as List;
+        return list.map((item) => LawyerModel.fromJson(item)).toList();
+      }
+      return [];
+    });
 
-final lawyerProfileUpdaterProvider = Provider((ref) => LawyerProfileUpdater(ref));
+final lawyerProfileUpdaterProvider = Provider(
+  (ref) => LawyerProfileUpdater(ref),
+);
 
 class LawyerProfileUpdater {
   final Ref ref;
@@ -157,22 +169,27 @@ class LawyerProfileUpdater {
     required Map<String, dynamic> bankDetails,
   }) async {
     try {
-      final response = await DioClient.dio.put("/lawyers/profile", data: {
-        "specialization": specialization,
-        "experience": experience,
-        "education": education,
-        "barCouncilNumber": barCouncilNumber,
-        "consultationFee": consultationFee,
-        "bio": bio,
-        "officeAddress": officeAddress,
-        "upiId": upiId,
-        "workingHours": workingHours,
-        "bankDetails": bankDetails,
-      });
+      final response = await DioClient.dio.put(
+        "/lawyers/profile",
+        data: {
+          "specialization": specialization,
+          "experience": experience,
+          "education": education,
+          "barCouncilNumber": barCouncilNumber,
+          "consultationFee": consultationFee,
+          "bio": bio,
+          "officeAddress": officeAddress,
+          "upiId": upiId,
+          "workingHours": workingHours,
+          "bankDetails": bankDetails,
+        },
+      );
 
       if (response.data != null && response.data['success'] == true) {
         final lawyerData = response.data['data'];
-        final userId = lawyerData['user'] is Map ? lawyerData['user']['_id'] : lawyerData['user'];
+        final userId = lawyerData['user'] is Map
+            ? lawyerData['user']['_id']
+            : lawyerData['user'];
         ref.invalidate(lawyersProvider);
         if (userId != null) {
           ref.invalidate(lawyerDetailsProvider(userId));
@@ -186,7 +203,9 @@ class LawyerProfileUpdater {
   }
 }
 
-final lawyerWorkspaceRepositoryProvider = Provider((ref) => LawyerWorkspaceRepository());
+final lawyerWorkspaceRepositoryProvider = Provider(
+  (ref) => LawyerWorkspaceRepository(),
+);
 
 final lawyerWorkspaceLeadsProvider = FutureProvider<List<dynamic>>((ref) async {
   // Automatically re-fetch leads when cases change (e.g. via sockets)
@@ -195,21 +214,27 @@ final lawyerWorkspaceLeadsProvider = FutureProvider<List<dynamic>>((ref) async {
   return repo.getLeads();
 });
 
-final lawyerWorkspaceClientsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+final lawyerWorkspaceClientsProvider = FutureProvider<Map<String, dynamic>>((
+  ref,
+) async {
   // Automatically re-fetch clients when cases change (e.g. via sockets)
   ref.watch(casesProvider);
   final repo = ref.watch(lawyerWorkspaceRepositoryProvider);
   return repo.getClients();
 });
 
-final lawyerWorkspaceScheduleProvider = FutureProvider<List<dynamic>>((ref) async {
+final lawyerWorkspaceScheduleProvider = FutureProvider<List<dynamic>>((
+  ref,
+) async {
   // Automatically re-fetch schedule when appointments change (e.g. via sockets)
   ref.watch(appointmentsProvider);
   final repo = ref.watch(lawyerWorkspaceRepositoryProvider);
   return repo.getScheduleToday();
 });
 
-final lawyerWorkspaceMessagesProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+final lawyerWorkspaceMessagesProvider = FutureProvider<Map<String, dynamic>>((
+  ref,
+) async {
   // Automatically re-fetch message stats when chats change (e.g. via sockets)
   ref.watch(chatsProvider);
   final repo = ref.watch(lawyerWorkspaceRepositoryProvider);
@@ -251,7 +276,7 @@ class LawyerWorkspaceRepository {
       "conversationCount": 0,
       "latestMessage": "",
       "latestClient": "",
-      "lastMessageTime": null
+      "lastMessageTime": null,
     };
   }
 }
@@ -262,10 +287,14 @@ final newCaseRequestsCountProvider = Provider<AsyncValue<int>>((ref) {
   final currentUserId = authState.userId ?? "";
   return casesAsync.when(
     data: (cases) {
-      final count = cases.where((c) =>
-        c.selectedLawyerId == currentUserId &&
-        (c.status == 'Pending Lawyer Response' || c.status == 'Awaiting Lawyer Acceptance')
-      ).length;
+      final count = cases
+          .where(
+            (c) =>
+                c.selectedLawyerId == currentUserId &&
+                (c.status == 'Pending Lawyer Response' ||
+                    c.status == 'Awaiting Lawyer Acceptance'),
+          )
+          .length;
       return AsyncValue.data(count);
     },
     loading: () => const AsyncValue.loading(),
@@ -307,10 +336,16 @@ final pendingDocumentReviewsCountProvider = Provider<AsyncValue<int>>((ref) {
   final currentUserId = authState.userId ?? "";
   return casesAsync.when(
     data: (cases) {
-      final count = cases.where((c) =>
-        (c.selectedLawyerId == currentUserId || c.assignedLawyerId == currentUserId) &&
-        c.status != 'Completed' && c.status != 'Closed' && c.status != 'resolved'
-      ).fold<int>(0, (sum, c) => sum + c.documents.length);
+      final count = cases
+          .where(
+            (c) =>
+                (c.selectedLawyerId == currentUserId ||
+                    c.assignedLawyerId == currentUserId) &&
+                c.status != 'Completed' &&
+                c.status != 'Closed' &&
+                c.status != 'resolved',
+          )
+          .fold<int>(0, (sum, c) => sum + c.documents.length);
       return AsyncValue.data(count);
     },
     loading: () => const AsyncValue.loading(),
@@ -324,10 +359,14 @@ final pendingClientResponsesCountProvider = Provider<AsyncValue<int>>((ref) {
   final currentUserId = authState.userId ?? "";
   return casesAsync.when(
     data: (cases) {
-      final count = cases.where((c) =>
-        c.selectedLawyerId == currentUserId &&
-        (c.status == 'Pending Lawyer Response' || c.status == 'Awaiting Lawyer Acceptance')
-      ).length;
+      final count = cases
+          .where(
+            (c) =>
+                c.selectedLawyerId == currentUserId &&
+                (c.status == 'Pending Lawyer Response' ||
+                    c.status == 'Awaiting Lawyer Acceptance'),
+          )
+          .length;
       return AsyncValue.data(count);
     },
     loading: () => const AsyncValue.loading(),
