@@ -337,44 +337,57 @@ Responses are provided for informational purposes only and should not be conside
       };
 
       const candidateModels = [
+        "gemini-2.0-flash",
         "gemini-flash-latest",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash"
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash-latest",
       ];
 
       let aiText = null;
       let lastErrorText = "";
 
       for (const model of candidateModels) {
-        try {
-          const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                contents,
-                systemInstruction
-              })
-            }
-          );
+        for (let attempt = 0; attempt < 2; attempt++) {
+          if (attempt > 0) {
+            await new Promise((r) => setTimeout(r, 2500));
+          }
+          try {
+            const response = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  contents,
+                  systemInstruction
+                })
+              }
+            );
 
-          if (response.ok) {
-            const responseData = await response.json();
-            aiText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (aiText) {
+            if (response.ok) {
+              const responseData = await response.json();
+              aiText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (aiText) {
+                break;
+              }
+            } else {
+              lastErrorText = await response.text();
+              console.warn(`Gemini API Model [${model}] returned status ${response.status}`);
+              if (response.status === 429 && attempt === 0) {
+                continue;
+              }
               break;
             }
-          } else {
-            lastErrorText = await response.text();
-            console.warn(`Gemini API Model [${model}] returned status ${response.status}`);
+          } catch (err) {
+            console.error(`Error requesting model [${model}]:`, err.message);
+            lastErrorText = err.message;
+            break;
           }
-        } catch (err) {
-          console.error(`Error requesting model [${model}]:`, err.message);
-          lastErrorText = err.message;
         }
+        if (aiText) break;
       }
 
       if (!aiText) {
@@ -429,61 +442,74 @@ Responses are provided for informational purposes only and should not be conside
       }
 
       const candidateModels = [
+        "gemini-2.0-flash",
         "gemini-flash-latest",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash"
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash-latest",
       ];
 
       let aiText = null;
       let lastErrorText = "";
 
       for (const model of candidateModels) {
-        try {
-          const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                contents: [
-                  {
-                    role: "user",
-                    parts: [
-                      {
-                        inlineData: {
-                          mimeType: mimeType,
-                          data: audioBase64
+        for (let attempt = 0; attempt < 2; attempt++) {
+          if (attempt > 0) {
+            await new Promise((r) => setTimeout(r, 2500));
+          }
+          try {
+            const response = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  contents: [
+                    {
+                      role: "user",
+                      parts: [
+                        {
+                          inlineData: {
+                            mimeType: mimeType,
+                            data: audioBase64
+                          }
+                        },
+                        {
+                          text: "Transcribe the following audio recording of a legal case description. " +
+                                "Automatically detect the spoken language. If the language is English, generate an English transcript. " +
+                                "If the language is Hindi, Telugu, or a mixture of Hindi/Telugu/English, automatically translate/transcribe it into a single natural English transcript, preserving the original legal meaning and context. " +
+                                "Provide only the plain English transcription, keeping punctuation and formatting intact, without any introductory or concluding text, explanations, or metadata."
                         }
-                      },
-                      {
-                        text: "Transcribe the following audio recording of a legal case description. " +
-                              "Automatically detect the spoken language. If the language is English, generate an English transcript. " +
-                              "If the language is Hindi, Telugu, or a mixture of Hindi/Telugu/English, automatically translate/transcribe it into a single natural English transcript, preserving the original legal meaning and context. " +
-                              "Provide only the plain English transcription, keeping punctuation and formatting intact, without any introductory or concluding text, explanations, or metadata."
-                      }
-                    ]
-                  }
-                ]
-              })
-            }
-          );
+                      ]
+                    }
+                  ]
+                })
+              }
+            );
 
-          if (response.ok) {
-            const responseData = await response.json();
-            aiText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (aiText) {
+            if (response.ok) {
+              const responseData = await response.json();
+              aiText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (aiText) {
+                break;
+              }
+            } else {
+              lastErrorText = await response.text();
+              console.warn(`Gemini Transcribe API Model [${model}] returned status ${response.status}`);
+              if (response.status === 429 && attempt === 0) {
+                continue;
+              }
               break;
             }
-          } else {
-            lastErrorText = await response.text();
-            console.warn(`Gemini Transcribe API Model [${model}] returned status ${response.status}`);
+          } catch (err) {
+            console.error(`Error transcribing with model [${model}]:`, err.message);
+            lastErrorText = err.message;
+            break;
           }
-        } catch (err) {
-          console.error(`Error transcribing with model [${model}]:`, err.message);
-          lastErrorText = err.message;
         }
+        if (aiText) break;
       }
 
       try {

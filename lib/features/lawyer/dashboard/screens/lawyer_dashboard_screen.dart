@@ -38,7 +38,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
   bool _showNotifications = false;
 
   // Selected sub-tabs
-  int _selectedClientsTab = 0; // 0: Active, 1: Consultations, 2: Completed
+  int _selectedClientsTab = 0; // 0: Active, 1: In Progress, 2: Completed
 
   // Selected date in calendar tab
   DateTime _selectedCalendarDate = DateTime.now();
@@ -131,6 +131,12 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         body: SafeArea(
           child: LawyerNotificationsScreen(
             onBack: () => setState(() => _showNotifications = false),
+            // Most notifications resolve to a dashboard tab rather than a
+            // pushed route, so the shell performs the switch.
+            onOpenTab: (index) => setState(() {
+              _showNotifications = false;
+              _currentIndex = index;
+            }),
           ),
         ),
         bottomNavigationBar: Container(
@@ -824,22 +830,6 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   title: "Unread Messages",
                   subtitle: "From active clients",
                   provider: unreadMessagesCountProvider,
-                ),
-                Divider(height: 1, indent: 50, endIndent: 16, color: AppColors.primaryText.withValues(alpha: 0.1)),
-                _buildOverviewRow(
-                  icon: Icons.calendar_today_outlined,
-                  title: "Today's Consultations",
-                  subtitle: "Scheduled for today",
-                  provider: todayConsultationsCountProvider,
-                  onTap: () => _showTodaysScheduleBottomSheet(context),
-                ),
-                Divider(height: 1, indent: 50, endIndent: 16, color: AppColors.primaryText.withValues(alpha: 0.1)),
-                _buildOverviewRow(
-                  icon: Icons.scale_outlined,
-                  title: "Today's Hearings",
-                  subtitle: "Court hearings schedule",
-                  provider: todayHearingsCountProvider,
-                  onTap: () => _showTodaysScheduleBottomSheet(context),
                 ),
                 Divider(height: 1, indent: 50, endIndent: 16, color: AppColors.primaryText.withValues(alpha: 0.1)),
                 _buildOverviewRow(
@@ -1604,10 +1594,18 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           ),
                         );
                         if (confirmed == true) {
+                          // markCaseCompleted patches the case in place, so the
+                          // card leaves In Progress and both counts update as
+                          // soon as this returns — no manual refresh needed.
                           final success = await ref.read(casesProvider.notifier).markCaseCompleted(clientCase.id);
-                          if (success && context.mounted) {
+                          if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Case marked completed successfully!")),
+                              SnackBar(
+                                content: Text(success
+                                    ? "Case marked completed successfully!"
+                                    : "Could not complete the case. Please try again."),
+                                backgroundColor: success ? AppColors.statSuccessBg : AppColors.statusErrorBg,
+                              ),
                             );
                           }
                         }

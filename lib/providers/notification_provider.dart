@@ -51,15 +51,54 @@ class NotificationState {
   }
 }
 
+/// Live counts for the notification centre's filter tabs.
+///
+/// Derived from the same list the screen renders, so a tab badge can never
+/// disagree with what is below it.
+class NotificationCounts {
+  /// Everything currently loaded.
+  final int all;
+
+  final int unread;
+
+  /// Raised by the other party (a client, or a lawyer) rather than by the
+  /// system. Backs the "Clients"/"Lawyers" tab.
+  final int fromPeople;
+
+  const NotificationCounts({
+    required this.all,
+    required this.unread,
+    required this.fromPeople,
+  });
+}
+
+final notificationCountsProvider = Provider<NotificationCounts>((ref) {
+  final items = ref.watch(
+    notificationsProvider.select((s) => s.notifications),
+  );
+  return NotificationCounts(
+    all: items.length,
+    unread: items.where((n) => !n.isRead).length,
+    fromPeople: items.where((n) => (n.senderId ?? '').isNotEmpty).length,
+  );
+});
+
 final notificationsProvider = StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
-  final authState = ref.watch(authProvider);
-  return NotificationNotifier(authState.userId);
+  // Only the identity matters. Watching the whole auth state tore the notifier
+  // down — socket included — every time an unrelated field changed, such as
+  // the user editing their name or photo.
+  final userId = ref.watch(authProvider.select((s) => s.userId));
+  return NotificationNotifier(userId);
 });
 
 class NotificationNotifier extends StateNotifier<NotificationState> {
   final String? userId;
   io.Socket? _socket;
   bool _isDisposed = false;
+
+  /// Distinguishes the first connect from a reconnect. Only the latter means
+  /// notifications may have been missed.
+  bool _hasConnected = false;
 
   NotificationNotifier(this.userId)
       : super(const NotificationState(
@@ -88,8 +127,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     final token = await TokenStorage().getToken();
     if (token == null || token.isEmpty) return;
 
-    final base = Environment.baseUrl.replaceAll('/api', '');
-    final socketUrl = '$base/notifications';
+    final socketUrl = '${Environment.baseSocketUrl}/notifications';
 
     _socket = io.io(socketUrl, io.OptionBuilder()
       .setTransports(['websocket'])
@@ -106,9 +144,16 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     _socket?.onConnect((_) {
       // The personal alert room is joined server-side from the authenticated
       // handshake; emitting a client-chosen userId is no longer honoured.
-      if (!_isDisposed) {
-        state = state.copyWith(isOffline: false);
+      if (_isDisposed) return;
+      state = state.copyWith(isOffline: false);
+
+      // Nothing queues notifications raised while the socket was down, so a
+      // reconnect has to go back to the server for them. Silent: the list is
+      // already on screen and must not blank into a spinner.
+      if (_hasConnected) {
+        fetchNotifications(refresh: true, silent: true);
       }
+      _hasConnected = true;
     });
 
     _socket?.onDisconnect((_) {
@@ -124,14 +169,25 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     });
 
     _socket?.on('new_notification', (data) {
-      if (data != null && !_isDisposed) {
-        final newNotification = NotificationModel.fromJson(data);
-        
-        state = state.copyWith(
-          notifications: [newNotification, ...state.notifications],
-          unreadCount: state.unreadCount + 1,
-        );
-      }
+      if (data == null || _isDisposed) return;
+
+      // socket.io hands over Map<dynamic, dynamic>, and on Flutter Web the
+      // values are JS-backed. The parser tests `is Map<String, dynamic>` for
+      // the populated sender, which is false for both, so without converting
+      // the tree first the sender is silently read as empty.
+      final json = _asJsonMap(data);
+      if (json == null) return;
+
+      final incoming = NotificationModel.fromJson(json);
+
+      // The same notification can arrive twice — once live, once in the
+      // refetch that follows a reconnect — and used to be appended both times.
+      if (state.notifications.any((n) => n.id == incoming.id)) return;
+
+      state = state.copyWith(
+        notifications: [incoming, ...state.notifications],
+        unreadCount: incoming.isRead ? state.unreadCount : state.unreadCount + 1,
+      );
     });
   }
 
@@ -143,11 +199,21 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     super.dispose();
   }
 
-  Future<void> fetchNotifications({bool refresh = false}) async {
+  /// Loads a page of notifications.
+  ///
+  /// [silent] keeps the current list on screen while a refresh is in flight,
+  /// for background reconciles (a reconnect, returning to the screen) where a
+  /// spinner over correct data is a regression rather than feedback.
+  Future<void> fetchNotifications({bool refresh = false, bool silent = false}) async {
     if (userId == null) return;
     if (refresh) {
       if (!_isDisposed) {
-        state = state.copyWith(isLoading: true, page: 1, hasMore: true, errorMessage: null);
+        state = state.copyWith(
+          isLoading: !silent,
+          page: 1,
+          hasMore: true,
+          errorMessage: null,
+        );
       }
     } else {
       if (!state.hasMore || state.isLoadMore) return;
@@ -191,7 +257,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         state = state.copyWith(
           isLoading: false,
           isLoadMore: false,
-          errorMessage: "Failed to load notifications",
+          // A failed background reconcile must not replace a good list with an
+          // error screen; the data on screen is still the best we have.
+          errorMessage: silent ? null : "Failed to load notifications",
         );
       }
     } catch (e) {
@@ -199,9 +267,26 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       state = state.copyWith(
         isLoading: false,
         isLoadMore: false,
-        errorMessage: "Network error occurred",
+        errorMessage: silent ? null : "Network error occurred",
       );
     }
+  }
+
+  /// Normalises a socket payload into plain Dart JSON, recursively.
+  static Map<String, dynamic>? _asJsonMap(dynamic data) {
+    final converted = _convert(data);
+    return converted is Map<String, dynamic> ? converted : null;
+  }
+
+  static dynamic _convert(dynamic value) {
+    if (value is Map) {
+      return <String, dynamic>{
+        for (final entry in value.entries)
+          entry.key.toString(): _convert(entry.value),
+      };
+    }
+    if (value is Iterable) return value.map(_convert).toList();
+    return value;
   }
 
   Future<void> markAsRead(String id) async {

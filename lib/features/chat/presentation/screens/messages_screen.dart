@@ -26,11 +26,12 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     _searchController.addListener(() {
       setState(() {});
     });
-    // Always fetch fresh data when the Messages screen is shown
-    // (covers the case where the user navigates back from a chat)
+    // Reconcile with the server whenever the screen is shown, silently: the
+    // list is kept current by socket events, so this is a safety net and must
+    // not blank what is already correct into a shimmer on every visit.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref.read(chatsProvider.notifier).fetchChats();
+        ref.read(chatsProvider.notifier).fetchChats(silent: true);
       }
     });
   }
@@ -243,8 +244,6 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                       final otherParticipant =
                           _getOtherParticipant(chat.participants, currentUserId);
 
-                      final isOnline = ref.watch(
-                          userOnlineStatusProvider(otherParticipant.id));
                       final typingUser =
                           ref.watch(chatTypingProvider(chat.id));
                       final formattedTime =
@@ -271,36 +270,15 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                           },
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 10),
-                          leading: Stack(
-                            children: [
-                              AppCircleAvatar(
-                                radius: 26,
-                                backgroundColor:
-                                    AppColors.secondaryBackground,
-                                imageUrl: otherParticipant.profileImage.isNotEmpty
-                                    ? Environment.getAttachmentUrl(otherParticipant.profileImage)
-                                    : null,
-                                fallback: const Icon(Icons.person,
-                                    color: AppColors.primaryGold),
-                              ),
-                              if (isOnline)
-                                Positioned(
-                                  right: 0,
-                                  bottom: 0,
-                                  child: Container(
-                                    width: 13,
-                                    height: 13,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.success,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                          color:
-                                              AppColors.cardBackground,
-                                          width: 2),
-                                    ),
-                                  ),
-                                ),
-                            ],
+                          leading: AppCircleAvatar(
+                            radius: 26,
+                            backgroundColor: AppColors.secondaryBackground,
+                            imageUrl: otherParticipant.profileImage.isNotEmpty
+                                ? Environment.getAttachmentUrl(
+                                    otherParticipant.profileImage)
+                                : null,
+                            fallback: const Icon(Icons.person,
+                                color: AppColors.primaryGold),
                           ),
                           title: Row(
                             children: [
@@ -386,14 +364,6 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                                 // Last message or typing indicator
                                 Row(
                                   children: [
-                                    if (chat.lastMessageSender == currentUserId && chat.lastMessage.isNotEmpty && typingUser == null) ...[
-                                      Icon(
-                                        chat.isLastMessageRead ? Icons.done_all : Icons.done,
-                                        size: 16,
-                                        color: chat.isLastMessageRead ? AppColors.primaryGold : AppColors.mutedText,
-                                      ),
-                                      const SizedBox(width: 4),
-                                    ],
                                     Expanded(
                                       child: Text(
                                         typingUser != null

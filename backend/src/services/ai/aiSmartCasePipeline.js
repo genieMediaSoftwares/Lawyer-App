@@ -48,12 +48,9 @@ const weightBefore = (id) =>
 /**
  * How many documents are OCR'd at once.
  *
- * Was unbounded: ten documents fired ten concurrent Gemini calls, blew through
- * the per-minute request quota, and each 429 then walked the whole model list
- * twice — roughly eighty doomed requests for one intake. Three keeps a normal
- * submission inside the quota while still being ~3x faster than sequential.
+ * Set to 1 (sequential) to keep within Gemini per-second rate limits (2 RPS).
  */
-const OCR_CONCURRENCY = 3;
+const OCR_CONCURRENCY = 1;
 
 /**
  * Total wall-clock budget for one intake. Past this the run is failed

@@ -8,7 +8,6 @@ import '../models/case_model.dart';
 import '../models/document_model.dart';
 import 'admin_provider.dart';
 import 'auth_provider.dart';
-import 'lawyer_provider.dart';
 import 'notification_provider.dart';
 
 
@@ -45,20 +44,23 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
   /// own broadcast to arrive. Everything downstream reads from these
   /// providers, so no screen needs its own refresh logic and none can drift.
   Future<void> caseChanged() async {
-    // `lawyerWorkspaceLeadsProvider`, `lawyerWorkspaceClientsProvider` and
-    // `todayHearingsCountProvider` each `ref.watch(casesProvider)`, so this one
-    // line already rebuilds them. They must NOT be invalidated from here:
+    // `lawyerWorkspaceLeadsProvider` and `lawyerWorkspaceClientsProvider` each
+    // `ref.watch(casesProvider)`, so this one line already rebuilds them. They
+    // must NOT be invalidated from here:
     // `Ref.invalidate` asserts `_debugAssertCanDependOn`, which walks the
     // target's ancestors and throws CircularDependencyError when it finds the
     // caller — and casesProvider is their ancestor. That throw propagated out
     // of caseChanged() and out of _submitCase(), so a case was created but the
     // success snackbar and the redirect home never ran.
-    await fetchCases();
+    // Silent: the list is already on screen, and swapping it for a spinner on
+    // every broadcast threw away the caller's tab/scroll context — including
+    // the one that arrives moments after a local write as the echo of that
+    // same write.
+    await fetchCases(silent: true);
 
     // Views that fetch case-derived data from their own endpoints and do not
     // depend on this provider, so nothing tells them a case changed. Riverpod
     // refreshes only the ones currently alive; the rest are a no-op.
-    _ref.invalidate(todayConsultationsCountProvider);
     _ref.invalidate(adminCasesProvider);
     _ref.invalidate(adminStatsProvider);
 
@@ -72,9 +74,15 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     }
   }
 
-  Future<void> fetchCases() async {
+  /// Loads the case list.
+  ///
+  /// [silent] keeps whatever is already in [state] on screen while the request
+  /// is in flight, instead of flipping to `AsyncValue.loading()`. Use it for a
+  /// background reconcile after a local write; leave it false for a first load
+  /// or a user-initiated retry, where the spinner is the point.
+  Future<void> fetchCases({bool silent = false}) async {
     try {
-      state = const AsyncValue.loading();
+      if (!silent) state = const AsyncValue.loading();
       final response = await DioClient.dio.get("/cases");
       if (response.data != null && response.data['success'] == true) {
         // IMPORTANT: On Flutter Web, `as List` throws a TypeError on raw JS
@@ -100,7 +108,6 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     required String category,
     String? subcategory,
     required String location,
-    required String urgency,
     String? preferredCourt,
     List<DocumentModel>? documents,
     String? selectedLawyer,
@@ -112,11 +119,6 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     String? country,
     double? latitude,
     double? longitude,
-    DateTime? incidentDate,
-    String? opposingParty,
-    String? firNumber,
-    String? policeStation,
-    String? bailDetails,
     double? claimAmount,
   }) async {
     lastCreateError = null;
@@ -128,7 +130,9 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
         "subcategory": subcategory ?? "",
         "location": location,
         "budgetRange": "",
-        "urgency": urgency,
+        // `urgency` is deliberately absent: the form no longer asks for it, so
+        // the server applies its own default rather than the client inventing
+        // one. The lawyer-facing screens read it back from the case either way.
         "preferredCourt": preferredCourt ?? "",
         "documents": documents?.map((d) => d.toJson()).toList() ?? [],
         "selectedLawyer": selectedLawyer,
@@ -140,14 +144,8 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
         "country": country ?? "",
         "latitude": latitude ?? 0.0,
         "longitude": longitude ?? 0.0,
-        // Structured detail extracted from documents (or typed by hand).
-        // Sent as ISO-8601 so the server parses it unambiguously regardless of
-        // the device locale.
-        "incidentDate": incidentDate?.toIso8601String(),
-        "opposingParty": opposingParty ?? "",
-        "firNumber": firNumber ?? "",
-        "policeStation": policeStation ?? "",
-        "bailDetails": bailDetails ?? "",
+        // Extracted from documents by the AI intake; there is no manual input
+        // for it on the form.
         "claimAmount": claimAmount,
       });
 
@@ -204,13 +202,34 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     try {
       final response = await DioClient.dio.post("/cases/$caseId/complete");
       if (response.data != null && response.data['success'] == true) {
-        await fetchCases();
+        // The server has already set status to "Completed" — apply it to the
+        // copy in memory so the case moves between the caller's tabs and the
+        // counts settle on this frame, rather than a round-trip later.
+        _patchCase(
+          caseId,
+          (c) => c.copyWith(status: 'Completed', completedAt: DateTime.now()),
+        );
+        // Reconcile against the server (completedAt, notifications, anything
+        // else it touched) without disturbing what is on screen.
+        await fetchCases(silent: true);
         return true;
       }
     } catch (e) {
       // Handle error
     }
     return false;
+  }
+
+  /// Replaces a single case in [state] with [update] applied to it.
+  ///
+  /// A no-op while the list is loading or errored — there is nothing to patch
+  /// then, and the fetch that follows supplies the authoritative list anyway.
+  void _patchCase(String caseId, CaseModel Function(CaseModel) update) {
+    final cases = state.valueOrNull;
+    if (cases == null) return;
+    state = AsyncValue.data([
+      for (final c in cases) c.id == caseId ? update(c) : c,
+    ]);
   }
 
   Future<bool> rejectCaseRequest(String caseId) async {

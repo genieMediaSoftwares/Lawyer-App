@@ -58,6 +58,11 @@ class AISmartCaseState {
   /// With the `??` form, passing null meant "leave unchanged", so
   /// `setVoiceFile(null)` silently did nothing — there was no way to remove a
   /// recording.
+  ///
+  /// [result] and [sessionId] were left on the `??` form and had the same
+  /// defect with worse consequences: starting a second analysis passed
+  /// `result: null` to clear the previous document's extraction and it was
+  /// discarded, so the first document's data survived into the second run.
   AISmartCaseState copyWith({
     List<PlatformFile>? selectedFiles,
     File? voiceFile,
@@ -66,8 +71,10 @@ class AISmartCaseState {
     bool? isRecording,
     bool? isExtracting,
     String? sessionId,
+    bool clearSessionId = false,
     AnalysisProgress? progress,
     ExtractionResult? result,
+    bool clearResult = false,
     String? errorMessage,
   }) {
     return AISmartCaseState(
@@ -76,9 +83,9 @@ class AISmartCaseState {
       voiceTranscript: voiceTranscript ?? this.voiceTranscript,
       isRecording: isRecording ?? this.isRecording,
       isExtracting: isExtracting ?? this.isExtracting,
-      sessionId: sessionId ?? this.sessionId,
+      sessionId: clearSessionId ? null : (sessionId ?? this.sessionId),
       progress: progress ?? this.progress,
-      result: result ?? this.result,
+      result: clearResult ? null : (result ?? this.result),
       errorMessage: errorMessage,
     );
   }
@@ -131,6 +138,31 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
     state = const AISmartCaseState();
   }
 
+  /// Drops the previous run's inputs and output, ready for a new document.
+  ///
+  /// Called when the intake screen is shown again after handing a result to the
+  /// Post Case form. [reset] cannot be used there: it also clears [progress],
+  /// and the processing screen is still animating out at that moment, so its
+  /// timeline would visibly snap back to the first stage on the way off screen.
+  ///
+  /// Without this, returning to intake kept the previous document selected, and
+  /// picking a second one *appended* to it — so "upload a different document"
+  /// re-uploaded the first one alongside it and analysed both.
+  void clearForNewIntake() {
+    _subscription?.cancel();
+    _subscription = null;
+    state = state.copyWith(
+      selectedFiles: const [],
+      clearVoiceFile: true,
+      voiceTranscript: '',
+      isRecording: false,
+      isExtracting: false,
+      clearResult: true,
+      clearSessionId: true,
+      errorMessage: null,
+    );
+  }
+
   /// Uploads the intake and follows the backend pipeline to completion.
   ///
   /// Returns true when there is a result to pre-fill the Post Case form with.
@@ -145,18 +177,31 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
       return false;
     }
 
-    await _subscription?.cancel();
-    _subscription = null;
+    // A second press while a run is in flight would upload the same documents
+    // again and leave two subscriptions racing to set the result.
+    if (state.isExtracting) return false;
 
+    // Claim the run and wipe the previous one *synchronously*, before the first
+    // await. Both used to sit after `_subscription.cancel()`, which meant a
+    // second press in the same frame still saw `isExtracting == false` and
+    // started a duplicate upload, and the old result stayed readable for that
+    // window. Every run now starts from nothing: no previous extraction, no
+    // previous session id, no stale error.
     state = state.copyWith(
       isExtracting: true,
       progress: const AnalysisProgress(
         stage: 'uploading',
         message: 'Uploading your documents…',
       ),
-      result: null,
+      clearResult: true,
+      clearSessionId: true,
       errorMessage: null,
     );
+
+    // Abandon anything still streaming from the previous run before its events
+    // can be mistaken for this one's.
+    await _subscription?.cancel();
+    _subscription = null;
 
     final completer = Completer<bool>();
 
@@ -205,7 +250,21 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
           if (!completer.isCompleted) completer.complete(false);
         },
         onDone: () {
-          if (!completer.isCompleted) completer.complete(state.result != null);
+          if (completer.isCompleted) return;
+
+          // Reaching here means the stream closed without delivering a result
+          // for *this* run. Reading `state.result` to decide would report
+          // success off whatever the previous document left behind, which is
+          // how a failed second analysis used to open the form pre-filled with
+          // the first document's details.
+          if (mounted) {
+            state = state.copyWith(
+              isExtracting: false,
+              errorMessage:
+                  'The analysis finished without returning any details. Please try again.',
+            );
+          }
+          completer.complete(false);
         },
       );
 

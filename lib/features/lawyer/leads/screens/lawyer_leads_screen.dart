@@ -29,7 +29,7 @@ class LawyerLeadsScreen extends ConsumerStatefulWidget {
 
 class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
     with SingleTickerProviderStateMixin {
-  int _tab = 0; // 0=New Leads, 1=Accepted, 2=History
+  int _tab = 0; // 0=New Leads, 1=Accepted
   final _searchCtrl = TextEditingController();
 
   @override
@@ -73,15 +73,6 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
               c.status == 'In Progress' ||
               c.status == 'Awaiting Client')).toList();
 
-  List<CaseModel> _history(List<CaseModel> all, String uid) =>
-      all.where((c) =>
-          c.assignedLawyerId == uid &&
-          (c.status == 'Completed' ||
-              c.status == 'resolved' ||
-              c.status == 'Closed' ||
-              c.status == 'Rejected' ||
-              c.status == 'Expired')).toList();
-
   List<CaseModel> _filter(List<CaseModel> list) {
     final q = _searchCtrl.text.trim().toLowerCase();
     if (q.isEmpty) return list;
@@ -114,8 +105,7 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
         data: (all) {
           final newList = _newLeads(all, uid);
           final accList = _accepted(all, uid);
-          final hisList = _history(all, uid);
-          final active = [newList, accList, hisList][_tab];
+          final active = [newList, accList][_tab];
           final shown = _filter(active);
 
           return Column(
@@ -126,7 +116,6 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
                 tab: _tab,
                 newCount: newList.length,
                 accCount: accList.length,
-                hisCount: hisList.length,
                 onTap: (i) => setState(() => _tab = i),
               ),
 
@@ -243,14 +232,13 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
 // ─────────────────────────────────────────────────────────────────────────────
 class _TabRow extends StatelessWidget {
   final int tab;
-  final int newCount, accCount, hisCount;
+  final int newCount, accCount;
   final ValueChanged<int> onTap;
 
   const _TabRow({
     required this.tab,
     required this.newCount,
     required this.accCount,
-    required this.hisCount,
     required this.onTap,
   });
 
@@ -260,10 +248,10 @@ class _TabRow extends StatelessWidget {
       color: _bg,
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
+        // Each _Tab is Expanded, so the two tabs split the row evenly.
         children: [
           _Tab(label: 'New Leads', count: newCount, active: tab == 0, onTap: () => onTap(0)),
           _Tab(label: 'Accepted', count: accCount, active: tab == 1, onTap: () => onTap(1)),
-          _Tab(label: 'History', count: hisCount, active: tab == 2, onTap: () => onTap(2)),
         ],
       ),
     );
@@ -350,7 +338,7 @@ class _SearchFilterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hints = ['Search new leads...', 'Search accepted...', 'Search history...'];
+    final hints = ['Search new leads...', 'Search accepted...'];
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Container(
@@ -389,7 +377,7 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const titles = ['New Leads', 'Accepted', 'History'];
+    const titles = ['New Leads', 'Accepted'];
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: Text(
@@ -623,10 +611,8 @@ class _LeadCard extends StatelessWidget {
                       ),
                     ],
                   )
-                else if (tab == 1)
-                  _OutlinedBtn(label: 'View Case', onTap: onDetails, fullWidth: true)
                 else
-                  _OutlinedBtn(label: 'View Details', onTap: onDetails, fullWidth: true),
+                  _OutlinedBtn(label: 'View Case', onTap: onDetails, fullWidth: true),
               ],
             ),
           ),
@@ -677,10 +663,8 @@ class _LeadCard extends StatelessWidget {
 
   String _dateLine(int tab, CaseModel c) {
     final fmt = DateFormat('dd MMM yyyy, hh:mm a');
-    final fmtShort = DateFormat('dd MMM yyyy');
     if (tab == 0) return 'Posted on: ${fmt.format(c.createdAt)}';
-    if (tab == 1) return 'Accepted on: ${fmt.format(c.acceptedAt ?? c.createdAt)}';
-    return 'Completed on: ${fmtShort.format(c.completedAt ?? c.closedDate ?? c.createdAt)}';
+    return 'Accepted on: ${fmt.format(c.acceptedAt ?? c.createdAt)}';
   }
 }
 
@@ -843,12 +827,10 @@ class _EmptyState extends StatelessWidget {
     const msgs = [
       'No new case leads.\nCheck back later!',
       'No accepted cases yet.',
-      'No case history found.',
     ];
     const icons = [
       Icons.gavel_outlined,
       Icons.assignment_turned_in_outlined,
-      Icons.history_outlined,
     ];
     return Center(
       child: Column(

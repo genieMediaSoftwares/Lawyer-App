@@ -168,11 +168,54 @@ JSON SCHEMA:
     const { text: raw, error } = await gemini.generate(parts, { label: "smart-case:extract" });
 
     if (!raw) {
-      throw new Error(`AI extraction failed: ${error}`);
+      console.warn("[aiSmartIntakeService] Gemini API unavailable or rate-limited. Using intelligent fallback extraction:", error);
+      return this._fallbackExtraction({ ocrText, voiceTranscript, typedDescription, documentMetadata });
     }
 
     const parsed = this._parseJson(raw);
     return this._normalise(parsed);
+  }
+
+  _fallbackExtraction({ ocrText, voiceTranscript, typedDescription, documentMetadata }) {
+    const combinedText = [typedDescription, voiceTranscript, ocrText].filter(Boolean).join("\n\n").trim();
+    
+    const resolvedCat = taxonomy.resolveCategory(combinedText, "");
+    
+    const firstLine = typedDescription?.split("\n")[0] || ocrText?.split("\n")[0] || "Legal Case Request";
+    const title = firstLine.length > 60 ? `${firstLine.slice(0, 60)}...` : firstLine;
+    
+    const description = combinedText || "Legal intake request submitted by client.";
+    const summary = description.length > 200 ? `${description.slice(0, 200)}...` : description;
+
+    const extracted = {
+      title,
+      description,
+      summary,
+      category: resolvedCat.category || null,
+      categoryId: resolvedCat.categoryId || null,
+      subType: resolvedCat.subType || null,
+      urgency: "Medium",
+      city: "",
+      state: "",
+      location: "",
+      court: "",
+      incidentDate: null,
+      opposingParty: "",
+      parties: [],
+      firNumber: "",
+      policeStation: "",
+      bailDetails: "",
+      claimAmount: null,
+      documentType: documentMetadata?.[0]?.name ? `Document (${documentMetadata[0].name})` : "Legal Document",
+      isCriminalLike: false,
+      confidence: {},
+      needsReview: [],
+    };
+
+    return {
+      extracted,
+      warnings: ["AI API quota reached or unavailable; pre-filled case details using local text extraction."],
+    };
   }
 
   /** Strips accidental markdown fences and parses; throws with context. */

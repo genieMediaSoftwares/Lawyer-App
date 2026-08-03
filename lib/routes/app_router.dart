@@ -223,10 +223,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: RouteNames.lawyerProfile,
-        builder: (c, s) => LawyerProfileScreen(
-          userId: s.pathParameters['userId']!,
-          caseId: s.uri.queryParameters['caseId'],
-        ),
+        builder: (c, s) =>
+            LawyerProfileScreen(userId: s.pathParameters['userId']!),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

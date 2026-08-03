@@ -1,7 +1,60 @@
 const Chat = require("../../models/Chat");
 const notificationService = require("../../services/notification/notificationService");
 const Message = require("../../models/Message");
+const Lawyer = require("../../models/Lawyer");
+const Case = require("../../models/Case");
 const ApiResponse = require("../../config/ApiResponse");
+
+const PARTICIPANT_FIELDS = "fullName email mobile profileImage role isVerified";
+
+/**
+ * Attaches `specialization` to every lawyer participant across the given chats.
+ *
+ * One query for all of them. This used to run a Lawyer.findOne per participant
+ * per chat, so a lawyer with twenty conversations paid twenty round trips
+ * before the list could render.
+ */
+async function attachSpecializations(chats) {
+  const lawyerUserIds = [];
+  for (const chat of chats) {
+    for (const p of chat.participants || []) {
+      if (p.role === "lawyer") lawyerUserIds.push(p._id);
+    }
+  }
+
+  let specializationByUserId = {};
+  if (lawyerUserIds.length > 0) {
+    const profiles = await Lawyer.find({ user: { $in: lawyerUserIds } })
+      .select("user specialization")
+      .lean();
+    profiles.forEach((profile) => {
+      specializationByUserId[profile.user.toString()] =
+        profile.specialization || "";
+    });
+  }
+
+  for (const chat of chats) {
+    for (const p of chat.participants || []) {
+      p.specialization =
+        p.role === "lawyer"
+          ? specializationByUserId[p._id.toString()] || ""
+          : "";
+    }
+  }
+}
+
+/**
+ * Loads a chat and confirms the caller is in it.
+ *
+ * Returns null when the chat is missing or the caller is not a participant —
+ * every message route needs this, and none of them had it: knowing a chat id
+ * was enough to read a conversation or post into it as any signed-in user.
+ */
+async function loadParticipantChat(chatId, userId) {
+  if (!chatId || !chatId.match(/^[0-9a-fA-F]{24}$/)) return null;
+  const chat = await Chat.findOne({ _id: chatId, participants: userId });
+  return chat || null;
+}
 
 class ChatController {
   async getOrCreateChat(req, res, next) {
@@ -16,28 +69,21 @@ class ChatController {
       // Check if conversation already exists
       let chat = await Chat.findOne({
         participants: { $all: [currentUserId, otherUserId] }
-      }).populate("participants", "fullName email mobile profileImage role isVerified");
+      }).populate("participants", PARTICIPANT_FIELDS);
 
+      const isNew = !chat;
       if (!chat) {
         chat = await Chat.create({
           participants: [currentUserId, otherUserId],
           lastMessage: "",
           lastMessageAt: new Date()
         });
-        chat = await Chat.findById(chat._id).populate("participants", "fullName email mobile profileImage role isVerified");
+        chat = await Chat.findById(chat._id).populate("participants", PARTICIPANT_FIELDS);
       }
 
       let chatObj = chat.toObject();
-      const Lawyer = require("../../models/Lawyer");
-      for (const p of chatObj.participants || []) {
-        if (p.role === "lawyer") {
-          const lawyerProfile = await Lawyer.findOne({ user: p._id });
-          p.specialization = lawyerProfile ? lawyerProfile.specialization : "";
-        } else {
-          p.specialization = "";
-        }
-      }
-      const Case = require("../../models/Case");
+      await attachSpecializations([chatObj]);
+
       const linkedCase = await Case.findOne({
         $or: [
           { assignedLawyer: currentUserId, client: otherUserId },
@@ -54,8 +100,23 @@ class ChatController {
         };
       }
 
-      const lastMsgDoc = await Message.findOne({ chat: chat._id }).sort({ createdAt: -1 });
-      chatObj.isLastMessageRead = lastMsgDoc ? lastMsgDoc.isRead : false;
+      chatObj.unreadCount = await Message.countDocuments({
+        chat: chat._id,
+        sender: { $ne: currentUserId },
+        isRead: false
+      });
+
+      // Tell the other participant a conversation now exists, so it appears in
+      // their list without them having to pull-to-refresh. A brand-new chat has
+      // no message yet, so nothing else would announce it.
+      if (isNew) {
+        const io = req.app.get("io");
+        if (io) {
+          io.of("/chat")
+            .to(otherUserId.toString())
+            .emit("chat_created", { chatId: chat._id.toString() });
+        }
+      }
 
       return ApiResponse.success(res, "Chat conversation retrieved.", chatObj);
     } catch (error) {
@@ -66,46 +127,56 @@ class ChatController {
   async getChats(req, res, next) {
     try {
       const currentUserId = req.user._id;
-      const Case = require("../../models/Case");
 
       // Ensure a chat conversation exists for every case assigned to this lawyer
-      const assignedCases = await Case.find({ assignedLawyer: currentUserId });
-      for (const caseItem of assignedCases) {
-        if (caseItem.client) {
-          let chat = await Chat.findOne({
-            participants: { $all: [currentUserId, caseItem.client] }
-          });
-          if (!chat) {
-            await Chat.create({
-              participants: [currentUserId, caseItem.client],
+      const assignedCases = await Case.find({ assignedLawyer: currentUserId })
+        .select("client")
+        .lean();
+      if (assignedCases.length > 0) {
+        const clientIds = assignedCases
+          .filter((c) => c.client)
+          .map((c) => c.client);
+
+        const existing = await Chat.find({
+          participants: currentUserId,
+        })
+          .select("participants")
+          .lean();
+        const alreadyChattingWith = new Set(
+          existing.flatMap((c) =>
+            (c.participants || []).map((p) => p.toString())
+          )
+        );
+
+        const missing = clientIds.filter(
+          (id) => !alreadyChattingWith.has(id.toString())
+        );
+        // Deduplicate: several cases can share one client.
+        const uniqueMissing = [
+          ...new Map(missing.map((id) => [id.toString(), id])).values(),
+        ];
+
+        if (uniqueMissing.length > 0) {
+          await Chat.insertMany(
+            uniqueMissing.map((clientId) => ({
+              participants: [currentUserId, clientId],
               lastMessage: "Consultation accepted. You can now start messaging.",
-              lastMessageAt: new Date()
-            });
-          }
+              lastMessageAt: new Date(),
+            }))
+          );
         }
       }
 
       const chats = await Chat.find({ participants: currentUserId })
-        .populate("participants", "fullName email mobile profileImage role isVerified")
+        .populate("participants", PARTICIPANT_FIELDS)
         .sort({ lastMessageAt: -1 })
         .lean();
-
-      const Lawyer = require("../../models/Lawyer");
-      for (const chat of chats) {
-        for (const p of chat.participants || []) {
-          if (p.role === "lawyer") {
-            const lawyerProfile = await Lawyer.findOne({ user: p._id });
-            p.specialization = lawyerProfile ? lawyerProfile.specialization : "";
-          } else {
-            p.specialization = "";
-          }
-        }
-      }
-
 
       if (chats.length === 0) {
         return ApiResponse.success(res, "Chats fetched successfully.", []);
       }
+
+      await attachSpecializations(chats);
 
       const chatIds = chats.map(c => c._id);
 
@@ -162,15 +233,13 @@ class ChatController {
         });
       }
 
-      // ── Assemble response ──
-      const chatsWithData = await Promise.all(chats.map(async chat => {
+      // ── Assemble response (no further queries) ──
+      const chatsWithData = chats.map(chat => {
         const unreadCount = unreadMap[chat._id.toString()] || 0;
         const otherId = chatToOtherMap[chat._id.toString()];
         const caseInfo = otherId ? (caseByOtherId[otherId] || null) : null;
-        const lastMsgDoc = await Message.findOne({ chat: chat._id }).sort({ createdAt: -1 });
-        const isLastMessageRead = lastMsgDoc ? lastMsgDoc.isRead : false;
-        return { ...chat, unreadCount, caseInfo, isLastMessageRead };
-      }));
+        return { ...chat, unreadCount, caseInfo };
+      });
 
       return ApiResponse.success(res, "Chats fetched successfully.", chatsWithData);
     } catch (error) {
@@ -181,66 +250,78 @@ class ChatController {
   async sendMessage(req, res, next) {
     try {
       const { chatId } = req.params;
-      const { content, attachments } = req.body;
+      const { content, attachments, clientId } = req.body;
       const sender = req.user._id;
 
       if (!content && (!attachments || attachments.length === 0)) {
         return ApiResponse.error(res, "Message content or attachments is required.", 400);
       }
 
-      const message = await Message.create({
-        chat: chatId,
-        sender,
-        content: content || "",
-        attachments: attachments || []
-      });
+      const chat = await loadParticipantChat(chatId, sender);
+      if (!chat) {
+        return ApiResponse.error(res, "Chat not found.", 404);
+      }
 
-      const chat = await Chat.findById(chatId);
-      if (chat) {
-        chat.lastMessage = content || (attachments && attachments.length > 0 ? "Sent an attachment" : "");
-        chat.lastMessageAt = new Date();
-        chat.lastMessageSender = sender;
-        await chat.save();
-
-        const io = req.app.get("io");
-        if (io) {
-          const populatedMessage = await Message.findById(message._id)
-            .populate("sender", "fullName profileImage role");
-
-          // ── Emit full message to the chatId room ──
-          // ChatMessagesNotifier listens here to add message bubbles
-          io.of("/chat").to(chatId.toString()).emit("message", populatedMessage);
-
-          // ── Emit lightweight chat_updated to each participant's user room ──
-          // ChatsNotifier listens here to update last-message preview + unread badge
-          chat.participants.forEach((p) => {
-            io.of("/chat").to(p.toString()).emit("chat_updated", {
-              chatId: chatId.toString(),
-              lastMessage: chat.lastMessage,
-              lastMessageAt: chat.lastMessageAt,
-              senderId: sender.toString()
-            });
-          });
-        }
-
-        const otherParticipant = chat.participants.find((p) => p.toString() !== sender.toString());
-        if (otherParticipant) {
-          const textPreview = content || (attachments && attachments.length > 0 ? "Attachment" : "");
-          await notificationService.createAndSendNotification({
-            senderId: sender,
-            receiverId: otherParticipant,
-            type: "chat_message",
-            title: "New Message",
-            message: `${req.user.fullName || "Someone"} sent you a message: "${textPreview.substring(0, 30)}${textPreview.length > 30 ? "..." : ""}"`,
-            referenceId: chatId,
-          });
+      // A retry after a timeout re-sends the same clientId. Without this, a
+      // message that actually arrived but whose response was lost is stored
+      // twice and the recipient sees it twice.
+      if (clientId) {
+        const existing = await Message.findOne({ chat: chat._id, clientId })
+          .populate("sender", "fullName profileImage role");
+        if (existing) {
+          return ApiResponse.success(res, "Message already sent.", existing);
         }
       }
 
-      const populatedMsg = await Message.findById(message._id)
+      const message = await Message.create({
+        chat: chat._id,
+        sender,
+        content: content || "",
+        attachments: attachments || [],
+        clientId: clientId || ""
+      });
+
+      chat.lastMessage = content || (attachments && attachments.length > 0 ? "Sent an attachment" : "");
+      chat.lastMessageAt = new Date();
+      chat.lastMessageSender = sender;
+      await chat.save();
+
+      const populatedMessage = await Message.findById(message._id)
         .populate("sender", "fullName profileImage role");
 
-      return ApiResponse.success(res, "Message sent successfully.", populatedMsg, 201);
+      const io = req.app.get("io");
+      if (io) {
+        // ── Full message to the conversation room ──
+        // Drives the message bubbles on both sides.
+        io.of("/chat").to(chat._id.toString()).emit("message", populatedMessage);
+
+        // ── Lightweight summary to each participant's personal room ──
+        // Drives last-message preview, ordering and unread badges in the
+        // conversation list, whether or not the conversation is open.
+        chat.participants.forEach((p) => {
+          io.of("/chat").to(p.toString()).emit("chat_updated", {
+            chatId: chat._id.toString(),
+            lastMessage: chat.lastMessage,
+            lastMessageAt: chat.lastMessageAt,
+            senderId: sender.toString()
+          });
+        });
+      }
+
+      const otherParticipant = chat.participants.find((p) => p.toString() !== sender.toString());
+      if (otherParticipant) {
+        const textPreview = content || (attachments && attachments.length > 0 ? "Attachment" : "");
+        await notificationService.createAndSendNotification({
+          senderId: sender,
+          receiverId: otherParticipant,
+          type: "chat_message",
+          title: "New Message",
+          message: `${req.user.fullName || "Someone"} sent you a message: "${textPreview.substring(0, 30)}${textPreview.length > 30 ? "..." : ""}"`,
+          referenceId: chat._id.toString(),
+        });
+      }
+
+      return ApiResponse.success(res, "Message sent successfully.", populatedMessage, 201);
     } catch (error) {
       next(error);
     }
@@ -250,7 +331,12 @@ class ChatController {
     try {
       const { chatId } = req.params;
 
-      const messages = await Message.find({ chat: chatId })
+      const chat = await loadParticipantChat(chatId, req.user._id);
+      if (!chat) {
+        return ApiResponse.error(res, "Chat not found.", 404);
+      }
+
+      const messages = await Message.find({ chat: chat._id })
         .populate("sender", "fullName profileImage role")
         .sort({ createdAt: 1 });
 
@@ -265,14 +351,24 @@ class ChatController {
       const { chatId } = req.params;
       const currentUserId = req.user._id;
 
+      const chat = await loadParticipantChat(chatId, currentUserId);
+      if (!chat) {
+        return ApiResponse.error(res, "Chat not found.", 404);
+      }
+
       await Message.updateMany(
-        { chat: chatId, sender: { $ne: currentUserId }, isRead: false },
+        { chat: chat._id, sender: { $ne: currentUserId }, isRead: false },
         { isRead: true }
       );
 
       const io = req.app.get("io");
       if (io) {
-        io.of("/chat").to(chatId.toString()).emit("read", { chatId, readBy: currentUserId });
+        // To the reader's own room only. This clears the badge on their other
+        // devices; it is deliberately not sent to the sender, who no longer
+        // receives read receipts.
+        io.of("/chat").to(currentUserId.toString()).emit("chat_read", {
+          chatId: chat._id.toString()
+        });
       }
 
       return ApiResponse.success(res, "Messages marked as read.");
@@ -286,6 +382,12 @@ class ChatController {
       if (!req.file) {
         return ApiResponse.error(res, "No file uploaded.", 400);
       }
+
+      const chat = await loadParticipantChat(req.params.chatId, req.user._id);
+      if (!chat) {
+        return ApiResponse.error(res, "Chat not found.", 404);
+      }
+
       const storageService = require("../../services/storageService");
       const metadata = await storageService.uploadFile(req.file, "chat_attachments");
       return ApiResponse.success(res, "File uploaded successfully.", {

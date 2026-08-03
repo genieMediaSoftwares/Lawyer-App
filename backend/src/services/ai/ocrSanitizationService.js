@@ -210,8 +210,26 @@ class OcrSanitizationService {
       return { text, isScanned: true, extractionFailed: false, error: null };
     }
 
-    // Keep whatever the cheap path found, but report that OCR could not run.
-    return { text: textContent, isScanned: true, extractionFailed: true, error };
+    // Fallback: If Gemini OCR fails (e.g. rate limits), attempt fallback text extraction
+    if (!textContent) {
+      try {
+        const rawString = pdfBuffer.toString("latin1");
+        const matches = rawString.match(/[A-Za-z0-9\s.,;:'"()-]{15,}/g);
+        if (matches && matches.length > 0) {
+          const extractedFallback = matches.filter((s) => s.trim().length > 20).join("\n");
+          if (this._looksLikeProse(extractedFallback)) {
+            textContent = extractedFallback;
+          }
+        }
+      } catch (_) {}
+    }
+
+    return {
+      text: textContent,
+      isScanned: true,
+      extractionFailed: !textContent,
+      error: error || (textContent ? null : "OCR service unavailable"),
+    };
   }
 
   /**

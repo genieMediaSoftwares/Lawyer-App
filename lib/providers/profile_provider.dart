@@ -43,11 +43,17 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   final ProfileRepository _repository;
   final Ref _ref;
 
-  ProfileNotifier(this._repository, this._ref) : super(const ProfileState()) {
-    fetchProfileData();
+  /// Whose profile this holds. Null while signed out, which is also the signal
+  /// not to fetch.
+  final String? userId;
+
+  ProfileNotifier(this._repository, this._ref, {this.userId})
+    : super(const ProfileState()) {
+    if (userId != null) fetchProfileData();
   }
 
   Future<void> fetchProfileData() async {
+    if (userId == null) return;
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
 
@@ -64,6 +70,10 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       final profile = results[0] as ClientProfileModel;
       final activities = results[1] as List<ActivityModel>;
       final stats = results[2] as ClientStatsModel;
+
+      // Three requests outlive a sign-out that disposes this notifier;
+      // writing state afterwards throws.
+      if (!mounted) return;
 
       state = ProfileState(
         profile: profile,
@@ -82,6 +92,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
             photoUrl: profile.profileImage,
           );
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
@@ -149,9 +160,18 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   }
 }
 
+/// The signed-in client's profile.
+///
+/// Keyed to the user id: without that the notifier was built once for the
+/// lifetime of the process and outlived sign-out, so the next user to sign in
+/// on the same device was shown the previous user's name, photo and stats
+/// until something happened to trigger a refetch. Watching only the id means
+/// an ordinary profile edit — which changes the name and photo but not the id
+/// — does not needlessly rebuild it.
 final profileProvider = StateNotifierProvider<ProfileNotifier, ProfileState>((
   ref,
 ) {
+  final userId = ref.watch(authProvider.select((s) => s.userId));
   final repo = ref.watch(profileRepositoryProvider);
-  return ProfileNotifier(repo, ref);
+  return ProfileNotifier(repo, ref, userId: userId);
 });

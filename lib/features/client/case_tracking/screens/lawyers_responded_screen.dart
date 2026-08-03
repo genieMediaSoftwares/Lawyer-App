@@ -202,9 +202,7 @@ class LawyersRespondedScreen extends ConsumerWidget {
                       OutlinedButton(
                         onPressed: () {
                           // Navigate to lawyer profile page passing lawyer's user ID
-                          context.push(
-                            '/lawyer-profile/${proposal.lawyerId}?caseId=$caseId',
-                          );
+                          context.push('/lawyer-profile/${proposal.lawyerId}');
                         },
                         child: const Text("View Profile"),
                       ),

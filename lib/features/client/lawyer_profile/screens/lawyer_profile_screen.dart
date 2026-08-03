@@ -12,9 +12,8 @@ import '../../../../providers/favorite_provider.dart';
 
 class LawyerProfileScreen extends ConsumerWidget {
   final String userId;
-  final String? caseId;
 
-  const LawyerProfileScreen({super.key, required this.userId, this.caseId});
+  const LawyerProfileScreen({super.key, required this.userId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -353,32 +352,17 @@ class LawyerProfileScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       color: theme.colorScheme.surface,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ElevatedButton(
-            onPressed: () async {
-              // Initialize or retrieve chat session and navigate to ChatScreen
-              final chat = await ref
-                  .read(chatsProvider.notifier)
-                  .getOrCreateChat(lawyer.userId);
-              if (chat != null && context.mounted) {
-                context.push('/chat/${chat.id}/${lawyer.fullName}');
-              }
-            },
-            child: const Text("Chat Now"),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: () {
-              // Navigate to Schedule Consultation passing lawyer user ID
-              context.push(
-                '/schedule-consultation/${lawyer.userId}${caseId != null ? "?caseId=$caseId" : ""}',
-              );
-            },
-            child: const Text("Book Appointment"),
-          ),
-        ],
+      child: ElevatedButton(
+        onPressed: () async {
+          // Initialize or retrieve chat session and navigate to ChatScreen
+          final chat = await ref
+              .read(chatsProvider.notifier)
+              .getOrCreateChat(lawyer.userId);
+          if (chat != null && context.mounted) {
+            context.push('/chat/${chat.id}/${lawyer.fullName}');
+          }
+        },
+        child: const Text("Chat Now"),
       ),
     );
   }

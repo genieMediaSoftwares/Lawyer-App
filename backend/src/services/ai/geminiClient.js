@@ -23,10 +23,11 @@
  *  - `gemini-1.5-flash` was removed entirely: it returns 404 (retired).
  */
 const DEFAULT_MODELS = [
-  "gemini-flash-latest",
-  "gemini-2.5-flash",
   "gemini-2.0-flash",
+  "gemini-flash-latest",
+  "gemini-2.0-flash-lite",
   "gemini-1.5-flash",
+  "gemini-1.5-pro",
 ];
 
 const ENDPOINT = (model) =>
@@ -65,13 +66,8 @@ class GeminiClient {
       models = DEFAULT_MODELS,
       timeoutMs = 60000,
       label = "gemini",
-      // Two passes over the model list. Observed in testing: the healthy
-      // models intermittently return 503/UNAVAILABLE, and occasionally all of
-      // them do at the same instant — which failed the user's whole intake for
-      // a blip that clears in a second. A second pass costs nothing when the
-      // first succeeds.
       passes = 2,
-      passDelayMs = 1500,
+      passDelayMs = 2500,
     } = options;
 
     if (!this.isConfigured) {
@@ -104,46 +100,61 @@ class GeminiClient {
     let lastError = null;
 
     for (const model of models) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      // Up to 2 attempts per model if rate limited (429)
+      const maxModelAttempts = 2;
 
-      try {
-        const response = await fetch(`${ENDPOINT(model)}?key=${this.apiKey}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents: [{ role: "user", parts }] }),
-          signal: controller.signal,
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text && text.trim()) {
-            return { text: text.trim(), model, error: null };
-          }
-          // A 200 with no candidate usually means a safety block; another
-          // model is unlikely to help, but it is cheap to let the loop try.
-          lastError = `${model}: empty response (possible safety block)`;
-        } else {
-          const body = await response.text();
-          lastError = `${model}: HTTP ${response.status} ${body.slice(0, 200)}`;
-
-          if (!isModelLevelFailure(response.status)) {
-            // Request-level problem (e.g. 400 malformed, 403 bad key). Every
-            // model and every pass would fail identically — stop here.
-            console.error(`[${label}] non-retryable Gemini error: ${lastError}`);
-            return { text: null, model: null, error: lastError, fatal: true };
-          }
-          console.warn(`[${label}] ${model} unavailable, trying next: HTTP ${response.status}`);
+      for (let attempt = 0; attempt < maxModelAttempts; attempt++) {
+        if (attempt > 0) {
+          console.warn(`[${label}] ${model} rate limited (429); backoff retry ${attempt}/${maxModelAttempts - 1} after 2500ms...`);
+          await new Promise((r) => setTimeout(r, 2500));
         }
-      } catch (err) {
-        lastError =
-          err.name === "AbortError"
-            ? `${model}: timed out after ${timeoutMs}ms`
-            : `${model}: ${err.message}`;
-        console.warn(`[${label}] ${lastError}`);
-      } finally {
-        clearTimeout(timer);
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+          const response = await fetch(`${ENDPOINT(model)}?key=${this.apiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ role: "user", parts }] }),
+            signal: controller.signal,
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text && text.trim()) {
+              return { text: text.trim(), model, error: null };
+            }
+            lastError = `${model}: empty response (possible safety block)`;
+            break;
+          } else {
+            const body = await response.text();
+            lastError = `${model}: HTTP ${response.status} ${body.slice(0, 200)}`;
+
+            if (response.status === 429 && attempt < maxModelAttempts - 1) {
+              // Retry this model after backoff
+              continue;
+            }
+
+            if (!isModelLevelFailure(response.status)) {
+              console.error(`[${label}] non-retryable Gemini error: ${lastError}`);
+              return { text: null, model: null, error: lastError, fatal: true };
+            }
+
+            console.warn(`[${label}] ${model} unavailable, trying next: HTTP ${response.status}`);
+            break;
+          }
+        } catch (err) {
+          lastError =
+            err.name === "AbortError"
+              ? `${model}: timed out after ${timeoutMs}ms`
+              : `${model}: ${err.message}`;
+          console.warn(`[${label}] ${lastError}`);
+          break;
+        } finally {
+          clearTimeout(timer);
+        }
       }
     }
 

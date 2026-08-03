@@ -239,10 +239,9 @@ const caseSchema = new mongoose.Schema(
   }
 );
 
-caseSchema.index({ client: 1 });
-caseSchema.index({ selectedLawyer: 1 });
-caseSchema.index({ assignedLawyer: 1 });
-caseSchema.index({ status: 1 });
+caseSchema.index({ client: 1, status: 1, createdAt: -1 });
+caseSchema.index({ assignedLawyer: 1, status: 1 });
+caseSchema.index({ category: 1, locationCity: 1 });
 caseSchema.index({ createdAt: -1 });
 caseSchema.index({ updatedAt: -1 });
 

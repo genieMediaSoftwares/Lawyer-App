@@ -35,12 +35,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _isCurrentlyTyping = false;
   bool _isUploading = false;
 
+  /// Resolved once, while `ref` is still usable. `dispose` cannot call
+  /// `ref.read` — flutter_riverpod asserts "Cannot use ref after the widget
+  /// was disposed" — and the tracker outlives this widget anyway.
+  late final ActiveChatTracker _activeChat;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(activeChatIdProvider.notifier).state = widget.chatId;
-    });
+    _activeChat = ref.read(activeChatProvider);
+    // Synchronous on purpose: deferring by a frame leaves a window in which an
+    // arriving message counts as unread for a conversation already on screen.
+    // Safe here because this mutates a plain object, not provider state.
+    _activeChat.chatId = widget.chatId;
   }
 
   @override
@@ -48,9 +55,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _messageController.dispose();
     _scrollController.dispose();
     _typingTimer?.cancel();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(activeChatIdProvider.notifier).state = null;
-    });
+    _activeChat.release(widget.chatId);
     super.dispose();
   }
 
@@ -92,13 +97,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ref.read(chatMessagesProvider(widget.chatId).notifier).emitTyping(userName, false);
     }
 
-    final chatNotifier = ref.read(chatMessagesProvider(widget.chatId).notifier);
-    final success = await chatNotifier.sendMessage(text);
+    // Clear straight away: the message is already on screen as a pending
+    // bubble, and a failure leaves that bubble with a retry rather than
+    // needing the text back in the field.
+    _messageController.clear();
 
-    if (success) {
-      _messageController.clear();
-      Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
-    }
+    final chatNotifier = ref.read(chatMessagesProvider(widget.chatId).notifier);
+    Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+    await chatNotifier.sendMessage(text);
   }
 
   Future<void> _pickAttachment() async {
@@ -212,20 +218,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         title: Consumer(
           builder: (context, ref, child) {
             final typingUser = ref.watch(chatTypingProvider(widget.chatId));
-            
-            String? otherParticipantId;
-            chatsState.whenData((chats) {
-              final chat = chats.firstWhere((c) => c.id == widget.chatId, orElse: () => chats.first);
-              final other = chat.participants.firstWhere(
-                (p) => p.id != currentUserId,
-                orElse: () => chat.participants.first,
-              );
-              otherParticipantId = other.id;
-            });
-
-            final isOnline = otherParticipantId != null
-                ? ref.watch(userOnlineStatusProvider(otherParticipantId!))
-                : false;
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,21 +227,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   Text(
                     "typing...",
                     style: TextStyle(fontSize: 11, color: theme.textTheme.bodySmall?.color, fontStyle: FontStyle.italic),
-                  )
-                else
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 4,
-                        backgroundColor: isOnline ? AppColors.success : AppColors.mutedText,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isOnline ? "Online" : "Offline",
-                        style: TextStyle(fontSize: 11, color: theme.textTheme.bodySmall?.color),
-                      ),
-                    ],
-                  )
+                  ),
               ],
             );
           }
@@ -323,15 +301,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     return const Center(child: Text("No messages in this chat. Start typing below!"));
                   }
 
-                  // Find the index of the last message sent by me
-                  int lastMeMsgIndex = -1;
-                  for (int i = messages.length - 1; i >= 0; i--) {
-                    if (messages[i].senderId == currentUserId) {
-                      lastMeMsgIndex = i;
-                      break;
-                    }
-                  }
-
                   // Build chronological list with date separators
                   final List<Widget> chatWidgets = [];
                   DateTime? lastDate;
@@ -346,7 +315,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     }
 
                     final isMe = message.senderId == currentUserId;
-                    chatWidgets.add(_buildMessageBubble(message, isMe, i == lastMeMsgIndex));
+                    chatWidgets.add(_buildMessageBubble(message, isMe));
                   }
 
                   return ListView.builder(
@@ -405,16 +374,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  Widget _buildMessageBubble(MessageModel message, bool isMe, bool isLastSentByMe) {
+  Widget _buildMessageBubble(MessageModel message, bool isMe) {
     final formattedTime = DateFormat('hh:mm a').format(message.createdAt);
     final theme = Theme.of(context);
+    // A message still in flight is dimmed until the server confirms it.
+    final isSending = message.status == MessageStatus.sending;
+    final hasFailed = message.status == MessageStatus.failed;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          Container(
+          Opacity(
+            opacity: isSending ? 0.6 : 1,
+            child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
             decoration: BoxDecoration(
@@ -532,6 +506,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ],
             ),
           ),
+          ),
           const SizedBox(height: 4),
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -540,14 +515,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 formattedTime,
                 style: TextStyle(color: AppColors.mutedText, fontSize: 10),
               ),
-              if (isMe && isLastSentByMe && message.isRead) ...[
+              if (isSending) ...[
                 const SizedBox(width: 6),
-                const Text(
-                  "Seen",
-                  style: TextStyle(
-                    color: AppColors.primaryGold,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                const SizedBox(
+                  width: 9,
+                  height: 9,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.4,
+                    color: AppColors.mutedText,
+                  ),
+                ),
+              ] else if (hasFailed) ...[
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.error_outline,
+                  size: 12,
+                  color: AppColors.error,
+                ),
+                const SizedBox(width: 4),
+                InkWell(
+                  onTap: () => ref
+                      .read(chatMessagesProvider(widget.chatId).notifier)
+                      .retryMessage(message),
+                  child: const Text(
+                    "Tap to retry",
+                    style: TextStyle(
+                      color: AppColors.error,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],

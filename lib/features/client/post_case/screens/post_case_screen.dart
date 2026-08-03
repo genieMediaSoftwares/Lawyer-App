@@ -56,30 +56,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
   String _sortByFilter = "Best Match";
 
-  // ── Structured case detail ───────────────────────────────────────────────
-  // Always shown: an incident date and the other side are relevant to nearly
-  // every category.
-  DateTime? _incidentDate;
-  final _opposingPartyController = TextEditingController();
-
-  // Shown only for Criminal Law, Cyber Crime and Motor Accident Claims — the
-  // 3 of 15 categories where these mean anything. See [_showCriminalFields].
-  final _firNumberController = TextEditingController();
-  final _policeStationController = TextEditingController();
-  final _bailDetailsController = TextEditingController();
-
-  /// Categories for which the FIR / police station / bail group is relevant.
-  /// Mirrors CRIMINAL_LIKE_CATEGORY_IDS in backend/src/config/legalCategories.js.
-  static const _criminalLikeCategories = {
-    'Criminal Law',
-    'Cyber Crime',
-    'Motor Accident Claims',
-  };
-
-  bool get _showCriminalFields =>
-      _selectedCategory != null &&
-      _criminalLikeCategories.contains(_selectedCategory);
-
   // Form State State Getters linked to Riverpod Single Source of Truth
   String? get _selectedCategory {
     final activeState = ref.read(selectedCategoryProvider);
@@ -122,7 +98,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   final _descriptionController = TextEditingController();
   final _cityController = TextEditingController();
   final _courtController = TextEditingController();
-  String? _selectedUrgency;
   bool _agreedToTerms = false;
 
   final List<DocumentModel> _uploadedDocs = [];
@@ -265,10 +240,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _opposingPartyController.dispose();
-    _firNumberController.dispose();
-    _policeStationController.dispose();
-    _bailDetailsController.dispose();
     _cityController.dispose();
     _courtController.dispose();
     super.dispose();
@@ -293,15 +264,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       await prefs.setString("draft_stateName", _selectedStateName ?? "");
       await prefs.setString("draft_cityText", _cityController.text);
       await prefs.setString("draft_courtName", _selectedCourtName ?? "");
-      await prefs.setString("draft_urgency", _selectedUrgency ?? "");
-      await prefs.setString(
-          "draft_incidentDate", _incidentDate?.toIso8601String() ?? "");
-      await prefs.setString(
-          "draft_opposingParty", _opposingPartyController.text);
-      await prefs.setString("draft_firNumber", _firNumberController.text);
-      await prefs.setString(
-          "draft_policeStation", _policeStationController.text);
-      await prefs.setString("draft_bailDetails", _bailDetailsController.text);
     } catch (e) {
       debugPrint("Error saving draft: $e");
     }
@@ -319,12 +281,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       final state = prefs.getString("draft_stateName");
       final cityText = prefs.getString("draft_cityText");
       final court = prefs.getString("draft_courtName");
-      final urgency = prefs.getString("draft_urgency");
-      final incidentDateRaw = prefs.getString("draft_incidentDate");
-      final opposingParty = prefs.getString("draft_opposingParty");
-      final firNumber = prefs.getString("draft_firNumber");
-      final policeStation = prefs.getString("draft_policeStation");
-      final bailDetails = prefs.getString("draft_bailDetails");
 
       if (mounted) {
         if (catId != null && catId.isNotEmpty) {
@@ -354,19 +310,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             _cityController.text = cityText;
           }
           if (court != null && court.isNotEmpty) _selectedCourtName = court;
-          if (urgency != null && urgency.isNotEmpty) _selectedUrgency = urgency;
-
-          if (incidentDateRaw != null && incidentDateRaw.isNotEmpty) {
-            _incidentDate = DateTime.tryParse(incidentDateRaw);
-          }
-          if (opposingParty != null) {
-            _opposingPartyController.text = opposingParty;
-          }
-          if (firNumber != null) _firNumberController.text = firNumber;
-          if (policeStation != null) {
-            _policeStationController.text = policeStation;
-          }
-          if (bailDetails != null) _bailDetailsController.text = bailDetails;
         });
 
         // Scroll to preselected or loaded category card
@@ -391,12 +334,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       await prefs.remove("draft_stateName");
       await prefs.remove("draft_cityText");
       await prefs.remove("draft_courtName");
-      await prefs.remove("draft_urgency");
-      await prefs.remove("draft_incidentDate");
-      await prefs.remove("draft_opposingParty");
-      await prefs.remove("draft_firNumber");
-      await prefs.remove("draft_policeStation");
-      await prefs.remove("draft_bailDetails");
       ref.read(selectedCategoryProvider.notifier).clearSelection();
     } catch (e) {
       debugPrint("Error clearing draft: $e");
@@ -678,9 +615,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   /// The one rule here is that a value the analysis did not produce is left
   /// blank. Earlier this method filled every gap with an invented stand-in —
   /// a description reading "Legal case assistance request based on uploaded
-  /// document details.", a city of "Online Location", an urgency of
-  /// "Within 15 Days", and the first category in the list whenever
-  /// classification failed. Those all passed the submit validation, so they
+  /// document details.", a city of "Online Location", and the first category
+  /// in the list whenever classification failed. Those all passed the submit
+  /// validation, so they
   /// were filed verbatim as the client's legal case. The backend goes to
   /// considerable trouble to return null rather than guess (see
   /// CONFIDENCE_FLOOR in aiSmartIntakeService.js); throwing that away at the
@@ -691,7 +628,10 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   void _applyPrefill(ExtractionResult result) {
     final data = result.extracted;
 
-    _needsReview = data.needsReview.toSet();
+    // The extractor still reports on fields this form no longer collects.
+    // Naming one would send the client hunting for an input that is not there,
+    // so only fields they can actually act on are carried through.
+    _needsReview = data.needsReview.where(_isReviewableField).toSet();
 
     if (data.title.isNotEmpty) _titleController.text = data.title;
 
@@ -745,14 +685,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       _courtController.text = data.court;
     }
 
-    // Left null when the analysis had no view on urgency — the client picks.
-    _selectedUrgency = data.urgency != null ? _mapUrgency(data.urgency!) : null;
-
-    _incidentDate = data.incidentDate;
-    _opposingPartyController.text = data.opposingParty;
-    _firNumberController.text = data.firNumber;
-    _policeStationController.text = data.policeStation;
-    _bailDetailsController.text = data.bailDetails;
     _claimAmount = data.claimAmount;
 
     // The intake already uploaded these and registered each one in the same
@@ -804,39 +736,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         data.subType != null &&
         matched.subcategories.contains(data.subType);
     _currentStep = categoryComplete ? _lawyerStepIndex : 0;
-  }
-
-  /// The extractor returns a coarse urgency; the form offers specific windows.
-  String? _mapUrgency(String urgency) {
-    switch (urgency.toLowerCase()) {
-      case 'urgent':
-        return 'Immediately (Within 24 Hours)';
-      case 'high':
-        return 'This Week';
-      case 'medium':
-        return 'Within 15 Days';
-      case 'flexible':
-        return 'Within One Month';
-      default:
-        return null;
-    }
-  }
-
-  Future<void> _pickIncidentDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _incidentDate ?? now,
-      // An incident cannot be in the future, and cases older than ~30 years
-      // are outside any realistic limitation period.
-      firstDate: DateTime(now.year - 30),
-      lastDate: now,
-      helpText: 'When did the incident happen?',
-    );
-
-    if (picked == null || !mounted) return;
-    setState(() => _incidentDate = picked);
-    _saveDraft();
   }
 
   Future<void> _submitCase() async {
@@ -929,7 +828,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           category: _selectedCategory!,
           subcategory: _selectedSubcategory!,
           location: _cityController.text,
-          urgency: _selectedUrgency ?? "Flexible",
           preferredCourt: _selectedCourtName,
           documents: _uploadedDocs,
           // Chosen on the final step, so the case is filed with this advocate
@@ -945,13 +843,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           country: _selectedCountryName,
           latitude: _selectedLatitude,
           longitude: _selectedLongitude,
-          incidentDate: _incidentDate,
-          opposingParty: _opposingPartyController.text.trim(),
-          firNumber: _showCriminalFields ? _firNumberController.text.trim() : null,
-          policeStation:
-              _showCriminalFields ? _policeStationController.text.trim() : null,
-          bailDetails:
-              _showCriminalFields ? _bailDetailsController.text.trim() : null,
           claimAmount: _claimAmount,
         );
 
@@ -1512,6 +1403,12 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     );
   }
 
+  /// Extraction fields that still have somewhere on the form to be corrected.
+  ///
+  /// Kept in step with [_fieldLabel]: a field with no label is a field the
+  /// form no longer has.
+  static bool _isReviewableField(String field) => _fieldLabel(field) != field;
+
   /// Extraction field name → the label the client sees on the form.
   static String _fieldLabel(String field) {
     const labels = {
@@ -1523,13 +1420,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       'state': 'state',
       'location': 'location',
       'court': 'preferred court',
-      'incidentDate': 'date of incident',
-      'opposingParty': 'other party',
-      'firNumber': 'FIR / case number',
-      'policeStation': 'police station',
-      'bailDetails': 'bail details',
       'claimAmount': 'amount claimed',
-      'urgency': 'urgency',
     };
     return labels[field] ?? field;
   }
@@ -1831,194 +1722,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               },
             ),
           ),
-        ],
-        const SizedBox(height: 16),
-
-        // 4. When do you need help?
-        Text(
-          "When do you need help?",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-            color: primaryTextColor,
-          ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: _selectedUrgency,
-          style: TextStyle(color: primaryTextColor),
-          dropdownColor: theme.colorScheme.surface,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          items:
-              [
-                    "Immediately (Within 24 Hours)",
-                    "This Week",
-                    "Within 15 Days",
-                    "Within One Month",
-                  ]
-                  .map(
-                    (val) => DropdownMenuItem(
-                      value: val,
-                      child: Text(
-                        val,
-                        style: TextStyle(color: primaryTextColor),
-                      ),
-                    ),
-                  )
-                  .toList(),
-          onChanged: (val) {
-            setState(() => _selectedUrgency = val);
-            _saveDraft();
-          },
-          hint: Text(
-            "Select urgency",
-            style: TextStyle(color: secondaryTextColor),
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        // 5. Incident date — relevant to almost every category, so always shown.
-        Text(
-          "Date of Incident",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-            color: primaryTextColor,
-          ),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: _pickIncidentDate,
-          borderRadius: BorderRadius.circular(12),
-          child: InputDecorator(
-            decoration: InputDecoration(
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              suffixIcon: _incidentDate == null
-                  ? const Icon(Icons.calendar_today_outlined, size: 18)
-                  : IconButton(
-                      icon: const Icon(Icons.close, size: 18),
-                      tooltip: 'Clear date',
-                      onPressed: () {
-                        setState(() => _incidentDate = null);
-                        _saveDraft();
-                      },
-                    ),
-            ),
-            child: Text(
-              _incidentDate == null
-                  ? "Not specified"
-                  : DateFormat('dd MMM yyyy').format(_incidentDate!),
-              style: TextStyle(
-                color: _incidentDate == null
-                    ? secondaryTextColor
-                    : primaryTextColor,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        // 6. Opposing party — who the case is against.
-        Text(
-          "Other Party (Optional)",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-            color: primaryTextColor,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _opposingPartyController,
-          style: TextStyle(color: primaryTextColor),
-          onChanged: (_) => _saveDraft(),
-          decoration: InputDecoration(
-            hintText: "Person, company, employer or bank involved",
-            hintStyle: TextStyle(color: secondaryTextColor),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        // 7. FIR / police station / bail — revealed only for the three
-        // categories where they apply, so a GST or divorce case is not asked
-        // for a police station.
-        if (_showCriminalFields) ...[
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.colorScheme.outline),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.gavel_outlined,
-                        size: 16, color: theme.colorScheme.primary),
-                    const SizedBox(width: 6),
-                    Text(
-                      "Criminal case details",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: primaryTextColor,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "All optional — fill in whatever you have.",
-                  style: TextStyle(color: secondaryTextColor, fontSize: 12),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: _firNumberController,
-                  style: TextStyle(color: primaryTextColor),
-                  onChanged: (_) => _saveDraft(),
-                  decoration: InputDecoration(
-                    labelText: "FIR / Case Number",
-                    labelStyle: TextStyle(color: secondaryTextColor),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _policeStationController,
-                  style: TextStyle(color: primaryTextColor),
-                  onChanged: (_) => _saveDraft(),
-                  decoration: InputDecoration(
-                    labelText: "Police Station",
-                    labelStyle: TextStyle(color: secondaryTextColor),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _bailDetailsController,
-                  style: TextStyle(color: primaryTextColor),
-                  maxLines: 2,
-                  minLines: 1,
-                  onChanged: (_) => _saveDraft(),
-                  decoration: InputDecoration(
-                    labelText: "Bail status / sections charged",
-                    labelStyle: TextStyle(color: secondaryTextColor),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
         ],
 
         // The Terms & Conditions checkbox lives on the Review step, the last
@@ -2990,53 +2693,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                 const Divider(height: 24),
                 _buildReviewRow("Preferred Court", _selectedCourtName!),
               ],
-              const Divider(height: 24),
-              _buildReviewRow("Urgency", _selectedUrgency ?? "Flexible"),
 
-              // Structured detail. Shown only when set, so a case that has no
-              // FIR does not display an empty row — but anything the extractor
-              // filled in IS surfaced here, so the client sees every value they
-              // are about to submit rather than only the ones they typed.
-              if (_incidentDate != null) ...[
-                const Divider(height: 24),
-                _buildReviewRow(
-                  "Date of Incident",
-                  DateFormat('dd MMM yyyy').format(_incidentDate!),
-                ),
-              ],
-              if (_opposingPartyController.text.trim().isNotEmpty) ...[
-                const Divider(height: 24),
-                _buildReviewRow(
-                  "Other Party",
-                  _opposingPartyController.text.trim(),
-                ),
-              ],
-              if (_showCriminalFields &&
-                  _firNumberController.text.trim().isNotEmpty) ...[
-                const Divider(height: 24),
-                _buildReviewRow(
-                  "FIR / Case Number",
-                  _firNumberController.text.trim(),
-                ),
-              ],
-              if (_showCriminalFields &&
-                  _policeStationController.text.trim().isNotEmpty) ...[
-                const Divider(height: 24),
-                _buildReviewRow(
-                  "Police Station",
-                  _policeStationController.text.trim(),
-                ),
-              ],
-              if (_showCriminalFields &&
-                  _bailDetailsController.text.trim().isNotEmpty) ...[
-                const Divider(height: 24),
-                _buildReviewRow(
-                  "Bail / Sections",
-                  _bailDetailsController.text.trim(),
-                  isMultiline: true,
-                ),
-              ],
-
+              // Shown only when set, so a case with no claim amount does not
+              // display an empty row — but anything the extractor filled in IS
+              // surfaced, so the client sees every value they are about to
+              // submit rather than only the ones they typed.
               if (_claimAmount != null && _claimAmount! > 0) ...[
                 const Divider(height: 24),
                 _buildReviewRow(
@@ -3928,8 +3589,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     // The terms are accepted on Review, so they no longer gate this step.
     final bool isForm1Valid =
         _descriptionController.text.trim().length >= 20 &&
-        _selectedCityName != null &&
-        _selectedUrgency != null;
+        _selectedCityName != null;
 
     final bool nextDisabled =
         (_currentStep == 0 && _selectedSubcategory == null) ||

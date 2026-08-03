@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/storage/token_storage.dart';
 import '../core/network/dio_client.dart';
+import 'lawyer_provider.dart';
 
 enum UserRole { client, lawyer, admin }
 
@@ -55,8 +56,9 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final TokenStorage _tokenStorage = TokenStorage();
+  final Ref _ref;
 
-  AuthNotifier()
+  AuthNotifier(this._ref)
     : super(
         const AuthState(
           isLoggedIn: false,
@@ -67,11 +69,44 @@ class AuthNotifier extends StateNotifier<AuthState> {
     initialize();
   }
 
+  /// Single fan-out point for "the signed-in user's own profile changed".
+  ///
+  /// [AuthState] is only one of the places the current user's name and photo
+  /// are held; caches keyed by their id hold copies too. Those used to be
+  /// refreshed by whichever screen happened to perform the edit, so a surface
+  /// stayed stale whenever a new edit path forgot to do it — which is why the
+  /// avatar updated in some places and not others. Making the refresh part of
+  /// the write instead of part of the caller means no future edit screen can
+  /// forget.
+  ///
+  /// Safe to invalidate from here: none of these providers depend on
+  /// [authProvider], so `Ref.invalidate` cannot find this notifier among their
+  /// ancestors and throw CircularDependencyError.
+  void _profileChanged(String? userId) {
+    if (!mounted || userId == null || userId.isEmpty) return;
+    _ref.invalidate(lawyerDetailsProvider(userId));
+  }
+
+  /// Bumped by every sign-in and sign-out.
+  ///
+  /// [initialize] reads four values from secure storage and only then writes
+  /// state. A sign-in completing inside that window is newer than what it
+  /// read, so its result must not be overwritten when the read finally lands —
+  /// otherwise a fast login at startup is silently rolled back to signed-out.
+  int _sessionGeneration = 0;
+
   Future<void> initialize() async {
+    final generation = _sessionGeneration;
+
     final onboardingCompleted = await _tokenStorage.isOnboardingCompleted();
     final token = await _tokenStorage.getToken();
     final roleStr = await _tokenStorage.getRole();
     final details = await _tokenStorage.getUserDetails();
+
+    // `mounted` because the read outlives a provider torn down mid-flight —
+    // writing state then throws. `generation` because a sign-in that landed
+    // while we were reading is newer than what we read.
+    if (!mounted || generation != _sessionGeneration) return;
 
     UserRole? role;
     if (roleStr == 'client') {
@@ -110,6 +145,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String? photoUrl,
     String? location,
   }) async {
+    _sessionGeneration++;
     await _tokenStorage.saveToken(token);
     await _tokenStorage.saveRole(role.name);
     await _tokenStorage.saveUserDetails(
@@ -120,6 +156,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       photo: photoUrl,
       location: location,
     );
+    if (!mounted) return;
     state = state.copyWith(
       isLoggedIn: true,
       role: role,
@@ -133,9 +170,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    _sessionGeneration++;
+
+    // Drop the outgoing user's cached profile before the state clears, while
+    // their id is still known. Otherwise it survives into the next session and
+    // the new user briefly sees the previous one's details.
+    _profileChanged(state.userId);
+
     await _tokenStorage.deleteToken();
     await _tokenStorage.deleteRole();
     await _tokenStorage.deleteUserDetails();
+    if (!mounted) return;
     state = AuthState(
       isLoggedIn: false,
       role: null,
@@ -171,6 +216,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       location: newLocation,
     );
 
+    // A sign-out during the write disposes this notifier; the stale details
+    // must not be written back over the cleared session.
+    if (!mounted) return;
+
     state = state.copyWith(
       userName: newName,
       userEmail: newEmail,
@@ -178,6 +227,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       userLocation: newLocation,
       userPhotoUrl: newPhoto,
     );
+    _profileChanged(state.userId);
   }
 
   Future<bool> updateUserProfile({
@@ -201,12 +251,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
           photo: userData['profileImage'] ?? state.userPhotoUrl ?? '',
           location: userData['location'] ?? '',
         );
+        if (!mounted) return false;
         state = state.copyWith(
           userName: userData['fullName'],
           userMobile: userData['mobile'],
           userPhotoUrl: userData['profileImage'] ?? state.userPhotoUrl,
           userLocation: userData['location'],
         );
+        _profileChanged(state.userId);
         return true;
       }
     } catch (e) {
@@ -236,6 +288,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           photo: userData['profileImage'] ?? '',
           location: userData['location'] ?? state.userLocation ?? '',
         );
+        if (!mounted) return false;
         state = state.copyWith(
           userName: userData['fullName'],
           userEmail: userData['email'],
@@ -243,6 +296,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           userPhotoUrl: userData['profileImage'],
           userLocation: userData['location'],
         );
+        _profileChanged(state.userId);
         return true;
       }
     } catch (e) {
@@ -258,5 +312,5 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>(
-  (ref) => AuthNotifier(),
+  (ref) => AuthNotifier(ref),
 );

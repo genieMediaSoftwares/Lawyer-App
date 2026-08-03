@@ -314,22 +314,6 @@ final unreadMessagesCountProvider = Provider<AsyncValue<int>>((ref) {
   );
 });
 
-final todayConsultationsCountProvider = FutureProvider<int>((ref) async {
-  ref.watch(appointmentsProvider);
-  final repo = ref.watch(lawyerWorkspaceRepositoryProvider);
-  final schedule = await repo.getScheduleToday();
-  final count = schedule.where((e) => e['eventType'] == 'consultation').length;
-  return count;
-});
-
-final todayHearingsCountProvider = FutureProvider<int>((ref) async {
-  ref.watch(casesProvider);
-  final repo = ref.watch(lawyerWorkspaceRepositoryProvider);
-  final schedule = await repo.getScheduleToday();
-  final count = schedule.where((e) => e['eventType'] == 'hearing').length;
-  return count;
-});
-
 final pendingDocumentReviewsCountProvider = Provider<AsyncValue<int>>((ref) {
   final casesAsync = ref.watch(casesProvider);
   final authState = ref.watch(authProvider);

@@ -157,8 +157,35 @@ const lawyerSchema = new mongoose.Schema(
   }
 );
 
-lawyerSchema.index({ user: 1 });
+const { encrypt, decrypt } = require("../utils/cryptoUtil");
+
+// Encrypt sensitive financial details before saving
+lawyerSchema.pre("save", function (next) {
+  if (this.upiId) {
+    this.upiId = encrypt(this.upiId);
+  }
+  if (this.bankDetails && this.bankDetails.accountNumber) {
+    this.bankDetails.accountNumber = encrypt(this.bankDetails.accountNumber);
+  }
+  next();
+});
+
+// Decrypt sensitive financial details after fetching from DB
+function decryptFinancials(doc) {
+  if (!doc) return;
+  if (doc.upiId) {
+    doc.upiId = decrypt(doc.upiId);
+  }
+  if (doc.bankDetails && doc.bankDetails.accountNumber) {
+    doc.bankDetails.accountNumber = decrypt(doc.bankDetails.accountNumber);
+  }
+}
+
+lawyerSchema.post("init", decryptFinancials);
+lawyerSchema.post("save", decryptFinancials);
+
 lawyerSchema.index({ rating: -1 });
 lawyerSchema.index({ experience: -1 });
+lawyerSchema.index({ specialization: 1, rating: -1 });
 
 module.exports = mongoose.model("Lawyer", lawyerSchema);

@@ -144,10 +144,21 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
       return;
     }
 
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AISmartCaseProcessingScreen()),
     );
+
+    // Reached once this screen is on top again — either the analysis was
+    // abandoned, or it succeeded and the processing screen replaced itself with
+    // the pre-filled form the client has now backed out of.
+    //
+    // Either way this intake is finished. `initState` alone did not cover it:
+    // this screen is still mounted underneath, so returning to it never re-ran
+    // that reset and left the previous document selected and its extraction in
+    // memory — the "uploaded a different document, got the old data" report.
+    if (!mounted) return;
+    ref.read(aiSmartCaseProvider.notifier).clearForNewIntake();
   }
 
   @override

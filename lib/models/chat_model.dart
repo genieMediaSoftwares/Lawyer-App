@@ -4,7 +4,6 @@ class ChatModel {
   final String lastMessage;
   final DateTime lastMessageAt;
   final String lastMessageSender;
-  final bool isLastMessageRead;
   final int unreadCount;
   final ChatCaseInfoModel? caseInfo;
 
@@ -14,7 +13,6 @@ class ChatModel {
     required this.lastMessage,
     required this.lastMessageAt,
     this.lastMessageSender = '',
-    this.isLastMessageRead = false,
     required this.unreadCount,
     this.caseInfo,
   });
@@ -32,7 +30,6 @@ class ChatModel {
           ? DateTime.parse(json['lastMessageAt']).toLocal()
           : DateTime.now(),
       lastMessageSender: json['lastMessageSender'] ?? '',
-      isLastMessageRead: json['isLastMessageRead'] ?? false,
       unreadCount: json['unreadCount'] ?? 0,
       caseInfo: json['caseInfo'] != null
           ? ChatCaseInfoModel.fromJson(json['caseInfo'])
@@ -46,7 +43,6 @@ class ChatModel {
     String? lastMessage,
     DateTime? lastMessageAt,
     String? lastMessageSender,
-    bool? isLastMessageRead,
     int? unreadCount,
     ChatCaseInfoModel? caseInfo,
   }) {
@@ -56,7 +52,6 @@ class ChatModel {
       lastMessage: lastMessage ?? this.lastMessage,
       lastMessageAt: lastMessageAt ?? this.lastMessageAt,
       lastMessageSender: lastMessageSender ?? this.lastMessageSender,
-      isLastMessageRead: isLastMessageRead ?? this.isLastMessageRead,
       unreadCount: unreadCount ?? this.unreadCount,
       caseInfo: caseInfo ?? this.caseInfo,
     );

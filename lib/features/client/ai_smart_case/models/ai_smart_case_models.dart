@@ -157,6 +157,12 @@ class ExtractedCaseData {
 
   /// True when the extraction produced nothing worth pre-filling, so the caller
   /// can tell the client rather than opening a blank form that looks broken.
+  ///
+  /// Counts only what the form actually pre-fills. [incidentDate] and
+  /// [opposingParty] are still parsed off the server response but no longer
+  /// have inputs to land in, so an extraction that found nothing else would
+  /// have been reported as non-empty and then opened the very blank form this
+  /// guard exists to avoid.
   bool get isEmpty =>
       title.isEmpty &&
       description.isEmpty &&
@@ -164,9 +170,7 @@ class ExtractedCaseData {
       category == null &&
       city.isEmpty &&
       location.isEmpty &&
-      opposingParty.isEmpty &&
-      parties.isEmpty &&
-      incidentDate == null;
+      parties.isEmpty;
 
   /// Confidence for [field], or null when the model did not score it.
   double? confidenceFor(String field) => confidence[field];

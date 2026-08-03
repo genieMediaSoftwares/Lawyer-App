@@ -4,7 +4,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/config/env.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/auth_provider.dart';
-import '../../../../providers/lawyer_provider.dart';
 import '../../../../core/widgets/manual_location_field.dart';
 
 class LawyerMyProfileScreen extends ConsumerStatefulWidget {
@@ -31,15 +30,11 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
 
       setState(() => _isSavingImage = true);
 
+      // AuthNotifier fans the change out to every cache keyed by this user,
+      // so nothing needs invalidating from here.
       final success = await ref
           .read(authProvider.notifier)
           .updateProfileImage(bytes, image.name);
-
-      // Invalidate lawyer details to sync photo across all providers
-      final auth = ref.read(authProvider);
-      if (auth.userId != null) {
-        ref.invalidate(lawyerDetailsProvider(auth.userId!));
-      }
 
       setState(() => _isSavingImage = false);
 
@@ -328,11 +323,6 @@ class _LawyerEditPersonalBottomSheetState
           mobile: _phoneController.text.trim(),
           location: _locationController.text.trim(),
         );
-
-    // Also invalidate lawyer details to sync profile name/location in active dashboard
-    if (widget.auth.userId != null) {
-      ref.invalidate(lawyerDetailsProvider(widget.auth.userId!));
-    }
 
     setState(() => _isSaving = false);
 

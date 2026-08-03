@@ -102,6 +102,120 @@ class CaseModel {
     this.voiceTranscript,
   });
 
+  /// Returns a copy with the given fields replaced.
+  ///
+  /// Lets a screen apply a known server-side change (a status transition, say)
+  /// to the case already in memory instead of waiting on a refetch, so views
+  /// derived from the case list update on the same frame.
+  ///
+  /// Note: an omitted argument keeps the current value, so a nullable field
+  /// cannot be cleared back to null through this method.
+  CaseModel copyWith({
+    String? id,
+    String? clientId,
+    String? clientName,
+    String? clientImage,
+    String? title,
+    String? description,
+    String? category,
+    String? subcategory,
+    String? location,
+    String? budgetRange,
+    String? urgency,
+    String? status,
+    String? preferredCourt,
+    List<DocumentModel>? documents,
+    List<CaseProposalModel>? proposals,
+    String? assignedLawyerId,
+    String? assignedLawyerName,
+    String? assignedLawyerImage,
+    List<MilestoneModel>? milestones,
+    DateTime? createdAt,
+    bool? clientVerified,
+    String? selectedLawyerId,
+    String? selectedLawyerName,
+    String? selectedLawyerImage,
+    String? selectedLawyerSpecialization,
+    int? selectedLawyerExperience,
+    double? selectedLawyerRating,
+    int? selectedLawyerFee,
+    bool? selectedLawyerVerified,
+    String? assignedLawyerSpecialization,
+    int? assignedLawyerExperience,
+    double? assignedLawyerRating,
+    int? assignedLawyerFee,
+    bool? assignedLawyerVerified,
+    bool? assignedLawyerOnline,
+    String? caseOutcome,
+    String? claimAmount,
+    DateTime? consultationDate,
+    DateTime? nextHearing,
+    DateTime? closedDate,
+    DateTime? acceptedAt,
+    DateTime? startedAt,
+    DateTime? completedAt,
+    double? rating,
+    String? review,
+    String? voiceUrl,
+    String? voiceTranscript,
+  }) {
+    return CaseModel(
+      id: id ?? this.id,
+      clientId: clientId ?? this.clientId,
+      clientName: clientName ?? this.clientName,
+      clientImage: clientImage ?? this.clientImage,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      category: category ?? this.category,
+      subcategory: subcategory ?? this.subcategory,
+      location: location ?? this.location,
+      budgetRange: budgetRange ?? this.budgetRange,
+      urgency: urgency ?? this.urgency,
+      status: status ?? this.status,
+      preferredCourt: preferredCourt ?? this.preferredCourt,
+      documents: documents ?? this.documents,
+      proposals: proposals ?? this.proposals,
+      assignedLawyerId: assignedLawyerId ?? this.assignedLawyerId,
+      assignedLawyerName: assignedLawyerName ?? this.assignedLawyerName,
+      assignedLawyerImage: assignedLawyerImage ?? this.assignedLawyerImage,
+      milestones: milestones ?? this.milestones,
+      createdAt: createdAt ?? this.createdAt,
+      clientVerified: clientVerified ?? this.clientVerified,
+      selectedLawyerId: selectedLawyerId ?? this.selectedLawyerId,
+      selectedLawyerName: selectedLawyerName ?? this.selectedLawyerName,
+      selectedLawyerImage: selectedLawyerImage ?? this.selectedLawyerImage,
+      selectedLawyerSpecialization:
+          selectedLawyerSpecialization ?? this.selectedLawyerSpecialization,
+      selectedLawyerExperience:
+          selectedLawyerExperience ?? this.selectedLawyerExperience,
+      selectedLawyerRating: selectedLawyerRating ?? this.selectedLawyerRating,
+      selectedLawyerFee: selectedLawyerFee ?? this.selectedLawyerFee,
+      selectedLawyerVerified:
+          selectedLawyerVerified ?? this.selectedLawyerVerified,
+      assignedLawyerSpecialization:
+          assignedLawyerSpecialization ?? this.assignedLawyerSpecialization,
+      assignedLawyerExperience:
+          assignedLawyerExperience ?? this.assignedLawyerExperience,
+      assignedLawyerRating: assignedLawyerRating ?? this.assignedLawyerRating,
+      assignedLawyerFee: assignedLawyerFee ?? this.assignedLawyerFee,
+      assignedLawyerVerified:
+          assignedLawyerVerified ?? this.assignedLawyerVerified,
+      assignedLawyerOnline: assignedLawyerOnline ?? this.assignedLawyerOnline,
+      caseOutcome: caseOutcome ?? this.caseOutcome,
+      claimAmount: claimAmount ?? this.claimAmount,
+      consultationDate: consultationDate ?? this.consultationDate,
+      nextHearing: nextHearing ?? this.nextHearing,
+      closedDate: closedDate ?? this.closedDate,
+      acceptedAt: acceptedAt ?? this.acceptedAt,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
+      rating: rating ?? this.rating,
+      review: review ?? this.review,
+      voiceUrl: voiceUrl ?? this.voiceUrl,
+      voiceTranscript: voiceTranscript ?? this.voiceTranscript,
+    );
+  }
+
   factory CaseModel.fromJson(Map<String, dynamic> json) {
     // ── Safe helpers (Flutter Web: `as List` throws Symbol($signatureRti) on
     // raw JS arrays; List.from() is safe across all platforms) ──────────────
