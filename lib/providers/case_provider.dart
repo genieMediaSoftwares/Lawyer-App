@@ -58,11 +58,15 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     // same write.
     await fetchCases(silent: true);
 
-    // Views that fetch case-derived data from their own endpoints and do not
-    // depend on this provider, so nothing tells them a case changed. Riverpod
-    // refreshes only the ones currently alive; the rest are a no-op.
-    _ref.invalidate(adminCasesProvider);
-    _ref.invalidate(adminStatsProvider);
+    // The admin dashboards fetch case-derived data from their own endpoints and
+    // do not depend on this provider, so nothing else tells them a case
+    // changed. Gated on the session actually being an admin one: those
+    // endpoints reject client and lawyer tokens, so invalidating them
+    // unconditionally fired a 403 on every case action.
+    if (_ref.read(authProvider).role == UserRole.admin) {
+      _ref.invalidate(adminCasesProvider);
+      _ref.invalidate(adminStatsProvider);
+    }
 
     // A new case raises notifications for the lawyers it reached.
     try {
