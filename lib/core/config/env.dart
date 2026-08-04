@@ -27,6 +27,21 @@ class Environment {
     return baseUrl.replaceAll('/api', '');
   }
 
+  /// Configurable Support Email Address
+  static String get supportEmail {
+    return dotenv.env['SUPPORT_EMAIL'] ?? 'support@genielaw.com';
+  }
+
+  /// Configurable Application Version
+  static String get appVersion {
+    return dotenv.env['APP_VERSION'] ?? '1.0.0';
+  }
+
+  /// Configurable Application Build Number
+  static String get buildNumber {
+    return dotenv.env['BUILD_NUMBER'] ?? '1';
+  }
+
   /// Folders under /uploads the server serves without authentication.
   /// Kept in sync with PUBLIC_FOLDERS in backend/src/middleware/fileAuthMiddleware.js.
   static const _publicUploadFolders = {'profiles'};
@@ -56,11 +71,6 @@ class Environment {
   }
 
   /// Appends the session JWT to URLs for protected upload folders.
-  ///
-  /// Image.network, audioplayers and url_launcher cannot attach an
-  /// Authorization header, so the token travels as a query parameter for these
-  /// requests only. Public folders (avatars) are left clean so they stay
-  /// cacheable and no token leaks into widely-shared URLs.
   static String _withAccessToken(String relativePath, String existingQuery) {
     final segments = relativePath
         .split('/')

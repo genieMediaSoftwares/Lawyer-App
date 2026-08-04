@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../notifications/domain/notification_presentation.dart';
 import '../../../notifications/screens/notification_center_screen.dart';
-import '../../profile/screens/lawyer_settings_screen.dart';
+import '../../../../routes/route_names.dart';
 
 /// Tabs of the lawyer dashboard shell, as indexed by its bottom navigation.
 class LawyerDashboardTab {
@@ -38,11 +38,7 @@ class LawyerNotificationsScreen extends ConsumerWidget {
     return NotificationCenterScreen(
       peopleLabel: "Clients",
       onBack: onBack,
-      onOpenSettings: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => const LawyerSettingsScreen(),
-        ),
-      ),
+      onOpenSettings: () => context.push(RouteNames.lawyerSettings),
       onOpen: (notification, target) {
         final referenceId = notification.referenceId ?? '';
 

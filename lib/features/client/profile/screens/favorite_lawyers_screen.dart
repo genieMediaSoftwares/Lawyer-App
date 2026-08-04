@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/favorite_provider.dart';
 import '../../../../core/config/env.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
@@ -21,6 +22,7 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
   Widget build(BuildContext context) {
     final favoritesState = ref.watch(favoritesProvider);
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -29,9 +31,9 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
-          "Favorite Lawyers",
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          loc.favorite_lawyers,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
@@ -56,7 +58,7 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      "No Favorites Added Yet",
+                      loc.no_favorites_added_yet,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -65,7 +67,7 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Select the heart icon on any lawyer's profile page to save them here.",
+                      loc.no_favorites_tip,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: theme.textTheme.bodySmall?.color),
                     ),
@@ -85,6 +87,8 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
 
   Widget _buildList(List<FavoriteItem> items) {
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: items.length,
@@ -161,7 +165,7 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                     ElevatedButton(
                       onPressed: () =>
                           context.push('/lawyer-profile/${fav.lawyerUserId}'),
-                      child: const Text("Book"),
+                      child: Text(loc.book_button),
                     ),
                   ],
                 ),
@@ -175,6 +179,8 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
 
   Widget _buildGrid(List<FavoriteItem> items) {
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
+
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -263,7 +269,7 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                 ElevatedButton(
                   onPressed: () =>
                       context.push('/lawyer-profile/${fav.lawyerUserId}'),
-                  child: const Text("Book Now"),
+                  child: Text(loc.book_now_button),
                 ),
               ],
             ),
@@ -274,12 +280,13 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
   }
 
   Future<void> _removeFavorite(String favoriteId) async {
+    final loc = AppLocalizations.of(context)!;
     final success = await ref
         .read(favoritesProvider.notifier)
         .removeFavorite(favoriteId);
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Removed from favorite lawyers.")),
+        SnackBar(content: Text(loc.removed_from_favorites)),
       );
     }
   }

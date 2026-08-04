@@ -10,6 +10,7 @@ import '../../../../providers/chat_provider.dart';
 import '../../../../core/config/env.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class CaseProgressScreen extends ConsumerWidget {
   final String caseId;
@@ -20,6 +21,7 @@ class CaseProgressScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final caseDetailsState = ref.watch(caseDetailsProvider(caseId));
     final appointmentsState = ref.watch(appointmentsProvider);
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
@@ -30,19 +32,19 @@ class CaseProgressScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back, color: AppColors.primaryText),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
-          "Case Details",
-          style: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 18),
+        title: Text(
+          loc.case_details_header,
+          style: const TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
       body: caseDetailsState.when(
         data: (caseItem) {
           if (caseItem == null) {
-            return const Center(
+            return Center(
               child: Text(
-                "No case details found.",
-                style: TextStyle(color: AppColors.mutedText, fontSize: 14),
+                loc.no_case_details_found,
+                style: const TextStyle(color: AppColors.mutedText, fontSize: 14),
               ),
             );
           }
@@ -77,9 +79,9 @@ class CaseProgressScreen extends ConsumerWidget {
                   const SizedBox(height: 20),
 
                   // Case Timeline Stepper progress tracker
-                  const Text(
-                    "Case Progress Tracker",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primaryText),
+                  Text(
+                    loc.case_progress_tracker,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primaryText),
                   ),
                   const SizedBox(height: 10),
                   _buildProgressTimeline(context, caseItem),
@@ -91,9 +93,9 @@ class CaseProgressScreen extends ConsumerWidget {
 
                   // Next Consultation Card
                   if (caseItem.assignedLawyerId != null) ...[
-                    const Text(
-                      "Next Consultation",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primaryText),
+                    Text(
+                      loc.next_consultation,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primaryText),
                     ),
                     const SizedBox(height: 10),
                     _buildNextConsultationCard(context, caseItem, nextAppointment),
@@ -102,9 +104,9 @@ class CaseProgressScreen extends ConsumerWidget {
 
                   // Documents Card
                   if (caseItem.documents.isNotEmpty) ...[
-                    const Text(
-                      "Supporting Documents",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primaryText),
+                    Text(
+                      loc.supporting_documents,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primaryText),
                     ),
                     const SizedBox(height: 10),
                     _buildDocumentsCard(context, caseItem),
@@ -122,7 +124,9 @@ class CaseProgressScreen extends ConsumerWidget {
   }
 
   Widget _buildHeaderCard(BuildContext context, CaseModel caseItem) {
-    final formattedDate = DateFormat('dd MMM yyyy').format(caseItem.createdAt);
+    final loc = AppLocalizations.of(context)!;
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final formattedDate = DateFormat('dd MMM yyyy', localeCode).format(caseItem.createdAt);
     final statusColor = _getStatusColor(caseItem.status);
     final caseSuffix = caseItem.id.length > 6 
         ? caseItem.id.substring(caseItem.id.length - 6).toUpperCase() 
@@ -178,15 +182,15 @@ class CaseProgressScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            "Posted on $formattedDate",
+            loc.posted_on(formattedDate),
             style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
           ),
           const SizedBox(height: 12),
           const Divider(color: AppColors.border, height: 1),
           const SizedBox(height: 12),
-          const Text(
-            "Description",
-            style: TextStyle(color: AppColors.primaryGold, fontSize: 12, fontWeight: FontWeight.bold),
+          Text(
+            loc.description,
+            style: const TextStyle(color: AppColors.primaryGold, fontSize: 12, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
           Text(
@@ -203,6 +207,7 @@ class CaseProgressScreen extends ConsumerWidget {
   }
 
   Widget _buildProgressTimeline(BuildContext context, CaseModel caseItem) {
+    final loc = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
@@ -262,7 +267,7 @@ class CaseProgressScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          milestone.isCompleted ? "Completed" : "Pending",
+                          milestone.isCompleted ? loc.completed_status : loc.pending_status,
                           style: TextStyle(
                             fontSize: 11,
                             color: milestone.isCompleted ? AppColors.primaryGold : AppColors.mutedText,
@@ -281,6 +286,7 @@ class CaseProgressScreen extends ConsumerWidget {
   }
 
   Widget _buildCounselCard(BuildContext context, CaseModel caseItem, WidgetRef ref) {
+    final loc = AppLocalizations.of(context)!;
     final hasLawyer = caseItem.selectedLawyerId != null || caseItem.assignedLawyerId != null;
     if (!hasLawyer) {
       return Container(
@@ -291,13 +297,13 @@ class CaseProgressScreen extends ConsumerWidget {
           border: Border.all(color: AppColors.border),
         ),
         child: Row(
-          children: const [
-            Icon(Icons.hourglass_empty, color: AppColors.primaryGold),
-            SizedBox(width: 12),
+          children: [
+            const Icon(Icons.hourglass_empty, color: AppColors.primaryGold),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
-                "Awaiting counsel assignment...",
-                style: TextStyle(color: AppColors.mutedText, fontSize: 13),
+                loc.awaiting_counsel_assignment,
+                style: const TextStyle(color: AppColors.mutedText, fontSize: 13),
               ),
             ),
           ],
@@ -305,10 +311,9 @@ class CaseProgressScreen extends ConsumerWidget {
       );
     }
 
-    final lawyerName = caseItem.selectedLawyerName ?? caseItem.assignedLawyerName ?? "Advocate";
+    final lawyerName = caseItem.selectedLawyerName ?? caseItem.assignedLawyerName ?? loc.advocate_fallback;
     final lawyerImage = caseItem.selectedLawyerImage ?? caseItem.assignedLawyerImage ?? "";
     final lawyerSpec = caseItem.selectedLawyerSpecialization ?? caseItem.assignedLawyerSpecialization ?? "";
-    // Must default to false: `?? true` badged unverified lawyers as verified.
     final isVerified = caseItem.selectedLawyerVerified ?? caseItem.assignedLawyerVerified ?? false;
     final rating = caseItem.selectedLawyerRating ?? caseItem.assignedLawyerRating;
 
@@ -354,7 +359,6 @@ class CaseProgressScreen extends ConsumerWidget {
                   style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
                 ),
                 const SizedBox(height: 3),
-                // Hidden entirely when the lawyer has no rating yet.
                 if (rating != null)
                   Row(
                     children: [
@@ -369,7 +373,6 @@ class CaseProgressScreen extends ConsumerWidget {
               ],
             ),
           ),
-          // Action nodes
           IconButton(
             onPressed: () async {
               final otherUserId = caseItem.selectedLawyerId ?? caseItem.assignedLawyerId;
@@ -389,8 +392,9 @@ class CaseProgressScreen extends ConsumerWidget {
   }
 
   Widget _buildNextConsultationCard(BuildContext context, CaseModel caseItem, dynamic appointment) {
+    final localeCode = Localizations.localeOf(context).languageCode;
     final hasAppointment = appointment != null;
-    final formattedDate = hasAppointment ? DateFormat('dd MMM yyyy').format(appointment.date) : "TBD";
+    final formattedDate = hasAppointment ? DateFormat('dd MMM yyyy', localeCode).format(appointment.date) : "TBD";
     final timeSlot = hasAppointment ? appointment.timeSlot : "Consultation Pending";
     final mode = hasAppointment ? appointment.mode : "Chat";
 

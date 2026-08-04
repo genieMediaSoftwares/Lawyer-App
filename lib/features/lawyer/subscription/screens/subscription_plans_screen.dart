@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
 
@@ -11,7 +12,7 @@ class SubscriptionPlansScreen extends StatefulWidget {
 }
 
 class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
-  String _selectedPlan = "Premium"; // Default plan selected
+  String _selectedPlan = "Premium";
 
   final List<Map<String, dynamic>> _plans = [
     {
@@ -43,6 +44,8 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
@@ -51,7 +54,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: const Text("Subscription Plans"),
+        title: Text(loc.subscription_plans),
       ),
       body: SafeArea(
         child: Column(
@@ -63,7 +66,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Choose the plan that's right for your practice",
+                      loc.choose_subscription_plan_subtitle,
                       style: TextStyle(
                         fontSize: 16,
                         color: theme.textTheme.bodySmall?.color,
@@ -76,7 +79,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                 ),
               ),
             ),
-            _buildContinueButton(),
+            _buildContinueButton(loc),
           ],
         ),
       ),
@@ -87,6 +90,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     final isSelected = _selectedPlan == plan["name"];
     final isPopular = plan["popular"] == true;
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
 
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = plan["name"]),
@@ -160,9 +164,9 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                       bottomRight: Radius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    "Most Popular",
-                    style: TextStyle(color: AppColors.onGold, fontSize: 10, fontWeight: FontWeight.bold),
+                  child: Text(
+                    loc.most_popular,
+                    style: const TextStyle(color: AppColors.onGold, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -172,17 +176,16 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     );
   }
 
-  Widget _buildContinueButton() {
+  Widget _buildContinueButton(AppLocalizations loc) {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       color: theme.scaffoldBackgroundColor,
       child: ElevatedButton(
         onPressed: () {
-          // Proceed to lawyer dashboard
           context.go('/lawyer-dashboard');
         },
-        child: const Text("Continue", style: TextStyle(fontWeight: FontWeight.bold)),
+        child: Text(loc.continue_button, style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }

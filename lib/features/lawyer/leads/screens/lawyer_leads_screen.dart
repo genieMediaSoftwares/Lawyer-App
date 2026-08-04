@@ -6,6 +6,7 @@ import '../../../../models/case_model.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 // ─── Design tokens (matching reference image exactly) ───────────────────────
 const _bg = AppColors.primaryBackground;          // pure black background
@@ -154,7 +155,8 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
 
   // ── Actions ───────────────────────────────────────────────────────────────
   Future<void> _accept(CaseModel c) async {
-    final ok = await _confirm('Accept Case?', 'Accept this case request?', 'Accept');
+    final loc = AppLocalizations.of(context)!;
+    final ok = await _confirm(loc.accept_case_dialog_title, loc.accept_case_dialog_body, loc.accept_button);
     if (ok != true || !mounted) return;
     final success = await ref.read(casesProvider.notifier).acceptCaseRequest(c.id);
     if (mounted) {
@@ -166,7 +168,8 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
   }
 
   Future<void> _reject(CaseModel c) async {
-    final ok = await _confirm('Reject Lead?', 'Reject this case lead?', 'Reject');
+    final loc = AppLocalizations.of(context)!;
+    final ok = await _confirm(loc.reject_lead_dialog_title, loc.reject_lead_dialog_body, loc.reject_button);
     if (ok != true || !mounted) return;
     final success = await ref.read(casesProvider.notifier).rejectCaseRequest(c.id);
     if (mounted) {
@@ -178,7 +181,8 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
   }
 
   Future<void> _complete(CaseModel c) async {
-    final ok = await _confirm('Complete Case?', 'Mark this case as completed?', 'Complete');
+    final loc = AppLocalizations.of(context)!;
+    final ok = await _confirm(loc.complete_case_dialog_title, loc.complete_case_dialog_body, loc.complete_button);
     if (ok != true || !mounted) return;
     final success = await ref.read(casesProvider.notifier).markCaseCompleted(c.id);
     if (mounted) {
@@ -205,6 +209,7 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
   }
 
   Future<bool?> _confirm(String title, String body, String action) {
+    final loc = AppLocalizations.of(context)!;
     return showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -215,7 +220,7 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.mutedText)),
+            child: Text(loc.cancel, style: const TextStyle(color: AppColors.mutedText)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -244,14 +249,14 @@ class _TabRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return Container(
       color: _bg,
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
-        // Each _Tab is Expanded, so the two tabs split the row evenly.
         children: [
-          _Tab(label: 'New Leads', count: newCount, active: tab == 0, onTap: () => onTap(0)),
-          _Tab(label: 'Accepted', count: accCount, active: tab == 1, onTap: () => onTap(1)),
+          _Tab(label: loc.new_leads_tab, count: newCount, active: tab == 0, onTap: () => onTap(0)),
+          _Tab(label: loc.accepted_tab, count: accCount, active: tab == 1, onTap: () => onTap(1)),
         ],
       ),
     );
@@ -327,9 +332,6 @@ class _Tab extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Search Row (without Filter button, premium clean look)
-// ─────────────────────────────────────────────────────────────────────────────
 class _SearchFilterRow extends StatelessWidget {
   final TextEditingController ctrl;
   final int tab;
@@ -338,7 +340,8 @@ class _SearchFilterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hints = ['Search new leads...', 'Search accepted...'];
+    final loc = AppLocalizations.of(context)!;
+    final hints = [loc.search_new_leads_hint, loc.search_accepted_hint];
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Container(
@@ -368,16 +371,14 @@ class _SearchFilterRow extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Section Header (without View All action)
-// ─────────────────────────────────────────────────────────────────────────────
 class _SectionHeader extends StatelessWidget {
   final int tab;
   const _SectionHeader({required this.tab});
 
   @override
   Widget build(BuildContext context) {
-    const titles = ['New Leads', 'Accepted'];
+    final loc = AppLocalizations.of(context)!;
+    final titles = [loc.new_leads_tab, loc.accepted_tab];
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: Text(
@@ -419,6 +420,8 @@ class _LeadCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
@@ -529,7 +532,7 @@ class _LeadCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              '$match% Match',
+                              loc.match_percentage(match),
                               style: const TextStyle(
                                 color: _matchGreen,
                                 fontSize: 11,
@@ -577,14 +580,13 @@ class _LeadCard extends StatelessWidget {
                     Expanded(
                       child: _InfoChip(
                         icon: Icons.access_time_rounded,
-                        text: 'Urgency: ${lead.urgency}',
+                        text: loc.urgency_label(lead.urgency),
                       ),
                     ),
                     Expanded(
                       child: _InfoChip(
                         icon: Icons.insert_drive_file_outlined,
-                        text: '${lead.documents.length} '
-                            '${lead.documents.length == 1 ? 'doc' : 'docs'} uploaded',
+                        text: loc.docs_uploaded_count(lead.documents.length),
                       ),
                     ),
                   ],
@@ -593,7 +595,7 @@ class _LeadCard extends StatelessWidget {
 
                 // ── Date line ────────────────────────────────────────────
                 Text(
-                  _dateLine(tab, lead),
+                  _dateLine(context, tab, lead),
                   style: const TextStyle(color: AppColors.disabledText, fontSize: 12),
                 ),
                 const SizedBox(height: 14),
@@ -603,16 +605,16 @@ class _LeadCard extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: _OutlinedBtn(label: 'View Details', onTap: onDetails),
+                        child: _OutlinedBtn(label: loc.view_details, onTap: onDetails),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: _SolidBtn(label: 'Accept Case', onTap: onAccept),
+                        child: _SolidBtn(label: loc.accept_case, onTap: onAccept),
                       ),
                     ],
                   )
                 else
-                  _OutlinedBtn(label: 'View Case', onTap: onDetails, fullWidth: true),
+                  _OutlinedBtn(label: loc.view_case, onTap: onDetails, fullWidth: true),
               ],
             ),
           ),
@@ -661,10 +663,11 @@ class _LeadCard extends StatelessWidget {
     );
   }
 
-  String _dateLine(int tab, CaseModel c) {
+  String _dateLine(BuildContext context, int tab, CaseModel c) {
+    final loc = AppLocalizations.of(context)!;
     final fmt = DateFormat('dd MMM yyyy, hh:mm a');
-    if (tab == 0) return 'Posted on: ${fmt.format(c.createdAt)}';
-    return 'Accepted on: ${fmt.format(c.acceptedAt ?? c.createdAt)}';
+    if (tab == 0) return loc.posted_on(fmt.format(c.createdAt));
+    return loc.accepted_on(fmt.format(c.acceptedAt ?? c.createdAt));
   }
 }
 
@@ -715,17 +718,18 @@ class _OverflowMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return PopupMenuButton<String>(
       padding: EdgeInsets.zero,
       icon: const Icon(Icons.more_vert, color: AppColors.mutedText, size: 20),
       color: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       itemBuilder: (_) => [
-        _menuItem('details', Icons.info_outline, 'View Details', AppColors.primaryText.withValues(alpha: 0.7)),
+        _menuItem('details', Icons.info_outline, loc.view_details, AppColors.primaryText.withValues(alpha: 0.7)),
         if (tab == 0)
-          _menuItem('reject', Icons.close, 'Reject Lead', AppColors.error),
+          _menuItem('reject', Icons.close, loc.reject_lead, AppColors.error),
         if (tab == 1 && status != 'Completed' && status != 'Closed')
-          _menuItem('complete', Icons.check_circle_outline, 'Mark Completed', _matchGreen),
+          _menuItem('complete', Icons.check_circle_outline, loc.mark_completed, _matchGreen),
       ],
       onSelected: (v) {
         if (v == 'details') onDetails();
@@ -824,9 +828,10 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const msgs = [
-      'No new case leads.\nCheck back later!',
-      'No accepted cases yet.',
+    final loc = AppLocalizations.of(context)!;
+    final msgs = [
+      loc.no_new_leads_empty,
+      loc.no_accepted_cases_empty,
     ];
     const icons = [
       Icons.gavel_outlined,
@@ -859,6 +864,7 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -868,7 +874,7 @@ class _ErrorState extends StatelessWidget {
             const Icon(Icons.cloud_off_rounded, color: AppColors.disabledText, size: 60),
             const SizedBox(height: 16),
             Text(
-              'Failed to load leads.',
+              loc.failed_to_load_leads,
               style: TextStyle(color: AppColors.primaryText.withValues(alpha: 0.7), fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 8),
@@ -886,7 +892,7 @@ class _ErrorState extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(loc.retry, style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -907,6 +913,7 @@ class _DetailsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return DraggableScrollableSheet(
       initialChildSize: 0.65,
       minChildSize: 0.4,
@@ -961,7 +968,7 @@ class _DetailsSheet extends StatelessWidget {
                       minimumSize: const Size(0, 44),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text('Close', style: TextStyle(color: _gold)),
+                    child: Text(loc.close_button, style: const TextStyle(color: _gold)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -974,7 +981,7 @@ class _DetailsSheet extends StatelessWidget {
                       minimumSize: const Size(0, 44),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text('Accept', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(loc.accept_button, style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
               ]),

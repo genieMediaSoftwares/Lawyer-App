@@ -99,9 +99,8 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
       _socket.chatUpdates.listen(_onChatUpdated),
       _socket.chatReads.listen(_onChatRead),
       _socket.chatCreated.listen((_) => fetchChats(silent: true)),
-      // Anything that happened while the socket was down was not queued, so
-      // the authoritative list is the only way back to a correct state.
       _socket.resyncRequired.listen((_) => fetchChats(silent: true)),
+      _socket.messages.listen((_) => fetchChats(silent: true)),
     ]);
 
     fetchChats();
@@ -182,7 +181,10 @@ class ChatsNotifier extends StateNotifier<AsyncValue<List<ChatModel>>> {
     if (chatId.isEmpty) return;
 
     final chats = state.valueOrNull;
-    if (chats == null) return;
+    if (chats == null) {
+      fetchChats(silent: true);
+      return;
+    }
 
     if (!chats.any((c) => c.id == chatId)) {
       // First message of a conversation this device has never seen.

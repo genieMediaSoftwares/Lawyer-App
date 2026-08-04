@@ -47,6 +47,10 @@ class RouteNames {
   static const String lawyerDashboard = '/lawyer-dashboard';
   static const String subscriptionPlans = '/subscription-plans';
   static const String lawyerMessages = '/lawyer-messages';
+  static const String lawyerSettings = '/lawyer-settings';
+
+  /// Role-neutral. Reached from both the client and the lawyer Settings screen.
+  static const String languageSelection = '/language-selection';
 
   /// Admin — bottom nav tabs & pushed routes
   static const String adminDashboard = '/admin-dashboard';

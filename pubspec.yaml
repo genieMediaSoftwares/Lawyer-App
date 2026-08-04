@@ -31,6 +31,13 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Supplies MaterialLocalizations/WidgetsLocalizations for every locale the app
+  # offers. MaterialApp only auto-installs DefaultMaterialLocalizations, which
+  # supports English alone, so Telugu and Hindi had no MaterialLocalizations at
+  # all — see the delegate list in app.dart.
+  flutter_localizations:
+    sdk: flutter
+
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.0.10
 
@@ -49,7 +56,9 @@ dependencies:
 
   logger: ^2.6.1
   shared_preferences: ^2.5.5
-  intl: ^0.20.3
+  # Pinned to 0.20.2 by flutter_localizations, which depends on an exact
+  # version. The caret was ^0.20.3, which made the two unresolvable.
+  intl: ^0.20.2
   file_picker: ^11.0.2
   image_picker: ^1.2.3
   socket_io_client: ^3.1.6
@@ -84,6 +93,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../models/lawyer_model.dart';
@@ -65,6 +66,7 @@ class _LawyerConsultationSettingsScreenState extends ConsumerState<LawyerConsult
   }
 
   Future<void> _save(LawyerModel currentLawyer) async {
+    final loc = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
@@ -92,7 +94,7 @@ class _LawyerConsultationSettingsScreenState extends ConsumerState<LawyerConsult
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? "Consultation settings updated successfully!" : "Failed to update settings."),
+          content: Text(success ? loc.consultation_settings_updated_success : loc.consultation_settings_updated_failure),
           backgroundColor: success ? AppColors.success : AppColors.error,
         ),
       );
@@ -107,6 +109,7 @@ class _LawyerConsultationSettingsScreenState extends ConsumerState<LawyerConsult
     final theme = Theme.of(context);
     final userId = ref.watch(authProvider).userId ?? "";
     final lawyerState = ref.watch(lawyerDetailsProvider(userId));
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -118,7 +121,7 @@ class _LawyerConsultationSettingsScreenState extends ConsumerState<LawyerConsult
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          "Consultation Settings",
+          loc.consultation_settings,
           style: TextStyle(
             color: theme.colorScheme.onSurface,
             fontWeight: FontWeight.bold,
@@ -153,7 +156,7 @@ class _LawyerConsultationSettingsScreenState extends ConsumerState<LawyerConsult
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Set up your consultation fees, working hours, and banking details to automate payouts and booking confirmations.",
+                    loc.consultation_settings_subtitle,
                     style: TextStyle(
                       color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? AppColors.mutedText,
                       fontSize: 13,
@@ -165,11 +168,11 @@ class _LawyerConsultationSettingsScreenState extends ConsumerState<LawyerConsult
                   // Consultation Fee
                   _buildTextField(
                     controller: _feeController,
-                    labelText: "Consultation Fee (₹ per slot)",
+                    labelText: loc.consultation_fee_label,
                     keyboardType: TextInputType.number,
                     validator: (val) {
-                      if (val == null || val.trim().isEmpty) return "Consultation fee is required";
-                      if (int.tryParse(val.trim()) == null) return "Enter a valid number";
+                      if (val == null || val.trim().isEmpty) return loc.consultation_fee_required;
+                      if (int.tryParse(val.trim()) == null) return loc.valid_number_required;
                       return null;
                     },
                   ),
@@ -178,30 +181,30 @@ class _LawyerConsultationSettingsScreenState extends ConsumerState<LawyerConsult
                   // Working Hours
                   _buildTextField(
                     controller: _hoursController,
-                    labelText: "Working Hours (e.g. 9:00 AM - 6:00 PM)",
-                    validator: (val) => val == null || val.trim().isEmpty ? "Working hours is required" : null,
+                    labelText: loc.working_hours_label,
+                    validator: (val) => val == null || val.trim().isEmpty ? loc.working_hours_required : null,
                   ),
                   const SizedBox(height: 16),
 
                   // Office Address
                   _buildTextField(
                     controller: _officeController,
-                    labelText: "Office Address / Chamber Location",
-                    validator: (val) => val == null || val.trim().isEmpty ? "Office address is required" : null,
+                    labelText: loc.office_address_label,
+                    validator: (val) => val == null || val.trim().isEmpty ? loc.office_address_required : null,
                   ),
                   const SizedBox(height: 16),
 
                   // UPI ID
                   _buildTextField(
                     controller: _upiController,
-                    labelText: "UPI ID (for direct client payouts)",
-                    validator: (val) => val == null || val.trim().isEmpty ? "UPI ID is required" : null,
+                    labelText: loc.upi_id_label,
+                    validator: (val) => val == null || val.trim().isEmpty ? loc.upi_id_required : null,
                   ),
                   const SizedBox(height: 24),
 
                   // Bank details header
                   Text(
-                    "BANK SETTLEMENT DETAILS",
+                    loc.bank_settlement_header,
                     style: TextStyle(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.bold,
@@ -214,33 +217,33 @@ class _LawyerConsultationSettingsScreenState extends ConsumerState<LawyerConsult
                   // Bank Holder Name
                   _buildTextField(
                     controller: _holderController,
-                    labelText: "Account Holder Name",
-                    validator: (val) => val == null || val.trim().isEmpty ? "Account holder name is required" : null,
+                    labelText: loc.account_holder_label,
+                    validator: (val) => val == null || val.trim().isEmpty ? loc.account_holder_required : null,
                   ),
                   const SizedBox(height: 12),
 
                   // Bank Name
                   _buildTextField(
                     controller: _bankNameController,
-                    labelText: "Bank Name",
-                    validator: (val) => val == null || val.trim().isEmpty ? "Bank name is required" : null,
+                    labelText: loc.bank_name_label,
+                    validator: (val) => val == null || val.trim().isEmpty ? loc.bank_name_required : null,
                   ),
                   const SizedBox(height: 12),
 
                   // Account Number
                   _buildTextField(
                     controller: _accountNoController,
-                    labelText: "Bank Account Number",
+                    labelText: loc.account_number_label,
                     keyboardType: TextInputType.number,
-                    validator: (val) => val == null || val.trim().isEmpty ? "Account number is required" : null,
+                    validator: (val) => val == null || val.trim().isEmpty ? loc.account_number_required : null,
                   ),
                   const SizedBox(height: 12),
 
                   // IFSC Code
                   _buildTextField(
                     controller: _ifscController,
-                    labelText: "IFSC Code",
-                    validator: (val) => val == null || val.trim().isEmpty ? "IFSC Code is required" : null,
+                    labelText: loc.ifsc_code_label,
+                    validator: (val) => val == null || val.trim().isEmpty ? loc.ifsc_code_required : null,
                   ),
                   const SizedBox(height: 36),
 
@@ -266,9 +269,9 @@ class _LawyerConsultationSettingsScreenState extends ConsumerState<LawyerConsult
                                 valueColor: AlwaysStoppedAnimation<Color>(AppColors.onGold),
                               ),
                             )
-                          : const Text(
-                              "Save Changes",
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          : Text(
+                              loc.save_changes,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                             ),
                     ),
                   ),

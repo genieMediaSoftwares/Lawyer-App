@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/config/env.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/profile_provider.dart';
 import '../../../../models/client_profile_model.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
@@ -20,6 +21,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
   bool _isSavingImage = false;
 
   Future<void> _pickAndUploadImage() async {
+    final loc = AppLocalizations.of(context)!;
     try {
       final picker = ImagePicker();
       final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
@@ -36,7 +38,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(success ? "Profile image updated successfully!" : "Failed to upload profile image."),
+            content: Text(success ? loc.profile_image_updated_success : loc.profile_image_updated_failure),
             backgroundColor: success ? AppColors.success : AppColors.error,
           ),
         );
@@ -45,7 +47,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
       setState(() => _isSavingImage = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error selecting image: $e")),
+          SnackBar(content: Text(loc.error_selecting_image(e.toString()))),
         );
       }
     }
@@ -64,6 +66,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(profileProvider);
     final profile = state.profile;
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
@@ -74,9 +77,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.primaryText),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          "My Profile",
-          style: TextStyle(
+        title: Text(
+          loc.my_profile,
+          style: const TextStyle(
             color: AppColors.primaryText,
             fontWeight: FontWeight.bold,
             fontSize: 20,
@@ -154,16 +157,16 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
-                        _buildDetailRow(Icons.person_outline, "Full Name", profile.fullName),
+                        _buildDetailRow(Icons.person_outline, loc.full_name, profile.fullName),
                         const Divider(color: AppColors.border, height: 28),
-                        _buildDetailRow(Icons.email_outlined, "Email Address", profile.email),
+                        _buildDetailRow(Icons.email_outlined, loc.email_address, profile.email),
                         const Divider(color: AppColors.border, height: 28),
-                        _buildDetailRow(Icons.phone_outlined, "Phone Number", profile.mobile),
+                        _buildDetailRow(Icons.phone_outlined, loc.phone_number, profile.mobile),
                         const Divider(color: AppColors.border, height: 28),
                         _buildDetailRow(
                           Icons.location_on_outlined,
-                          "Location",
-                          profile.location.isNotEmpty ? profile.location : "Location not set",
+                          loc.location,
+                          profile.location.isNotEmpty ? profile.location : loc.location_not_set,
                         ),
                       ],
                     ),
@@ -183,9 +186,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        "Edit Profile Details",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      child: Text(
+                        loc.edit_profile_details,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                     ),
                   ),

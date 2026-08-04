@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../providers/calendar_provider.dart';
 import 'calendar_day_cell.dart';
 import '../../../../core/theme/app_colors.dart';
 
-/// Calendar date grid — weekday labels + 7-column date cells.
-/// Matches the reference exactly:
-/// - Weekday row: Sun Mon Tue Wed Thu Fri Sat, grey (#7E8797), w500, 13px
-/// - Date cells use Table layout for perfectly equal 7 columns
-/// - Row height ~48px to match the reference spacing
+/// Calendar date grid — localized weekday labels + 7-column date cells.
 class CalendarGrid extends ConsumerWidget {
   final bool disablePastDates;
   final String? lawyerUserId;
@@ -19,13 +16,23 @@ class CalendarGrid extends ConsumerWidget {
     this.lawyerUserId,
   });
 
-  static const _weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  List<String> _getLocalizedWeekdays(String localeCode) {
+    // 2026-01-04 is a Sunday
+    final baseSunday = DateTime(2026, 1, 4);
+    final formatter = DateFormat.E(localeCode);
+    return List.generate(7, (i) {
+      final day = baseSunday.add(Duration(days: i));
+      return formatter.format(day);
+    });
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final focusedMonth = ref.watch(focusedMonthProvider);
     final selectedDate = ref.watch(selectedDateProvider);
     final appointmentsState = ref.watch(calendarAppointmentsProvider);
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final weekdays = _getLocalizedWeekdays(localeCode);
 
     final year = focusedMonth.year;
     final month = focusedMonth.month;
@@ -39,10 +46,10 @@ class CalendarGrid extends ConsumerWidget {
     // Build list of week rows
     final List<TableRow> rows = [];
 
-    // --- Weekday header row ---
+    // --- Localized Weekday header row ---
     rows.add(
       TableRow(
-        children: _weekdays.map((label) {
+        children: weekdays.map((label) {
           return SizedBox(
             height: 32,
             child: Center(
@@ -61,7 +68,6 @@ class CalendarGrid extends ConsumerWidget {
     );
 
     // --- Date rows ---
-    // Flatten all day slots into a single list: offset blanks + actual days
     final totalSlots = firstWeekdayOffset + daysInMonth;
     final totalRows = (totalSlots / 7).ceil();
 

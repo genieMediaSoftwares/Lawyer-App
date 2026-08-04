@@ -2820,15 +2820,8 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Text(
-                            "Fee: ₹${_selectedLawyerModel!.consultationFee}",
-                            style: const TextStyle(
-                              color: AppColors.primaryGold,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          // The "Fee: ₹…" label was removed; profile
+                          // consultation fees are no longer displayed.
                         ],
                       ),
                     ],
@@ -3257,20 +3250,8 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Text(
-                          "Consultation Fee",
-                          style: TextStyle(color: Colors.grey, fontSize: 9),
-                        ),
-                        Text(
-                          "₹${lawyer.consultationFee}",
-                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
+                    // The "Consultation Fee" column was removed from this
+                    // recommendation card.
                   ],
                 ),
               ],
@@ -3483,7 +3464,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   _buildDetailRow("Languages", lawyer.languages.isEmpty ? 'English' : lawyer.languages.join(", ")),
                   _buildDetailRow("Office Address", lawyer.officeAddress.isNotEmpty ? lawyer.officeAddress : "Office Suite, City Center"),
                   _buildDetailRow("Working Hours", lawyer.workingHours),
-                  _buildDetailRow("Consultation Fee", "₹${lawyer.consultationFee}", valueColor: AppColors.primaryGold, isBoldValue: true),
 
                   const SizedBox(height: 32),
                   SizedBox(

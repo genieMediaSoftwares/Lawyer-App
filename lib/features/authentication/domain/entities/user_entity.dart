@@ -4,6 +4,7 @@ class UserEntity {
   final String email;
   final String mobile;
   final String role;
+  final String? language;
 
   UserEntity({
     required this.id,
@@ -11,5 +12,6 @@ class UserEntity {
     required this.email,
     required this.mobile,
     required this.role,
+    this.language,
   });
 }

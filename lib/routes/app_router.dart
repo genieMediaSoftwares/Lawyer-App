@@ -27,6 +27,8 @@ import '../features/client/appointment_booking/screens/schedule_consultation_scr
 import '../features/client/appointment_booking/screens/calendar_screen.dart';
 import '../features/chat/presentation/screens/chat_screen.dart';
 import '../features/lawyer/dashboard/screens/lawyer_dashboard_screen.dart';
+import '../features/lawyer/profile/screens/lawyer_settings_screen.dart';
+import '../features/lawyer/profile/screens/language_selection_screen.dart';
 import '../features/lawyer/subscription/screens/subscription_plans_screen.dart';
 import '../features/authentication/presentation/signup/signup_screen.dart';
 import '../features/authentication/presentation/login/login_screen.dart';
@@ -143,10 +145,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         RouteNames.changePassword,
         RouteNames.favorites,
         RouteNames.articles,
-        RouteNames.contactSupport,
-        RouteNames.aboutUs,
-        RouteNames.privacyPolicy,
-        RouteNames.termsConditions,
+        // NOTE: contactSupport, aboutUs, privacyPolicy, termsConditions and
+        // languageSelection are deliberately absent. They carry no client data
+        // and the lawyer Settings screen links to the very same pages, so
+        // listing them here bounced a lawyer to their dashboard instead of
+        // opening the page they tapped.
       ];
 
       if (clientRoutes.contains(path) && role == UserRole.lawyer) {
@@ -352,6 +355,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: RouteNames.termsConditions,
         builder: (c, s) => const TermsConditionsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.languageSelection,
+        builder: (c, s) => const LanguageSelectionScreen(),
+      ),
+
+      // Declarative rather than the Navigator.push it used to be: the Settings
+      // rows below it push GoRouter routes, and a GoRouter page pushed from
+      // under an imperatively-pushed screen lands *beneath* it — the tap would
+      // have looked like it did nothing.
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.lawyerSettings,
+        builder: (c, s) => const LawyerSettingsScreen(),
       ),
 
       GoRoute(

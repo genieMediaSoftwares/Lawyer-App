@@ -519,15 +519,16 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     if (participants.isEmpty) {
       return ChatParticipantModel(id: '', fullName: 'Unknown', profileImage: '', role: 'client');
     }
-    for (final p in participants) {
-      if (p.id.isNotEmpty && currentUserId.isNotEmpty && p.id.toLowerCase() != currentUserId.toLowerCase()) {
-        return p;
+    final normalizedCurrentId = currentUserId.trim().toLowerCase();
+    if (normalizedCurrentId.isNotEmpty) {
+      for (final p in participants) {
+        if (p.id.isNotEmpty && p.id.trim().toLowerCase() != normalizedCurrentId) {
+          return p;
+        }
       }
     }
-    for (final p in participants) {
-      if (p.role == 'client') {
-        return p;
-      }
+    if (participants.length > 1) {
+      return participants[1];
     }
     return participants.first;
   }

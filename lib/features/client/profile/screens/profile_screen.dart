@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/config/env.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/profile_provider.dart';
 import '../../../../models/client_profile_model.dart';
@@ -13,11 +14,12 @@ import '../../../../core/widgets/manual_location_field.dart';
 import '../../../../providers/notification_provider.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
+import '../../../../core/widgets/app_confirmation_dialogs.dart';
+import '../../../../core/widgets/settings_widgets.dart';
 
 import 'my_profile_screen.dart';
 import 'personal_information_screen.dart';
 import 'recent_activity_screen.dart';
-import 'support_help_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -31,6 +33,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(profileProvider);
     final unreadCount = ref.watch(notificationsProvider).unreadCount;
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
@@ -38,9 +41,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.primaryBackground,
         elevation: 0,
-        title: const Text(
-          "Profile",
-          style: TextStyle(
+        title: Text(
+          loc.nav_profile,
+          style: const TextStyle(
             color: AppColors.primaryText,
             fontWeight: FontWeight.bold,
             fontSize: 20,
@@ -121,8 +124,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        "Failed to load profile details.",
-                        style: TextStyle(
+                        loc.failed_to_load_profile,
+                        style: const TextStyle(
                           color: AppColors.mutedText,
                           fontSize: 16,
                         ),
@@ -136,7 +139,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           backgroundColor: AppColors.primaryGold,
                           foregroundColor: AppColors.onGold,
                         ),
-                        child: const Text("Retry"),
+                        child: Text(loc.retry),
                       ),
                     ],
                   ),
@@ -148,6 +151,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildProfileContent(ClientProfileModel profile) {
+    final loc = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -163,161 +167,68 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Header for Account Management
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 10),
-            child: Text(
-              "ACCOUNT & PERSONAL DETAILS",
-              style: TextStyle(
-                color: AppColors.mutedText,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
+          // One flat list of account destinations. The previous split into
+          // "ACCOUNT & PROFESSIONAL DETAILS" and "LEGAL DESK & SERVICES" put
+          // Documents and Settings under a heading that described neither, and
+          // the Help Center row duplicated the Support & Legal group that now
+          // lives inside Settings.
+          SettingsCard(
+            children: [
+              SettingsTile(
+                icon: Icons.person_outline,
+                title: loc.my_profile,
+                subtitle: loc.photo_name_contact_subtitle,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const MyProfileScreen(),
+                  ),
+                ),
               ),
-            ),
-          ),
-
-          // 2. Account Details Section
-          //
-          // The background colour lives on the Material, not the Container.
-          // A ListTile paints its own background and ink splash onto the
-          // nearest Material ancestor, so a coloured DecoratedBox in between
-          // hides both — which is exactly what Flutter's
-          // "ListTile background color or ink splashes may be invisible"
-          // assertion was reporting. The Container keeps the border/radius and
-          // clips so the splash respects the rounded corners.
-          Container(
-            width: double.infinity,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border, width: 1),
-            ),
-            child: Material(
-              color: AppColors.surface,
-              child: Column(
-                children: [
-                  _buildMenuRow(
-                    icon: Icons.person_outline,
-                    title: "My Profile",
-                    subtitle: "Photo, name, contact info",
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const MyProfileScreen(),
-                      ),
-                    ),
+              SettingsTile(
+                icon: Icons.contact_mail_outlined,
+                title: loc.personal_info,
+                subtitle: loc.dob_gender_address_subtitle,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const PersonalInformationScreen(),
                   ),
-                  const Divider(color: AppColors.border, height: 1),
-                  _buildMenuRow(
-                    icon: Icons.contact_mail_outlined,
-                    title: "Personal Information",
-                    subtitle: "DOB, gender, address, languages",
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const PersonalInformationScreen(),
-                      ),
-                    ),
-                  ),
-                  const Divider(color: AppColors.border, height: 1),
-                  _buildMenuRow(
-                    icon: Icons.show_chart_outlined,
-                    title: "Recent Activity",
-                    subtitle: "Your timeline of activity logs",
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const RecentActivityScreen(),
-                      ),
-                    ),
-                  ),
-                  const Divider(color: AppColors.border, height: 1),
-                  _buildMenuRow(
-                    icon: Icons.headset_mic_outlined,
-                    title: "Support & Help",
-                    subtitle: "Help center, privacy, terms, support",
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const SupportHelpScreen(),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Header for Operational Workspace
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 10),
-            child: Text(
-              "LEGAL DESK & SERVICES",
-              style: TextStyle(
-                color: AppColors.mutedText,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
+              SettingsTile(
+                icon: Icons.description_outlined,
+                title: loc.documents,
+                subtitle: loc.your_legal_docs_subtitle,
+                onTap: () => context.push(RouteNames.myDocuments),
               ),
-            ),
-          ),
-
-          // 3. Operational Menu Section — same Material-hosts-the-colour
-          // arrangement as the section above, for the same reason.
-          Container(
-            width: double.infinity,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border, width: 1),
-            ),
-            child: Material(
-              color: AppColors.surface,
-              child: Column(
-                children: [
-                  _buildMenuRow(
-                    icon: Icons.description_outlined,
-                    title: "Documents",
-                    subtitle: "Your legal documents",
-                    onTap: () => context.push(RouteNames.myDocuments),
+              SettingsTile(
+                icon: Icons.show_chart_outlined,
+                title: loc.recent_activity,
+                subtitle: loc.timeline_activity_subtitle,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const RecentActivityScreen(),
                   ),
-                  const Divider(color: AppColors.border, height: 1),
-                  _buildMenuRow(
-                    icon: Icons.settings_outlined,
-                    title: "Settings",
-                    subtitle: "Account & app settings",
-                    onTap: () => context.push(RouteNames.settings),
-                  ),
-                ],
+                ),
               ),
-            ),
+              SettingsTile(
+                icon: Icons.settings_outlined,
+                title: loc.settings,
+                subtitle: loc.account_app_settings_subtitle,
+                onTap: () => context.push(RouteNames.settings),
+              ),
+            ],
           ),
           const SizedBox(height: 32),
 
-          // Red Logout Button Card
-          InkWell(
-            onTap: () => ref.read(authProvider.notifier).logout(),
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.error, width: 1.2),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.logout, color: AppColors.error, size: 20),
-                  SizedBox(width: 10),
-                  Text(
-                    "Logout",
-                    style: TextStyle(
-                      color: AppColors.error,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          LogoutButton(
+            label: loc.logout,
+            onTap: () async {
+              // Confirm first. Signing out on a single tap, with no undo, was
+              // easy to trigger by accident on the way to Settings.
+              if (await LogoutDialog.show(context)) {
+                await ref.read(authProvider.notifier).logout();
+              }
+            },
           ),
           const SizedBox(height: 30),
         ],
@@ -326,6 +237,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildMinimalProfileHeader(ClientProfileModel profile) {
+    final loc = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -371,16 +283,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 if (profile.isVerified) ...[
                   const SizedBox(height: 4),
                   Row(
-                    children: const [
-                      Icon(
+                    children: [
+                      const Icon(
                         Icons.verified,
                         color: AppColors.primaryGold,
                         size: 14,
                       ),
-                      SizedBox(width: 6),
+                      const SizedBox(width: 6),
                       Text(
-                        "Verified Client",
-                        style: TextStyle(
+                        loc.verified_client,
+                        style: const TextStyle(
                           color: AppColors.primaryGold,
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
@@ -402,35 +314,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildMenuRow({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: Icon(icon, color: AppColors.primaryGold, size: 24),
-      title: Text(
-        title,
-        style: const TextStyle(
-          color: AppColors.primaryText,
-          fontWeight: FontWeight.bold,
-          fontSize: 15,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
-      ),
-      trailing: const Icon(
-        Icons.chevron_right,
-        color: AppColors.primaryGold,
-        size: 20,
-      ),
-    );
-  }
 }
 
 class EditProfileBottomSheet extends ConsumerStatefulWidget {
@@ -534,6 +417,7 @@ class _EditProfileBottomSheetState
   }
 
   Future<void> _save() async {
+    final loc = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
@@ -563,8 +447,8 @@ class _EditProfileBottomSheetState
         SnackBar(
           content: Text(
             success
-                ? "Personal details saved successfully!"
-                : "Failed to update profile details.",
+                ? loc.personal_details_saved_success
+                : loc.personal_details_saved_failure,
           ),
           backgroundColor: success ? AppColors.success : AppColors.error,
         ),
@@ -574,6 +458,7 @@ class _EditProfileBottomSheetState
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -598,9 +483,9 @@ class _EditProfileBottomSheetState
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    "Edit Personal Information",
-                    style: TextStyle(
+                  Text(
+                    loc.edit_personal_info,
+                    style: const TextStyle(
                       color: AppColors.primaryText,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -617,9 +502,9 @@ class _EditProfileBottomSheetState
               // Full Name
               _buildTextField(
                 controller: _nameController,
-                labelText: "Full Name",
+                labelText: loc.full_name,
                 validator: (val) => val == null || val.trim().isEmpty
-                    ? "Name is required"
+                    ? loc.name_is_required
                     : null,
               ),
               const SizedBox(height: 12),
@@ -632,19 +517,19 @@ class _EditProfileBottomSheetState
                 style: const TextStyle(color: AppColors.primaryText),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
-                    return "Date of Birth is required";
+                    return loc.dob_required;
                   }
                   final parsed = _parseDOB(val);
                   if (parsed == null) {
-                    return "Please select a valid date";
+                    return loc.select_valid_date;
                   }
                   if (parsed.isAfter(DateTime.now())) {
-                    return "Date of Birth cannot be in the future";
+                    return loc.dob_future_error;
                   }
                   return null;
                 },
                 decoration: InputDecoration(
-                  labelText: "Date of Birth",
+                  labelText: loc.date_of_birth,
                   labelStyle: const TextStyle(color: AppColors.mutedText),
                   hintText: "dd/mm/yyyy",
                   hintStyle: const TextStyle(color: AppColors.mutedText),
@@ -691,12 +576,12 @@ class _EditProfileBottomSheetState
                   Icons.arrow_drop_down,
                   color: AppColors.primaryGold,
                 ),
-                hint: const Text(
-                  "Select Gender",
-                  style: TextStyle(color: AppColors.mutedText, fontSize: 14),
+                hint: Text(
+                  loc.select_gender,
+                  style: const TextStyle(color: AppColors.mutedText, fontSize: 14),
                 ),
                 decoration: InputDecoration(
-                  labelText: "Gender",
+                  labelText: loc.gender,
                   labelStyle: const TextStyle(color: AppColors.mutedText),
                   filled: true,
                   fillColor: AppColors.border,
@@ -717,17 +602,17 @@ class _EditProfileBottomSheetState
                     borderSide: const BorderSide(color: AppColors.error),
                   ),
                 ),
-                items: const [
-                  DropdownMenuItem(value: "Male", child: Text("Male")),
-                  DropdownMenuItem(value: "Female", child: Text("Female")),
-                  DropdownMenuItem(value: "Other", child: Text("Other")),
+                items: [
+                  DropdownMenuItem(value: "Male", child: Text(loc.gender_male)),
+                  DropdownMenuItem(value: "Female", child: Text(loc.gender_female)),
+                  DropdownMenuItem(value: "Other", child: Text(loc.gender_other)),
                   DropdownMenuItem(
                     value: "Prefer Not To Say",
-                    child: Text("Prefer Not To Say"),
+                    child: Text(loc.gender_prefer_not_say),
                   ),
                 ],
                 validator: (val) =>
-                    val == null || val.isEmpty ? "Gender is required" : null,
+                    val == null || val.isEmpty ? loc.gender_required : null,
                 onChanged: (val) {
                   if (val != null) {
                     setState(() {
@@ -741,7 +626,7 @@ class _EditProfileBottomSheetState
               // Preferred Languages
               _buildTextField(
                 controller: _languagesController,
-                labelText: "Languages (comma separated)",
+                labelText: loc.languages_comma_separated,
                 validator: (val) => null,
               ),
               const SizedBox(height: 12),
@@ -749,24 +634,17 @@ class _EditProfileBottomSheetState
               // Phone Number
               _buildTextField(
                 controller: _phoneController,
-                labelText: "Phone Number",
+                labelText: loc.phone_number,
                 keyboardType: TextInputType.phone,
                 validator: (val) => val == null || val.trim().isEmpty
-                    ? "Phone number is required"
+                    ? loc.phone_is_required
                     : null,
               ),
               const SizedBox(height: 12),
 
-              // Address / Location — manual free-text entry.
-              //
-              // Was an AbsorbPointer over a read-only field that opened the
-              // autocomplete picker sheet, which meant the user could not type
-              // their address and had to pick a city the places API recognised.
-              // Profile addresses are free-form; autocomplete belongs only on
-              // the Post-a-Case screen.
               ManualLocationField(
                 controller: _locationController,
-                labelText: "Address / Location",
+                labelText: loc.address_location,
               ),
 
               const SizedBox(height: 24),
@@ -795,9 +673,9 @@ class _EditProfileBottomSheetState
                             ),
                           ),
                         )
-                      : const Text(
-                          "Save Changes",
-                          style: TextStyle(
+                      : Text(
+                          loc.save_changes,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),

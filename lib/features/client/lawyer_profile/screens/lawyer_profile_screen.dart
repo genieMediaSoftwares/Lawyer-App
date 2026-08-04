@@ -182,43 +182,10 @@ class LawyerProfileScreen extends ConsumerWidget {
                         const SizedBox(height: 24),
                       ],
 
-                      // Fees
-                      Text(
-                        "Fees",
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.textTheme.titleMedium?.color,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: theme.colorScheme.outline),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "Consultation Fee",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: theme.textTheme.bodyMedium?.color,
-                              ),
-                            ),
-                            Text(
-                              "₹${lawyer.consultationFee}",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      // The "Fees / Consultation Fee" block was removed here.
+                      // Fees are no longer advertised on the lawyer profile;
+                      // the commercial term a client acts on is the per-case
+                      // proposal amount, not a headline rate.
                     ],
                   ),
                 ),
@@ -271,6 +238,11 @@ class LawyerProfileScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 6),
+          // Flexible + ellipsis: a Row hands non-flex children unbounded width,
+          // so a long server-supplied location ("Visakhapatnam, Visakhapatnam
+          // Urban, Andhra Pradesh, India") ran past the card and tripped the
+          // overflow warning. Nothing here caps the string's length, so the
+          // text has to be allowed to shrink.
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -280,13 +252,18 @@ class LawyerProfileScreen extends ConsumerWidget {
                 color: theme.colorScheme.primary,
               ),
               const SizedBox(width: 4),
-              Text(
-                lawyer.location.isNotEmpty
-                    ? lawyer.location
-                    : "Hyderabad, Telangana",
-                style: TextStyle(
-                  color: theme.textTheme.bodySmall?.color,
-                  fontSize: 12,
+              Flexible(
+                child: Text(
+                  lawyer.location.isNotEmpty
+                      ? lawyer.location
+                      : "Hyderabad, Telangana",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: theme.textTheme.bodySmall?.color,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
@@ -304,21 +281,29 @@ class LawyerProfileScreen extends ConsumerWidget {
                   fontSize: 14,
                 ),
               ),
-              Text(
-                " (${lawyer.totalReviews} Reviews)",
-                style: TextStyle(
-                  color: theme.textTheme.bodySmall?.color,
-                  fontSize: 12,
+              Flexible(
+                child: Text(
+                  " (${lawyer.totalReviews} Reviews)",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: theme.textTheme.bodySmall?.color,
+                    fontSize: 12,
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
               Icon(Icons.work, color: theme.colorScheme.primary, size: 16),
               const SizedBox(width: 4),
-              Text(
-                "${lawyer.experience}+ Years Exp.",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+              Flexible(
+                child: Text(
+                  "${lawyer.experience}+ Years Exp.",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],

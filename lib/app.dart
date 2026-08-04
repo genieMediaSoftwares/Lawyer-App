@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/localization/app_localizations.dart';
+import 'core/localization/locale_provider.dart';
 import 'core/network/test_api.dart';
 import 'core/theme/app_theme.dart';
-import 'providers/language_provider.dart';
 import 'routes/app_router.dart';
 
 class MyApp extends ConsumerWidget {
@@ -13,15 +13,15 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    final languageState = ref.watch(languageProvider);
+    final currentLocale = ref.watch(localeProvider);
     TestApi.test();
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'GenieLaw',
 
-      locale: languageState.locale,
+      locale: currentLocale,
       supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: const [AppLocalizations.delegate],
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
 
       theme: customTheme ?? AppTheme.luxuryTheme,
       darkTheme: customTheme ?? AppTheme.luxuryTheme,

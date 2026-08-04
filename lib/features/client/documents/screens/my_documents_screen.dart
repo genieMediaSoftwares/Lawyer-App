@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/document_provider.dart';
 
 class MyDocumentsScreen extends ConsumerStatefulWidget {
@@ -16,6 +17,7 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
   bool _isUploading = false;
 
   Future<void> _pickAndUploadFile() async {
+    final loc = AppLocalizations.of(context)!;
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
@@ -32,19 +34,15 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
               file.name,
               bytes: file.bytes,
             );
-        // Guarded once, before either branch. The mounted check used to sit
-        // only on the success condition, so an upload that succeeded after the
-        // screen closed fell through to the `else` and reported failure — and
-        // that branch touched context with no guard at all.
         if (!mounted) return;
         if (newDoc != null) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Document uploaded successfully!")));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.doc_uploaded_success)));
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Upload failed. Unsupported type or size limit.")));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.doc_upload_failed)));
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Upload error occurred.")));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.doc_upload_error)));
         }
       } finally {
         if (mounted) setState(() => _isUploading = false);
@@ -56,6 +54,7 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
   Widget build(BuildContext context) {
     final documentsState = ref.watch(documentsProvider);
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -64,7 +63,7 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text("My Documents", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(loc.my_documents, style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _isUploading ? null : _pickAndUploadFile,
@@ -72,7 +71,7 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
         icon: _isUploading
             ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
             : const Icon(Icons.cloud_upload, color: AppColors.onGold),
-        label: Text(_isUploading ? "Uploading..." : "Upload Document", style: const TextStyle(color: AppColors.onGold, fontWeight: FontWeight.bold)),
+        label: Text(_isUploading ? loc.uploading : loc.upload_document, style: const TextStyle(color: AppColors.onGold, fontWeight: FontWeight.bold)),
       ),
       body: documentsState.when(
         data: (documents) {
@@ -85,9 +84,9 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
                   children: [
                     Icon(Icons.folder_open_outlined, size: 72, color: theme.colorScheme.outline),
                     const SizedBox(height: 16),
-                    Text("No Documents Found", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color)),
+                    Text(loc.no_documents_found, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color)),
                     const SizedBox(height: 8),
-                    Text("Upload case files, legal letters, or identity credentials for quick access.", textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodySmall?.color)),
+                    Text(loc.upload_documents_tip, textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodySmall?.color)),
                   ],
                 ),
               ),
@@ -145,14 +144,15 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
   }
 
   Future<void> _deleteDocument(String id) async {
+    final loc = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Delete Document"),
-        content: const Text("Are you sure you want to permanently delete this document?"),
+        title: Text(loc.delete_document),
+        content: Text(loc.confirm_delete_document),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Delete", style: TextStyle(color: AppColors.error))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(loc.cancel)),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(loc.delete_account, style: const TextStyle(color: AppColors.error))),
         ],
       ),
     );
@@ -160,7 +160,7 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
     if (confirmed == true) {
       final success = await ref.read(documentsProvider.notifier).deleteDocument(id);
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Document deleted successfully.")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.doc_deleted_success)));
       }
     }
   }

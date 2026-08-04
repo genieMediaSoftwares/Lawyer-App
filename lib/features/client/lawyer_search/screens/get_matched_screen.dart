@@ -779,12 +779,8 @@ class _MatchedLawyerCard extends StatelessWidget {
                       value: "${lawyer.experience}+ yrs",
                       label: "Experience",
                     ),
-                    const SizedBox(width: 10),
-                    _StatBox(
-                      icon: Icons.currency_rupee_rounded,
-                      value: "₹${lawyer.consultationFee}",
-                      label: "Consultation",
-                    ),
+                    // The consultation-fee stat box was removed here; fees are
+                    // no longer shown on lawyer cards.
                     const SizedBox(width: 10),
                     _StatBox(
                       icon: Icons.rate_review_outlined,

@@ -1,22 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/config/env.dart';
+import '../../../../routes/route_names.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../models/lawyer_model.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 import 'lawyer_my_profile_screen.dart';
 import 'lawyer_professional_details_screen.dart';
-import 'lawyer_consultation_settings_screen.dart';
-import 'lawyer_reviews_screen.dart';
 import 'lawyer_documents_screen.dart';
-import 'lawyer_settings_screen.dart';
-import '../../../client/profile/screens/support_help_screen.dart';
 
 import '../../../../providers/review_provider.dart';
 import '../../../../providers/case_provider.dart';
-
 
 class LawyerProfileScreen extends ConsumerStatefulWidget {
   const LawyerProfileScreen({super.key});
@@ -34,6 +32,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
     final lawyerState = ref.watch(lawyerDetailsProvider(userId));
     final casesState = ref.watch(casesProvider);
     final reviewsState = ref.watch(combinedReviewsProvider(userId));
+    final loc = AppLocalizations.of(context)!;
 
     int dynamicCasesHandled = 0;
     int dynamicWinPercentage = 0;
@@ -90,14 +89,14 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                     const Icon(Icons.error_outline, color: AppColors.error, size: 48),
                     const SizedBox(height: 16),
                     Text(
-                      "Failed to load profile details.",
+                      loc.failed_to_load_profile,
                       style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 16),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: () => ref.invalidate(lawyerDetailsProvider(userId)),
-                      child: const Text("Retry"),
+                      child: Text(loc.retry),
                     )
                   ],
                 ),
@@ -123,6 +122,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
   }) {
     final theme = Theme.of(context);
     final completionPct = _calculateCompletion(lawyer);
+    final loc = AppLocalizations.of(context)!;
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -155,7 +155,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 10),
             child: Text(
-              "ACCOUNT & PROFESSIONAL DETAILS",
+              loc.account_professional_details_header,
               style: TextStyle(
                 color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? AppColors.mutedText,
                 fontWeight: FontWeight.bold,
@@ -177,8 +177,8 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
               children: [
                 _buildMenuRow(
                   icon: Icons.person_outline,
-                  title: "My Profile",
-                  subtitle: "Photo, name, location, contacts",
+                  title: loc.my_profile,
+                  subtitle: loc.profile_photo_subtitle,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (context) => const LawyerMyProfileScreen()),
                   ),
@@ -186,84 +186,27 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                 Divider(color: theme.colorScheme.outline, height: 1),
                 _buildMenuRow(
                   icon: Icons.gavel_outlined,
-                  title: "Professional Information",
-                  subtitle: "Specialization, education, Bar Council details",
+                  title: loc.professional_details,
+                  subtitle: loc.professional_info_subtitle,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (context) => const LawyerProfessionalDetailsScreen()),
                   ),
                 ),
                 Divider(color: theme.colorScheme.outline, height: 1),
                 _buildMenuRow(
-                  icon: Icons.currency_rupee_outlined,
-                  title: "Consultation Settings",
-                  subtitle: "Fee, hours, settlement & bank details",
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const LawyerConsultationSettingsScreen()),
-                  ),
-                ),
-                Divider(color: theme.colorScheme.outline, height: 1),
-                _buildMenuRow(
-                  icon: Icons.headset_mic_outlined,
-                  title: "Support & Help",
-                  subtitle: "Help center, privacy, terms, support",
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const SupportHelpScreen()),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Header for Operational Workspace
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 10),
-            child: Text(
-              "LEGAL WORKSPACE & PREFERENCES",
-              style: TextStyle(
-                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? AppColors.mutedText,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                letterSpacing: 0.8,
-              ),
-            ),
-          ),
-
-          // 5. Operational Menu Section
-          Material(
-            color: theme.cardTheme.color ?? theme.colorScheme.surface,
-            clipBehavior: Clip.antiAlias,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: theme.colorScheme.outline, width: 1),
-            ),
-            child: Column(
-              children: [
-                _buildMenuRow(
                   icon: Icons.description_outlined,
-                  title: "My Documents",
-                  subtitle: "Your credentials and case records",
+                  title: loc.my_documents,
+                  subtitle: loc.documents_subtitle,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (context) => const LawyerDocumentsScreen()),
                   ),
                 ),
                 Divider(color: theme.colorScheme.outline, height: 1),
                 _buildMenuRow(
-                  icon: Icons.rate_review_outlined,
-                  title: "Reviews & Feedback",
-                  subtitle: "Client ratings and testimonials",
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const LawyerReviewsScreen()),
-                  ),
-                ),
-                Divider(color: theme.colorScheme.outline, height: 1),
-                _buildMenuRow(
                   icon: Icons.settings_outlined,
-                  title: "Settings",
-                  subtitle: "Notification and system preferences",
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const LawyerSettingsScreen()),
-                  ),
+                  title: loc.settings,
+                  subtitle: loc.settings_subtitle,
+                  onTap: () => context.push(RouteNames.lawyerSettings),
                 ),
               ],
             ),
@@ -288,7 +231,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                   Icon(Icons.logout, color: theme.colorScheme.error, size: 20),
                   const SizedBox(width: 10),
                   Text(
-                    "Logout",
+                    loc.logout,
                     style: TextStyle(
                       color: theme.colorScheme.error,
                       fontWeight: FontWeight.bold,
@@ -307,6 +250,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
 
   Widget _buildMinimalProfileHeader(LawyerModel lawyer) {
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
 
     return Container(
       width: double.infinity,
@@ -339,7 +283,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Adv. ${lawyer.fullName}",
+                  "${loc.advocate_prefix} ${lawyer.fullName}",
                   style: TextStyle(
                     color: theme.textTheme.bodyLarge?.color ?? AppColors.primaryText,
                     fontWeight: FontWeight.bold,
@@ -358,7 +302,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      lawyer.isVerified ? "Verified Advocate" : "Verification Pending",
+                      lawyer.isVerified ? loc.verified_advocate : loc.verification_pending,
                       style: TextStyle(
                         color: lawyer.isVerified ? theme.colorScheme.primary : AppColors.mutedText,
                         fontWeight: FontWeight.w600,
@@ -379,6 +323,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
   Widget _buildCompletionCard(double percentage) {
     final theme = Theme.of(context);
     final isDone = percentage >= 1.0;
+    final loc = AppLocalizations.of(context)!;
 
     return Container(
       width: double.infinity,
@@ -395,7 +340,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Profile Completion",
+                loc.profile_completion,
                 style: TextStyle(
                   color: theme.textTheme.bodyLarge?.color,
                   fontWeight: FontWeight.bold,
@@ -425,8 +370,8 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
           const SizedBox(height: 10),
           Text(
             isDone
-                ? "🎉 Your profile is 100% complete! This increases visibility and builds client trust."
-                : "💡 Tip: Complete your professional and bank settings to receive inquiries and consultation bookings.",
+                ? loc.profile_complete_tip
+                : loc.profile_incomplete_tip,
             style: TextStyle(
               fontSize: 11.5,
               color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
@@ -443,11 +388,12 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
     required int winPercentage,
     required double rating,
   }) {
+    final loc = AppLocalizations.of(context)!;
     return Row(
       children: [
         Expanded(
           child: _buildStatItem(
-            label: "Cases Handled",
+            label: loc.cases_handled,
             value: "$casesHandled",
             icon: Icons.cases_outlined,
           ),
@@ -455,7 +401,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
         const SizedBox(width: 12),
         Expanded(
           child: _buildStatItem(
-            label: "Win Rate",
+            label: loc.win_rate,
             value: "$winPercentage%",
             icon: Icons.trending_up,
           ),
@@ -463,7 +409,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
         const SizedBox(width: 12),
         Expanded(
           child: _buildStatItem(
-            label: "Rating",
+            label: loc.rating,
             value: rating == 0.0 ? "N/A" : "$rating",
             icon: Icons.star,
             iconColor: AppColors.warning,

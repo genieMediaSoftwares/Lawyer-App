@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../models/case_model.dart';
 import '../../../../routes/route_names.dart';
@@ -47,6 +48,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
     final filteredCasesState = ref.watch(filteredCasesProvider);
     final allCasesState = ref.watch(casesProvider);
     final unreadCount = ref.watch(notificationsProvider).unreadCount;
+    final loc = AppLocalizations.of(context)!;
 
     int allCount = 0;
     int progressCount = 0;
@@ -64,9 +66,9 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
       appBar: AppBar(
         backgroundColor: AppColors.primaryBackground,
         elevation: 0,
-        title: const Text(
-          "My Cases",
-          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryText, fontSize: 20),
+        title: Text(
+          loc.my_cases,
+          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryText, fontSize: 20),
         ),
         centerTitle: true,
         leading: Builder(
@@ -119,9 +121,9 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
           indicatorColor: AppColors.primaryGold,
           indicatorWeight: 2.0,
           tabs: [
-            Tab(text: "All Cases ($allCount)"),
-            Tab(text: "In Progress ($progressCount)"),
-            Tab(text: "Closed ($closedCount)"),
+            Tab(text: loc.all_cases_tab_header(allCount)),
+            Tab(text: loc.in_progress_tab_header(progressCount)),
+            Tab(text: loc.closed_tab_header(closedCount)),
           ],
         ),
       ),
@@ -131,16 +133,16 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
             return TabBarView(
               controller: _tabController,
               children: [
-                _buildCaseList(cases, 0, "No cases posted yet."),
+                _buildCaseList(cases, 0, loc.no_cases_posted_empty),
                 _buildCaseList(
                   cases.where((c) => c.status == 'In Progress' || c.status == 'Awaiting Lawyer Acceptance').toList(),
                   1,
-                  "No cases are currently in progress.",
+                  loc.no_cases_in_progress_empty,
                 ),
                 _buildCaseList(
                   cases.where((c) => c.status == 'Closed').toList(),
                   2,
-                  "No completed cases yet.",
+                  loc.no_completed_cases_empty,
                 ),
               ],
             );
@@ -601,8 +603,6 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   }
 
   Widget _buildInProgressDetails(CaseModel caseItem) {
-    final fee = caseItem.selectedLawyerFee ?? caseItem.assignedLawyerFee;
-
     // A court date must never be invented. This previously fell back to the
     // literal string "15 Jul 2026" whenever no hearing was scheduled, which
     // could send a client to court on a date that does not exist — or let them
@@ -646,33 +646,10 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
           ),
         ),
         const SizedBox(height: 12),
+        // The "Consultation Fee" tile that sat beside Next Hearing was removed;
+        // Next Hearing now spans the row on its own.
         Row(
           children: [
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.secondaryBackground,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.surface),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Consultation Fee",
-                      style: TextStyle(color: AppColors.mutedText, fontSize: 9),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      fee != null ? "₹$fee" : "Not set",
-                      style: const TextStyle(color: AppColors.primaryText, fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
             Expanded(
               child: Container(
                 padding: const EdgeInsets.all(10),

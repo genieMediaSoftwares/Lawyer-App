@@ -110,7 +110,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(loc.translate('password_changed_success')),
+              content: Text(loc!.password_changed_success),
               backgroundColor: AppColors.success,
             ),
           );
@@ -145,7 +145,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          loc.translate('change_password'),
+          loc!.change_password,
           style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Outfit'),
         ),
       ),
@@ -159,7 +159,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               children: [
                 // Field 1: Current Password
                 Text(
-                  loc.translate('current_password'),
+                  loc.current_password,
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: theme.textTheme.titleMedium?.color),
                 ),
                 const SizedBox(height: 6),
@@ -180,7 +180,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
                 // Field 2: New Password
                 Text(
-                  loc.translate('new_password'),
+                  loc.new_password,
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: theme.textTheme.titleMedium?.color),
                 ),
                 const SizedBox(height: 6),
@@ -225,15 +225,15 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        loc.translate('password_requirements'),
+                        loc.password_requirements,
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
                       ),
                       const SizedBox(height: 8),
-                      _RuleCheckItem(label: loc.translate('rule_min_chars'), isMet: _hasMinLength),
-                      _RuleCheckItem(label: loc.translate('rule_uppercase'), isMet: _hasUppercase),
-                      _RuleCheckItem(label: loc.translate('rule_lowercase'), isMet: _hasLowercase),
-                      _RuleCheckItem(label: loc.translate('rule_number'), isMet: _hasNumber),
-                      _RuleCheckItem(label: loc.translate('rule_special'), isMet: _hasSpecialChar),
+                      _RuleCheckItem(label: loc.rule_min_chars, isMet: _hasMinLength),
+                      _RuleCheckItem(label: loc.rule_uppercase, isMet: _hasUppercase),
+                      _RuleCheckItem(label: loc.rule_lowercase, isMet: _hasLowercase),
+                      _RuleCheckItem(label: loc.rule_number, isMet: _hasNumber),
+                      _RuleCheckItem(label: loc.rule_special, isMet: _hasSpecialChar),
                       _RuleCheckItem(label: "New password cannot match old password", isMet: _isNewPassDifferent),
                     ],
                   ),
@@ -242,7 +242,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
                 // Field 3: Confirm New Password
                 Text(
-                  loc.translate('confirm_new_password'),
+                  loc.confirm_new_password,
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: theme.textTheme.titleMedium?.color),
                 ),
                 const SizedBox(height: 6),
@@ -262,7 +262,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 if (_confirmPassController.text.isNotEmpty && !_isConfirmMatching) ...[
                   const SizedBox(height: 4),
                   Text(
-                    loc.translate('password_match_error'),
+                    loc.password_match_error,
                     style: const TextStyle(color: AppColors.error, fontSize: 12),
                   ),
                 ],
@@ -305,7 +305,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onGold),
                           )
                         : Text(
-                            loc.translate('save_password'),
+                            loc.save_password,
                             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, fontFamily: 'Outfit'),
                           ),
                   ),

@@ -1,0 +1,507 @@
+{
+  "@@locale": "en",
+  "app_title": "GenieLaw",
+  "@app_title": {
+    "description": "Application title"
+  },
+  "settings": "Settings",
+  "language": "Language",
+  "choose_language": "Choose your preferred language",
+  "change_password": "Change Password",
+  "change_password_subtitle": "Update your account password securely",
+  "delete_account": "Delete Account",
+  "delete_account_subtitle": "Permanently delete your profile and all data",
+  "current_password": "Current Password",
+  "new_password": "New Password",
+  "confirm_new_password": "Confirm New Password",
+  "save_password": "Save New Password",
+  "password_changed_success": "Password changed successfully!",
+  "password_match_error": "Passwords do not match",
+  "password_requirements": "Password Requirements:",
+  "rule_min_chars": "At least 8 characters",
+  "rule_uppercase": "At least 1 uppercase letter (A-Z)",
+  "rule_lowercase": "At least 1 lowercase letter (a-z)",
+  "rule_number": "At least 1 number (0-9)",
+  "rule_special": "At least 1 special character (@#$%^&*)",
+  "delete_account_dialog_title": "Delete Account",
+  "delete_account_dialog_msg": "Are you sure you want to permanently delete your account?\n\nThis action cannot be undone.\n\nDeleting your account will permanently remove your profile, cases, appointments, chats, uploaded documents, AI history, and all associated data.",
+  "cancel": "Cancel",
+  "enter_password_to_confirm": "Enter your current password to confirm deletion:",
+  "account_deleted_success": "Account permanently deleted.",
+  "nav_workspace": "Workspace",
+  "nav_dashboard": "Dashboard",
+  "nav_leads": "Leads",
+  "nav_clients": "Clients",
+  "nav_calendar": "Calendar",
+  "nav_profile": "Profile",
+  "my_profile": "My Profile",
+  "advocate_prefix": "Adv.",
+  "advocate_fallback": "Advocate",
+  "legal_practitioner": "Legal Practitioner",
+  "reviews": "Reviews",
+  "premium_plan": "Premium Plan",
+  "premium_plan_desc": "Unlock priority case matching, AI legal tools, premium visibility, and exclusive professional features.",
+  "view_plan": "View Plan",
+  "todays_overview": "Today's Overview",
+  "new_case_requests": "New Case Requests",
+  "awaiting_response": "Awaiting response",
+  "unread_messages": "Unread Messages",
+  "from_active_clients": "From active clients",
+  "pending_document_reviews": "Pending Document Reviews",
+  "docs_waiting_review": "Docs waiting for review",
+  "pending_client_responses": "Pending Client Responses",
+  "waiting_lawyer_action": "Waiting for lawyer action",
+  "welcome_name": "Welcome, {name}",
+  "@welcome_name": {
+    "description": "Greeting message with name placeholder",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reviews_count": "{count, plural, =0{No reviews} =1{1 review} other{{count} reviews}}",
+  "@reviews_count": {
+    "description": "Pluralized review count",
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "notifications": "Notifications",
+  "mark_all_read": "Mark all as read",
+  "no_notifications": "No notifications found",
+  "filter_all": "All",
+  "filter_unread": "Unread",
+  "active_leads": "Active Leads",
+  "active_clients": "Active Clients",
+  "in_progress_cases": "In Progress",
+  "completed_cases": "Completed",
+  "search_placeholder": "Search...",
+  "save_changes": "Save Changes",
+  "edit_profile": "Edit Profile",
+  "professional_details": "Professional Details",
+  "consultation_settings": "Consultation Settings",
+  "documents": "Documents",
+  "subscription": "Subscription",
+  "logout": "Logout",
+  "confirm_logout": "Are you sure you want to logout?",
+  "confirm": "Confirm",
+  "back": "Back",
+  "error_occurred": "An error occurred",
+  "retry": "Retry",
+  "no_data_available": "No data available",
+  "guest_user": "Guest User",
+  "sign_out": "Sign Out",
+  "my_cases": "My Cases",
+  "advocates": "Advocates",
+  "messages": "Messages",
+  "my_documents": "My Documents",
+  "favorite_lawyers": "Favorite Lawyers",
+  "legal_articles": "Legal Articles",
+  "subscription_plans": "Subscription Plans",
+  "personal_info": "Personal Information",
+  "terms_conditions": "Terms & Conditions",
+  "privacy_policy": "Privacy Policy",
+  "about_us": "About Us",
+  "help_center": "Help Center",
+  "contact_support": "Contact Support",
+  "recent_activity": "Recent Activity",
+  "choose_subscription_plan_subtitle": "Choose the plan that's right for your practice",
+  "most_popular": "Most Popular",
+  "continue_button": "Continue",
+  "new_leads_tab": "New Leads",
+  "accepted_tab": "Accepted",
+  "search_new_leads_hint": "Search new leads...",
+  "search_accepted_hint": "Search accepted...",
+  "accept_case_dialog_title": "Accept Case?",
+  "accept_case_dialog_body": "Accept this case request?",
+  "accept_button": "Accept",
+  "reject_lead_dialog_title": "Reject Lead?",
+  "reject_lead_dialog_body": "Reject this case lead?",
+  "reject_button": "Reject",
+  "complete_case_dialog_title": "Complete Case?",
+  "complete_case_dialog_body": "Mark this case as completed?",
+  "complete_button": "Complete",
+  "view_details": "View Details",
+  "view_case": "View Case",
+  "accept_case": "Accept Case",
+  "reject_lead": "Reject Lead",
+  "mark_completed": "Mark Completed",
+  "failed_to_load_leads": "Failed to load leads.",
+  "no_new_leads_empty": "No new case leads.\nCheck back later!",
+  "no_accepted_cases_empty": "No accepted cases yet.",
+  "posted_on": "Posted on: {date}",
+  "@posted_on": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "accepted_on": "Accepted on: {date}",
+  "@accepted_on": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "urgency_label": "Urgency: {urgency}",
+  "@urgency_label": {
+    "placeholders": {
+      "urgency": {
+        "type": "String"
+      }
+    }
+  },
+  "docs_uploaded_count": "{count, plural, =1{1 doc uploaded} other{{count} docs uploaded}}",
+  "@docs_uploaded_count": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "match_percentage": "{percent}% Match",
+  "@match_percentage": {
+    "placeholders": {
+      "percent": {
+        "type": "num"
+      }
+    }
+  },
+  "close_button": "Close",
+  "failed_to_load_profile": "Failed to load profile details.",
+  "account_professional_details_header": "ACCOUNT & PROFESSIONAL DETAILS",
+  "profile_photo_subtitle": "Photo, name, location, contacts",
+  "professional_info_subtitle": "Specialization, education, Bar Council details",
+  "documents_subtitle": "Your credentials and case records",
+  "settings_subtitle": "Language, calendar, support and legal",
+  "verified_advocate": "Verified Advocate",
+  "verification_pending": "Verification Pending",
+  "profile_completion": "Profile Completion",
+  "profile_complete_tip": "🎉 Your profile is 100% complete! This increases visibility and builds client trust.",
+  "profile_incomplete_tip": "💡 Tip: Complete your professional and bank settings to receive inquiries and consultation bookings.",
+  "cases_handled": "Cases Handled",
+  "win_rate": "Win Rate",
+  "rating": "Rating",
+  "profile_image_updated_success": "Profile image updated successfully!",
+  "profile_image_updated_failure": "Failed to upload profile image.",
+  "error_selecting_image": "Error selecting image: {error}",
+  "@error_selecting_image": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "email_address": "Email Address",
+  "phone_number": "Phone Number",
+  "location": "Location",
+  "location_not_set": "Location not set",
+  "edit_profile_details": "Edit Profile Details",
+  "edit_personal_info": "Edit Personal Information",
+  "full_name": "Full Name",
+  "name_is_required": "Name is required",
+  "phone_is_required": "Phone number is required",
+  "location_is_required": "Location is required",
+  "personal_details_saved_success": "Personal details saved successfully!",
+  "personal_details_saved_failure": "Failed to update profile details.",
+  "professional_details_updated_success": "Professional details updated successfully!",
+  "professional_details_updated_failure": "Failed to update details.",
+  "professional_details_subtitle": "Update your professional details to attract more client consultation bookings.",
+  "specialization_label": "Specialization (e.g. Family Law, Criminal Defense)",
+  "specialization_required": "Specialization is required",
+  "years_experience_label": "Years of Experience",
+  "experience_required": "Experience is required",
+  "valid_number_required": "Please enter a valid number",
+  "education_label": "Education / Qualifications (e.g. LL.B., Harvard Law)",
+  "education_required": "Education is required",
+  "bar_registration_label": "Bar Council Registration Number",
+  "registration_required": "Registration number is required",
+  "bio_label": "About Me / Professional Bio",
+  "bio_required": "Bio summary is required",
+  "consultation_settings_updated_success": "Consultation settings updated successfully!",
+  "consultation_settings_updated_failure": "Failed to update settings.",
+  "consultation_settings_subtitle": "Set up your consultation fees, working hours, and banking details to automate payouts and booking confirmations.",
+  "consultation_fee_label": "Consultation Fee (₹ per slot)",
+  "consultation_fee_required": "Consultation fee is required",
+  "working_hours_label": "Working Hours (e.g. 9:00 AM - 6:00 PM)",
+  "working_hours_required": "Working hours is required",
+  "office_address_label": "Office Address / Chamber Location",
+  "office_address_required": "Office address is required",
+  "upi_id_label": "UPI ID (for direct client payouts)",
+  "upi_id_required": "UPI ID is required",
+  "bank_settlement_header": "BANK SETTLEMENT DETAILS",
+  "account_holder_label": "Account Holder Name",
+  "account_holder_required": "Account holder name is required",
+  "bank_name_label": "Bank Name",
+  "bank_name_required": "Bank name is required",
+  "account_number_label": "Bank Account Number",
+  "account_number_required": "Account number is required",
+  "ifsc_code_label": "IFSC Code",
+  "ifsc_code_required": "IFSC Code is required",
+  "doc_uploaded_success": "Document uploaded successfully!",
+  "doc_upload_failed": "Upload failed. Unsupported type or size limit.",
+  "doc_upload_error": "Upload error occurred.",
+  "uploading": "Uploading...",
+  "upload_document": "Upload Document",
+  "no_documents_found": "No Documents Found",
+  "upload_documents_tip": "Upload credentials, bar registration certificates, or identity verifications.",
+  "delete_document": "Delete Document",
+  "confirm_delete_document": "Are you sure you want to permanently delete this document?",
+  "doc_deleted_success": "Document deleted successfully.",
+  "reviews_and_feedback": "Reviews & Feedback",
+  "based_on_reviews_count": "Based on {count} reviews",
+  "@based_on_reviews_count": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "client_feedbacks_header": "CLIENT FEEDBACKS ({count})",
+  "@client_feedbacks_header": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "no_reviews_yet": "No Reviews Yet",
+  "no_reviews_tip": "Client reviews will appear here once your cases or consultations are resolved.",
+  "photo_name_contact_subtitle": "View and update your profile information.",
+  "dob_gender_address_subtitle": "DOB, gender, address, languages.",
+  "timeline_activity_subtitle": "View your recent actions and account activity.",
+  "support_help_subtitle": "Help center, privacy, terms, support",
+  "legal_desk_header": "LEGAL DESK & SERVICES",
+  "your_legal_docs_subtitle": "View and manage your uploaded documents.",
+  "account_app_settings_subtitle": "Manage your account, language, notifications, privacy, and preferences.",
+  "verified_client": "Verified Client",
+  "date_of_birth": "Date of Birth",
+  "dob_required": "Date of Birth is required",
+  "select_valid_date": "Please select a valid date",
+  "dob_future_error": "Date of Birth cannot be in the future",
+  "select_gender": "Select Gender",
+  "gender": "Gender",
+  "gender_male": "Male",
+  "gender_female": "Female",
+  "gender_other": "Other",
+  "gender_prefer_not_say": "Prefer Not To Say",
+  "gender_required": "Gender is required",
+  "languages_comma_separated": "Languages (comma separated)",
+  "address_location": "Address / Location",
+  "personal_info_updated_success": "Personal information updated successfully!",
+  "personal_info_subtitle": "Verify and update your personal details below to keep your legal records up to date.",
+  "languages_example_hint": "Languages (e.g. English, Hindi, Spanish)",
+  "languages_required": "Languages are required",
+  "no_favorites_added_yet": "No Favorites Added Yet",
+  "no_favorites_tip": "Select the heart icon on any lawyer's profile page to save them here.",
+  "book_button": "Book",
+  "book_now_button": "Book Now",
+  "removed_from_favorites": "Removed from favorite lawyers.",
+  "all_cases_tab_header": "All Cases ({count})",
+  "@all_cases_tab_header": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "in_progress_tab_header": "In Progress ({count})",
+  "@in_progress_tab_header": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "closed_tab_header": "Closed ({count})",
+  "@closed_tab_header": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "no_cases_posted_empty": "No cases posted yet.",
+  "no_cases_in_progress_empty": "No cases are currently in progress.",
+  "no_completed_cases_empty": "No completed cases yet.",
+  "lawyers_responded_header": "Lawyers Responded",
+  "no_proposals_received_empty": "No proposals received yet.",
+  "proposals_received_count": "{count, plural, =1{1 Proposal Received} other{{count} Proposals Received}}",
+  "@proposals_received_count": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "view_profile_button": "View Profile",
+  "consultation_fee_amount": "₹{amount} Consultation Fee",
+  "@consultation_fee_amount": {
+    "placeholders": {
+      "amount": {
+        "type": "num"
+      }
+    }
+  },
+  "case_details_header": "Case Details",
+  "no_case_details_found": "No case details found.",
+  "case_progress_tracker": "Case Progress Tracker",
+  "next_consultation": "Next Consultation",
+  "supporting_documents": "Supporting Documents",
+  "description": "Description",
+  "completed_status": "Completed",
+  "pending_status": "Pending",
+  "awaiting_counsel_assignment": "Awaiting counsel assignment...",
+  "welcome_advocate": "Welcome, Advocate",
+  "workspace_welcome_desc": "Manage client cases, review legal inquiries, respond to consultation requests, and organize your schedule—all from one secure workspace.",
+  "workspace_tools": "Workspace Tools",
+  "new_leads_count": "{count, plural, =1{1 New Lead} other{{count} New Leads}}",
+  "@new_leads_count": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "waiting_for_response": "Waiting for your response",
+  "clients_count": "{count, plural, =1{1 Client} other{{count} Clients}}",
+  "@clients_count": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "accepted_in_progress_closed": "Accepted, In Progress, Closed",
+  "todays_schedule": "Today's Schedule",
+  "no_events_today": "No Events Today",
+  "events_today_count": "{count, plural, =1{1 Event Today} other{{count} Events Today}}",
+  "@events_today_count": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "unread_chats_count": "{count, plural, =1{1 Unread Chat} other{{count} Unread Chats}}",
+  "@unread_chats_count": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "all_caught_up": "You're all caught up",
+  "active_tab": "Active",
+  "in_progress_tab": "In Progress",
+  "completed_tab": "Completed",
+  "category_label": "Category: {category}",
+  "@category_label": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "title_label": "Title: {title}",
+  "@title_label": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "location_label": "Location: {location}",
+  "@location_label": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "court_label": "Court: {court}",
+  "@court_label": {
+    "placeholders": {
+      "court": {
+        "type": "String"
+      }
+    }
+  },
+  "accepted_date_label": "Accepted: {date}",
+  "@accepted_date_label": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "any_court": "Any Court",
+  "accepted_status": "Accepted",
+  "view_client_button": "View Client",
+  "start_case_button": "Start Case",
+  "case_work_started": "Case work started!",
+  "preferences_header": "Preferences",
+  "support_legal_header": "Support & Legal",
+  "account_header": "Account",
+  "google_calendar_title": "Google Calendar",
+  "google_calendar_subtitle": "Sync your appointments with Google Calendar",
+  "google_calendar_connected": "Connected: {email}",
+  "@google_calendar_connected": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "connect_button": "Connect",
+  "disconnect_button": "Disconnect",
+  "contact_support_subtitle": "Reach out to our dedicated support team",
+  "about_us_subtitle": "Who we are and what GenieLaw does",
+  "privacy_policy_subtitle": "How your data is collected and used",
+  "terms_conditions_subtitle": "The agreement governing your use of GenieLaw",
+  "delete_account_permanently": "Delete Account Permanently",
+  "need_assistance_heading": "Need Assistance?",
+  "need_assistance_desc": "If you are experiencing technical issues, account-related problems, have bug reports, or require general assistance, our dedicated support team is ready to help.",
+  "email_support_title": "Email Support",
+  "send_email_button": "Send Email",
+  "response_time_heading": "Response Time",
+  "response_time_desc": "We typically respond within 24–48 business hours.",
+  "app_info_title": "App Information",
+  "app_version_label": "Version: {version}",
+  "@app_version_label": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "build_number_label": "Build: {build}",
+  "@build_number_label": {
+    "placeholders": {
+      "build": {
+        "type": "String"
+      }
+    }
+  },
+  "could_not_launch_email": "Could not open your email application. Please email directly to {email}",
+  "@could_not_launch_email": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "password_required_to_confirm": "Password is required to confirm.",
+  "incorrect_password": "Incorrect password.",
+  "notifications_subtitle": "Manage how and when GenieLaw notifies you",
+  "google_calendar_lawyer_only": "Calendar sync is available to advocates only",
+  "account_header_client": "Account",
+  "google_calendar_disconnected": "Google Calendar disconnected.",
+  "google_calendar_connect_failed": "Could not connect Google Calendar. Please try again.",
+  "enter_valid_email": "Please enter a valid email address."
+}

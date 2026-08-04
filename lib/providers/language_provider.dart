@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-const String _kLanguageKey = 'app_language_code';
+import '../core/localization/locale_provider.dart';
+import '../core/localization/locale_service.dart';
 
 class LanguageState {
   final String languageCode;
@@ -16,36 +15,27 @@ class LanguageState {
 }
 
 class LanguageNotifier extends StateNotifier<LanguageState> {
-  LanguageNotifier() : super(LanguageState(languageCode: 'en')) {
-    _loadLanguage();
+  final Ref _ref;
+  final LocaleService _localeService = LocaleService();
+
+  LanguageNotifier(this._ref) : super(LanguageState(languageCode: 'en')) {
+    _init();
   }
 
-  Future<void> _loadLanguage() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedCode = prefs.getString(_kLanguageKey);
-      if (savedCode != null && ['en', 'te', 'hi'].contains(savedCode)) {
-        state = LanguageState(languageCode: savedCode);
-      }
-    } catch (e) {
-      // fallback to English
-    }
+  Future<void> _init() async {
+    final savedLocale = await _localeService.getSavedLocale();
+    state = LanguageState(languageCode: savedLocale.languageCode);
   }
 
   Future<void> setLanguage(String code) async {
-    if (!['en', 'te', 'hi'].contains(code)) return;
+    if (!_localeService.isSupported(code)) return;
     state = LanguageState(languageCode: code);
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_kLanguageKey, code);
-    } catch (e) {
-      // ignore
-    }
+    await _ref.read(localeProvider.notifier).changeLanguage(Locale(code));
   }
 }
 
 final languageProvider = StateNotifierProvider<LanguageNotifier, LanguageState>(
   (ref) {
-    return LanguageNotifier();
+    return LanguageNotifier(ref);
   },
 );

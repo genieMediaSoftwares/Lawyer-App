@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/document_provider.dart';
 
 class LawyerDocumentsScreen extends ConsumerStatefulWidget {
@@ -16,6 +17,7 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
   bool _isUploading = false;
 
   Future<void> _pickAndUploadFile() async {
+    final loc = AppLocalizations.of(context)!;
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
@@ -32,19 +34,15 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
               file.name,
               bytes: file.bytes,
             );
-        // Guarded once, before either branch. The mounted check used to sit
-        // only on the success condition, so an upload that succeeded after the
-        // screen closed fell through to the `else` and reported failure — and
-        // that branch touched context with no guard at all.
         if (!mounted) return;
         if (newDoc != null) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Document uploaded successfully!")));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.doc_uploaded_success)));
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Upload failed. Unsupported type or size limit.")));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.doc_upload_failed)));
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Upload error occurred.")));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.doc_upload_error)));
         }
       } finally {
         if (mounted) setState(() => _isUploading = false);
@@ -56,6 +54,7 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
   Widget build(BuildContext context) {
     final documentsState = ref.watch(documentsProvider);
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -65,7 +64,7 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          "My Documents",
+          loc.my_documents,
           style: TextStyle(
             color: theme.colorScheme.onSurface,
             fontWeight: FontWeight.bold,
@@ -80,7 +79,7 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
             ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
             : const Icon(Icons.cloud_upload, color: AppColors.onGold),
         label: Text(
-          _isUploading ? "Uploading..." : "Upload Document",
+          _isUploading ? loc.uploading : loc.upload_document,
           style: const TextStyle(color: AppColors.onGold, fontWeight: FontWeight.bold),
         ),
       ),
@@ -96,12 +95,12 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
                     Icon(Icons.folder_open_outlined, size: 72, color: theme.colorScheme.outline),
                     const SizedBox(height: 16),
                     Text(
-                      "No Documents Found",
+                      loc.no_documents_found,
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.titleMedium?.color),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Upload credentials, bar registration certificates, or identity verifications.",
+                      loc.upload_documents_tip,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                     ),
@@ -168,16 +167,17 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
   }
 
   Future<void> _deleteDocument(String id) async {
+    final loc = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Delete Document"),
-        content: const Text("Are you sure you want to permanently delete this document?"),
+        title: Text(loc.delete_document),
+        content: Text(loc.confirm_delete_document),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(loc.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("Delete", style: TextStyle(color: AppColors.error)),
+            child: Text(loc.delete_account, style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -186,7 +186,7 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
     if (confirmed == true) {
       final success = await ref.read(documentsProvider.notifier).deleteDocument(id);
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Document deleted successfully.")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.doc_deleted_success)));
       }
     }
   }

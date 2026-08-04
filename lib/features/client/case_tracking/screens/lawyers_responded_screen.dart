@@ -6,6 +6,7 @@ import '../../../../models/case_model.dart';
 import '../../../../core/config/env.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class LawyersRespondedScreen extends ConsumerWidget {
   final String caseId;
@@ -16,6 +17,7 @@ class LawyersRespondedScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final casesState = ref.watch(casesProvider);
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -24,7 +26,7 @@ class LawyersRespondedScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: const Text("Lawyers Responded"),
+        title: Text(loc.lawyers_responded_header),
       ),
       body: casesState.when(
         data: (cases) {
@@ -40,7 +42,7 @@ class LawyersRespondedScreen extends ConsumerWidget {
               _buildCaseHeaderCard(context, caseItem),
               Expanded(
                 child: proposals.isEmpty
-                    ? const Center(child: Text("No proposals received yet."))
+                    ? Center(child: Text(loc.no_proposals_received_empty))
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: proposals.length,
@@ -66,6 +68,7 @@ class LawyersRespondedScreen extends ConsumerWidget {
 
   Widget _buildCaseHeaderCard(BuildContext context, CaseModel caseItem) {
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       color: theme.colorScheme.surface,
@@ -97,7 +100,7 @@ class LawyersRespondedScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            "${caseItem.proposals.length} Proposals Received",
+            loc.proposals_received_count(caseItem.proposals.length),
             style: TextStyle(
               color: theme.colorScheme.primary,
               fontSize: 13,
@@ -115,6 +118,7 @@ class LawyersRespondedScreen extends ConsumerWidget {
     String caseId,
   ) {
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -170,7 +174,7 @@ class LawyersRespondedScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    "₹${proposal.feeProposal} Consultation Fee",
+                    loc.consultation_fee_amount(proposal.feeProposal),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -201,10 +205,9 @@ class LawyersRespondedScreen extends ConsumerWidget {
                     children: [
                       OutlinedButton(
                         onPressed: () {
-                          // Navigate to lawyer profile page passing lawyer's user ID
                           context.push('/lawyer-profile/${proposal.lawyerId}');
                         },
-                        child: const Text("View Profile"),
+                        child: Text(loc.view_profile_button),
                       ),
                     ],
                   ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/profile_provider.dart';
 import '../../../../core/widgets/manual_location_field.dart';
 
@@ -91,6 +92,7 @@ class _PersonalInformationScreenState
   }
 
   Future<void> _save() async {
+    final loc = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
@@ -121,8 +123,8 @@ class _PersonalInformationScreenState
         SnackBar(
           content: Text(
             success
-                ? "Personal information updated successfully!"
-                : "Failed to update details.",
+                ? loc.personal_info_updated_success
+                : loc.personal_details_saved_failure,
           ),
           backgroundColor: success ? AppColors.success : AppColors.error,
         ),
@@ -137,6 +139,7 @@ class _PersonalInformationScreenState
   Widget build(BuildContext context) {
     final state = ref.watch(profileProvider);
     final profile = state.profile;
+    final loc = AppLocalizations.of(context)!;
 
     if (profile == null) {
       return const Scaffold(
@@ -158,9 +161,9 @@ class _PersonalInformationScreenState
           icon: const Icon(Icons.arrow_back, color: AppColors.primaryText),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          "Personal Information",
-          style: TextStyle(
+        title: Text(
+          loc.personal_info,
+          style: const TextStyle(
             color: AppColors.primaryText,
             fontWeight: FontWeight.bold,
             fontSize: 20,
@@ -174,9 +177,9 @@ class _PersonalInformationScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Verify and update your personal details below to keep your legal records up to date.",
-                style: TextStyle(
+              Text(
+                loc.personal_info_subtitle,
+                style: const TextStyle(
                   color: AppColors.mutedText,
                   fontSize: 13,
                   height: 1.4,
@@ -190,7 +193,7 @@ class _PersonalInformationScreenState
                 child: AbsorbPointer(
                   child: _buildTextField(
                     controller: _dobController,
-                    labelText: "Date of Birth",
+                    labelText: loc.date_of_birth,
                     suffixIcon: const Icon(
                       Icons.calendar_today_outlined,
                       color: AppColors.primaryGold,
@@ -208,9 +211,9 @@ class _PersonalInformationScreenState
               // Preferred Languages
               _buildTextField(
                 controller: _languagesController,
-                labelText: "Languages (e.g. English, Hindi, Spanish)",
+                labelText: loc.languages_example_hint,
                 validator: (val) => val == null || val.trim().isEmpty
-                    ? "Languages are required"
+                    ? loc.languages_required
                     : null,
               ),
               const SizedBox(height: 16),
@@ -218,27 +221,19 @@ class _PersonalInformationScreenState
               // Phone Number
               _buildTextField(
                 controller: _phoneController,
-                labelText: "Phone Number",
+                labelText: loc.phone_number,
                 keyboardType: TextInputType.phone,
                 validator: (val) => val == null || val.trim().isEmpty
-                    ? "Phone number is required"
+                    ? loc.phone_is_required
                     : null,
               ),
               const SizedBox(height: 16),
 
-              // Address / Location — manual free-text entry.
-              //
-              // Previously this was an AbsorbPointer over a read-only field
-              // that opened an autocomplete picker sheet, so the user could not
-              // type their own address at all. Profile addresses are free-form
-              // (flat numbers, building names, landmarks) and must not be
-              // forced through a places API. The autocomplete field is used
-              // only on the Post-a-Case screen.
               ManualLocationField(
                 controller: _locationController,
-                labelText: "Address / Location",
+                labelText: loc.address_location,
                 validator: (val) => val == null || val.trim().isEmpty
-                    ? "Location is required"
+                    ? loc.location_is_required
                     : null,
               ),
               const SizedBox(height: 36),
@@ -267,9 +262,9 @@ class _PersonalInformationScreenState
                             ),
                           ),
                         )
-                      : const Text(
-                          "Save Changes",
-                          style: TextStyle(
+                      : Text(
+                          loc.save_changes,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
@@ -322,12 +317,13 @@ class _PersonalInformationScreenState
   }
 
   Widget _buildGenderDropdown() {
+    final loc = AppLocalizations.of(context)!;
     return DropdownButtonFormField<String>(
       initialValue: _genderController.text.isNotEmpty ? _genderController.text : null,
       dropdownColor: AppColors.surface,
       style: const TextStyle(color: AppColors.primaryText),
       decoration: InputDecoration(
-        labelText: "Gender",
+        labelText: loc.gender,
         labelStyle: const TextStyle(color: AppColors.mutedText, fontSize: 14),
         filled: true,
         fillColor: AppColors.surface,
@@ -340,10 +336,10 @@ class _PersonalInformationScreenState
           borderSide: const BorderSide(color: AppColors.primaryGold),
         ),
       ),
-      items: const [
-        DropdownMenuItem(value: "Male", child: Text("Male")),
-        DropdownMenuItem(value: "Female", child: Text("Female")),
-        DropdownMenuItem(value: "Other", child: Text("Other")),
+      items: [
+        DropdownMenuItem(value: "Male", child: Text(loc.gender_male)),
+        DropdownMenuItem(value: "Female", child: Text(loc.gender_female)),
+        DropdownMenuItem(value: "Other", child: Text(loc.gender_other)),
       ],
       onChanged: (val) {
         if (val != null) {

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../routes/route_names.dart';
 import '../../../../providers/auth_provider.dart' as global_auth;
+import '../../../../core/localization/locale_provider.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -98,6 +99,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             email: response.user.email,
             mobile: response.user.mobile,
           );
+
+      if (response.user.language != null && response.user.language!.isNotEmpty) {
+        await ref.read(localeProvider.notifier).setLocaleFromBackend(response.user.language!);
+      }
 
       if (!mounted) return;
 

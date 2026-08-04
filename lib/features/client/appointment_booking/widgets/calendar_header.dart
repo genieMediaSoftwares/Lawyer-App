@@ -5,10 +5,6 @@ import '../providers/calendar_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 
 /// Calendar month/year header with left/right chevron navigation.
-/// Matches the reference exactly:
-/// - Left chevron flush left
-/// - "May 2025" centered, bold, navy (#0B1F4D), 16px
-/// - Right chevron flush right
 class CalendarHeader extends ConsumerWidget {
   const CalendarHeader({super.key});
 
@@ -17,6 +13,7 @@ class CalendarHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final focusedMonth = ref.watch(focusedMonthProvider);
+    final localeCode = Localizations.localeOf(context).languageCode;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
@@ -38,9 +35,9 @@ class CalendarHeader extends ConsumerWidget {
               child: Icon(Icons.chevron_left, color: _navy, size: 24),
             ),
           ),
-          // Month Year title
+          // Month Year title formatted according to current locale
           Text(
-            DateFormat('MMMM yyyy').format(focusedMonth),
+            DateFormat('MMMM yyyy', localeCode).format(focusedMonth),
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,

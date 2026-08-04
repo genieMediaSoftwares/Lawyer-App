@@ -6,6 +6,7 @@ import '../../../../providers/lawyer_provider.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/review_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class LawyerReviewsScreen extends ConsumerWidget {
   const LawyerReviewsScreen({super.key});
@@ -17,6 +18,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
     final lawyerState = ref.watch(lawyerDetailsProvider(userId));
     final combinedReviewsState = ref.watch(combinedReviewsProvider(userId));
     final casesState = ref.watch(casesProvider);
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -28,7 +30,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          "Reviews & Feedback",
+          loc.reviews_and_feedback,
           style: TextStyle(
             color: theme.colorScheme.onSurface,
             fontWeight: FontWeight.bold,
@@ -100,7 +102,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                "Based on $totalReviewsCount reviews",
+                                loc.based_on_reviews_count(totalReviewsCount),
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
@@ -132,7 +134,7 @@ class LawyerReviewsScreen extends ConsumerWidget {
 
                     // Review List Header
                     Text(
-                      "CLIENT FEEDBACKS ($totalReviewsCount)",
+                      loc.client_feedbacks_header(totalReviewsCount),
                       style: TextStyle(
                         color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? AppColors.mutedText,
                         fontWeight: FontWeight.bold,
@@ -153,12 +155,12 @@ class LawyerReviewsScreen extends ConsumerWidget {
                               Icon(Icons.rate_review_outlined, size: 64, color: theme.colorScheme.outline),
                               const SizedBox(height: 16),
                               Text(
-                                "No Reviews Yet",
+                                loc.no_reviews_yet,
                                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color),
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                "Client reviews will appear here once your cases or consultations are resolved.",
+                                loc.no_reviews_tip,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), fontSize: 13),
                               ),

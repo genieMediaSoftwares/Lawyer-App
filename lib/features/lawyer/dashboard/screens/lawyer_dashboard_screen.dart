@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/env.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -112,18 +113,19 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     final appointmentsState = ref.watch(appointmentsProvider);
     final chatsState = ref.watch(chatsProvider);
     final lawyerState = ref.watch(lawyerDetailsProvider(userId));
+    final loc = AppLocalizations.of(context)!;
     final lawyerName = lawyerState.maybeWhen(
       data: (lawyer) => lawyer.fullName,
-      orElse: () => authState.userName ?? "Advocate",
+      orElse: () => authState.userName ?? loc.advocate_fallback,
     );
 
     // Set page title dynamically
     String screenTitle = "";
-    if (_currentIndex == 1) screenTitle = "Dashboard";
-    if (_currentIndex == 2) screenTitle = "Leads";
-    if (_currentIndex == 3) screenTitle = "Clients";
-    if (_currentIndex == 4) screenTitle = "Calendar";
-    if (_currentIndex == 5) screenTitle = "My Profile";
+    if (_currentIndex == 1) screenTitle = loc.nav_dashboard;
+    if (_currentIndex == 2) screenTitle = loc.nav_leads;
+    if (_currentIndex == 3) screenTitle = loc.nav_clients;
+    if (_currentIndex == 4) screenTitle = loc.nav_calendar;
+    if (_currentIndex == 5) screenTitle = loc.my_profile;
 
     if (_showNotifications) {
       return Scaffold(
@@ -155,14 +157,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             unselectedItemColor: Theme.of(context).bottomNavigationBarTheme.unselectedItemColor,
             selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
             unselectedLabelStyle: const TextStyle(fontSize: 10),
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.space_dashboard_outlined, size: 20), activeIcon: Icon(Icons.space_dashboard, size: 20), label: "Workspace"),
-              BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined, size: 20), activeIcon: Icon(Icons.bar_chart, size: 20), label: "Dashboard"),
-              BottomNavigationBarItem(icon: Icon(Icons.gavel_outlined, size: 20), activeIcon: Icon(Icons.gavel, size: 20), label: "Leads"),
-              BottomNavigationBarItem(icon: Icon(Icons.people_alt_outlined, size: 20), activeIcon: Icon(Icons.people_alt, size: 20), label: "Clients"),
-              BottomNavigationBarItem(icon: Icon(Icons.calendar_month_outlined, size: 20), activeIcon: Icon(Icons.calendar_month, size: 20), label: "Calendar"),
-              BottomNavigationBarItem(icon: Icon(Icons.person_outline, size: 20), activeIcon: Icon(Icons.person, size: 20), label: "Profile"),
-            ],
+            items: _navItems(loc),
           ),
         ),
       );
@@ -266,18 +261,23 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           unselectedItemColor: Theme.of(context).bottomNavigationBarTheme.unselectedItemColor,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
           unselectedLabelStyle: const TextStyle(fontSize: 10),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.space_dashboard_outlined, size: 20), activeIcon: Icon(Icons.space_dashboard, size: 20), label: "Workspace"),
-            BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined, size: 20), activeIcon: Icon(Icons.bar_chart, size: 20), label: "Dashboard"),
-            BottomNavigationBarItem(icon: Icon(Icons.gavel_outlined, size: 20), activeIcon: Icon(Icons.gavel, size: 20), label: "Leads"),
-            BottomNavigationBarItem(icon: Icon(Icons.people_alt_outlined, size: 20), activeIcon: Icon(Icons.people_alt, size: 20), label: "Clients"),
-            BottomNavigationBarItem(icon: Icon(Icons.calendar_month_outlined, size: 20), activeIcon: Icon(Icons.calendar_month, size: 20), label: "Calendar"),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline, size: 20), activeIcon: Icon(Icons.person, size: 20), label: "Profile"),
-          ],
+          items: _navItems(loc),
         ),
       ),
     );
   }
+
+  /// The six shell tabs. Built rather than `const` because the labels are
+  /// localized; the icons and sizes are unchanged. Shared by both
+  /// BottomNavigationBars above so the two lists cannot drift apart.
+  List<BottomNavigationBarItem> _navItems(AppLocalizations loc) => [
+        BottomNavigationBarItem(icon: const Icon(Icons.space_dashboard_outlined, size: 20), activeIcon: const Icon(Icons.space_dashboard, size: 20), label: loc.nav_workspace),
+        BottomNavigationBarItem(icon: const Icon(Icons.bar_chart_outlined, size: 20), activeIcon: const Icon(Icons.bar_chart, size: 20), label: loc.nav_dashboard),
+        BottomNavigationBarItem(icon: const Icon(Icons.gavel_outlined, size: 20), activeIcon: const Icon(Icons.gavel, size: 20), label: loc.nav_leads),
+        BottomNavigationBarItem(icon: const Icon(Icons.people_alt_outlined, size: 20), activeIcon: const Icon(Icons.people_alt, size: 20), label: loc.nav_clients),
+        BottomNavigationBarItem(icon: const Icon(Icons.calendar_month_outlined, size: 20), activeIcon: const Icon(Icons.calendar_month, size: 20), label: loc.nav_calendar),
+        BottomNavigationBarItem(icon: const Icon(Icons.person_outline, size: 20), activeIcon: const Icon(Icons.person, size: 20), label: loc.nav_profile),
+      ];
 
   Widget _buildBody(
     String lawyerName,
@@ -316,6 +316,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     AsyncValue<LawyerModel> lawyerState,
   ) {
 
+    final loc = AppLocalizations.of(context)!;
     final welcomeSection = lawyerState.when(
       data: (lawyer) {
         final name = lawyer.fullName;
@@ -323,7 +324,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Welcome, Advocate",
+              loc.welcome_advocate,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 6),
@@ -337,7 +338,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              "Manage client cases, review legal inquiries, respond to consultation requests, and organize your schedule—all from one secure workspace.",
+              loc.workspace_welcome_desc,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     height: 1.5,
                   ),
@@ -366,12 +367,12 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Welcome, Advocate",
+              loc.welcome_advocate,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 6),
             Text(
-              "Lawyer",
+              loc.advocate_fallback,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -380,7 +381,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              "Manage client cases, review legal inquiries, respond to consultation requests, and organize your schedule—all from one secure workspace.",
+              loc.workspace_welcome_desc,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     height: 1.5,
                   ),
@@ -414,7 +415,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
           // Workspace Tools Title
           Text(
-            "Workspace Tools",
+            loc.workspace_tools,
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
           ),
           const SizedBox(height: 12),
@@ -431,22 +432,22 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               ref.watch(lawyerWorkspaceLeadsProvider).when(
                 data: (leads) => _buildWorkspaceToolCard(
                   icon: Icons.gavel,
-                  title: "${leads.length} New Leads",
-                  subtitle: "Waiting for your response",
+                  title: loc.new_leads_count(leads.length),
+                  subtitle: loc.waiting_for_response,
                   badgeCount: leads.isEmpty ? null : "${leads.length}",
                   onTap: () => setState(() => _currentIndex = 2),
                 ),
                 loading: () => _buildWorkspaceToolCard(
                   icon: Icons.gavel,
-                  title: "Loading Leads...",
-                  subtitle: "Waiting for your response",
+                  title: loc.nav_leads,
+                  subtitle: loc.waiting_for_response,
                   badgeCount: "...",
                   onTap: () => setState(() => _currentIndex = 2),
                 ),
                 error: (e, s) => _buildWorkspaceToolCard(
                   icon: Icons.gavel,
-                  title: "0 New Leads",
-                  subtitle: "Waiting for your response",
+                  title: loc.new_leads_count(0),
+                  subtitle: loc.waiting_for_response,
                   onTap: () => setState(() => _currentIndex = 2),
                 ),
               ),
@@ -457,23 +458,23 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   final totalActive = accepted.length + inProgress.length;
                   return _buildWorkspaceToolCard(
                     icon: Icons.people_alt,
-                    title: "$totalActive Clients",
-                    subtitle: "Accepted, In Progress, Closed",
+                    title: loc.clients_count(totalActive),
+                    subtitle: loc.accepted_in_progress_closed,
                     badgeCount: totalActive == 0 ? null : "$totalActive",
                     onTap: () => setState(() => _currentIndex = 3),
                   );
                 },
                 loading: () => _buildWorkspaceToolCard(
                   icon: Icons.people_alt,
-                  title: "Loading Clients...",
-                  subtitle: "Accepted, In Progress, Closed",
+                  title: loc.nav_clients,
+                  subtitle: loc.accepted_in_progress_closed,
                   badgeCount: "...",
                   onTap: () => setState(() => _currentIndex = 3),
                 ),
                 error: (e, s) => _buildWorkspaceToolCard(
                   icon: Icons.people_alt,
-                  title: "0 Clients",
-                  subtitle: "Accepted, In Progress, Closed",
+                  title: loc.clients_count(0),
+                  subtitle: loc.accepted_in_progress_closed,
                   onTap: () => setState(() => _currentIndex = 3),
                 ),
               ),
@@ -482,23 +483,23 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                   final count = events.length;
                   return _buildWorkspaceToolCard(
                     icon: Icons.calendar_month,
-                    title: "Today's Schedule",
-                    subtitle: count > 0 ? "$count Events Today" : "No Events Today",
+                    title: loc.todays_schedule,
+                    subtitle: count > 0 ? loc.events_today_count(count) : loc.no_events_today,
                     badgeCount: count == 0 ? null : "$count",
                     onTap: () => _showTodaysScheduleBottomSheet(context),
                   );
                 },
                 loading: () => _buildWorkspaceToolCard(
                   icon: Icons.calendar_month,
-                  title: "Today's Schedule",
-                  subtitle: "Loading events...",
+                  title: loc.todays_schedule,
+                  subtitle: loc.no_events_today,
                   badgeCount: "...",
                   onTap: () => _showTodaysScheduleBottomSheet(context),
                 ),
                 error: (e, s) => _buildWorkspaceToolCard(
                   icon: Icons.calendar_month,
-                  title: "Today's Schedule",
-                  subtitle: "No Events Today",
+                  title: loc.todays_schedule,
+                  subtitle: loc.no_events_today,
                   onTap: () => _showTodaysScheduleBottomSheet(context),
                 ),
               ),
@@ -506,16 +507,16 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 data: (unreadCount) {
                   return _buildWorkspaceToolCard(
                     icon: Icons.chat,
-                    title: "Messages",
-                    subtitle: unreadCount > 0 ? "$unreadCount Unread Chats" : "You're all caught up",
+                    title: loc.messages,
+                    subtitle: unreadCount > 0 ? loc.unread_chats_count(unreadCount) : loc.all_caught_up,
                     badgeCount: unreadCount == 0 ? null : "$unreadCount",
                     onTap: () => context.push(RouteNames.lawyerMessages),
                   );
                 },
                 loading: () => _buildWorkspaceToolCard(
                   icon: Icons.chat,
-                  title: "Messages",
-                  subtitle: "Checking messages...",
+                  title: loc.messages,
+                  subtitle: loc.messages,
                   badgeCount: "...",
                   onTap: () => context.push(RouteNames.lawyerMessages),
                 ),
@@ -655,6 +656,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     AsyncValue<LawyerModel> lawyerState,
   ) {
     final authState = ref.read(authProvider);
+    final loc = AppLocalizations.of(context)!;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -687,7 +689,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       Row(
                         children: [
                           Text(
-                            "Adv. $lawyerName",
+                            "${loc.advocate_prefix} $lawyerName",
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
                           ),
                           const SizedBox(width: 4),
@@ -701,7 +703,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                         children: [
                           const Icon(Icons.star, color: AppColors.primaryGold, size: 14),
                           const SizedBox(width: 2),
-                          Text("${lawyer.rating} (${lawyer.totalReviews} Reviews)", style: const TextStyle(color: AppColors.secondaryText, fontSize: 11)),
+                          Text("${lawyer.rating} (${lawyer.totalReviews} ${loc.reviews})", style: const TextStyle(color: AppColors.secondaryText, fontSize: 11)),
                         ],
                       ),
                     ],
@@ -730,8 +732,8 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Adv. $lawyerName", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface)),
-                    const Text("Legal Practitioner", style: TextStyle(color: AppColors.secondaryText, fontSize: 12)),
+                    Text("${loc.advocate_prefix} $lawyerName", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface)),
+                    Text(loc.legal_practitioner, style: const TextStyle(color: AppColors.secondaryText, fontSize: 12)),
                   ],
                 )
               ],
@@ -765,7 +767,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           const Icon(Icons.star, color: AppColors.primaryGold, size: 16),
                           const SizedBox(width: 6),
                           Text(
-                            "Premium Plan",
+                            loc.premium_plan,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -776,7 +778,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "Unlock priority case matching, AI legal tools, premium visibility, and exclusive professional features.",
+                        loc.premium_plan_desc,
                         style: const TextStyle(
                           color: AppColors.secondaryText,
                           fontSize: 11,
@@ -796,7 +798,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     minimumSize: const Size(90, 36),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                   ),
-                  child: const Text("View Plan", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  child: Text(loc.view_plan, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -805,7 +807,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
 
           // Today's Overview
           Text(
-            "Today's Overview",
+            loc.todays_overview,
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
           ),
           const SizedBox(height: 12),
@@ -820,29 +822,29 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
               children: [
                 _buildOverviewRow(
                   icon: Icons.gavel_outlined,
-                  title: "New Case Requests",
-                  subtitle: "Awaiting response",
+                  title: loc.new_case_requests,
+                  subtitle: loc.awaiting_response,
                   provider: newCaseRequestsCountProvider,
                 ),
                 Divider(height: 1, indent: 50, endIndent: 16, color: AppColors.primaryText.withValues(alpha: 0.1)),
                 _buildOverviewRow(
                   icon: Icons.chat_bubble_outline,
-                  title: "Unread Messages",
-                  subtitle: "From active clients",
+                  title: loc.unread_messages,
+                  subtitle: loc.from_active_clients,
                   provider: unreadMessagesCountProvider,
                 ),
                 Divider(height: 1, indent: 50, endIndent: 16, color: AppColors.primaryText.withValues(alpha: 0.1)),
                 _buildOverviewRow(
                   icon: Icons.description_outlined,
-                  title: "Pending Document Reviews",
-                  subtitle: "Docs waiting for review",
+                  title: loc.pending_document_reviews,
+                  subtitle: loc.docs_waiting_review,
                   provider: pendingDocumentReviewsCountProvider,
                 ),
                 Divider(height: 1, indent: 50, endIndent: 16, color: AppColors.primaryText.withValues(alpha: 0.1)),
                 _buildOverviewRow(
                   icon: Icons.notifications_none_outlined,
-                  title: "Pending Client Responses",
-                  subtitle: "Waiting for lawyer action",
+                  title: loc.pending_client_responses,
+                  subtitle: loc.waiting_lawyer_action,
                   provider: pendingClientResponsesCountProvider,
                 ),
               ],
@@ -1241,21 +1243,22 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
         final inProgressCount = inProgressCasesList.length;
         final completedCount = completedCasesList.length;
 
-        return Column(
-          children: [
-            // Sub-tabs row
-            Container(
-              color: Theme.of(context).cardColor,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildClientsSubTab(0, "Active", "$activeCount"),
-                  _buildClientsSubTab(1, "In Progress", "$inProgressCount"),
-                  _buildClientsSubTab(2, "Completed", "$completedCount"),
-                ],
-              ),
-            ),
+            final loc = AppLocalizations.of(context)!;
+            return Column(
+              children: [
+                // Sub-tabs row
+                Container(
+                  color: Theme.of(context).cardColor,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildClientsSubTab(0, loc.active_tab, "$activeCount"),
+                      _buildClientsSubTab(1, loc.in_progress_tab, "$inProgressCount"),
+                      _buildClientsSubTab(2, loc.completed_tab, "$completedCount"),
+                    ],
+                  ),
+                ),
             const Divider(height: 1),
 
             Expanded(
@@ -1278,6 +1281,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     List<CaseModel> inProgressCases,
     List<CaseModel> completedCases,
   ) {
+    final loc = AppLocalizations.of(context)!;
     if (_selectedClientsTab == 0) {
       if (activeCases.isEmpty) {
         return const Center(
@@ -1346,7 +1350,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(color: AppColors.info.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
-                        child: const Text("Accepted", style: TextStyle(color: AppColors.info, fontSize: 10, fontWeight: FontWeight.bold)),
+                        child: Text(loc.accepted_status, style: const TextStyle(color: AppColors.info, fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -1355,7 +1359,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     children: [
                       const Icon(Icons.category_outlined, size: 14, color: AppColors.secondaryText),
                       const SizedBox(width: 6),
-                      Text("Category: ${clientCase.category}", style: const TextStyle(fontSize: 12)),
+                      Text(loc.category_label(clientCase.category), style: const TextStyle(fontSize: 12)),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -1364,7 +1368,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       const Icon(Icons.title_outlined, size: 14, color: AppColors.secondaryText),
                       const SizedBox(width: 6),
                       Expanded(
-                        child: Text("Title: ${clientCase.title}", style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
+                        child: Text(loc.title_label(clientCase.title), style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
                       ),
                     ],
                   ),
@@ -1374,7 +1378,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       const Icon(Icons.location_on_outlined, size: 14, color: AppColors.secondaryText),
                       const SizedBox(width: 6),
                       Expanded(
-                        child: Text("Location: ${clientCase.location}", style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
+                        child: Text(loc.location_label(clientCase.location), style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
                       ),
                     ],
                   ),
@@ -1383,7 +1387,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     children: [
                       const Icon(Icons.gavel_outlined, size: 14, color: AppColors.secondaryText),
                       const SizedBox(width: 6),
-                      Text("Court: ${clientCase.preferredCourt?.isNotEmpty == true ? clientCase.preferredCourt! : 'Any Court'}", style: const TextStyle(fontSize: 12)),
+                      Text(loc.court_label(clientCase.preferredCourt?.isNotEmpty == true ? clientCase.preferredCourt! : loc.any_court), style: const TextStyle(fontSize: 12)),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -1391,7 +1395,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     children: [
                       const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.secondaryText),
                       const SizedBox(width: 6),
-                      Text("Accepted: ${clientCase.acceptedAt != null ? DateFormat('dd MMM yyyy, hh:mm a').format(clientCase.acceptedAt!) : DateFormat('dd MMM yyyy, hh:mm a').format(clientCase.createdAt)}", style: const TextStyle(fontSize: 12)),
+                      Text(loc.accepted_date_label(clientCase.acceptedAt != null ? DateFormat('dd MMM yyyy, hh:mm a', Localizations.localeOf(context).languageCode).format(clientCase.acceptedAt!) : DateFormat('dd MMM yyyy, hh:mm a', Localizations.localeOf(context).languageCode).format(clientCase.createdAt)), style: const TextStyle(fontSize: 12)),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -1405,7 +1409,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                             side: const BorderSide(color: AppColors.primaryGold),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                          child: const Text("View Client", style: TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold, fontSize: 11)),
+                          child: Text(loc.view_client_button, style: const TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold, fontSize: 11)),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -1415,7 +1419,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                             final success = await ref.read(casesProvider.notifier).startCase(clientCase.id);
                             if (success && context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Case work started!")),
+                                SnackBar(content: Text(loc.case_work_started)),
                               );
                             }
                           },
@@ -1425,7 +1429,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                             minimumSize: const Size(0, 36),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                          child: const Text("Start Case", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                          child: Text(loc.start_case_button, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                         ),
                       ),
                     ],
@@ -1824,8 +1828,10 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
     // Build grid rows
     final List<TableRow> gridRows = [];
 
-    // Weekdays header
-    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    // Localized Weekdays header
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final baseSunday = DateTime(2026, 1, 4);
+    final weekdays = List.generate(7, (i) => DateFormat.E(localeCode).format(baseSunday.add(Duration(days: i))));
     gridRows.add(
       TableRow(
         children: weekdays.map((label) {
@@ -1977,7 +1983,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                       ),
                     ),
                     Text(
-                      DateFormat('MMMM yyyy').format(_focusedCalendarMonth),
+                      DateFormat('MMMM yyyy', localeCode).format(_focusedCalendarMonth),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

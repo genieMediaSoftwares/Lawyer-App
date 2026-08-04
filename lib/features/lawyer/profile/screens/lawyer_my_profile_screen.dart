@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/config/env.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../core/widgets/manual_location_field.dart';
 
@@ -18,6 +19,7 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
   bool _isSavingImage = false;
 
   Future<void> _pickAndUploadImage() async {
+    final loc = AppLocalizations.of(context)!;
     try {
       final picker = ImagePicker();
       final image = await picker.pickImage(
@@ -30,8 +32,6 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
 
       setState(() => _isSavingImage = true);
 
-      // AuthNotifier fans the change out to every cache keyed by this user,
-      // so nothing needs invalidating from here.
       final success = await ref
           .read(authProvider.notifier)
           .updateProfileImage(bytes, image.name);
@@ -43,8 +43,8 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
           SnackBar(
             content: Text(
               success
-                  ? "Profile image updated successfully!"
-                  : "Failed to upload profile image.",
+                  ? loc.profile_image_updated_success
+                  : loc.profile_image_updated_failure,
             ),
             backgroundColor: success ? AppColors.success : AppColors.error,
           ),
@@ -55,7 +55,7 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("Error selecting image: $e")));
+        ).showSnackBar(SnackBar(content: Text(loc.error_selecting_image(e.toString()))));
       }
     }
   }
@@ -73,6 +73,7 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -84,7 +85,7 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          "My Profile",
+          loc.my_profile,
           style: TextStyle(
             color: theme.colorScheme.onSurface,
             fontWeight: FontWeight.bold,
@@ -179,31 +180,31 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
                   _buildDetailRow(
                     context,
                     Icons.person_outline,
-                    "Full Name",
+                    loc.full_name,
                     auth.userName ?? "",
                   ),
                   Divider(color: theme.colorScheme.outline, height: 28),
                   _buildDetailRow(
                     context,
                     Icons.email_outlined,
-                    "Email Address",
+                    loc.email_address,
                     auth.userEmail ?? "",
                   ),
                   Divider(color: theme.colorScheme.outline, height: 28),
                   _buildDetailRow(
                     context,
                     Icons.phone_outlined,
-                    "Phone Number",
+                    loc.phone_number,
                     auth.userMobile ?? "",
                   ),
                   Divider(color: theme.colorScheme.outline, height: 28),
                   _buildDetailRow(
                     context,
                     Icons.location_on_outlined,
-                    "Location",
+                    loc.location,
                     auth.userLocation != null && auth.userLocation!.isNotEmpty
                         ? auth.userLocation!
-                        : "Location not set",
+                        : loc.location_not_set,
                   ),
                 ],
               ),
@@ -223,9 +224,9 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  "Edit Profile Details",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                child: Text(
+                  loc.edit_profile_details,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),
             ),
@@ -312,6 +313,7 @@ class _LawyerEditPersonalBottomSheetState
   }
 
   Future<void> _save() async {
+    final loc = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
@@ -332,8 +334,8 @@ class _LawyerEditPersonalBottomSheetState
         SnackBar(
           content: Text(
             success
-                ? "Personal details saved successfully!"
-                : "Failed to update profile details.",
+                ? loc.personal_details_saved_success
+                : loc.personal_details_saved_failure,
           ),
           backgroundColor: success ? AppColors.success : AppColors.error,
         ),
@@ -344,6 +346,7 @@ class _LawyerEditPersonalBottomSheetState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
 
     return Container(
       decoration: BoxDecoration(
@@ -371,7 +374,7 @@ class _LawyerEditPersonalBottomSheetState
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Edit Personal Information",
+                    loc.edit_personal_info,
                     style: TextStyle(
                       color:
                           theme.textTheme.titleLarge?.color ??
@@ -391,9 +394,9 @@ class _LawyerEditPersonalBottomSheetState
               // Full Name
               _buildTextField(
                 controller: _nameController,
-                labelText: "Full Name",
+                labelText: loc.full_name,
                 validator: (val) => val == null || val.trim().isEmpty
-                    ? "Name is required"
+                    ? loc.name_is_required
                     : null,
               ),
               const SizedBox(height: 12),
@@ -401,25 +404,19 @@ class _LawyerEditPersonalBottomSheetState
               // Phone Number
               _buildTextField(
                 controller: _phoneController,
-                labelText: "Phone Number",
+                labelText: loc.phone_number,
                 keyboardType: TextInputType.phone,
                 validator: (val) => val == null || val.trim().isEmpty
-                    ? "Phone number is required"
+                    ? loc.phone_is_required
                     : null,
               ),
               const SizedBox(height: 12),
 
-              // Location — manual free-text entry.
-              //
-              // Was an AbsorbPointer over a read-only field that opened the
-              // autocomplete picker sheet. A lawyer's office address is
-              // free-form (chamber number, court complex, building) and should
-              // not be constrained to what a places API can match.
               ManualLocationField(
                 controller: _locationController,
-                labelText: "Location",
+                labelText: loc.location,
                 validator: (val) => val == null || val.trim().isEmpty
-                    ? "Location is required"
+                    ? loc.location_is_required
                     : null,
               ),
 
@@ -449,9 +446,9 @@ class _LawyerEditPersonalBottomSheetState
                             ),
                           ),
                         )
-                      : const Text(
-                          "Save Changes",
-                          style: TextStyle(
+                      : Text(
+                          loc.save_changes,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),

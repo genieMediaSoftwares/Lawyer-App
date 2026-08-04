@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../models/lawyer_model.dart';
@@ -53,6 +54,7 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
   }
 
   Future<void> _save(LawyerModel currentLawyer) async {
+    final loc = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
@@ -75,7 +77,7 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? "Professional details updated successfully!" : "Failed to update details."),
+          content: Text(success ? loc.professional_details_updated_success : loc.professional_details_updated_failure),
           backgroundColor: success ? AppColors.success : AppColors.error,
         ),
       );
@@ -90,6 +92,7 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
     final theme = Theme.of(context);
     final userId = ref.watch(authProvider).userId ?? "";
     final lawyerState = ref.watch(lawyerDetailsProvider(userId));
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -101,7 +104,7 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          "Professional Details",
+          loc.professional_details,
           style: TextStyle(
             color: theme.colorScheme.onSurface,
             fontWeight: FontWeight.bold,
@@ -130,7 +133,7 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Update your professional details to attract more client consultation bookings.",
+                    loc.professional_details_subtitle,
                     style: TextStyle(
                       color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? AppColors.mutedText,
                       fontSize: 13,
@@ -142,22 +145,22 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
                   // Specialization
                   _buildTextField(
                     controller: _specController,
-                    labelText: "Specialization (e.g. Family Law, Criminal Defense)",
-                    validator: (val) => val == null || val.trim().isEmpty ? "Specialization is required" : null,
+                    labelText: loc.specialization_label,
+                    validator: (val) => val == null || val.trim().isEmpty ? loc.specialization_required : null,
                   ),
                   const SizedBox(height: 16),
 
                   // Years of Experience
                   _buildTextField(
                     controller: _expController,
-                    labelText: "Years of Experience",
+                    labelText: loc.years_experience_label,
                     keyboardType: TextInputType.number,
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
-                        return "Experience is required";
+                        return loc.experience_required;
                       }
                       if (int.tryParse(val.trim()) == null) {
-                        return "Please enter a valid number";
+                        return loc.valid_number_required;
                       }
                       return null;
                     },
@@ -167,25 +170,25 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
                   // Education
                   _buildTextField(
                     controller: _eduController,
-                    labelText: "Education / Qualifications (e.g. LL.B., Harvard Law)",
-                    validator: (val) => val == null || val.trim().isEmpty ? "Education is required" : null,
+                    labelText: loc.education_label,
+                    validator: (val) => val == null || val.trim().isEmpty ? loc.education_required : null,
                   ),
                   const SizedBox(height: 16),
 
                   // Bar Council Registration
                   _buildTextField(
                     controller: _barController,
-                    labelText: "Bar Council Registration Number",
-                    validator: (val) => val == null || val.trim().isEmpty ? "Registration number is required" : null,
+                    labelText: loc.bar_registration_label,
+                    validator: (val) => val == null || val.trim().isEmpty ? loc.registration_required : null,
                   ),
                   const SizedBox(height: 16),
 
                   // Bio / Professional Summary
                   _buildTextField(
                     controller: _bioController,
-                    labelText: "About Me / Professional Bio",
+                    labelText: loc.bio_label,
                     maxLines: 4,
-                    validator: (val) => val == null || val.trim().isEmpty ? "Bio summary is required" : null,
+                    validator: (val) => val == null || val.trim().isEmpty ? loc.bio_required : null,
                   ),
                   const SizedBox(height: 36),
 
@@ -211,9 +214,9 @@ class _LawyerProfessionalDetailsScreenState extends ConsumerState<LawyerProfessi
                                 valueColor: AlwaysStoppedAnimation<Color>(AppColors.onGold),
                               ),
                             )
-                          : const Text(
-                              "Save Changes",
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          : Text(
+                              loc.save_changes,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                             ),
                     ),
                   ),
