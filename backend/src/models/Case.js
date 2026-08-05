@@ -59,6 +59,13 @@ const caseSchema = new mongoose.Schema(
       default: 0.0,
     },
 
+    /// Google Places id for the selected city, kept so a stored location can
+    /// be re-resolved later (coordinates, canonical name) without asking the
+    /// client to pick it again. Empty on cases filed before this was captured.
+    locationPlaceId: {
+      type: String,
+      default: "",
+    },
     locationLongitude: {
       type: Number,
       default: 0.0,
@@ -242,6 +249,7 @@ const caseSchema = new mongoose.Schema(
 caseSchema.index({ client: 1, status: 1, createdAt: -1 });
 caseSchema.index({ assignedLawyer: 1, status: 1 });
 caseSchema.index({ category: 1, locationCity: 1 });
+caseSchema.index({ locationState: 1 });
 caseSchema.index({ createdAt: -1 });
 caseSchema.index({ updatedAt: -1 });
 

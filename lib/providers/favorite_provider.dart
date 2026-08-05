@@ -48,37 +48,67 @@ class FavoriteNotifier extends StateNotifier<AsyncValue<List<FavoriteItem>>> {
     fetchFavorites();
   }
 
+  /// Reloads the list from the server.
+  ///
+  /// Only shows a loading state when there is nothing to show yet. Setting
+  /// `AsyncValue.loading()` unconditionally threw away the current list on
+  /// every refresh, so a screen watching this provider blanked out mid-toggle
+  /// and — if the reload then failed — was left showing empty or an error
+  /// rather than the favourites it already had.
   Future<void> fetchFavorites() async {
     try {
-      state = const AsyncValue.loading();
+      if (!state.hasValue) state = const AsyncValue.loading();
       final response = await DioClient.dio.get("/favorites");
       if (response.data != null && response.data['success'] == true) {
         final list = response.data['data'] as List;
         final items = list.map((item) => FavoriteItem.fromJson(item)).toList();
         state = AsyncValue.data(items);
-      } else {
+      } else if (!state.hasValue) {
         state = AsyncValue.error(
           "Failed to load favorites",
           StackTrace.current,
         );
       }
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      // Keep whatever is already on screen; a failed refresh should not erase
+      // a list the user can still act on.
+      if (!state.hasValue) state = AsyncValue.error(e, stack);
     }
   }
 
+  /// Adds or removes [lawyerUserId] from favourites.
+  ///
+  /// The server endpoint is a toggle and reports which way it went. An
+  /// un-favourite is applied to local state straight away — the entry is
+  /// already in the list, so no round trip is needed to drop it. An add has to
+  /// reload, because the POST response carries the bare Favorite document
+  /// without the populated lawyer and profile this list renders.
   Future<bool> toggleFavorite(String lawyerUserId) async {
+    final previous = state;
     try {
       final response = await DioClient.dio.post(
         "/favorites",
         data: {"lawyerId": lawyerUserId},
       );
+
       if (response.data != null && response.data['success'] == true) {
-        await fetchFavorites();
+        final isFavorite = response.data['data']?['isFavorite'] == true;
+
+        if (!isFavorite) {
+          state.whenData(
+            (current) => state = AsyncValue.data(
+              current.where((f) => f.lawyerUserId != lawyerUserId).toList(),
+            ),
+          );
+        } else {
+          await fetchFavorites();
+        }
         return true;
       }
     } catch (e) {
-      // Handle error
+      // Put back exactly what was there before, so a failed toggle leaves the
+      // heart and the list agreeing with the server.
+      state = previous;
     }
     return false;
   }

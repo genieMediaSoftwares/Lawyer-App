@@ -10,7 +10,7 @@ import '../../../../providers/auth_provider.dart';
 import '../../../../providers/profile_provider.dart';
 import '../../../../models/client_profile_model.dart';
 import '../../../../routes/route_names.dart';
-import '../../../../core/widgets/manual_location_field.dart';
+import '../../../../core/widgets/location_autocomplete_field.dart';
 import '../../../../providers/notification_provider.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
@@ -642,9 +642,14 @@ class _EditProfileBottomSheetState
               ),
               const SizedBox(height: 12),
 
-              ManualLocationField(
-                controller: _locationController,
-                labelText: loc.address_location,
+              LocationAutocompleteField(
+                fieldKey: 'client_profile_sheet',
+                initialText: _locationController.text,
+                label: loc.address_location,
+                onSelected: (place) => setState(
+                  () => _locationController.text = place.description,
+                ),
+                onCleared: () => setState(_locationController.clear),
               ),
 
               const SizedBox(height: 24),

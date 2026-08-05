@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/profile_provider.dart';
-import '../../../../core/widgets/manual_location_field.dart';
+import '../../../../core/widgets/location_autocomplete_field.dart';
 
 class PersonalInformationScreen extends ConsumerStatefulWidget {
   const PersonalInformationScreen({super.key});
@@ -24,6 +24,10 @@ class _PersonalInformationScreenState
   late TextEditingController _locationController;
 
   bool _isSaving = false;
+
+  /// Location is no longer a FormField, so its required-check lives
+  /// here and is surfaced through the field's own errorText.
+  String? _locationError;
   bool _initialized = false;
 
   @override
@@ -93,7 +97,11 @@ class _PersonalInformationScreenState
 
   Future<void> _save() async {
     final loc = AppLocalizations.of(context)!;
-    if (!_formKey.currentState!.validate()) return;
+    final locationMissing = _locationController.text.trim().isEmpty;
+    setState(() {
+      _locationError = locationMissing ? loc.location_is_required : null;
+    });
+    if (!_formKey.currentState!.validate() || locationMissing) return;
 
     setState(() => _isSaving = true);
 
@@ -229,12 +237,15 @@ class _PersonalInformationScreenState
               ),
               const SizedBox(height: 16),
 
-              ManualLocationField(
-                controller: _locationController,
-                labelText: loc.address_location,
-                validator: (val) => val == null || val.trim().isEmpty
-                    ? loc.location_is_required
-                    : null,
+              LocationAutocompleteField(
+                fieldKey: 'client_personal_info',
+                initialText: _locationController.text,
+                label: loc.address_location,
+                onSelected: (place) => setState(
+                  () => _locationController.text = place.description,
+                ),
+                onCleared: () => setState(_locationController.clear),
+                errorText: _locationError,
               ),
               const SizedBox(height: 36),
 

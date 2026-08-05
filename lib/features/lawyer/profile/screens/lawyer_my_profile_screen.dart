@@ -5,7 +5,7 @@ import '../../../../core/config/env.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/auth_provider.dart';
-import '../../../../core/widgets/manual_location_field.dart';
+import '../../../../core/widgets/location_autocomplete_field.dart';
 
 class LawyerMyProfileScreen extends ConsumerStatefulWidget {
   const LawyerMyProfileScreen({super.key});
@@ -296,6 +296,10 @@ class _LawyerEditPersonalBottomSheetState
   late TextEditingController _locationController;
   bool _isSaving = false;
 
+  /// Location is no longer a FormField, so its required-check lives
+  /// here and is surfaced through the field's own errorText.
+  String? _locationError;
+
   @override
   void initState() {
     super.initState();
@@ -314,7 +318,11 @@ class _LawyerEditPersonalBottomSheetState
 
   Future<void> _save() async {
     final loc = AppLocalizations.of(context)!;
-    if (!_formKey.currentState!.validate()) return;
+    final locationMissing = _locationController.text.trim().isEmpty;
+    setState(() {
+      _locationError = locationMissing ? loc.location_is_required : null;
+    });
+    if (!_formKey.currentState!.validate() || locationMissing) return;
 
     setState(() => _isSaving = true);
 
@@ -412,12 +420,15 @@ class _LawyerEditPersonalBottomSheetState
               ),
               const SizedBox(height: 12),
 
-              ManualLocationField(
-                controller: _locationController,
-                labelText: loc.location,
-                validator: (val) => val == null || val.trim().isEmpty
-                    ? loc.location_is_required
-                    : null,
+              LocationAutocompleteField(
+                fieldKey: 'lawyer_my_profile',
+                initialText: _locationController.text,
+                label: loc.location,
+                onSelected: (place) => setState(
+                  () => _locationController.text = place.description,
+                ),
+                onCleared: () => setState(_locationController.clear),
+                errorText: _locationError,
               ),
 
               const SizedBox(height: 24),

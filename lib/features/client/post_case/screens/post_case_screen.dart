@@ -132,6 +132,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
   // Location Autocomplete State
   String? _selectedCityName;
+
+  /// Set only when the client picked a suggestion. A city seeded from the
+  /// profile, restored from a draft, or typed by hand leaves this null, so
+  /// it is what distinguishes a resolved place from arbitrary text.
+  String? _selectedPlaceId;
   String? _selectedDistrictName;
   String? _selectedStateName;
   String? _selectedCountryName;
@@ -757,6 +762,13 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     } else if (_selectedCityName == null) {
       missing = "Add the city the case belongs to.";
       missingStep = 1;
+    } else if (_selectedPlaceId == null || _selectedPlaceId!.isEmpty) {
+      // The city can be pre-filled from the profile or a saved draft, which
+      // is convenient but unverified — it is whatever string was stored.
+      // Matching a case to advocates by jurisdiction needs a real place, so
+      // require the client to pick one from the suggestions.
+      missing = "Select your city from the suggestions.";
+      missingStep = 1;
     } else if (!_agreedToTerms) {
       // The checkbox is on this step, so stay here rather than sending the
       // client somewhere else to find it.
@@ -843,6 +855,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           country: _selectedCountryName,
           latitude: _selectedLatitude,
           longitude: _selectedLongitude,
+          placeId: _selectedPlaceId,
           claimAmount: _claimAmount,
         );
 
@@ -1537,8 +1550,8 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         // superseded in-flight requests (the inline version did not, so a slow
         // earlier response could overwrite a newer one).
         //
-        // The profile screens deliberately do NOT use this widget — they use
-        // ManualLocationField for free-text entry.
+        // The profile screens now use this same widget, each with its own
+        // fieldKey.
         LocationAutocompleteField(
           fieldKey: 'post_case',
           initialText: _cityController.text,
@@ -1553,6 +1566,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               _selectedCountryName = null;
               _selectedLatitude = null;
               _selectedLongitude = null;
+              _selectedPlaceId = null;
               _selectedCourtName = null;
               _courtController.clear();
               _courtFilter = "";
@@ -1572,6 +1586,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               _selectedCountryName = place.country;
               _selectedLatitude = place.latitude;
               _selectedLongitude = place.longitude;
+              _selectedPlaceId = place.placeId;
 
               // Court list is city-scoped, so a new city invalidates it.
               _selectedCourtName = null;

@@ -12,6 +12,7 @@ class CaseController {
         title, description, category, subcategory, location, budgetRange,
         urgency, preferredCourt, documents, selectedLawyer, voiceUrl,
         voiceTranscript, city, district, state, country, latitude, longitude,
+        placeId,
         // Structured detail, AI-extracted then client-edited on the Post Case
         // form. All optional.
         incidentDate, opposingParty, firNumber, policeStation, bailDetails,
@@ -57,6 +58,8 @@ class CaseController {
         locationCountry: country || "",
         locationLatitude: latitude ? Number(latitude) : 0.0,
         locationLongitude: longitude ? Number(longitude) : 0.0,
+        // Optional: cases filed by older clients carry no placeId.
+        locationPlaceId: placeId || "",
 
         // Reject an unparseable date rather than storing Invalid Date.
         incidentDate: incidentDate && !Number.isNaN(Date.parse(incidentDate))

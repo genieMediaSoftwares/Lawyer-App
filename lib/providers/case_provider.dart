@@ -123,6 +123,7 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
     String? country,
     double? latitude,
     double? longitude,
+    String? placeId,
     double? claimAmount,
   }) async {
     lastCreateError = null;
@@ -148,6 +149,7 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
         "country": country ?? "",
         "latitude": latitude ?? 0.0,
         "longitude": longitude ?? 0.0,
+        "placeId": placeId ?? "",
         // Extracted from documents by the AI intake; there is no manual input
         // for it on the form.
         "claimAmount": claimAmount,

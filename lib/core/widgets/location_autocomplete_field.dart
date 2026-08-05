@@ -7,20 +7,18 @@ import '../../repositories/place_repository.dart' show PlaceException;
 
 /// Live city / locality autocomplete backed by the `/api/places` proxy.
 ///
-/// **Used by the Post-a-Case flow only.** A posted case has to resolve to a
-/// real city so it can be routed to advocates by jurisdiction, which is why
-/// this screen constrains the user to a real suggestion.
+/// **Used for every city/location input in the app** — Post a Case, and the
+/// client and lawyer profile screens. A posted case has to resolve to a real
+/// city so it can be routed to advocates by jurisdiction, and a profile
+/// location feeds the same matching, so all of them constrain the user to a
+/// real suggestion rather than free text.
 ///
-/// Do **not** use this on the profile screens. Those use
-/// [ManualLocationField] — a plain free-text input — because a personal or
-/// chamber address is free-form and must not be forced through a places API.
-/// The two widgets are separate files sharing no state, so a change to one
-/// cannot alter the other:
+/// Each host passes its own [fieldKey], so selections on one screen cannot
+/// affect another.
 ///
-/// | Widget                      | Used by                    | Behaviour            |
-/// |-----------------------------|----------------------------|----------------------|
-/// | `ManualLocationField`       | Client + Lawyer profiles   | Free text only       |
-/// | `LocationAutocompleteField` | Post Your Case only        | Live API suggestions |
+/// Note this resolves *cities and localities* only (`types=(cities)` on the
+/// server). A street or chamber address belongs in a plain text field —
+/// `Lawyer.officeAddress` still uses one, and should.
 ///
 /// Suggestions come from Google Places when the server has a key, otherwise
 /// Photon (OpenStreetMap); a numeric query is routed to the India Post PIN code
