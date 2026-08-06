@@ -1,5 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Voice notes: captured for the AI Smart Case assistant and the post-case
+         form. The record plugin merges this in too, but declaring it here keeps
+         the requirement visible in the app's own manifest. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
         android:label="law"
         android:name="${applicationName}"
@@ -42,6 +46,16 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+
+        <!-- Package visibility for the on-device speech recogniser. Without
+             these, Android 11+ hides the recognition service from the app and
+             live speech-to-text reports "unavailable" on every device. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH"/>
         </intent>
     </queries>
 </manifest>

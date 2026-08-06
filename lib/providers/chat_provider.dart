@@ -56,10 +56,21 @@ final chatTypingProvider = StateProvider.family<String?, String>(
 
 final _random = Random();
 
+/// Upper bound for the random half of a client id.
+///
+/// 2^30, *not* 2^32. Dart's bitwise operators are 32-bit on the web, so
+/// `1 << 32` evaluates to 0 there — and `Random.nextInt(0)` throws
+/// "max must be in range 0 < max <= 2^32". The literal worked on the VM, where
+/// ints are 64-bit, so the crash only ever appeared in the browser. Anything up
+/// to 2^30 is identical on both platforms.
+const int _clientIdRandomMax = 1 << 30;
+
 /// Ids for optimistic messages. Unique per device without pulling in a uuid
-/// dependency; the server only ever compares them within one conversation.
+/// dependency; the server only ever compares them within one conversation, and
+/// the microsecond timestamp already separates ids a billion-value random
+/// suffix might not.
 String _newClientId() =>
-    '${DateTime.now().microsecondsSinceEpoch}-${_random.nextInt(1 << 32)}';
+    '${DateTime.now().microsecondsSinceEpoch}-${_random.nextInt(_clientIdRandomMax)}';
 
 // ────────────────────────────────────────────────────────────────────────────
 // chatsProvider — the conversation list

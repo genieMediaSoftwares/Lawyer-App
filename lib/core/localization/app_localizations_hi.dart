@@ -265,9 +265,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get favorite_lawyers => 'पसंदीदा वकील';
 
   @override
-  String get legal_articles => 'कानूनी लेख';
-
-  @override
   String get subscription_plans => 'सदस्यता योजनाएं';
 
   @override

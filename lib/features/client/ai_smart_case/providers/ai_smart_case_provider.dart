@@ -26,8 +26,23 @@ class AISmartCaseState {
   /// does not protect you.
   final List<PlatformFile> selectedFiles;
 
+  /// The original audio, when there is any.
+  ///
+  /// Optional now that the device transcribes while the client speaks: it is
+  /// only present on devices with no speech recogniser, where the backend
+  /// still does the transcription, or when audio retention is switched on.
   final File? voiceFile;
+
+  /// What the client said, transcribed on the device and editable by them.
+  ///
+  /// Sent with the documents so extraction can use it straight away rather
+  /// than waiting on server-side transcription.
   final String voiceTranscript;
+
+  /// The client's typed notes, kept separate from [voiceTranscript] so the two
+  /// reach the pipeline as distinct inputs.
+  final String writtenNotes;
+
   final bool isRecording;
   final bool isExtracting;
 
@@ -45,6 +60,7 @@ class AISmartCaseState {
     this.selectedFiles = const [],
     this.voiceFile,
     this.voiceTranscript = '',
+    this.writtenNotes = '',
     this.isRecording = false,
     this.isExtracting = false,
     this.sessionId,
@@ -68,6 +84,7 @@ class AISmartCaseState {
     File? voiceFile,
     bool clearVoiceFile = false,
     String? voiceTranscript,
+    String? writtenNotes,
     bool? isRecording,
     bool? isExtracting,
     String? sessionId,
@@ -81,6 +98,7 @@ class AISmartCaseState {
       selectedFiles: selectedFiles ?? this.selectedFiles,
       voiceFile: clearVoiceFile ? null : (voiceFile ?? this.voiceFile),
       voiceTranscript: voiceTranscript ?? this.voiceTranscript,
+      writtenNotes: writtenNotes ?? this.writtenNotes,
       isRecording: isRecording ?? this.isRecording,
       isExtracting: isExtracting ?? this.isExtracting,
       sessionId: clearSessionId ? null : (sessionId ?? this.sessionId),
@@ -122,6 +140,10 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
     state = state.copyWith(voiceTranscript: text);
   }
 
+  void setWrittenNotes(String text) {
+    state = state.copyWith(writtenNotes: text);
+  }
+
   void setRecordingState(bool recording) {
     state = state.copyWith(isRecording: recording);
   }
@@ -155,6 +177,7 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
       selectedFiles: const [],
       clearVoiceFile: true,
       voiceTranscript: '',
+      writtenNotes: '',
       isRecording: false,
       isExtracting: false,
       clearResult: true,
@@ -206,10 +229,16 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
     final completer = Completer<bool>();
 
     try {
+      // All three inputs go up together in the one request: the documents the
+      // assistant reasons from, the transcript the device produced while the
+      // client spoke, and their typed notes. Nothing here waits on server-side
+      // transcription — when a live transcript is present the pipeline uses it
+      // directly and only verifies the audio afterwards.
       final sessionId = await _repository.startAnalysis(
         files: state.selectedFiles,
         voiceFile: state.voiceFile,
-        issueDescription: state.voiceTranscript,
+        voiceTranscript: state.voiceTranscript,
+        issueDescription: state.writtenNotes,
       );
 
       if (!mounted) return false;

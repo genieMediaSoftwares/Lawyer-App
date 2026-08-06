@@ -38,7 +38,6 @@ class RouteNames {
   static const String changePassword = '/change-password';
 
   static const String favorites = '/favorites';
-  static const String articles = '/articles';
   static const String contactSupport = '/contact-support';
   static const String aboutUs = '/about-us';
   static const String privacyPolicy = '/privacy-policy';

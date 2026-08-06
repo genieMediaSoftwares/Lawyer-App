@@ -66,6 +66,10 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Law needs the microphone so you can record a voice note describing your legal matter.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Law transcribes your voice note as you speak so you can review and edit it before submitting your case.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

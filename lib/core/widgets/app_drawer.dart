@@ -256,14 +256,6 @@ class AppDrawer extends ConsumerWidget {
       _destination(
         context,
         location: location,
-        icon: Icons.article_outlined,
-        label: loc.legal_articles,
-        target: RouteNames.articles,
-        isRoot: false,
-      ),
-      _destination(
-        context,
-        location: location,
         icon: Icons.person_outline,
         label: loc.my_profile,
         target: RouteNames.profile,

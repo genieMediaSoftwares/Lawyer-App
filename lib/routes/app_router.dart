@@ -42,7 +42,6 @@ import '../features/client/profile/screens/settings_screen.dart';
 import '../features/client/profile/screens/change_password_screen.dart';
 
 import '../features/client/profile/screens/favorite_lawyers_screen.dart';
-import '../features/client/profile/screens/articles_screen.dart';
 import '../features/client/profile/screens/contact_support_screen.dart';
 import '../features/client/profile/screens/about_us_screen.dart';
 import '../features/client/profile/screens/privacy_policy_screen.dart';
@@ -144,7 +143,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         RouteNames.settings,
         RouteNames.changePassword,
         RouteNames.favorites,
-        RouteNames.articles,
         // NOTE: contactSupport, aboutUs, privacyPolicy, termsConditions and
         // languageSelection are deliberately absent. They carry no client data
         // and the lawyer Settings screen links to the very same pages, so
@@ -330,11 +328,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: RouteNames.favorites,
         builder: (c, s) => const FavoriteLawyersScreen(),
-      ),
-      GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
-        path: RouteNames.articles,
-        builder: (c, s) => const ArticlesScreen(),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

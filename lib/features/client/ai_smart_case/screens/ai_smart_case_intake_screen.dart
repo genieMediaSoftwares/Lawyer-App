@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/localization/locale_provider.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/voice_recorder_button.dart';
 import '../providers/ai_smart_case_provider.dart';
+import '../widgets/voice_note_recorder.dart';
 import 'ai_smart_case_processing_screen.dart';
 
 class AISmartCaseIntakeScreen extends ConsumerStatefulWidget {
@@ -18,6 +19,10 @@ class AISmartCaseIntakeScreen extends ConsumerStatefulWidget {
 class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScreen> {
   final TextEditingController _descController = TextEditingController();
   bool _isRecording = false;
+
+  /// Bumped whenever this intake is finished with, to give the voice note
+  /// recorder a fresh key — see where it is built.
+  int _intakeGeneration = 0;
 
   @override
   void initState() {
@@ -125,10 +130,29 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
   }
 
 
+  /// Recognition locales to try, best first: the client's chosen app language,
+  /// then English, which every recogniser that ships in India carries.
+  List<String> _preferredSpeechLocales() {
+    final language = ref.read(localeProvider).languageCode;
+    return <String>[
+      '${language}_IN',
+      language,
+      'en_IN',
+      'en_US',
+    ];
+  }
+
   void _onProceed() async {
     final notifier = ref.read(aiSmartCaseProvider.notifier);
-    if (_descController.text.trim().isNotEmpty) {
-      notifier.setVoiceTranscript(_descController.text.trim());
+    notifier.setWrittenNotes(_descController.text.trim());
+
+    // Submitting mid-recording would send a half-finished transcript and leave
+    // the microphone open behind the processing screen.
+    if (_isRecording) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please stop the recording before continuing.')),
+      );
+      return;
     }
 
     final state = ref.read(aiSmartCaseProvider);
@@ -159,11 +183,20 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
     // memory — the "uploaded a different document, got the old data" report.
     if (!mounted) return;
     ref.read(aiSmartCaseProvider.notifier).clearForNewIntake();
+    _descController.clear();
+    setState(() => _intakeGeneration++);
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(aiSmartCaseProvider);
+    // Watched field by field rather than as a whole. The transcript is written
+    // to the provider on every keystroke while the client edits it, and a plain
+    // `watch` rebuilt this entire screen — dropzone, file list, recorder and
+    // all — once per character typed.
+    final selectedFiles =
+        ref.watch(aiSmartCaseProvider.select((s) => s.selectedFiles));
+    final errorMessage =
+        ref.watch(aiSmartCaseProvider.select((s) => s.errorMessage));
 
     return Scaffold(
       backgroundColor: AppColors.aiSurfaceBackground,
@@ -280,18 +313,18 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
               const SizedBox(height: 16),
 
               // Selected Files List
-              if (state.selectedFiles.isNotEmpty) ...[
+              if (selectedFiles.isNotEmpty) ...[
                 Text(
-                  "Selected Documents (${state.selectedFiles.length})",
+                  "Selected Documents (${selectedFiles.length})",
                   style: const TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 const SizedBox(height: 8),
                 ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: state.selectedFiles.length,
+                  itemCount: selectedFiles.length,
                   itemBuilder: (context, index) {
-                    final file = state.selectedFiles[index];
+                    final file = selectedFiles[index];
                     // PlatformFile.name is the real filename on every
                     // platform. Deriving it from `path` broke on web, where
                     // the path is an opaque `blob:` URL with no filename in it.
@@ -345,71 +378,37 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
                 const SizedBox(height: 20),
               ],
 
-              // Voice Recording Section — an optional supplement to the
-              // document above, not an alternative to it.
+              // Voice Note Section — an optional supplement to the documents
+              // above, not an alternative to them. Speech is transcribed on the
+              // device as the client talks, so the words are ready to edit the
+              // moment they stop and the analysis never waits on transcription.
               const Text(
                 "Add a Voice Note (Optional)",
                 style: TextStyle(color: AppColors.primaryText, fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
               const Text(
-                "Explain anything the document doesn't cover — tap the microphone to record.",
+                "Explain anything the documents don't cover — your words appear as you speak.",
                 style: TextStyle(color: AppColors.mutedText, fontSize: 12),
               ),
               const SizedBox(height: 12),
 
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.aiCardBackground,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primaryText.withValues(alpha: 0.12)),
-                ),
-                child: Row(
-                  children: [
-                    // Same shared recorder as the post-case screen: small round
-                    // mic, live waveform while recording, no parent rebuilds.
-                    VoiceRecorderButton(
-                      filePrefix: 'voice_case',
-                      onRecordingStateChanged: (recording) =>
-                          setState(() => _isRecording = recording),
-                      onRecordingComplete: (file) {
-                        ref.read(aiSmartCaseProvider.notifier).setVoiceFile(file);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Voice note recorded.')),
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _isRecording
-                                ? "Recording voice..."
-                                : (state.voiceFile != null ? "Voice Recorded ✓" : "Tap mic to start recording"),
-                            style: TextStyle(
-                              color: _isRecording ? AppColors.error : AppColors.primaryText,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _isRecording
-                                ? "Speak clearly into your phone"
-                                : (state.voiceFile != null ? "Ready to transcribe" : "Supports English, Hindi, Telugu"),
-                            style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              VoiceNoteRecorder(
+                // Rebuilt from scratch for each intake. clearForNewIntake()
+                // empties the provider when this screen is returned to, and
+                // without a new key the recorder would still be showing the
+                // previous run's transcript in its own controller.
+                key: ValueKey('voice-note-$_intakeGeneration'),
+                preferredLocales: _preferredSpeechLocales(),
+                onTranscriptChanged: (text) =>
+                    ref.read(aiSmartCaseProvider.notifier).setVoiceTranscript(text),
+                onAudioChanged: (file) =>
+                    ref.read(aiSmartCaseProvider.notifier).setVoiceFile(file),
+                onListeningChanged: (listening) {
+                  if (_isRecording != listening) {
+                    setState(() => _isRecording = listening);
+                  }
+                },
               ),
               const SizedBox(height: 20),
 
@@ -422,6 +421,10 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
               TextField(
                 controller: _descController,
                 maxLines: 3,
+                // Kept in the provider as it is typed so it reaches the
+                // pipeline as its own input, separate from the voice note.
+                onChanged: (text) =>
+                    ref.read(aiSmartCaseProvider.notifier).setWrittenNotes(text.trim()),
                 style: const TextStyle(color: AppColors.primaryText, fontSize: 13),
                 decoration: InputDecoration(
                   hintText: "Add any extra details or dates if not mentioned in documents...",
@@ -441,7 +444,7 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
               const SizedBox(height: 28),
 
               // Error Message Banner
-              if (state.errorMessage != null) ...[
+              if (errorMessage != null) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.only(bottom: 16),
@@ -451,7 +454,7 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
                     border: Border.all(color: AppColors.error),
                   ),
                   child: Text(
-                    state.errorMessage!,
+                    errorMessage,
                     style: const TextStyle(color: AppColors.error, fontSize: 12.5),
                   ),
                 ),

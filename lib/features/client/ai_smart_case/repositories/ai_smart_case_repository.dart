@@ -55,6 +55,7 @@ class AISmartCaseRepository {
   Future<String> startAnalysis({
     required List<PlatformFile> files,
     File? voiceFile,
+    String? voiceTranscript,
     String? issueDescription,
   }) async {
     final formData = FormData();
@@ -88,6 +89,15 @@ class AISmartCaseRepository {
           await MultipartFile.fromFile(voiceFile.path, filename: voiceName),
         ),
       );
+    }
+
+    // The device already transcribed the voice note while the client spoke, so
+    // it travels as text. The pipeline uses it immediately instead of waiting
+    // on transcription, and falls back to transcribing [voiceFile] only when
+    // this is absent — which is what happens on a device with no recogniser.
+    final transcript = voiceTranscript?.trim() ?? '';
+    if (transcript.isNotEmpty) {
+      formData.fields.add(MapEntry('voiceTranscript', transcript));
     }
 
     if (issueDescription != null && issueDescription.isNotEmpty) {

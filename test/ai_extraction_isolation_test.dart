@@ -153,6 +153,62 @@ void main() {
     });
   });
 
+  group('voice note', () {
+    test('the live transcript is uploaded with the documents', () async {
+      final repository = _FakeRepository()..enqueueResult(_result('session-a'));
+
+      final notifier = AISmartCaseNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      notifier.addFiles([_file('a.pdf')]);
+      notifier.setVoiceTranscript('the landlord changed the locks on 3 March');
+      notifier.setWrittenNotes('rent receipts are in the second PDF');
+
+      await notifier.startExtraction();
+
+      // Both reach the pipeline in the one request, as distinct inputs. The
+      // transcript used to be produced server-side from the audio *after* this
+      // upload, which is the wait this replaced.
+      expect(
+        repository.transcriptsPerRun,
+        ['the landlord changed the locks on 3 March'],
+      );
+      expect(repository.notesPerRun, ['rent receipts are in the second PDF']);
+    });
+
+    test('the transcript and the typed notes do not overwrite each other', () {
+      final notifier = AISmartCaseNotifier(_FakeRepository());
+      addTearDown(notifier.dispose);
+
+      notifier.setVoiceTranscript('spoken account');
+      notifier.setWrittenNotes('typed account');
+
+      expect(notifier.state.voiceTranscript, 'spoken account');
+      expect(notifier.state.writtenNotes, 'typed account');
+    });
+
+    test('clearForNewIntake drops the previous transcript and notes', () async {
+      final repository = _FakeRepository()
+        ..enqueueResult(_result('session-a'))
+        ..enqueueResult(_result('session-b'));
+
+      final notifier = AISmartCaseNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      notifier.addFiles([_file('a.pdf')]);
+      notifier.setVoiceTranscript('first matter');
+      notifier.setWrittenNotes('first notes');
+      await notifier.startExtraction();
+
+      notifier.clearForNewIntake();
+      notifier.addFiles([_file('b.pdf')]);
+      await notifier.startExtraction();
+
+      expect(repository.transcriptsPerRun, ['first matter', '']);
+      expect(repository.notesPerRun, ['first notes', '']);
+    });
+  });
+
   group('duplicate requests', () {
     test('a second start while one is in flight is refused', () async {
       final repository = _FakeRepository()..enqueueResult(_result('session-a'));
@@ -216,6 +272,14 @@ PlatformFile _file(String name) =>
 class _FakeRepository implements AISmartCaseRepository {
   final List<ExtractionResult?> _scripted = [];
   final List<List<String>> uploadsPerRun = [];
+
+  /// The voice transcript each run uploaded, so a test can assert the live
+  /// transcript travels with the documents rather than after them.
+  final List<String> transcriptsPerRun = [];
+
+  /// The typed notes each run uploaded.
+  final List<String> notesPerRun = [];
+
   int startCalls = 0;
 
   /// The next run completes with [result].
@@ -228,9 +292,12 @@ class _FakeRepository implements AISmartCaseRepository {
   Future<String> startAnalysis({
     required List<PlatformFile> files,
     File? voiceFile,
+    String? voiceTranscript,
     String? issueDescription,
   }) async {
     uploadsPerRun.add(files.map((f) => f.name).toList());
+    transcriptsPerRun.add(voiceTranscript ?? '');
+    notesPerRun.add(issueDescription ?? '');
     final index = startCalls;
     startCalls++;
     final scripted = index < _scripted.length ? _scripted[index] : null;

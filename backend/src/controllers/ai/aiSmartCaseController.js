@@ -7,6 +7,15 @@ const { AiSmartCasePipeline } = require("../../services/ai/aiSmartCasePipeline")
 /** Repo root, used to turn an absolute upload path into a served URL. */
 const PROJECT_ROOT = path.join(__dirname, "../../..");
 
+/**
+ * Ceiling on a client-supplied voice transcript.
+ *
+ * Well past anything dictated in the five minutes the recorder allows, and it
+ * keeps a malformed or hostile request from pushing an unbounded string into
+ * the session document and the extraction prompt. The app applies the same cap.
+ */
+const MAX_LIVE_TRANSCRIPT_CHARS = 20000;
+
 class AiSmartCaseController {
   /**
    * POST /api/ai/smart-case/analyze
@@ -41,6 +50,16 @@ class AiSmartCaseController {
       }
 
       const typedDescription = ((req.body && req.body.issueDescription) || "").trim();
+
+      // The app transcribes the voice note on the device while the client
+      // speaks and sends the text they reviewed. When it is present the
+      // pipeline uses it directly instead of transcribing the audio first, so
+      // nothing in the analysis waits on transcription. Its absence is the
+      // old path: transcribe the uploaded recording here.
+      const liveVoiceTranscript = ((req.body && req.body.voiceTranscript) || "")
+        .toString()
+        .trim()
+        .slice(0, MAX_LIVE_TRANSCRIPT_CHARS);
 
       // Register each upload in the Document collection, the same one the
       // manual Post Case upload writes to. Without this the AI flow produced
@@ -85,7 +104,8 @@ class AiSmartCaseController {
         client: clientId,
         status: "processing",
         uploadedDocuments: uploadedDocsForDb,
-        voiceTranscript: "",
+        voiceTranscript: liveVoiceTranscript,
+        voiceTranscriptSource: liveVoiceTranscript ? "live" : "none",
         progress: {
           stage: "queued",
           message: "Preparing your documents",
@@ -112,7 +132,7 @@ class AiSmartCaseController {
       const pipeline = new AiSmartCasePipeline(req.app.get("io"));
       setImmediate(() => {
         pipeline
-          .run({ session, documentFiles, voiceFile, typedDescription })
+          .run({ session, documentFiles, voiceFile, typedDescription, liveVoiceTranscript })
           .catch((err) => console.error("Detached pipeline rejected:", err));
       });
 
@@ -171,6 +191,7 @@ class AiSmartCaseController {
         extracted: session.extractedData,
         uploadedDocuments: session.uploadedDocuments,
         voiceTranscript: session.voiceTranscript,
+        voiceTranscriptSource: session.voiceTranscriptSource,
         voiceTranscriptionFailed: session.voiceTranscriptionFailed,
         extractionWarnings: session.warnings,
         failureReason: session.failureReason,

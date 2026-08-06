@@ -83,7 +83,33 @@ const aiSmartCaseSessionSchema = new mongoose.Schema(
       default: "",
     },
 
+    /// The transcript the extraction actually used.
+    ///
+    /// Normally produced on the client's device while they were speaking, which
+    /// is why the pipeline no longer has to transcribe before it can extract.
     voiceTranscript: {
+      type: String,
+      default: "",
+    },
+
+    /// Where `voiceTranscript` came from.
+    ///
+    /// "live"   — transcribed on the device as the client spoke.
+    /// "server" — transcribed here from the uploaded audio, the path taken by
+    ///            devices with no speech recogniser.
+    /// "none"   — no voice note, or nothing could be transcribed.
+    voiceTranscriptSource: {
+      type: String,
+      enum: ["none", "live", "server"],
+      default: "none",
+    },
+
+    /// The server's own transcription of the audio, produced after the analysis
+    /// finished when a live transcript was supplied alongside the recording.
+    ///
+    /// Kept for validation and audit only — it is never substituted for what
+    /// the client reviewed and submitted.
+    serverVoiceTranscript: {
       type: String,
       default: "",
     },

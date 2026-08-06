@@ -74,12 +74,18 @@ dependencies:
   # It resolved transitively through dio, but a package imported in lib/ must
   # be declared, or a change in dio's own dependencies could remove it.
   http_parser: ^4.1.2
-
+  speech_to_text: ^7.4.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
   integration_test:
     sdk: flutter
+
+  # Imported directly by test/live_transcription_service_test.dart, which
+  # substitutes a fake recogniser for the platform channel. It resolves
+  # transitively through speech_to_text, but a package imported by our own code
+  # has to be declared.
+  speech_to_text_platform_interface: ^2.4.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

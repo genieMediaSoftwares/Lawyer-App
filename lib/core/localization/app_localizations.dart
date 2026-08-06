@@ -580,12 +580,6 @@ abstract class AppLocalizations {
   /// **'Favorite Lawyers'**
   String get favorite_lawyers;
 
-  /// No description provided for @legal_articles.
-  ///
-  /// In en, this message translates to:
-  /// **'Legal Articles'**
-  String get legal_articles;
-
   /// No description provided for @subscription_plans.
   ///
   /// In en, this message translates to:

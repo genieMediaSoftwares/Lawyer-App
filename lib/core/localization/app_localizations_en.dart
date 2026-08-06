@@ -265,9 +265,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get favorite_lawyers => 'Favorite Lawyers';
 
   @override
-  String get legal_articles => 'Legal Articles';
-
-  @override
   String get subscription_plans => 'Subscription Plans';
 
   @override

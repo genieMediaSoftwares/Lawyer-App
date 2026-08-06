@@ -115,7 +115,7 @@ class _LocationAutocompleteFieldState
     } else {
       // Delay so a tap on a suggestion is registered before the list closes.
       Future.delayed(const Duration(milliseconds: 150), () {
-        if (mounted && !_focusNode.hasFocus) _removeOverlay();
+        if (mounted && !_focusNode.hasFocus) _scheduleRemoveOverlay();
       });
     }
   }
@@ -126,9 +126,13 @@ class _LocationAutocompleteFieldState
     ref.read(placeSearchProvider.notifier).search(value);
 
     if (value.trim().length >= 2) {
+      // Already open? Leave it. The panel is a ConsumerWidget watching
+      // placeSearchProvider, so new results repaint it in place — tearing the
+      // entry down and re-inserting one per keystroke would rebuild the
+      // hover-tracked subtree under the cursor on every character.
       _showOverlay();
     } else {
-      _removeOverlay();
+      _scheduleRemoveOverlay();
     }
   }
 
@@ -142,7 +146,7 @@ class _LocationAutocompleteFieldState
     );
     _suppressSearch = false;
 
-    _removeOverlay();
+    _scheduleRemoveOverlay();
     _focusNode.unfocus();
 
     final place = await ref
@@ -172,7 +176,7 @@ class _LocationAutocompleteFieldState
     _controller.clear();
     ref.read(placeSearchProvider.notifier).clear();
     ref.read(selectedPlaceProvider(widget.fieldKey).notifier).clear();
-    _removeOverlay();
+    _scheduleRemoveOverlay();
     widget.onCleared?.call();
     setState(() {});
   }
@@ -203,9 +207,38 @@ class _LocationAutocompleteFieldState
     Overlay.of(context).insert(_overlay!);
   }
 
-  void _removeOverlay() {
-    _overlay?.remove();
+  /// Tears the dropdown down at the end of the current frame.
+  ///
+  /// Each suggestion row is hover-tracked — on desktop an InkWell installs a
+  /// MouseRegion — and MouseTracker asserts if that subtree vanishes while it
+  /// is still dispatching a pointer event for the device sitting on it
+  /// (`mouse_tracker.dart:199`). Tapping a suggestion did exactly that: the
+  /// handler removed the overlay the pointer was inside, synchronously, mid
+  /// dispatch. Deferring to the post-frame callback lets the event finish
+  /// against a live tree first.
+  ///
+  /// The field is cleared immediately so nothing else can touch the entry, and
+  /// the captured entry is re-checked with [OverlayEntry.mounted] before
+  /// removal in case [dispose] or another path got there first.
+  void _scheduleRemoveOverlay() {
+    final entry = _overlay;
+    if (entry == null) return;
     _overlay = null;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (entry.mounted) entry.remove();
+    });
+  }
+
+  /// Synchronous teardown, for [dispose] only.
+  ///
+  /// A post-frame callback is no use there — the State is already gone and the
+  /// entry would outlive it. Removing during dispose is safe because the whole
+  /// subtree is being torn down rather than mutated under a live pointer.
+  void _removeOverlay() {
+    final entry = _overlay;
+    _overlay = null;
+    if (entry != null && entry.mounted) entry.remove();
   }
 
   double get _fieldWidth {

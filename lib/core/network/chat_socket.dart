@@ -75,7 +75,13 @@ class ChatSocketService {
           // Retry indefinitely. A capped count means a device that spends a
           // while on a dead network never reconnects at all, and chat silently
           // stops working until the app is restarted.
-          .setReconnectionAttempts(1 << 31)
+          //
+          // 2^30 rather than 2^31: bitwise operators are 32-bit and signed on
+          // the web, so `1 << 31` is -2147483648 there. A negative attempt
+          // count meant the browser build gave up reconnecting immediately —
+          // the exact opposite of what this line intends. 2^30 attempts is
+          // still indefinite in practice and evaluates the same everywhere.
+          .setReconnectionAttempts(1 << 30)
           .build(),
     );
 

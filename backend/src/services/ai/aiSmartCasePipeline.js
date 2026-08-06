@@ -130,8 +130,11 @@ class AiSmartCasePipeline {
    * @param {object[]} documentFiles Multer files, already on disk.
    * @param {object|null} voiceFile  Multer file for the voice note, if any.
    * @param {string} typedDescription The client's own written notes.
+   * @param {string} [liveVoiceTranscript] The transcript the client's device
+   *   produced while they spoke, already reviewed and edited by them. When
+   *   present it is used as-is and the transcription stage does no work.
    */
-  async run({ session, documentFiles, voiceFile, typedDescription }) {
+  async run({ session, documentFiles, voiceFile, typedDescription, liveVoiceTranscript = "" }) {
     const startedAt = Date.now();
     const overBudget = () => Date.now() - startedAt > PIPELINE_BUDGET_MS;
 
@@ -142,11 +145,19 @@ class AiSmartCasePipeline {
       const { ocrText, documentMetadata, sparseFiles, failures, fraudFlags, documentSummaries } =
         await this._readDocuments(session, documentFiles, overBudget);
 
-      // ── 2. Voice transcription ──────────────────────────────────────────
-      let voiceTranscript = "";
+      // ── 2. Voice note ───────────────────────────────────────────────────
+      //
+      // The client's device transcribes as they speak, so in the normal case
+      // the text is already here and this stage is a formality. Only a device
+      // without a speech recogniser reaches the transcription call below, and
+      // only then does the client wait for it.
+      let voiceTranscript = (liveVoiceTranscript || "").trim();
       let voiceTranscriptionFailed = false;
+      let voiceTranscriptSource = voiceTranscript ? "live" : "none";
 
-      if (voiceFile) {
+      if (voiceTranscript) {
+        await this.report(session, "transcribing", "Using your voice note", { fraction: 1 });
+      } else if (voiceFile) {
         if (overBudget()) {
           voiceTranscriptionFailed = true;
         } else {
@@ -156,6 +167,7 @@ class AiSmartCasePipeline {
           const result = await this._transcribe(voiceFile);
           voiceTranscript = result.transcript;
           voiceTranscriptionFailed = result.failed;
+          if (!result.failed && result.transcript) voiceTranscriptSource = "server";
         }
         await this.report(
           session,
@@ -232,6 +244,7 @@ class AiSmartCasePipeline {
             status: "extracted",
             ocrExtractedText: ocrText,
             voiceTranscript,
+            voiceTranscriptSource,
             voiceTranscriptionFailed,
             extractedData: extracted,
             warnings,
@@ -253,10 +266,18 @@ class AiSmartCasePipeline {
         extracted,
         uploadedDocuments: completed?.uploadedDocuments ?? [],
         voiceTranscript,
+        voiceTranscriptSource,
         voiceTranscriptionFailed,
         extractionWarnings: warnings,
         documentSummaries,
       });
+
+      // The client already has their result; transcribing the recording here
+      // is for the record, not for them. Deliberately not awaited and
+      // deliberately silent — a failure changes nothing they can see.
+      if (voiceFile && voiceTranscriptSource === "live") {
+        this._verifyVoiceInBackground(session, voiceFile);
+      }
 
       return completed;
     } catch (error) {
@@ -384,6 +405,31 @@ class AiSmartCasePipeline {
     }
 
     return { ocrText, documentMetadata, sparseFiles, failures, fraudFlags, documentSummaries };
+  }
+
+  /**
+   * Transcribes the uploaded audio after the analysis has already been
+   * delivered, purely so the retained recording and the transcript the client
+   * submitted can be compared later.
+   *
+   * Never awaited, never emitted, never turned into a warning: the client
+   * reviewed and edited the live transcript themselves, so it stands regardless
+   * of what this produces.
+   */
+  _verifyVoiceInBackground(session, voiceFile) {
+    setImmediate(async () => {
+      try {
+        const { transcript, failed } = await this._transcribe(voiceFile);
+        if (failed || !transcript) return;
+
+        await AiSmartCaseSession.updateOne(
+          { _id: session._id },
+          { $set: { serverVoiceTranscript: transcript } }
+        );
+      } catch (err) {
+        console.error("Background voice verification failed:", err.message);
+      }
+    });
   }
 
   /** Transcribes the voice note. Routed through geminiClient for failover. */

@@ -266,9 +266,6 @@ class AppLocalizationsTe extends AppLocalizations {
   String get favorite_lawyers => 'ఇష్టమైన న్యాయవాదులు';
 
   @override
-  String get legal_articles => 'న్యాయ వ్యాసాలు';
-
-  @override
   String get subscription_plans => 'సబ్‌స్క్రిప్షన్ ప్లాన్‌లు';
 
   @override
