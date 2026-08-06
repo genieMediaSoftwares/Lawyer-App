@@ -1,10 +1,39 @@
 const crypto = require("crypto");
 
 const ALGORITHM = "aes-256-gcm";
-const SECRET_KEY = crypto
-  .createHash("sha256")
-  .update(process.env.ENCRYPTION_SECRET || process.env.JWT_SECRET || "lawyer_app_default_secure_key_2026")
-  .digest();
+
+/**
+ * Derives the field-encryption key from configuration.
+ *
+ * There used to be a literal fallback key here. That meant a deployment with
+ * neither secret set still started and still "encrypted" — with a key printed
+ * in this repository, so anyone holding the database and this file could read
+ * every protected field. Worse, the key is derived once at module load, so
+ * setting the secret later produced a different key and made everything written
+ * under the fallback permanently undecryptable.
+ *
+ * Production now refuses to start without a secret. Development falls back with
+ * a loud warning so local work does not need one.
+ */
+function resolveSecret() {
+  const configured = process.env.ENCRYPTION_SECRET || process.env.JWT_SECRET;
+  if (configured) return configured;
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "ENCRYPTION_SECRET (or JWT_SECRET) must be set in production. " +
+        "Refusing to start with a default key — stored data would not be protected."
+    );
+  }
+
+  console.warn(
+    "[cryptoUtil] No ENCRYPTION_SECRET/JWT_SECRET set. Using a development-only key. " +
+      "Data encrypted now cannot be read by a deployment with a real secret."
+  );
+  return "development-only-insecure-key";
+}
+
+const SECRET_KEY = crypto.createHash("sha256").update(resolveSecret()).digest();
 
 function encrypt(text) {
   if (!text || typeof text !== "string") return text;

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:logger/logger.dart';
 import 'exceptions.dart';
 
@@ -14,18 +15,66 @@ class ErrorHandler {
     ),
   );
 
+  /// Header and body keys whose values must never reach a log.
+  ///
+  /// `Authorization` is the live bearer token for the signed-in user, and the
+  /// login and reset payloads carry the password in plain text.
+  static const _sensitiveKeys = {
+    'authorization',
+    'cookie',
+    'set-cookie',
+    'token',
+    'accesstoken',
+    'refreshtoken',
+    'password',
+    'newpassword',
+    'currentpassword',
+    'confirmpassword',
+    'otp',
+    'pin',
+    'upiid',
+    'accountnumber',
+    'ifsccode',
+  };
+
+  /// Replaces sensitive values with a marker, leaving the shape intact so a
+  /// log still shows which fields were sent.
+  static Object? _redact(Object? value) {
+    if (value is Map) {
+      return value.map(
+        (key, dynamic v) => MapEntry(
+          key,
+          _sensitiveKeys.contains(key.toString().toLowerCase().replaceAll('_', ''))
+              ? '<redacted>'
+              : _redact(v),
+        ),
+      );
+    }
+    if (value is List) return value.map(_redact).toList();
+    return value;
+  }
+
+  /// Logs the failure in detail — in debug builds only.
+  ///
+  /// This used to run in every build and dumped the request headers and body
+  /// verbatim, which put the signed-in user's bearer token, and their password
+  /// on any failed login, into the device log where any process able to read
+  /// logcat could collect them. The mapping done by [handleDioError] is
+  /// unchanged; only the logging is gated and redacted.
   static void logDioException(DioException exception, StackTrace stackTrace) {
+    if (!kDebugMode) return;
+
     final requestOptions = exception.requestOptions;
     final response = exception.response;
 
     final Map<String, dynamic> errorLog = {
       'URL': requestOptions.uri.toString(),
       'Method': requestOptions.method,
-      'Headers': requestOptions.headers,
-      'Request Data': requestOptions.data,
+      'Headers': _redact(requestOptions.headers),
+      'Request Data': _redact(requestOptions.data),
       'Status Code': response?.statusCode,
-      'Response Headers': response?.headers.map,
-      'Response Data': response?.data,
+      'Response Headers': _redact(response?.headers.map),
+      'Response Data': _redact(response?.data),
       'Exception Message': exception.message,
       'Exception Type': exception.type.toString(),
       'Error Object': exception.error.toString(),

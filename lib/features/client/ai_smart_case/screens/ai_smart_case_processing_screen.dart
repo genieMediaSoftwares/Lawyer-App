@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -58,10 +59,10 @@ class _AISmartCaseProcessingScreenState
     //
     // pushReplacement so Back from the form returns to the intake screen
     // rather than to a spinner that would immediately re-run the analysis.
-    Navigator.pushReplacement(
+    unawaited(Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => PostCaseScreen(prefill: result)),
-    );
+    ));
   }
 
   /// How far the backend has got, as an index into [_stages].

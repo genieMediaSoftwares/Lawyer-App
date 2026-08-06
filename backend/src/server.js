@@ -4,6 +4,18 @@ const http = require("http");
 const { Server } = require("socket.io");
 const app = require("./app");
 const connectDB = require("./config/db");
+const { assertEnvironment } = require("./config/env");
+
+// Before anything opens a socket or a database handle: a misconfigured
+// deployment should say so once, here, rather than failing one request at a
+// time in production.
+try {
+  const { warnings } = assertEnvironment();
+  warnings.forEach((warning) => console.warn(`⚠️  ${warning}`));
+} catch (error) {
+  console.error(`\n❌ Cannot start: ${error.message}\n`);
+  process.exit(1);
+}
 
 const PORT = process.env.PORT || 5000;
 
@@ -46,4 +58,33 @@ server.listen(PORT, "0.0.0.0", () => {
 📦 Environment : ${process.env.NODE_ENV || "development"}
 =========================================
 `);
+});
+
+/**
+ * Last-resort process handlers.
+ *
+ * Node terminates on an unhandled rejection by default and prints nothing
+ * useful about where it came from. Logging first, then exiting non-zero, gives
+ * the EC2 process manager (systemd or pm2) a clean signal to restart and leaves
+ * a diagnosable line in the journal instead of a silent death.
+ */
+function shutDownOnFatal(label) {
+  return (error) => {
+    console.error(`\n💥 ${label}:`, error);
+    server.close(() => process.exit(1));
+    // Do not wait indefinitely for in-flight connections to drain.
+    setTimeout(() => process.exit(1), 10000).unref();
+  };
+}
+
+process.on("unhandledRejection", shutDownOnFatal("Unhandled promise rejection"));
+process.on("uncaughtException", shutDownOnFatal("Uncaught exception"));
+
+// Container and systemd stop signals: finish in-flight requests, then exit 0.
+["SIGTERM", "SIGINT"].forEach((signal) => {
+  process.on(signal, () => {
+    console.log(`\n${signal} received — shutting down.`);
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 10000).unref();
+  });
 });

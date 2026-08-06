@@ -234,6 +234,9 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
       text: ref.read(authProvider).userEmail ?? "",
     );
 
+    // Disposed when the dialog closes. Without this a controller leaked on
+    // every open, since it is created per invocation and the State's dispose
+    // never sees it.
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -302,6 +305,6 @@ class _LawyerSettingsScreenState extends ConsumerState<LawyerSettingsScreen> {
           ),
         ],
       ),
-    );
+    ).whenComplete(emailController.dispose);
   }
 }

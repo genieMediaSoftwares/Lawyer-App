@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/client_profile_model.dart';
 import '../models/activity_model.dart';
@@ -82,7 +83,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         isLoading: false,
       );
 
-      _ref
+      unawaited(_ref
           .read(authProvider.notifier)
           .updateLocalDetails(
             name: profile.fullName,
@@ -90,7 +91,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
             mobile: profile.mobile,
             location: profile.location,
             photoUrl: profile.profileImage,
-          );
+          ));
     } catch (e) {
       if (!mounted) return;
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
@@ -117,7 +118,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       );
       state = state.copyWith(profile: updatedProfile, isLoading: false);
 
-      _ref
+      unawaited(_ref
           .read(authProvider.notifier)
           .updateLocalDetails(
             name: updatedProfile.fullName,
@@ -125,7 +126,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
             mobile: updatedProfile.mobile,
             location: updatedProfile.location,
             photoUrl: updatedProfile.profileImage,
-          );
+          ));
 
       await fetchProfileData();
       return true;
@@ -143,7 +144,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         fileName,
       );
       state = state.copyWith(profile: updatedProfile, isLoading: false);
-      _ref
+      unawaited(_ref
           .read(authProvider.notifier)
           .updateLocalDetails(
             name: updatedProfile.fullName,
@@ -151,7 +152,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
             mobile: updatedProfile.mobile,
             location: updatedProfile.location,
             photoUrl: updatedProfile.profileImage,
-          );
+          ));
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());

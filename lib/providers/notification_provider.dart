@@ -117,7 +117,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   Future<void> init() async {
     await fetchNotifications(refresh: true);
-    _initSocket();
+    unawaited(_initSocket());
   }
 
   Future<void> _initSocket() async {

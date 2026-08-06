@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -483,7 +484,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                   // `mounted` on the State, not `context.mounted`: this is
                   // State.context, and the two are different checks.
                   if (chat != null && mounted) {
-                    context.push('/chat/${chat.id}/$lawyerName');
+                    unawaited(context.push('/chat/${chat.id}/$lawyerName'));
                   }
                 }
               },

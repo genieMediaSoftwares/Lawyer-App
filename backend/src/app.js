@@ -30,6 +30,19 @@ const adminRoutes = require("./routes/admin.routes");
 
 const app = express();
 
+// Behind nginx or an ALB — the normal EC2 arrangement — every request arrives
+// from the proxy, so req.ip is the proxy's address unless Express is told to
+// read X-Forwarded-For. Without this the rate limiters below count the entire
+// user base as one client and the global 300/15min ceiling is reached by
+// ordinary traffic, locking everyone out.
+//
+// Set to 1 (a single trusted hop) rather than `true`, which would trust a
+// client-supplied X-Forwarded-For and let anyone spoof their way past the
+// limiter. Increase it only if you add another proxy in front.
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 // Security
 app.use(
   helmet({
@@ -83,8 +96,10 @@ app.use(express.urlencoded({ extended: true }));
 // Cookies
 app.use(cookieParser());
 
-// Logger
-app.use(morgan("dev"));
+// Logger. "dev" is colourised and unbuffered — fine at a terminal, wasteful in
+// a journal. Production gets the standard combined format, which is what log
+// shippers expect.
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
 // Health Check
 app.get("/", (req, res) => {

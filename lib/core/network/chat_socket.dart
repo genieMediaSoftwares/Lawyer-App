@@ -182,8 +182,8 @@ class ChatSocketService {
   /// Normalises a socket payload into plain Dart JSON.
   ///
   /// socket.io hands over maps keyed `dynamic`, and on Flutter Web the values
-  /// come back as JS-backed collections. Model parsers test `is
-  /// Map<String, dynamic>`, which is false for both, so a nested object such as
+  /// come back as JS-backed collections. Model parsers test
+  /// `is Map<String, dynamic>`, which is false for both, so a nested object such as
   /// a populated `sender` was silently read as empty — socket-delivered
   /// messages arrived with no sender id at all. Converting the whole tree once,
   /// here, keeps every parser downstream working on real JSON.

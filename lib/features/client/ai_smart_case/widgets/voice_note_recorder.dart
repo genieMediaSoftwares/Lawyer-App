@@ -300,7 +300,7 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
       _liveText.value = seed;
       _levels.value = const [];
       _elapsedSeconds.value = 0;
-      _pulse.repeat(reverse: true);
+      unawaited(_pulse.repeat(reverse: true));
 
       final started = await _live.start(
         preferredLocales: widget.preferredLocales,
