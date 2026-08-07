@@ -84,7 +84,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// ancestors and throw CircularDependencyError.
   void _profileChanged(String? userId) {
     if (!mounted || userId == null || userId.isEmpty) return;
-    _ref.invalidate(lawyerDetailsProvider(userId));
+
+    // Only a lawyer has a record behind `/lawyers/:id`. Invalidating this for
+    // a client refetched the provider with the client's own id and the server
+    // answered 404 "Lawyer profile not found." — harmless to the UI, which
+    // never reads it for a client, but it surfaced as an error on every
+    // profile edit and buried real failures in the log.
+    if (state.role == UserRole.lawyer) {
+      _ref.invalidate(lawyerDetailsProvider(userId));
+    }
   }
 
   /// Bumped by every sign-in and sign-out.

@@ -11,7 +11,15 @@ const mongoose = require("mongoose");
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
+    let mongoUri = (process.env.MONGO_URI || process.env.MONGODB_URI || "").trim();
+    // if (!mongoUri.startsWith("mongodb://") && !mongoUri.startsWith("mongodb+srv://")) {
+    //   console.warn(
+    //     "⚠️ Warning: MONGO_URI in .env is missing or invalid. Falling back to local MongoDB mongodb://127.0.0.1:27017/lawyer_db"
+    //   );
+    //   mongoUri = "mongodb://127.0.0.1:27017/lawyer_db";
+    // }
+
+    const conn = await mongoose.connect(mongoUri);
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {

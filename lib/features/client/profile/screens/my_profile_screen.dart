@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/profile_provider.dart';
@@ -109,7 +109,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                             radius: 56,
                             backgroundColor: AppColors.border,
                             imageUrl: profile.profileImage.isNotEmpty
-                                ? Environment.getAttachmentUrl(profile.profileImage)
+                                ? AppConfig.getAttachmentUrl(profile.profileImage)
                                 : null,
                             fallback: Text(
                               profile.fullName.isNotEmpty ? profile.fullName[0].toUpperCase() : 'C',

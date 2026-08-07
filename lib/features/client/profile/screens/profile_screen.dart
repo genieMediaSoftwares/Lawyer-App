@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/auth_provider.dart';
@@ -252,7 +252,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             radius: 28,
             backgroundColor: AppColors.border,
             imageUrl: profile.profileImage.isNotEmpty
-                ? Environment.getAttachmentUrl(profile.profileImage)
+                ? AppConfig.getAttachmentUrl(profile.profileImage)
                 : null,
             fallback: Text(
               profile.fullName.isNotEmpty

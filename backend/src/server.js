@@ -5,10 +5,25 @@ const { Server } = require("socket.io");
 const app = require("./app");
 const connectDB = require("./config/db");
 
+const {
+  recoverAbandonedSessions,
+} = require("./controllers/ai/aiSmartCaseController");
+
 const PORT = process.env.PORT || 5000;
 
-// Connect MongoDB
-connectDB();
+// Connect MongoDB, then reap anything the previous process left mid-flight.
+//
+// The AI Smart Case pipeline runs in-process and detached from the request that
+// started it, so a deploy or a crash during an analysis leaves a session marked
+// "processing" that nothing will ever advance. Any client still on the
+// processing screen polls it forever, and it counts against that client's
+// concurrency cap until someone edits the database. Failing them at boot is
+// what makes a restart a recoverable event rather than a stuck session.
+connectDB().then(() => {
+  recoverAbandonedSessions().catch((e) =>
+    console.error("Abandoned AI session sweep failed:", e.message)
+  );
+});
 
 // Create HTTP Server
 const server = http.createServer(app);

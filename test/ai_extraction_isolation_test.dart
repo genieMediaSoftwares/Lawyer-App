@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:dio/dio.dart' show CancelToken;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -210,7 +211,8 @@ void main() {
   });
 
   group('duplicate requests', () {
-    test('a second start while one is in flight is refused', () async {
+    test('a second start while one is in flight joins it rather than duplicating',
+        () async {
       final repository = _FakeRepository()..enqueueResult(_result('session-a'));
 
       final notifier = AISmartCaseNotifier(repository);
@@ -219,15 +221,60 @@ void main() {
       notifier.addFiles([_file('a.pdf')]);
 
       final first = notifier.startExtraction();
-      final second = await notifier.startExtraction();
+      final second = notifier.startExtraction();
 
-      expect(second, isFalse);
-      await first;
+      // Both callers see the same outcome. Returning false to the second caller
+      // — as this used to — left the processing screen believing the analysis
+      // had failed while it was in fact still running, so it sat on a spinner
+      // that nothing would ever resolve.
+      expect(await first, isTrue);
+      expect(await second, isTrue);
+
       expect(
         repository.startCalls,
         1,
         reason: 'the documents must not be uploaded twice',
       );
+    });
+
+    test('a start after a finished run reuses the result without re-uploading',
+        () async {
+      final repository = _FakeRepository()..enqueueResult(_result('session-a'));
+
+      final notifier = AISmartCaseNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      notifier.addFiles([_file('a.pdf')]);
+      expect(await notifier.startExtraction(), isTrue);
+
+      // The processing screen rebuilding must not re-analyse documents we
+      // already have an answer for.
+      expect(await notifier.startExtraction(), isTrue);
+      expect(repository.startCalls, 1);
+    });
+
+    test('each intake carries its own idempotency key', () async {
+      final repository = _FakeRepository()
+        ..enqueueResult(_result('session-a'))
+        ..enqueueResult(_result('session-b'));
+
+      final notifier = AISmartCaseNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      notifier.addFiles([_file('a.pdf')]);
+      await notifier.startExtraction();
+
+      notifier.clearForNewIntake();
+      notifier.addFiles([_file('b.pdf')]);
+      await notifier.startExtraction();
+
+      expect(repository.requestIds, hasLength(2));
+      expect(
+        repository.requestIds.first,
+        isNot(repository.requestIds.last),
+        reason: 'a shared key would make the second intake replay the first',
+      );
+      expect(repository.requestIds.every((id) => id.isNotEmpty), isTrue);
     });
 
     test('starting with no document reports it and uploads nothing', () async {
@@ -238,6 +285,100 @@ void main() {
       expect(await notifier.startExtraction(), isFalse);
       expect(notifier.state.errorMessage, isNotNull);
       expect(repository.startCalls, 0);
+    });
+  });
+
+  group('failure handling and recovery', () {
+    test('a stream error settles the run instead of leaving it extracting',
+        () async {
+      final repository = _FakeRepository()..enqueueStreamError('the socket died');
+
+      final notifier = AISmartCaseNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      notifier.addFiles([_file('a.pdf')]);
+
+      expect(await notifier.startExtraction(), isFalse);
+      expect(notifier.state.isExtracting, isFalse);
+      expect(notifier.state.errorMessage, contains('the socket died'));
+    });
+
+    test('a progress event after a failure does not clear the error', () async {
+      final repository = _FakeRepository()..enqueueFailureThenProgress();
+
+      final notifier = AISmartCaseNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      notifier.addFiles([_file('a.pdf')]);
+      await notifier.startExtraction();
+
+      // A packet already in flight when the run failed used to wipe the banner
+      // through copyWith's unconditional `errorMessage` assignment, so the
+      // screen went back to looking as though the analysis were still running.
+      expect(notifier.state.errorMessage, isNotNull);
+      expect(notifier.state.isExtracting, isFalse);
+    });
+
+    test('a retry after a failure starts a genuinely new run', () async {
+      final repository = _FakeRepository()
+        ..enqueueStreamError('transient')
+        ..enqueueResult(_result('session-b', title: 'Recovered'));
+
+      final notifier = AISmartCaseNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      notifier.addFiles([_file('a.pdf')]);
+      expect(await notifier.startExtraction(), isFalse);
+
+      expect(await notifier.startExtraction(), isTrue);
+      expect(notifier.state.result?.extracted.title, 'Recovered');
+      expect(notifier.state.errorMessage, isNull);
+      expect(repository.startCalls, 2);
+    });
+
+    test('cancelRun stops the run and releases the subscription', () async {
+      final repository = _FakeRepository()..enqueueNeverEnding();
+
+      final notifier = AISmartCaseNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      notifier.addFiles([_file('a.pdf')]);
+      final pending = notifier.startExtraction();
+
+      // Let the upload resolve and the subscription attach.
+      await Future<void>.delayed(Duration.zero);
+      notifier.cancelRun();
+
+      expect(await pending, isFalse);
+      expect(notifier.state.isExtracting, isFalse);
+      expect(repository.openWatches, 0, reason: 'the watch must be cancelled');
+      // The client's documents survive, so they can retry without re-picking.
+      expect(notifier.state.selectedFiles, hasLength(1));
+    });
+  });
+
+  group('upload progress', () {
+    test('the uploading stage reports real bytes and stops short of the '
+        'analysis', () async {
+      final repository = _FakeRepository()..enqueueNeverEnding();
+
+      final notifier = AISmartCaseNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      final seen = <AnalysisProgress>[];
+      notifier.addListener((s) => seen.add(s.progress));
+
+      notifier.addFiles([_file('a.pdf')]);
+      unawaited(notifier.startExtraction());
+      await Future<void>.delayed(Duration.zero);
+
+      final uploading = seen.where((p) => p.stage == 'uploading').toList();
+      expect(uploading, isNotEmpty);
+      // The bar must never reach 100% merely because the bytes were sent — the
+      // analysis has not started at that point.
+      expect(uploading.every((p) => p.percent <= 15), isTrue);
+
+      notifier.cancelRun();
     });
   });
 
@@ -268,9 +409,24 @@ ExtractionResult _result(String sessionId, {String title = ''}) {
 PlatformFile _file(String name) =>
     PlatformFile(name: name, size: 10, bytes: null);
 
+/// One scripted outcome for a run.
+class _Script {
+  final ExtractionResult? result;
+  final String? streamError;
+  final bool failureThenProgress;
+  final bool neverEnds;
+
+  const _Script({
+    this.result,
+    this.streamError,
+    this.failureThenProgress = false,
+    this.neverEnds = false,
+  });
+}
+
 /// Serves a scripted stream per run, and records what each run uploaded.
 class _FakeRepository implements AISmartCaseRepository {
-  final List<ExtractionResult?> _scripted = [];
+  final List<_Script> _scripted = [];
   final List<List<String>> uploadsPerRun = [];
 
   /// The voice transcript each run uploaded, so a test can assert the live
@@ -282,11 +438,32 @@ class _FakeRepository implements AISmartCaseRepository {
 
   int startCalls = 0;
 
+  /// Watches handed out and not yet cancelled or closed. A run that leaks its
+  /// subscription shows up here as a non-zero count.
+  int openWatches = 0;
+
   /// The next run completes with [result].
-  void enqueueResult(ExtractionResult result) => _scripted.add(result);
+  void enqueueResult(ExtractionResult result) =>
+      _scripted.add(_Script(result: result));
 
   /// The next run's stream closes without delivering anything.
-  void enqueueSilence() => _scripted.add(null);
+  void enqueueSilence() => _scripted.add(const _Script());
+
+  /// The next run's stream errors, as a dropped socket or a failed poll does.
+  void enqueueStreamError(String message) =>
+      _scripted.add(_Script(streamError: message));
+
+  /// The next run fails and *then* a stale progress packet lands.
+  void enqueueFailureThenProgress() =>
+      _scripted.add(const _Script(failureThenProgress: true));
+
+  /// The next run's stream never produces anything and never closes.
+  void enqueueNeverEnding() => _scripted.add(const _Script(neverEnds: true));
+
+  /// Every idempotency key the notifier has presented, in order. Repeats across
+  /// retries of one intake are the point of the key; repeats across separate
+  /// intakes would defeat it.
+  final List<String> requestIds = [];
 
   @override
   Future<String> startAnalysis({
@@ -294,26 +471,74 @@ class _FakeRepository implements AISmartCaseRepository {
     File? voiceFile,
     String? voiceTranscript,
     String? issueDescription,
+    required String requestId,
+    CancelToken? cancelToken,
+    void Function(int sent, int total)? onProgress,
   }) async {
     uploadsPerRun.add(files.map((f) => f.name).toList());
     transcriptsPerRun.add(voiceTranscript ?? '');
     notesPerRun.add(issueDescription ?? '');
+    requestIds.add(requestId);
+
+    // Exercises the caller's upload-progress handling without a network.
+    onProgress?.call(512, 1024);
+    onProgress?.call(1024, 1024);
     final index = startCalls;
     startCalls++;
     final scripted = index < _scripted.length ? _scripted[index] : null;
-    return scripted?.sessionId ?? 'session-$startCalls';
+    return scripted?.result?.sessionId ?? 'session-$startCalls';
   }
 
   @override
   Stream<AnalysisEvent> watch(String sessionId) {
-    final scripted = _scripted.firstWhere(
-      (r) => r?.sessionId == sessionId,
-      orElse: () => null,
+    // Runs are consumed in order, so the script for this watch is the one whose
+    // upload has just happened.
+    final script =
+        startCalls - 1 < _scripted.length && startCalls > 0 ? _scripted[startCalls - 1] : null;
+
+    late StreamController<AnalysisEvent> controller;
+    controller = StreamController<AnalysisEvent>(
+      onListen: () {
+        openWatches++;
+
+        if (script == null || script.neverEnds) return;
+
+        scheduleMicrotask(() {
+          if (controller.isClosed) return;
+
+          if (script.streamError != null) {
+            controller.addError(Exception(script.streamError));
+            controller.close();
+            openWatches--;
+            return;
+          }
+
+          if (script.failureThenProgress) {
+            controller.add(const AnalysisEvent.failed('The analysis failed.'));
+            // A packet that was already on the wire when the run failed.
+            controller.add(
+              const AnalysisEvent.progress(
+                AnalysisProgress(stage: 'ocr', message: 'Reading…', percent: 40),
+              ),
+            );
+            controller.close();
+            openWatches--;
+            return;
+          }
+
+          if (script.result != null) {
+            controller.add(AnalysisEvent.complete(script.result!));
+          }
+          controller.close();
+          openWatches--;
+        });
+      },
+      onCancel: () {
+        if (!controller.isClosed) openWatches--;
+      },
     );
 
-    return Stream<AnalysisEvent>.fromIterable([
-      if (scripted != null) AnalysisEvent.complete(scripted),
-    ]);
+    return controller.stream;
   }
 
   @override

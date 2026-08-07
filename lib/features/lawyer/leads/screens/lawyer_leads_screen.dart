@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../models/case_model.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/auth_provider.dart';
@@ -54,7 +54,7 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
   // ── resolve image URL ──────────────────────────────────────────────────────
   ImageProvider? _img(String url) {
     if (url.isEmpty) return null;
-    return NetworkImage(Environment.getAttachmentUrl(url));
+    return NetworkImage(AppConfig.getAttachmentUrl(url));
   }
 
   // ── filter lists ──────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ import '../../../../core/widgets/app_drawer.dart';
 import '../../post_case/widgets/premium_audio_player.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../providers/notification_provider.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
 
 class MyCasesScreen extends ConsumerStatefulWidget {
@@ -404,7 +404,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
               radius: 18,
               backgroundColor: AppColors.border,
               imageUrl: lawyerImage.isNotEmpty
-                  ? Environment.getAttachmentUrl(lawyerImage)
+                  ? AppConfig.getAttachmentUrl(lawyerImage)
                   : null,
               fallback: const Icon(Icons.person, size: 18, color: AppColors.mutedText),
             ),

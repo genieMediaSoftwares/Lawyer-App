@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/appointment_provider.dart';
 import '../../../../models/appointment_model.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
 
 class ConsultScreen extends ConsumerStatefulWidget {
@@ -156,7 +156,7 @@ class _ConsultScreenState extends ConsumerState<ConsultScreen>
                 AppCircleAvatar(
                   radius: 28,
                   imageUrl: appointment.lawyerImage.isNotEmpty
-                      ? Environment.getAttachmentUrl(appointment.lawyerImage)
+                      ? AppConfig.getAttachmentUrl(appointment.lawyerImage)
                       : null,
                   fallback: const Icon(Icons.person),
                 ),

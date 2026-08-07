@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const zlib = require("zlib");
 const gemini = require("./geminiClient");
 const { extractDocxText } = require("./docxExtractor");
 
@@ -157,6 +158,60 @@ class OcrSanitizationService {
   }
 
   /**
+   * Fast offline extraction for digital PDFs using FlateDecode decompression.
+   */
+  _extractDigitalPdfText(pdfBuffer) {
+    try {
+      const rawString = pdfBuffer.toString("latin1");
+
+      const literalMatches =
+        rawString.match(/\((.*?)\)\s*Tj/g) || rawString.match(/\[(.*?)\]\s*TJ/g);
+      if (literalMatches && literalMatches.length > 5) {
+        const text = literalMatches
+          .map((m) => m.replace(/[()[\]]/g, "").replace(/Tj|TJ/g, "").trim())
+          .filter(Boolean)
+          .join(" ");
+        if (this._looksLikeProse(text)) return text;
+      }
+
+      const streamRegex = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+      let match;
+      const decompressedParts = [];
+
+      while ((match = streamRegex.exec(rawString)) !== null) {
+        const chunk = match[1];
+        if (!chunk || chunk.length < 10) continue;
+        try {
+          const buf = Buffer.from(chunk, "latin1");
+          const inflated = zlib.unzipSync(buf).toString("latin1");
+          decompressedParts.push(inflated);
+        } catch {
+          if (chunk.includes("BT") && chunk.includes("ET")) {
+            decompressedParts.push(chunk);
+          }
+        }
+      }
+
+      if (decompressedParts.length > 0) {
+        const fullDecompressed = decompressedParts.join("\n");
+        const matches =
+          fullDecompressed.match(/\((.*?)\)\s*Tj/g) ||
+          fullDecompressed.match(/\[(.*?)\]\s*TJ/g) ||
+          fullDecompressed.match(/[A-Za-z0-9\s.,;:'"()-]{15,}/g);
+
+        if (matches && matches.length > 0) {
+          const text = matches
+            .map((m) => m.replace(/[()[\]]/g, "").replace(/Tj|TJ/g, "").trim())
+            .filter((s) => s.length > 2)
+            .join(" ");
+          if (this._looksLikeProse(text)) return text;
+        }
+      }
+    } catch (_) {}
+    return "";
+  }
+
+  /**
    * PDF Text Extraction (Digital PDF text + Scanned PDF Vision fallback)
    */
   async _extractPdfText(filePath) {
@@ -166,28 +221,8 @@ class OcrSanitizationService {
 
     const pdfBuffer = fs.readFileSync(filePath);
 
-    // Cheap path first: pull literals out of uncompressed content streams.
-    // Most real-world PDFs use FlateDecode, so this usually finds nothing and
-    // we fall through to Gemini — but when it hits, it saves an API call.
-    let textContent = "";
-    try {
-      const rawString = pdfBuffer.toString("latin1");
-      const textMatches =
-        rawString.match(/\((.*?)\)\s*Tj/g) || rawString.match(/\[(.*?)\]\s*TJ/g);
-      if (textMatches && textMatches.length > 5) {
-        textContent = textMatches
-          .map((m) => m.replace(/[()[\]]/g, "").replace(/Tj|TJ/g, ""))
-          .join(" ");
-      }
-    } catch {
-      // Not fatal — fall through to OCR.
-    }
-
-    // Only trust the cheap path when what it found actually looks like prose.
-    // The regex runs over the whole file including compressed streams, so on a
-    // FlateDecode PDF it can match binary and produce >50 characters of noise —
-    // which was then returned as the document's text and never OCR'd, because
-    // this branch reported extractionFailed: false.
+    // Fast path: Digital PDF stream decompression
+    let textContent = this._extractDigitalPdfText(pdfBuffer);
     if (this._looksLikeProse(textContent)) {
       return { text: textContent, isScanned: false, extractionFailed: false, error: null };
     }

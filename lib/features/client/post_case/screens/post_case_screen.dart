@@ -8,7 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../models/document_model.dart';
@@ -703,7 +703,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
       _uploadedDocs.add(DocumentModel(
         name: doc.originalName,
-        url: Environment.getAttachmentUrl(doc.url),
+        url: AppConfig.getAttachmentUrl(doc.url),
         size: doc.size > 0
             ? "${(doc.size / (1024 * 1024)).toStringAsFixed(1)} MB"
             : '',
@@ -816,7 +816,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               "voice_description_${DateTime.now().millisecondsSinceEpoch}.m4a",
             );
         if (docRecord != null) {
-          voiceUrl = Environment.getAttachmentUrl(docRecord.filePath);
+          voiceUrl = AppConfig.getAttachmentUrl(docRecord.filePath);
         }
       } catch (e) {
         if (!mounted) return;
@@ -2106,7 +2106,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           ..add(
             DocumentModel(
               name: doc.originalName,
-              url: Environment.getAttachmentUrl(doc.filePath),
+              url: AppConfig.getAttachmentUrl(doc.filePath),
               size: "${(doc.fileSize / (1024 * 1024)).toStringAsFixed(1)} MB",
             ),
           );
@@ -2282,7 +2282,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   void _viewDocument() {
     if (_uploadedDocRecord == null) return;
 
-    final url = Environment.getAttachmentUrl(_uploadedDocRecord!.filePath);
+    final url = AppConfig.getAttachmentUrl(_uploadedDocRecord!.filePath);
     final isPdf = _uploadedDocRecord!.mimeType.contains("pdf");
 
     showDialog(
@@ -2780,7 +2780,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                 AppCircleAvatar(
                   radius: 28,
                   imageUrl: _selectedLawyerModel!.profileImage.isNotEmpty
-                      ? Environment.getAttachmentUrl(
+                      ? AppConfig.getAttachmentUrl(
                           _selectedLawyerModel!.profileImage,
                         )
                       : null,
@@ -3108,7 +3108,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                       borderRadius: BorderRadius.circular(12),
                       child: lawyer.profileImage.isNotEmpty
                           ? Image.network(
-                              Environment.getAttachmentUrl(lawyer.profileImage),
+                              AppConfig.getAttachmentUrl(lawyer.profileImage),
                               width: 80,
                               height: 88,
                               fit: BoxFit.cover,
@@ -3400,7 +3400,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                       AppCircleAvatar(
                         radius: 40,
                         imageUrl: lawyer.profileImage.isNotEmpty
-                            ? Environment.getAttachmentUrl(lawyer.profileImage)
+                            ? AppConfig.getAttachmentUrl(lawyer.profileImage)
                             : null,
                         fallback: const Icon(Icons.person, size: 40, color: Colors.grey),
                       ),

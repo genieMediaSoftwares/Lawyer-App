@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/favorite_provider.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
 
 class FavoriteLawyersScreen extends ConsumerStatefulWidget {
@@ -108,7 +108,7 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                 AppCircleAvatar(
                   radius: 26,
                   imageUrl: fav.lawyerImage.isNotEmpty
-                      ? Environment.getAttachmentUrl(fav.lawyerImage)
+                      ? AppConfig.getAttachmentUrl(fav.lawyerImage)
                       : null,
                   fallback: const Icon(Icons.person),
                 ),
@@ -209,7 +209,7 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                     AppCircleAvatar(
                       radius: 28,
                       imageUrl: fav.lawyerImage.isNotEmpty
-                          ? Environment.getAttachmentUrl(fav.lawyerImage)
+                          ? AppConfig.getAttachmentUrl(fav.lawyerImage)
                           : null,
                       fallback: const Icon(Icons.person),
                     ),

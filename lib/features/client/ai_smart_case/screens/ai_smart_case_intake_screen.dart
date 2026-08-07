@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/localization/locale_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../providers/ai_smart_case_provider.dart';
 import '../widgets/voice_note_recorder.dart';
+import '../repositories/ai_smart_case_repository.dart';
+import '../utils/ai_smart_case_logger.dart';
 import 'ai_smart_case_processing_screen.dart';
 
 class AISmartCaseIntakeScreen extends ConsumerStatefulWidget {
@@ -20,9 +23,9 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
   final TextEditingController _descController = TextEditingController();
   bool _isRecording = false;
 
-  /// Bumped whenever this intake is finished with, to give the voice note
-  /// recorder a fresh key — see where it is built.
   int _intakeGeneration = 0;
+  bool _isProceeding = false;
+  bool _isPicking = false;
 
   @override
   void initState() {
@@ -32,7 +35,7 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
     // analysis's files, voice note and result — and a second run re-uploaded
     // the previous documents alongside the new ones.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(aiSmartCaseProvider.notifier).reset();
+      if (mounted) ref.read(aiSmartCaseProvider.notifier).reset();
     });
   }
 
@@ -42,23 +45,31 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
     super.dispose();
   }
 
-  /// Mirrors the server limits: multer caps each file at 10 MB and the
-  /// analyze route accepts at most 10 documents. Without these checks an
-  /// oversized or eleventh file failed the entire upload server-side with an
-  /// unhandled MulterError and no usable message.
-  static const _maxFileBytes = 10 * 1024 * 1024;
-  static const _maxFileCount = 10;
+  /// Mirrors the server limits, configured as AI_MAX_FILE_BYTES and
+  /// AI_MAX_FILE_COUNT in .env. Without these checks an oversized or extra file
+  /// failed the entire upload server-side with an unhandled MulterError and no
+  /// usable message.
+  static int get _maxFileBytes => AISmartCaseRepository.maxFileBytes;
+  static int get _maxFileCount => AISmartCaseRepository.maxFileCount;
+
+  /// Extensions the backend can actually turn into text. Checked in addition to
+  /// the picker's own filter because `FileType.custom` is advisory on some
+  /// Android file providers — a document chosen through "Browse" can come back
+  /// with any extension at all, and the server then rejects the whole upload.
+  /// Configured as AI_ALLOWED_UPLOAD_EXTENSIONS in .env.
+  static Set<String> get _allowedExtensions =>
+      AppConfig.aiAllowedUploadExtensions;
 
   Future<void> _pickFiles() async {
+    if (_isPicking) return;
+    _isPicking = true;
     try {
       final result = await FilePicker.pickFiles(
         allowMultiple: true,
         type: FileType.custom,
-        // Mirrors EXTENSION_BY_MIME in backend/src/middleware/upload.middleware.js.
-        // `.doc` is deliberately absent: the pre-2007 binary Word format has no
-        // text extractor here and Gemini cannot read it, so offering it only
-        // produced an upload that could never be analysed.
-        allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'docx', 'txt', 'csv'],
+        // Configured as AI_UPLOAD_PICKER_EXTENSIONS in .env, which is where the
+        // note about `.doc` being deliberately excluded now lives.
+        allowedExtensions: AppConfig.aiPickerExtensions,
         // Web has no filesystem to stream from, so the bytes must come back
         // with the pick or the file is unreadable. On native we deliberately
         // skip this and stream from the path at upload time instead — loading
@@ -74,9 +85,42 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
       final accepted = <PlatformFile>[];
       final oversized = <String>[];
       final unreadable = <String>[];
+      final wrongType = <String>[];
+      final empty = <String>[];
+      final duplicates = <String>[];
       var overflowed = false;
 
+      // Same name and same byte count means the client picked the file twice.
+      // Uploading it again costs an OCR pass and gives the model the document
+      // twice, which measurably skews the extraction towards it.
+      final existingKeys = ref
+          .read(aiSmartCaseProvider)
+          .selectedFiles
+          .map((f) => '${f.name}:${f.size}')
+          .toSet();
+
       for (final picked in result.files) {
+        final key = '${picked.name}:${picked.size}';
+        if (existingKeys.contains(key)) {
+          duplicates.add(picked.name);
+          continue;
+        }
+
+        final extension =
+            (picked.extension ?? picked.name.split('.').last).toLowerCase();
+        if (!_allowedExtensions.contains(extension)) {
+          wrongType.add(picked.name);
+          continue;
+        }
+
+        // A zero-byte pick is usually a cloud file the provider never
+        // materialised. Sending it produces an unreadable document and a
+        // confusing "we could not read your file" from the pipeline.
+        if (picked.size <= 0) {
+          empty.add(picked.name);
+          continue;
+        }
+
         // Size comes straight from PlatformFile, which every platform
         // populates. The previous version built a `dart:io` File just to call
         // `length()` — that threw `Unsupported operation: _Namespace` on web,
@@ -101,6 +145,7 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
         }
 
         accepted.add(picked);
+        existingKeys.add(key);
       }
 
       if (accepted.isNotEmpty) notifier.addFiles(accepted);
@@ -110,6 +155,12 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
       final problems = <String>[
         if (oversized.isNotEmpty)
           'Skipped (over 10 MB): ${oversized.join(', ')}',
+        if (wrongType.isNotEmpty)
+          'Unsupported format: ${wrongType.join(', ')}',
+        if (empty.isNotEmpty)
+          'Empty file: ${empty.join(', ')}',
+        if (duplicates.isNotEmpty)
+          'Already added: ${duplicates.join(', ')}',
         if (unreadable.isNotEmpty)
           'Could not read: ${unreadable.join(', ')}',
         if (overflowed) 'You can attach up to $_maxFileCount documents.',
@@ -121,11 +172,16 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
         );
       }
     } catch (e) {
+      AILog.error('intake:pick-failed', e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick files: $e')),
+          const SnackBar(
+            content: Text('Could not open the file picker. Please try again.'),
+          ),
         );
       }
+    } finally {
+      _isPicking = false;
     }
   }
 
@@ -142,12 +198,12 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
     ];
   }
 
-  void _onProceed() async {
+  Future<void> _onProceed() async {
+    if (_isProceeding) return;
+
     final notifier = ref.read(aiSmartCaseProvider.notifier);
     notifier.setWrittenNotes(_descController.text.trim());
 
-    // Submitting mid-recording would send a half-finished transcript and leave
-    // the microphone open behind the processing screen.
     if (_isRecording) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please stop the recording before continuing.')),
@@ -156,8 +212,6 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
     }
 
     final state = ref.read(aiSmartCaseProvider);
-    // The document is the primary input the AI reasons from; the voice note
-    // and written notes are optional supplements, not alternatives to it.
     if (state.selectedFiles.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -168,23 +222,21 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
       return;
     }
 
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AISmartCaseProcessingScreen()),
-    );
+    setState(() => _isProceeding = true);
 
-    // Reached once this screen is on top again — either the analysis was
-    // abandoned, or it succeeded and the processing screen replaced itself with
-    // the pre-filled form the client has now backed out of.
-    //
-    // Either way this intake is finished. `initState` alone did not cover it:
-    // this screen is still mounted underneath, so returning to it never re-ran
-    // that reset and left the previous document selected and its extraction in
-    // memory — the "uploaded a different document, got the old data" report.
-    if (!mounted) return;
-    ref.read(aiSmartCaseProvider.notifier).clearForNewIntake();
-    _descController.clear();
-    setState(() => _intakeGeneration++);
+    try {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AISmartCaseProcessingScreen()),
+      );
+
+      if (!mounted) return;
+      ref.read(aiSmartCaseProvider.notifier).clearForNewIntake();
+      _descController.clear();
+      setState(() => _intakeGeneration++);
+    } finally {
+      if (mounted) setState(() => _isProceeding = false);
+    }
   }
 
   @override
@@ -465,7 +517,9 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: _onProceed,
+                  // Null while the processing screen is being pushed, so the
+                  // button cannot be tapped a second time into a duplicate run.
+                  onPressed: _isProceeding ? null : _onProceed,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryGold,
                     foregroundColor: AppColors.onGold,

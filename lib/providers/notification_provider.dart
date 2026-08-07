@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
-import '../core/config/env.dart';
+import '../core/config/app_config.dart';
 import '../core/network/dio_client.dart';
 import '../core/storage/token_storage.dart';
 import '../models/notification_model.dart';
@@ -127,17 +127,28 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     final token = await TokenStorage().getToken();
     if (token == null || token.isEmpty) return;
 
-    final socketUrl = '${Environment.baseSocketUrl}/notifications';
-
-    _socket = io.io(socketUrl, io.OptionBuilder()
+    _socket = io.io(AppConfig.notificationSocketUrl, io.OptionBuilder()
       .setTransports(['websocket'])
-      .setAuth({'token': token})
-      .enableAutoConnect()
+      // Connected explicitly below, once the auth callback is in place.
+      .disableAutoConnect()
       .enableReconnection()
-      .setReconnectionDelay(2000)
-      .setReconnectionDelayMax(5000)
-      .setReconnectionAttempts(99)
+      .setReconnectionDelay(
+        AppConfig.notificationSocketReconnectDelay.inMilliseconds,
+      )
+      .setReconnectionDelayMax(
+        AppConfig.notificationSocketReconnectDelayMax.inMilliseconds,
+      )
+      .setReconnectionAttempts(AppConfig.notificationSocketReconnectAttempts)
       .build());
+
+    // A function, not the literal map `setAuth` takes: it is re-evaluated on
+    // every connect attempt, so a reconnect after the token was refreshed
+    // presents the current one. With the map, the token captured here was
+    // replayed forever, and once it expired every reconnect was refused — so
+    // new-message alerts and unread badges stopped arriving until a restart.
+    _socket?.auth = (callback) => callback({
+      'token': TokenStorage.cachedToken ?? token,
+    });
 
     _socket?.connect();
 

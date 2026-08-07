@@ -3,6 +3,7 @@ const AiSmartCaseSession = require("../../models/AiSmartCaseSession");
 const ocrSanitizationService = require("./ocrSanitizationService");
 const aiSmartIntakeService = require("./aiSmartIntakeService");
 const gemini = require("./geminiClient");
+const log = require("../../utils/aiLogger");
 
 /**
  * The AI Smart Case intake pipeline.
@@ -59,8 +60,54 @@ const OCR_CONCURRENCY = 1;
  */
 const PIPELINE_BUDGET_MS = 8 * 60 * 1000;
 
+/**
+ * Per-step ceilings, enforced with a race rather than trusting the callee.
+ *
+ * The budget above used to be checked only *between* stages, which meant it
+ * could not stop a stage that never returned. `geminiClient` walks up to five
+ * models, twice, retrying 429s, at 60 seconds per attempt — arithmetic that
+ * reaches twenty minutes for a single call. One such call therefore blew right
+ * past the eight-minute budget, and because nothing else advanced the session,
+ * it sat on "Extracting case details" until someone restarted the server.
+ *
+ * A step that exceeds its ceiling is abandoned and treated as having produced
+ * nothing, which every caller below already handles.
+ */
+const OCR_STEP_TIMEOUT_MS = 150 * 1000;
+const TRANSCRIBE_STEP_TIMEOUT_MS = 120 * 1000;
+const EXTRACT_STEP_TIMEOUT_MS = 180 * 1000;
+
 /** A document with fewer readable characters than this needs vision help. */
 const SPARSE_TEXT_THRESHOLD = 40;
+
+/** Marker distinguishing "the step ran out of time" from "the step threw". */
+class StepTimeoutError extends Error {
+  constructor(label, ms) {
+    super(`${label} exceeded ${Math.round(ms / 1000)}s`);
+    this.name = "StepTimeoutError";
+  }
+}
+
+/**
+ * Resolves with [work]'s value, or rejects with a [StepTimeoutError] once [ms]
+ * has passed.
+ *
+ * The underlying work is not cancellable — it is an in-flight `fetch` inside
+ * geminiClient — so it keeps running to completion in the background and its
+ * result is discarded. That is acceptable and deliberate: the alternative is a
+ * pipeline that a single hung upstream call can stall indefinitely.
+ */
+function withTimeout(work, ms, label) {
+  let timer;
+  return Promise.race([
+    Promise.resolve(work).finally(() => clearTimeout(timer)),
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new StepTimeoutError(label, ms)), ms);
+      // Never hold the event loop open for a step nobody is waiting on.
+      if (timer.unref) timer.unref();
+    }),
+  ]);
+}
 
 class AiSmartCasePipeline {
   /**
@@ -100,10 +147,15 @@ class AiSmartCasePipeline {
 
     // Persist first: the session is the source of truth a reconnecting client
     // reads, so it must never lag behind what was broadcast.
+    //
+    // A failed write is not fatal to the run, but it *is* fatal to the client's
+    // view of it: the poll fallback reads this document, so a session whose
+    // progress stops advancing looks abandoned to the stale-session sweep. Log
+    // it loudly rather than swallowing it into a console.error nobody greps.
     try {
       await AiSmartCaseSession.updateOne({ _id: session._id }, { $set: { progress } });
     } catch (e) {
-      console.error("Could not persist pipeline progress:", e.message);
+      log.error("pipeline:progress-persist-failed", e, { session: session._id, stage });
     }
 
     this.emit(session.client, "analysis_progress", {
@@ -118,7 +170,9 @@ class AiSmartCasePipeline {
     try {
       this.io.of("/ai").to(clientId.toString()).emit(event, payload);
     } catch (e) {
-      console.error(`Could not emit ${event}:`, e.message);
+      // The socket is an accelerator, never the source of truth — the client's
+      // poll still reconciles against the session document.
+      log.error("pipeline:emit-failed", e, { event });
     }
   }
 
@@ -137,6 +191,31 @@ class AiSmartCasePipeline {
   async run({ session, documentFiles, voiceFile, typedDescription, liveVoiceTranscript = "" }) {
     const startedAt = Date.now();
     const overBudget = () => Date.now() - startedAt > PIPELINE_BUDGET_MS;
+
+    // Hard stop. The stage-boundary `overBudget()` checks below cannot rescue a
+    // run whose *current* stage has hung, and every step here calls out to a
+    // network service that can. This watchdog fires regardless of where the run
+    // is, marks the session failed and tells the client — the difference
+    // between an intake that reports a timeout and one that spins forever.
+    let watchdogFired = false;
+    const watchdog = setTimeout(() => {
+      watchdogFired = true;
+      log.error("pipeline:watchdog-fired", new Error("pipeline exceeded budget"), {
+        session: session._id,
+        elapsedMs: Date.now() - startedAt,
+      });
+      this._fail(
+        session,
+        "The analysis took longer than expected and was stopped. Please try again with fewer or smaller documents."
+      ).catch((e) => log.error("pipeline:watchdog-fail-write-failed", e));
+    }, PIPELINE_BUDGET_MS + 15 * 1000);
+    if (watchdog.unref) watchdog.unref();
+
+    log.info("pipeline:start", {
+      session: session._id,
+      documents: documentFiles.length,
+      voice: Boolean(voiceFile),
+    });
 
     try {
       await this.report(session, "queued", "Preparing your documents", { fraction: 1 });
@@ -179,9 +258,13 @@ class AiSmartCasePipeline {
         );
       }
 
-      // Nothing readable at all: fail honestly rather than inventing a case
-      // out of a filename.
-      if (!ocrText.trim() && !voiceTranscript.trim() && !typedDescription.trim()) {
+      // Nothing readable from text-OCR: if all documents failed OCR and no text/voice was provided,
+      // fail honestly. If valid scanned/image documents exist, proceed to structured extraction
+      // with priorityFiles attached inline so Gemini Vision reads them.
+      const hasFilesToProcess = Array.isArray(documentFiles) && documentFiles.length > 0;
+      const allOcrFailed = failures.length === documentFiles.length && hasFilesToProcess;
+
+      if ((!ocrText.trim() && !voiceTranscript.trim() && !typedDescription.trim() && !hasFilesToProcess) || allOcrFailed) {
         return this._fail(
           session,
           failures.length
@@ -200,14 +283,49 @@ class AiSmartCasePipeline {
       // ── 3. Structured extraction ────────────────────────────────────────
       await this.report(session, "extracting", "Extracting case details", { fraction: 0 });
 
-      const { extracted, warnings: extractionNotes } = await aiSmartIntakeService.extractCaseData({
-        ocrText,
-        voiceTranscript,
-        typedDescription,
-        documentMetadata,
-        documentFiles,
-        priorityFiles: sparseFiles,
-      });
+      let extracted;
+      let extractionNotes;
+      try {
+        ({ extracted, warnings: extractionNotes } = await withTimeout(
+          aiSmartIntakeService.extractCaseData({
+            ocrText,
+            voiceTranscript,
+            typedDescription,
+            documentMetadata,
+            documentFiles,
+            priorityFiles: sparseFiles.length > 0 ? sparseFiles : documentFiles,
+          }),
+          EXTRACT_STEP_TIMEOUT_MS,
+          "extraction"
+        ));
+      } catch (e) {
+        // This is the one step with no useful degraded mode: without structured
+        // fields there is nothing to pre-fill the form with. Fail with a
+        // message the client can act on rather than letting the generic
+        // handler below report "something went wrong".
+        log.error("pipeline:extraction-failed", e, { session: session._id });
+        return this._fail(
+          session,
+          e instanceof StepTimeoutError
+            ? "Analysing your documents took longer than expected. Please try again, or with fewer documents."
+            : "We could not extract case details from your documents. Please try again, or fill the form in manually."
+        );
+      }
+
+      const hasContent = extracted && (
+        Boolean(extracted.title) ||
+        Boolean(extracted.description) ||
+        Boolean(extracted.category) ||
+        Boolean(extracted.summary) ||
+        (Array.isArray(extracted.parties) && extracted.parties.length > 0)
+      );
+
+      if (!hasContent && !typedDescription.trim() && !voiceTranscript.trim()) {
+        return this._fail(
+          session,
+          "We could not extract case details from the document(s) you uploaded. Please upload a clearer copy, or describe your issue in writing, and try again."
+        );
+      }
 
       await this.report(session, "extracting", "Case details extracted", { fraction: 1 });
 
@@ -237,8 +355,14 @@ class AiSmartCasePipeline {
           : []),
       ];
 
-      const completed = await AiSmartCaseSession.findByIdAndUpdate(
-        session._id,
+      // The watchdog may have already failed this session while extraction was
+      // running. Writing "extracted" on top would leave the client holding an
+      // `analysis_failed` it can never reconcile, so the filter refuses to
+      // resurrect a run that has already been given up on. `status` is the
+      // condition rather than a flag in this process, so a second worker or a
+      // restarted server reaches the same conclusion.
+      const completed = await AiSmartCaseSession.findOneAndUpdate(
+        { _id: session._id, status: "processing" },
         {
           $set: {
             status: "extracted",
@@ -261,10 +385,18 @@ class AiSmartCasePipeline {
         { new: true }
       );
 
+      if (!completed) {
+        log.warn("pipeline:completed-after-terminal", {
+          session: session._id,
+          watchdogFired,
+        });
+        return AiSmartCaseSession.findById(session._id);
+      }
+
       this.emit(session.client, "analysis_complete", {
         sessionId: session._id.toString(),
         extracted,
-        uploadedDocuments: completed?.uploadedDocuments ?? [],
+        uploadedDocuments: completed.uploadedDocuments ?? [],
         voiceTranscript,
         voiceTranscriptSource,
         voiceTranscriptionFailed,
@@ -272,20 +404,26 @@ class AiSmartCasePipeline {
         documentSummaries,
       });
 
-      // The client already has their result; transcribing the recording here
-      // is for the record, not for them. Deliberately not awaited and
-      // deliberately silent — a failure changes nothing they can see.
       if (voiceFile && voiceTranscriptSource === "live") {
         this._verifyVoiceInBackground(session, voiceFile);
       }
 
+      log.info("pipeline:complete", {
+        session: session._id,
+        elapsedMs: Date.now() - startedAt,
+        category: extracted.category || "unclassified",
+        warnings: warnings.length,
+      });
+
       return completed;
     } catch (error) {
-      console.error("AI Smart Case pipeline error:", error);
+      log.error("pipeline:unhandled", error, { session: session._id });
       return this._fail(
         session,
         "Something went wrong while analysing your documents. Please try again."
       );
+    } finally {
+      clearTimeout(watchdog);
     }
   }
 
@@ -324,17 +462,34 @@ class AiSmartCasePipeline {
             };
           }
 
-          const result = await ocrSanitizationService
-            .extractText(file.path, file.mimetype, file.originalname)
+          // Bounded per document. Without a ceiling one pathological scan —
+          // a 200-page PDF, or a Gemini call that hangs behind retries — held
+          // the whole intake, and every other document behind it, for as long
+          // as it liked.
+          const result = await withTimeout(
+            ocrSanitizationService.extractText(file.path, file.mimetype, file.originalname),
+            OCR_STEP_TIMEOUT_MS,
+            `ocr(${file.originalname})`
+          )
             // One unreadable document must not fail the whole intake.
-            .catch((err) => ({
-              extractedText: "",
-              ocrQuality: "Extraction Unavailable",
-              fraudFlags: [],
-              charCount: 0,
-              extractionFailed: true,
-              extractionError: err.message,
-            }));
+            .catch((err) => {
+              log.warn("pipeline:ocr-failed", {
+                session: session._id,
+                name: file.originalname,
+                error: err.message,
+              });
+              return {
+                extractedText: "",
+                ocrQuality: "Extraction Unavailable",
+                fraudFlags: [],
+                charCount: 0,
+                extractionFailed: true,
+                extractionError:
+                  err instanceof StepTimeoutError
+                    ? "Reading this document took too long and it was skipped."
+                    : err.message,
+              };
+            });
 
           return { file, result };
         })
@@ -390,32 +545,30 @@ class AiSmartCasePipeline {
 
     // Record the per-document OCR verdict on the session so the client sees the
     // same quality information the pipeline acted on.
-    try {
-      await AiSmartCaseSession.updateOne(
-        { _id: session._id },
-        {
-          $set: documentSummaries.reduce((patch, summary, i) => {
-            patch[`uploadedDocuments.${i}.ocrQuality`] = summary.ocrQuality;
-            return patch;
-          }, {}),
-        }
-      );
-    } catch (e) {
-      console.error("Could not persist OCR quality:", e.message);
+    if (documentSummaries.length > 0) {
+      try {
+        await AiSmartCaseSession.updateOne(
+          { _id: session._id },
+          {
+            $set: documentSummaries.reduce((patch, summary, i) => {
+              patch[`uploadedDocuments.${i}.ocrQuality`] = summary.ocrQuality;
+              return patch;
+            }, {}),
+          }
+        );
+      } catch (e) {
+        // Cosmetic only — the extraction itself is unaffected.
+        log.warn("pipeline:ocr-quality-persist-failed", {
+          session: session._id,
+          error: e.message,
+        });
+      }
     }
 
     return { ocrText, documentMetadata, sparseFiles, failures, fraudFlags, documentSummaries };
   }
 
   /**
-   * Transcribes the uploaded audio after the analysis has already been
-   * delivered, purely so the retained recording and the transcript the client
-   * submitted can be compared later.
-   *
-   * Never awaited, never emitted, never turned into a warning: the client
-   * reviewed and edited the live transcript themselves, so it stands regardless
-   * of what this produces.
-   */
   _verifyVoiceInBackground(session, voiceFile) {
     setImmediate(async () => {
       try {
@@ -427,68 +580,116 @@ class AiSmartCasePipeline {
           { $set: { serverVoiceTranscript: transcript } }
         );
       } catch (err) {
-        console.error("Background voice verification failed:", err.message);
+        log.warn("pipeline:background-voice-verification-failed", { error: err.message });
       }
     });
   }
 
-  /** Transcribes the voice note. Routed through geminiClient for failover. */
+  /**
+   * Transcribes the voice note. Routed through geminiClient for failover.
+   */
   async _transcribe(voiceFile) {
     try {
-      const audioBase64 = fs.readFileSync(voiceFile.path).toString("base64");
+      if (!voiceFile.path || !fs.existsSync(voiceFile.path)) {
+        log.warn("pipeline:voice-missing", { path: voiceFile.path });
+        return { transcript: "", failed: true };
+      }
 
-      const { text } = await gemini.generate(
-        [
-          {
-            inlineData: {
-              mimeType: voiceFile.mimetype || "audio/mp4",
-              data: audioBase64,
+      // Async read: the sync form blocked the event loop for the whole file on
+      // a server also serving every other request.
+      const audioBase64 = (await fs.promises.readFile(voiceFile.path)).toString("base64");
+
+      const { text } = await withTimeout(
+        gemini.generate(
+          [
+            {
+              inlineData: {
+                mimeType: voiceFile.mimetype || "audio/mp4",
+                data: audioBase64,
+              },
             },
-          },
-          {
-            text:
-              "Transcribe this voice description of a legal issue verbatim into English. " +
-              "Return ONLY the plain transcript, with no commentary.",
-          },
-        ],
-        { label: "smart-case:transcribe" }
+            {
+              text:
+                "Transcribe this voice description of a legal issue verbatim into English. " +
+                "Return ONLY the plain transcript, with no commentary.",
+            },
+          ],
+          { label: "smart-case:transcribe" }
+        ),
+        TRANSCRIBE_STEP_TIMEOUT_MS,
+        "transcription"
       );
 
       return { transcript: text || "", failed: !text };
     } catch (err) {
-      console.error("Voice transcription failed in intake:", err.message);
+      log.warn("pipeline:transcription-failed", { error: err.message });
       return { transcript: "", failed: true };
     }
   }
 
-  /** Marks the session failed, tells the client why, and returns it. */
+  /**
+   * Marks the session failed, tells the client why, and returns it.
+   *
+   * Guarded on `status: "processing"` so it cannot overwrite a run that already
+   * finished — the watchdog and the run body can both reach here, and a late
+   * failure landing on a completed session would have shown the client an error
+   * for an analysis they already had the result of.
+   *
+   * Never throws: it is called from `catch` blocks and from a timer callback,
+   * where a rejection has nowhere to go.
+   */
   async _fail(session, reason) {
-    const failed = await AiSmartCaseSession.findByIdAndUpdate(
-      session._id,
-      {
-        $set: {
-          status: "failed",
-          failureReason: reason,
-          progress: {
-            stage: "failed",
-            message: reason,
-            percent: 100,
-            current: null,
-            total: null,
-            updatedAt: new Date(),
+    try {
+      const failed = await AiSmartCaseSession.findOneAndUpdate(
+        { _id: session._id, status: "processing" },
+        {
+          $set: {
+            status: "failed",
+            failureReason: reason,
+            progress: {
+              stage: "failed",
+              message: reason,
+              percent: 100,
+              current: null,
+              total: null,
+              updatedAt: new Date(),
+            },
           },
         },
-      },
-      { new: true }
-    );
+        { new: true }
+      );
 
-    this.emit(session.client, "analysis_failed", {
-      sessionId: session._id.toString(),
-      message: reason,
-    });
+      if (!failed) {
+        // Already terminal. Say nothing to the client: they have the real
+        // outcome already.
+        log.warn("pipeline:fail-after-terminal", { session: session._id, reason });
+        return AiSmartCaseSession.findById(session._id);
+      }
 
-    return failed;
+      log.warn("pipeline:failed", { session: session._id, reason });
+
+      this.emit(session.client, "analysis_failed", {
+        sessionId: session._id.toString(),
+        message: reason,
+      });
+
+      return failed;
+    } catch (e) {
+      log.error("pipeline:fail-write-failed", e, { session: session._id });
+      // The client still hears about it; the stale-session sweep will clean the
+      // record up even though this write did not land.
+      this.emit(session.client, "analysis_failed", {
+        sessionId: session._id.toString(),
+        message: reason,
+      });
+      return null;
+    }
   }
 }
 
-module.exports = { AiSmartCasePipeline, PIPELINE_STAGES, PIPELINE_BUDGET_MS };
+module.exports = {
+  AiSmartCasePipeline,
+  PIPELINE_STAGES,
+  PIPELINE_BUDGET_MS,
+  StepTimeoutError,
+};

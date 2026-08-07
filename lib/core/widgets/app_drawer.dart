@@ -6,7 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/lawyer_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../routes/route_names.dart';
-import '../../core/config/env.dart';
+import '../../core/config/app_config.dart';
 import 'app_circle_avatar.dart';
 import '../../core/theme/app_colors.dart';
 
@@ -78,7 +78,7 @@ class AppDrawer extends ConsumerWidget {
     }
 
     final resolvedPhotoUrl = (photoUrl != null && photoUrl.isNotEmpty)
-        ? Environment.getAttachmentUrl(photoUrl)
+        ? AppConfig.getAttachmentUrl(photoUrl)
         : null;
 
     return Drawer(

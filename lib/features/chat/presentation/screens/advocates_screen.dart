@@ -5,7 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../widgets/filter_drawer.dart';
 import '../widgets/sort_by_sheet.dart';
 
@@ -272,7 +272,7 @@ class AdvocateCard extends StatelessWidget {
           AppCircleAvatar(
             radius: 36,
             backgroundColor: AppColors.border,
-            imageUrl: imageUrl.isNotEmpty ? Environment.getAttachmentUrl(imageUrl) : null,
+            imageUrl: imageUrl.isNotEmpty ? AppConfig.getAttachmentUrl(imageUrl) : null,
             fallback: Icon(Icons.person, color: AppColors.primaryText.withValues(alpha: 0.54), size: 36),
           ),
 

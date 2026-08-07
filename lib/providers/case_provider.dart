@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
-import '../core/config/env.dart';
+import '../core/config/app_config.dart';
 import '../core/network/dio_client.dart';
 import '../core/storage/token_storage.dart';
 import '../models/case_model.dart';
@@ -343,8 +343,7 @@ class CaseNotifier extends StateNotifier<AsyncValue<List<CaseModel>>> {
       final token = await TokenStorage().getToken();
       if (token == null || token.isEmpty) return;
 
-      final base = Environment.baseSocketUrl;
-      _socket = io.io('$base/cases', io.OptionBuilder()
+      _socket = io.io(AppConfig.caseSocketUrl, io.OptionBuilder()
         .setTransports(['websocket'])
         .setAuth({'token': token})
         .build());

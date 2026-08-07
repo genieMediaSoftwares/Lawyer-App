@@ -29,13 +29,29 @@ class TokenStorage {
     } catch (_) {}
   }
 
+  /// The session JWT, preferring the backing store and falling back to the
+  /// in-memory mirror.
+  ///
+  /// The fallback matters. `flutter_secure_storage` can fail a read
+  /// transiently — most visibly on web, where several concurrent reads against
+  /// the same key race — and this used to answer null when it did. The
+  /// interceptor then sent a request with no `Authorization` header at all and
+  /// the server replied "Access denied. No token provided.", so one screen in
+  /// a batch of parallel requests would fail while its siblings succeeded.
+  ///
+  /// Falling back is safe rather than a way of clinging to a stale session:
+  /// [deleteToken] and [clearAll] clear the mirror explicitly, so it is only
+  /// non-null while the user really is signed in.
   Future<String?> getToken() async {
     try {
       final token = await _secureStorage.read(key: _tokenKey);
-      _cachedToken = token;
-      return token;
+      if (token != null && token.isNotEmpty) {
+        _cachedToken = token;
+        return token;
+      }
+      return _cachedToken;
     } catch (_) {
-      return null;
+      return _cachedToken;
     }
   }
 

@@ -46,10 +46,35 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
 
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production" ? allowedOrigins : "*",
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (
+        process.env.NODE_ENV !== "production" ||
+        allowedOrigins.length === 0 ||
+        allowedOrigins.includes("*") ||
+        allowedOrigins.includes(origin) ||
+        origin.includes("localhost") ||
+        origin.includes("127.0.0.1") ||
+        origin.includes("duckdns.org")
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Request-Id",
+      "Accept",
+      "X-Requested-With",
+      "Origin",
+      "contentType",
+      "responseType",
+      "Access-Control-Allow-Headers",
+      "Access-Control-Request-Headers",
+    ],
+    credentials: true,
   })
 );
 

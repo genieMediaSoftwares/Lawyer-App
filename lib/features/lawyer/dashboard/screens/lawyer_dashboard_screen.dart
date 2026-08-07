@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
 import 'package:intl/intl.dart';
@@ -676,7 +676,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     radius: 28,
                     backgroundColor: AppColors.surface,
                     imageUrl: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
-                        ? Environment.getAttachmentUrl(authState.userPhotoUrl)
+                        ? AppConfig.getAttachmentUrl(authState.userPhotoUrl)
                         : null,
                     fallback: const Icon(Icons.person, color: AppColors.primaryText, size: 28),
                   ),
@@ -723,7 +723,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     radius: 28,
                     backgroundColor: AppColors.surface,
                     imageUrl: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
-                        ? Environment.getAttachmentUrl(authState.userPhotoUrl)
+                        ? AppConfig.getAttachmentUrl(authState.userPhotoUrl)
                         : null,
                     fallback: const Icon(Icons.person, color: AppColors.primaryText, size: 28),
                   ),
@@ -2522,7 +2522,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                             onPressed: () async {
                               final String urlStr = doc.url.startsWith("http")
                                   ? doc.url
-                                  : "${Environment.baseUrl}${doc.url}";
+                                  : "${AppConfig.baseUrl}${doc.url}";
                               final Uri uri = Uri.parse(urlStr);
                               if (await canLaunchUrl(uri)) {
                                 await launchUrl(uri, mode: LaunchMode.externalApplication);

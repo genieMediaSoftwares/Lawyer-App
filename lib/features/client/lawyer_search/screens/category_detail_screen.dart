@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../providers/faq_provider.dart';
 import '../../../../routes/route_names.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -18,56 +18,59 @@ class CategoryDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
-  // Category Info Lookup
+  // Category Info Lookup. Banner artwork is deployment data and comes from
+  // CATEGORY_BANNER_URLS in .env, keyed by the same category name.
   Map<String, dynamic> _getCategoryData() {
+    final banner = AppConfig.categoryBannerUrl(widget.categoryName);
+
     switch (widget.categoryName) {
       case "Criminal Law":
         return {
           "desc": "Defend your rights with expert criminal defense representation. Specializing in FIR filings, bail, and litigation representation.",
           "services": ["FIR Filling", "Bail Application", "Police Harassment", "Court Appeal"],
-          "banner": "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600"
+          "banner": banner
         };
       case "Divorce & Family":
         return {
           "desc": "Resolving delicate family matters with professional sensitivity. Mutual divorce filings, maintenance, and child custody.",
           "services": ["Mutual Divorce", "Child Custody", "Alimony & Maintenance", "Domestic Violence Counsel"],
-          "banner": "https://images.unsplash.com/photo-1505664194779-8bebcb95c557?w=600"
+          "banner": banner
         };
       case "Property Disputes":
         return {
           "desc": "Resolving land title and registration problems. Property verification, partition deeds, and encumbrance checking.",
           "services": ["Partition Deed", "Property Verification", "Builder Dispute", "Registration Issues"],
-          "banner": "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600"
+          "banner": banner
         };
       case "Civil Cases":
         return {
           "desc": "Advocating client interests in civil breach and disputes. Legal notices, agreements, consumer redressal, and recovery suits.",
           "services": ["Legal Notice", "Breach of Contract", "Consumer Complaints", "Debt Recovery"],
-          "banner": "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=600"
+          "banner": banner
         };
       case "Cyber Crime":
         return {
           "desc": "Advocating data privacy and defense from online crimes. Social media fraud, identity theft, and corporate cyber hacks.",
           "services": ["Cyber Fraud Defense", "Identity Theft Recovery", "Social Media Defamation", "Online Extortion"],
-          "banner": "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=600"
+          "banner": banner
         };
       case "GST & Taxation":
         return {
           "desc": "Corporate and individual tax registration and audits. GST compliance, audit representation, and corporate tax dispute filing.",
           "services": ["GST Registration", "Tax Return Audit", "Business Tax Planning", "TDS Returns"],
-          "banner": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600"
+          "banner": banner
         };
       case "Labour Law":
         return {
           "desc": "Protecting worker rights and corporate policies. Wrongful dismissal counsel, salary issues, and trade union disputes.",
           "services": ["Wrongful Termination", "Salary Recovery", "Workplace Harassment", "Gratuity Claims"],
-          "banner": "https://images.unsplash.com/photo-1521791136364-7286472b5b5c?w=600"
+          "banner": banner
         };
       default:
         return {
           "desc": "Get legal consult from premium verified advocates representing all court chambers.",
           "services": ["General Litigation", "Legal Notice Drafting", "Court Representation"],
-          "banner": "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600"
+          "banner": banner
         };
     }
   }
@@ -191,7 +194,7 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
                                   children: [
                                     AppCircleAvatar(
                                       radius: 26,
-                                      imageUrl: lawyer.profileImage.isNotEmpty ? Environment.getAttachmentUrl(lawyer.profileImage) : null,
+                                      imageUrl: lawyer.profileImage.isNotEmpty ? AppConfig.getAttachmentUrl(lawyer.profileImage) : null,
                                       fallback: const Icon(Icons.person),
                                     ),
                                     const SizedBox(width: 12),

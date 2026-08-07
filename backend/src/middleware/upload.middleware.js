@@ -66,8 +66,17 @@ const storage = multer.diskStorage({
 });
 
 // File filter validation
+const ALLOWED_EXTENSIONS = new Set([
+  ".pdf", ".jpg", ".jpeg", ".png", ".webp", ".docx", ".txt", ".md", ".csv",
+  ".mp3", ".wav", ".m4a", ".webm", ".ogg", ".aac", ".3gp", ".amr"
+]);
+
 const fileFilter = (req, file, cb) => {
-  if (Object.prototype.hasOwnProperty.call(EXTENSION_BY_MIME, file.mimetype)) {
+  const ext = path.extname(file.originalname || "").toLowerCase();
+  if (
+    Object.prototype.hasOwnProperty.call(EXTENSION_BY_MIME, file.mimetype) ||
+    ALLOWED_EXTENSIONS.has(ext)
+  ) {
     cb(null, true);
   } else {
     cb(

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
-import '../config/env.dart';
+import '../config/app_config.dart';
 import '../storage/token_storage.dart';
 
 /// Owns the single `/chat` socket and broadcasts its events as streams.
@@ -27,6 +27,17 @@ class ChatSocketService {
   /// Distinguishes the first connect from a reconnect: only the latter means
   /// events were missed and callers need to resync.
   bool _hasConnected = false;
+
+  /// Guards against two overlapping [connect] calls building two sockets.
+  /// [connect] reads the token before constructing one, so there is an await
+  /// between the null check and the assignment.
+  bool _connecting = false;
+
+  bool _disposed = false;
+
+  /// Retry for a handshake the *server* rejected — see [_scheduleAuthRetry].
+  Timer? _authRetryTimer;
+  Duration? _authRetryDelay;
 
   final _messages = StreamController<Map<String, dynamic>>.broadcast();
   final _chatUpdates = StreamController<Map<String, dynamic>>.broadcast();
@@ -58,30 +69,54 @@ class ChatSocketService {
   bool get isConnected => _socket?.connected ?? false;
 
   /// Connects, or does nothing if a live socket already exists.
-  void connect() {
+  ///
+  /// Returns as soon as the socket has been created; callers do not need to
+  /// await it, and the existing fire-and-forget call sites still work.
+  Future<void> connect() async {
+    if (_disposed) return;
+
     if (_socket != null) {
       if (!_socket!.connected) _socket!.connect();
       return;
     }
+    if (_connecting) return;
+    _connecting = true;
 
+    try {
+      // Read the token before handing the socket its auth callback.
+      //
+      // The callback below reads `TokenStorage.cachedToken`, which is only a
+      // mirror: it is null until something has read the token at least once,
+      // and a null there authenticates the handshake with an empty string,
+      // which the server rejects outright. Priming it here means the very
+      // first connect of a session presents a real token.
+      await TokenStorage().getToken();
+      if (_disposed || _socket != null) return;
+
+      _createSocket();
+    } finally {
+      _connecting = false;
+    }
+  }
+
+  void _createSocket() {
     final socket = io.io(
-      '${Environment.baseSocketUrl}/chat',
+      AppConfig.chatSocketUrl,
       io.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()
           .enableReconnection()
-          .setReconnectionDelay(1000)
-          .setReconnectionDelayMax(10000)
-          // Retry indefinitely. A capped count means a device that spends a
-          // while on a dead network never reconnects at all, and chat silently
-          // stops working until the app is restarted.
-          //
-          // 2^30 rather than 2^31: bitwise operators are 32-bit and signed on
-          // the web, so `1 << 31` is -2147483648 there. A negative attempt
-          // count meant the browser build gave up reconnecting immediately —
-          // the exact opposite of what this line intends. 2^30 attempts is
-          // still indefinite in practice and evaluates the same everywhere.
-          .setReconnectionAttempts(1 << 30)
+          .setReconnectionDelay(
+            AppConfig.chatSocketReconnectDelay.inMilliseconds,
+          )
+          .setReconnectionDelayMax(
+            AppConfig.chatSocketReconnectDelayMax.inMilliseconds,
+          )
+          // CHAT_SOCKET_RECONNECT_ATTEMPTS is set high enough to be indefinite.
+          // A capped count means a device that spends a while on a dead network
+          // never reconnects at all, and chat silently stops working until the
+          // app is restarted.
+          .setReconnectionAttempts(AppConfig.chatSocketReconnectAttempts)
           .build(),
     );
 
@@ -93,6 +128,12 @@ class ChatSocketService {
     });
 
     socket.onConnect((_) {
+      // The handshake succeeded, so any pending auth retry is moot and the
+      // backoff starts fresh next time.
+      _authRetryTimer?.cancel();
+      _authRetryTimer = null;
+      _authRetryDelay = null;
+
       // Re-join before announcing: a listener that reacts to the resync by
       // fetching should already be in the rooms whose events it will receive.
       for (final chatId in _rooms) {
@@ -105,10 +146,23 @@ class ChatSocketService {
       _hasConnected = true;
     });
 
+    // Transport-level failure. socket.io retries these itself.
     socket.onConnectError(
       (data) => debugPrint('🔌 [ChatSocket] connect error: $data'),
     );
-    socket.onError((data) => debugPrint('🔌 [ChatSocket] error: $data'));
+
+    // A handshake the *server* refused — an expired token, or one that had not
+    // been loaded yet. socket.io surfaces a namespace middleware rejection
+    // here, not through `onConnectError`, and it calls `destroy()` first, so
+    // the socket is torn down and its own reconnection loop will never run.
+    //
+    // Left alone, a single rejection killed live chat for the rest of the app
+    // session: messages then only appeared after a manual refresh or a
+    // restart, on both the client and the lawyer side.
+    socket.onError((data) {
+      debugPrint('🔌 [ChatSocket] error: $data');
+      _scheduleAuthRetry();
+    });
     socket.onDisconnect(
       (reason) => debugPrint('🔌 [ChatSocket] disconnected: $reason'),
     );
@@ -121,6 +175,46 @@ class ChatSocketService {
 
     _socket = socket;
     socket.connect();
+  }
+
+  /// Rebuilds the socket after the server refused the handshake.
+  ///
+  /// Only for that case: socket.io destroys the socket on a middleware
+  /// rejection, so [io.Socket.active] goes false and nothing else will bring
+  /// it back. Every other failure is already being retried internally, and
+  /// racing it here would open a second connection.
+  ///
+  /// Backoff runs between the same bounds as the built-in reconnection
+  /// (CHAT_SOCKET_RECONNECT_DELAY_MS to CHAT_SOCKET_RECONNECT_DELAY_MAX_MS),
+  /// so a token that stays invalid — a genuinely expired session — settles
+  /// into a slow poll rather than hammering the server.
+  void _scheduleAuthRetry() {
+    if (_disposed) return;
+
+    final socket = _socket;
+    if (socket == null || socket.active) return;
+    if (_authRetryTimer?.isActive ?? false) return;
+
+    final maxDelay = AppConfig.chatSocketReconnectDelayMax;
+    final delay = _authRetryDelay ?? AppConfig.chatSocketReconnectDelay;
+    final doubled = delay * 2;
+    _authRetryDelay = doubled > maxDelay ? maxDelay : doubled;
+
+    debugPrint(
+      '🔌 [ChatSocket] handshake rejected; retrying in ${delay.inMilliseconds}ms',
+    );
+
+    _authRetryTimer = Timer(delay, () {
+      if (_disposed) return;
+
+      // The old socket is dead and cannot be revived — drop it and build a new
+      // one. `connect` re-reads the token first, which is the point: the retry
+      // only helps if it presents a token the previous attempt did not have.
+      _socket?.dispose();
+      _socket = null;
+      _hasConnected = false;
+      connect();
+    });
   }
 
   /// Subscribes to a conversation's room, now and after any future reconnect.
@@ -157,6 +251,12 @@ class ChatSocketService {
   /// Tears the connection down, e.g. on sign-out. [connect] can be called
   /// again afterwards to start a fresh session.
   void disconnect() {
+    // Before dropping the socket: a pending retry would otherwise fire after
+    // sign-out and reconnect the session that was just torn down.
+    _authRetryTimer?.cancel();
+    _authRetryTimer = null;
+    _authRetryDelay = null;
+
     _rooms.clear();
     _hasConnected = false;
     _socket?.dispose();
@@ -164,6 +264,7 @@ class ChatSocketService {
   }
 
   void dispose() {
+    _disposed = true;
     disconnect();
     _messages.close();
     _chatUpdates.close();
