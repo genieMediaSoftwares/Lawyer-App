@@ -434,7 +434,7 @@ class ChatMessagesNotifier
             );
 
         state = AsyncValue.data(_sorted([...fetched, ...pending]));
-        markAsRead();
+        unawaited(markAsRead());
       } else if (!silent) {
         state = AsyncValue.error("Failed to load messages", StackTrace.current);
       }
@@ -464,7 +464,7 @@ class ChatMessagesNotifier
           )
           .toList();
       for (final n in related) {
-        notificationsNotifier.markAsRead(n.id);
+        unawaited(notificationsNotifier.markAsRead(n.id));
       }
     } catch (e) {
       // Non-critical: the next open re-runs it.

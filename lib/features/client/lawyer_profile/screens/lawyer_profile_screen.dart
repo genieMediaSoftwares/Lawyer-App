@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -344,7 +345,7 @@ class LawyerProfileScreen extends ConsumerWidget {
               .read(chatsProvider.notifier)
               .getOrCreateChat(lawyer.userId);
           if (chat != null && context.mounted) {
-            context.push('/chat/${chat.id}/${lawyer.fullName}');
+            unawaited(context.push('/chat/${chat.id}/${lawyer.fullName}'));
           }
         },
         child: const Text("Chat Now"),

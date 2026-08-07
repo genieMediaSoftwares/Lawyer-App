@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../constants/ai_suggestions.dart';
@@ -224,7 +225,7 @@ class _AiChatScreenState extends State<AiChatScreen> with SingleTickerProviderSt
             });
           });
 
-          _refreshConversationsList();
+          unawaited(_refreshConversationsList());
 
           Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
           return;

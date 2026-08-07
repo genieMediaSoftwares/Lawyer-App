@@ -1,0 +1,33 @@
+include: package:flutter_lints/flutter.yaml
+
+# `flutter_lints` was already a dev dependency but was never switched on: with
+# no analysis_options.yaml the analyzer ran with Dart's bare defaults, so the
+# checks that catch real production faults — using a BuildContext after an
+# await, dropping a Future on the floor — reported nothing.
+linter:
+  rules:
+    # The one that matters most here. Every screen in this app awaits a network
+    # call and then touches Navigator/ScaffoldMessenger; without this rule those
+    # are invisible until a user backs out mid-request and the app throws.
+    use_build_context_synchronously: true
+
+    # A dropped Future is a silently swallowed error. `unawaited(...)` documents
+    # the cases where fire-and-forget is deliberate.
+    unawaited_futures: true
+
+    # Cheap correctness and performance wins the default set leaves off.
+    avoid_empty_else: true
+    cancel_subscriptions: true
+    close_sinks: true
+    prefer_final_locals: false
+    avoid_print: true
+
+analyzer:
+  errors:
+    # Warnings, not errors, so an in-progress edit does not block the build —
+    # but they are visible in CI and in the IDE.
+    todo: ignore
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - build/**

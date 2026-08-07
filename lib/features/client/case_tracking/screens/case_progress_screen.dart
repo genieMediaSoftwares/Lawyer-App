@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -379,7 +380,7 @@ class CaseProgressScreen extends ConsumerWidget {
               if (otherUserId != null) {
                 final chat = await ref.read(chatsProvider.notifier).getOrCreateChat(otherUserId);
                 if (chat != null && context.mounted) {
-                  context.push('/chat/${chat.id}/$lawyerName');
+                  unawaited(context.push('/chat/${chat.id}/$lawyerName'));
                 }
               }
             },

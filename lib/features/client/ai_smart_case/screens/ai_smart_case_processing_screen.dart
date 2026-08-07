@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -91,10 +93,10 @@ class _AISmartCaseProcessingScreenState
     //
     // pushReplacement so Back from the form returns to the intake screen
     // rather than to a spinner that would immediately re-run the analysis.
-    Navigator.pushReplacement(
+    unawaited(Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => PostCaseScreen(prefill: result)),
-    );
+    ));
   }
 
   /// Leaving before the analysis finishes releases the socket and the poll.

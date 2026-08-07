@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -78,7 +79,7 @@ class _NotificationCenterScreenState
 
   Future<void> _handleTap(NotificationModel notification) async {
     if (!notification.isRead) {
-      ref.read(notificationsProvider.notifier).markAsRead(notification.id);
+      unawaited(ref.read(notificationsProvider.notifier).markAsRead(notification.id));
     }
     final target = NotificationPresentation.forType(notification.type).target;
     widget.onOpen(notification, target);
@@ -124,7 +125,7 @@ class _NotificationCenterScreenState
   /// breakpoint it collapses to its icon, and below a narrower one still it
   /// moves onto its own line where it has room for the label again.
   Widget _buildFilterRow(NotificationCounts counts) {
-    final markAllRead = () =>
+    Future<void> markAllRead() =>
         ref.read(notificationsProvider.notifier).markAllAsRead();
 
     return Padding(

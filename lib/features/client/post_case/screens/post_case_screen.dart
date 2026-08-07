@@ -883,7 +883,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     // client goes home — no `mounted` check may stand between this point and
     // the redirect. A disposed screen used to abort the navigation and leave
     // the client looking at the form for a case that had already been filed.
-    _clearDraft();
+    unawaited(_clearDraft());
 
     // Close the audit trail from uploaded document through to filed case.
     // Best-effort — the case already exists either way, and the repository
@@ -2127,7 +2127,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         }
       }
 
-      _saveDraft();
+      unawaited(_saveDraft());
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2199,12 +2199,12 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   );
                   if (photo != null) {
                     final bytes = await photo.readAsBytes();
-                    _processPickedFile(
+                    unawaited(_processPickedFile(
                       photo.path,
                       photo.name,
                       bytes: bytes,
                       size: bytes.length,
-                    );
+                    ));
                   }
                 },
               ),
@@ -2225,12 +2225,12 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   );
                   if (image != null) {
                     final bytes = await image.readAsBytes();
-                    _processPickedFile(
+                    unawaited(_processPickedFile(
                       image.path,
                       image.name,
                       bytes: bytes,
                       size: bytes.length,
-                    );
+                    ));
                   }
                 },
               ),
@@ -2252,12 +2252,12 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   );
                   if (result != null) {
                     final file = result.files.single;
-                    _processPickedFile(
+                    unawaited(_processPickedFile(
                       file.path ?? '',
                       file.name,
                       bytes: file.bytes,
                       size: file.bytes?.length,
-                    );
+                    ));
                   }
                 },
               ),

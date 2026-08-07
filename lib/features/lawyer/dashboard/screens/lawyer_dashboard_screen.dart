@@ -1567,7 +1567,7 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                             final chatNotifier = ref.read(chatsProvider.notifier);
                             final chat = await chatNotifier.getOrCreateChat(clientCase.clientId);
                             if (chat != null && context.mounted) {
-                              context.push('/chat/${chat.id}/${Uri.encodeComponent(clientCase.clientName)}');
+                              unawaited(context.push('/chat/${chat.id}/${Uri.encodeComponent(clientCase.clientName)}'));
                             }
                           },
                           style: OutlinedButton.styleFrom(

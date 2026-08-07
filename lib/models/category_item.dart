@@ -18,7 +18,28 @@ class CategoryData {
   });
 }
 
+/// The app's legal taxonomy, in the order it is shown.
+///
+/// Display order is this list's order and nothing else — the dashboard takes
+/// the first eight, All Categories and the Post Case picker take all of them.
+/// [CategoryData.index] is a fixed number belonging to each category, not its
+/// position here, so moving an entry does not touch it. Selection everywhere is
+/// by [CategoryData.id].
 final List<CategoryData> allCategories = const [
+  CategoryData(
+    id: "civil_cases",
+    title: "Civil Cases",
+    slug: "civil-cases",
+    index: 3,
+    icon: Icons.balance_outlined,
+    subcategories: [
+      "Money Recovery",
+      "Civil Suit",
+      "Property Injunction",
+      "Contract Dispute",
+      "Recovery of Possession",
+    ],
+  ),
   CategoryData(
     id: "criminal_law",
     title: "Criminal Law",
@@ -59,20 +80,6 @@ final List<CategoryData> allCategories = const [
       "Property Partition",
       "Land Encroachment",
       "RERA Complaint",
-    ],
-  ),
-  CategoryData(
-    id: "civil_cases",
-    title: "Civil Cases",
-    slug: "civil-cases",
-    index: 3,
-    icon: Icons.balance_outlined,
-    subcategories: [
-      "Money Recovery",
-      "Civil Suit",
-      "Property Injunction",
-      "Contract Dispute",
-      "Recovery of Possession",
     ],
   ),
   CategoryData(

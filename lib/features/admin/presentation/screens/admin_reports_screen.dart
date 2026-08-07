@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,7 +50,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
       await file.writeAsString(buffer.toString());
 
       if (mounted) {
-        showDialog(
+        unawaited(showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
             backgroundColor: AppColors.cardBackground,
@@ -76,7 +77,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
               ),
             ],
           ),
-        );
+        ));
       }
     } catch (e) {
       if (mounted) {
