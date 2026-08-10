@@ -224,7 +224,7 @@ void main() {
 }
 
 class _StubAuth extends AuthNotifier {
-  _StubAuth(Ref ref, AuthState value) : super(ref) {
+  _StubAuth(super.ref, AuthState value) {
     state = value;
   }
 
@@ -238,7 +238,7 @@ class _StubAuth extends AuthNotifier {
 /// Constructed with `isLoggedIn: false`, which is the branch that returns
 /// before touching the socket or the network, then given the list directly.
 class _StubChats extends ChatsNotifier {
-  _StubChats(Ref ref, List<ChatModel> chats) : super(ref, isLoggedIn: false) {
+  _StubChats(super.ref, List<ChatModel> chats) : super(isLoggedIn: false) {
     state = AsyncValue.data(chats);
   }
 

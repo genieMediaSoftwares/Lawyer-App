@@ -954,9 +954,16 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
   Widget _buildStepperHeader() {
     final theme = Theme.of(context);
+    // Five labelled steps have to fit whatever width the device gives us, so
+    // the outer padding tightens before the labels are ever asked to shrink.
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final double horizontalPadding = screenWidth < 360 ? 12.0 : 24.0;
     return Container(
       color: theme.colorScheme.surface,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+      padding: EdgeInsets.symmetric(
+        vertical: 16,
+        horizontal: horizontalPadding,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -1003,14 +1010,23 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           ),
         ),
         const SizedBox(height: 6),
-        Text(
-          title,
-          style: TextStyle(
-            color: isActive
-                ? theme.textTheme.titleMedium?.color
-                : theme.textTheme.bodySmall?.color,
-            fontSize: 10,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+        // Bounded + scaled down rather than free-width: the longest label
+        // ("Documents") must not push the five-step Row past the screen edge.
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 58),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              title,
+              maxLines: 1,
+              style: TextStyle(
+                color: isActive
+                    ? theme.textTheme.titleMedium?.color
+                    : theme.textTheme.bodySmall?.color,
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
           ),
         ),
       ],
@@ -2467,12 +2483,16 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: const [
-            Text(
-              "Why these lawyers?",
-              style: TextStyle(
-                color: AppColors.primaryGold,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
+            Flexible(
+              child: Text(
+                "Why these lawyers?",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AppColors.primaryGold,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             SizedBox(width: 4),
@@ -2936,6 +2956,7 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
+              flex: 3,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2952,7 +2973,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            _buildWhyTheseLawyersButton(),
+            // Flexible, not fixed: on a narrow phone the badge gives way to the
+            // heading rather than pushing the Row past the screen edge.
+            Flexible(child: _buildWhyTheseLawyersButton()),
           ],
         ),
         const SizedBox(height: 20),
@@ -3071,295 +3094,444 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     );
   }
 
+  /// The single entry point for picking an advocate on step 4. Both the
+  /// "Select Lawyer" button and a tap anywhere on the card route through here,
+  /// so there is one selection rule (tap to select, tap again to clear) and one
+  /// place that owns [_selectedLawyerModel].
+  void _toggleLawyerSelection(LawyerModel lawyer) {
+    final bool isSelected = _selectedLawyerModel?.userId == lawyer.userId;
+    setState(() {
+      if (isSelected) {
+        _selectedLawyerModel = null;
+      } else {
+        // Single selection: assigning replaces whoever was chosen before.
+        _selectedLawyerModel = lawyer;
+      }
+    });
+  }
+
   Widget _buildLawyerCard(LawyerModel lawyer, bool isSelected) {
     final displayedTags = lawyer.languages.take(3).toList();
     final remainingTagsCount = lawyer.languages.length - displayedTags.length;
+    const Color gold = Color(0xFFD4AF37);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF131314),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isSelected ? const Color(0xFFD4AF37) : const Color(0xFF2B2B2B),
-          width: isSelected ? 1.5 : 1.0,
-        ),
-        boxShadow: [
-          if (isSelected)
-            BoxShadow(
-              color: const Color(0xFFD4AF37).withValues(alpha: 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. Profile photo stack
-                Stack(
+    // Everything the card sizes off comes from the width it is actually handed,
+    // never from the device — the same card has to hold up in a 320dp phone, a
+    // split-screen pane and a tablet without any of its text collapsing into
+    // one-word-per-line columns.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double cardWidth =
+            constraints.maxWidth.isFinite ? constraints.maxWidth : 360.0;
+        final bool isCompact = cardWidth < 340;
+        final double cardPadding = isCompact ? 12.0 : 16.0;
+        final double gutter = isCompact ? 10.0 : 14.0;
+        final double avatarWidth = (cardWidth * 0.22).clamp(64.0, 88.0);
+        final double avatarHeight = avatarWidth * 1.1;
+
+        final Widget avatarPlaceholder = Container(
+          width: avatarWidth,
+          height: avatarHeight,
+          color: const Color(0xFF2B2B2B),
+          child: Icon(
+            Icons.person,
+            color: Colors.white54,
+            size: avatarWidth * 0.5,
+          ),
+        );
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: const Color(0xFF131314),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected ? gold : const Color(0xFF2B2B2B),
+              width: isSelected ? 1.5 : 1.0,
+            ),
+            boxShadow: [
+              if (isSelected)
+                BoxShadow(
+                  color: gold.withValues(alpha: 0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              // The whole card is the hit target. "View Profile" and
+              // "Select Lawyer" are buttons, so they swallow their own taps and
+              // never fall through to this handler.
+              onTap: () => _toggleLawyerSelection(lawyer),
+              splashColor: gold.withValues(alpha: 0.06),
+              highlightColor: gold.withValues(alpha: 0.04),
+              child: Padding(
+                padding: EdgeInsets.all(cardPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: lawyer.profileImage.isNotEmpty
-                          ? Image.network(
-                              AppConfig.getAttachmentUrl(lawyer.profileImage),
-                              width: 80,
-                              height: 88,
-                              fit: BoxFit.cover,
-                              errorBuilder: (c, o, s) => Container(
-                                width: 80,
-                                height: 88,
-                                color: const Color(0xFF2B2B2B),
-                                child: const Icon(Icons.person, color: Colors.white54, size: 40),
-                              ),
-                            )
-                          : Container(
-                              width: 80,
-                              height: 88,
-                              color: const Color(0xFF2B2B2B),
-                              child: const Icon(Icons.person, color: Colors.white54, size: 40),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. Profile photo stack
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: lawyer.profileImage.isNotEmpty
+                                  ? Image.network(
+                                      AppConfig.getAttachmentUrl(
+                                          lawyer.profileImage),
+                                      width: avatarWidth,
+                                      height: avatarHeight,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (c, o, s) =>
+                                          avatarPlaceholder,
+                                    )
+                                  : avatarPlaceholder,
                             ),
-                    ),
-                    if (lawyer.onlineStatus)
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 3),
-                          alignment: Alignment.center,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  color: Colors.green,
-                                  shape: BoxShape.circle,
+                            if (lawyer.onlineStatus)
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                    borderRadius: const BorderRadius.vertical(
+                                        bottom: Radius.circular(12)),
+                                  ),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 3),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.green,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Flexible(
+                                        child: Text(
+                                          "Online",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: Colors.green,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              const Text(
-                                "Online",
-                                style: TextStyle(color: Colors.green, fontSize: 9, fontWeight: FontWeight.bold),
+                            if (lawyer.isVerified)
+                              Positioned(
+                                top: -2,
+                                right: -2,
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.green,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.verified,
+                                      color: Colors.white, size: 12),
+                                ),
+                              ),
+                          ],
+                        ),
+                        SizedBox(width: gutter),
+
+                        // 2. Everything else shares the remaining width. The
+                        // match / response-time stats used to sit in a third
+                        // unconstrained column, which ate the middle column's
+                        // width on narrow phones and forced the name and
+                        // practice area to wrap one word per line. They now sit
+                        // in a Wrap under the details, so they reflow onto
+                        // their own line instead of squeezing the text.
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      lawyer.fullName,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // Gold circular tick selection indicator
+                                  Icon(
+                                    isSelected
+                                        ? Icons.check_circle
+                                        : Icons.radio_button_unchecked,
+                                    color: isSelected ? gold : Colors.white30,
+                                    size: 20,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                lawyer.specialization,
+                                style: const TextStyle(
+                                  color: gold,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(Icons.location_on_outlined,
+                                      color: Colors.grey, size: 13),
+                                  const SizedBox(width: 3),
+                                  Expanded(
+                                    child: Text(
+                                      lawyer.location,
+                                      style: const TextStyle(
+                                          color: Colors.grey, fontSize: 12),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(Icons.star, color: gold, size: 14),
+                                  const SizedBox(width: 3),
+                                  Expanded(
+                                    child: Text(
+                                      "${lawyer.rating}  (${lawyer.totalReviews} Reviews)",
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "${lawyer.experience}+ Years Exp  •  ${lawyer.casesHandled}+ Cases",
+                                style: const TextStyle(
+                                    color: Colors.grey, fontSize: 12),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  _buildLawyerStatLine(
+                                    icon: Icons.gps_fixed,
+                                    iconColor: Colors.green,
+                                    text: "${lawyer.matchPercentage}% Match",
+                                    textStyle: const TextStyle(
+                                      color: Colors.green,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  _buildLawyerStatLine(
+                                    icon: Icons.access_time,
+                                    iconColor: Colors.grey,
+                                    text: lawyer.responseTime,
+                                    textStyle: const TextStyle(
+                                        color: Colors.grey, fontSize: 10),
+                                  ),
+                                  // The "Consultation Fee" stat was removed
+                                  // from this recommendation card.
+                                ],
                               ),
                             ],
                           ),
                         ),
-                      ),
-                    if (lawyer.isVerified)
-                      Positioned(
-                        top: -2,
-                        right: -2,
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: const BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.verified, color: Colors.white, size: 12),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(width: 14),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
 
-                // 2. Center info details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        lawyer.fullName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        lawyer.specialization,
-                        style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 13, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on_outlined, color: Colors.grey, size: 13),
-                          const SizedBox(width: 3),
-                          Expanded(
+                    // Practice Area Tag Chips row
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        ...displayedTags.map((tag) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1B1B1C),
+                                borderRadius: BorderRadius.circular(6),
+                                border:
+                                    Border.all(color: const Color(0xFF2B2B2C)),
+                              ),
+                              child: Text(
+                                tag,
+                                style: const TextStyle(
+                                    color: Colors.grey, fontSize: 10),
+                              ),
+                            )),
+                        if (remainingTagsCount > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1B1B1C),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: const Color(0xFF2B2B2C)),
+                            ),
                             child: Text(
-                              lawyer.location,
-                              style: const TextStyle(color: Colors.grey, fontSize: 12),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              "+$remainingTagsCount",
+                              style: const TextStyle(
+                                color: gold,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.star, color: Color(0xFFD4AF37), size: 14),
-                          const SizedBox(width: 3),
-                          Text(
-                            "${lawyer.rating}  (${lawyer.totalReviews} Reviews)",
-                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "${lawyer.experience}+ Years Exp  •  ${lawyer.casesHandled}+ Cases",
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
-                // 3. Right status/stats details
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    // Gold Circular Tick Selection Indicator
-                    Icon(
-                      isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                      color: isSelected ? const Color(0xFFD4AF37) : Colors.white30,
-                      size: 20,
-                    ),
-                    const SizedBox(height: 10),
+                    // Action Buttons row
                     Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.gps_fixed, color: Colors.green, size: 12),
-                        const SizedBox(width: 3),
-                        Text(
-                          "${lawyer.matchPercentage}% Match",
-                          style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                _viewLawyerProfileBottomSheet(lawyer),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: gold,
+                              side: const BorderSide(color: gold, width: 1.0),
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 12, horizontal: isCompact ? 4 : 8),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                "View Profile",
+                                maxLines: 1,
+                                style: TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: isCompact ? 8 : 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _toggleLawyerSelection(lawyer),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isSelected
+                                  ? gold.withValues(alpha: 0.1)
+                                  : gold,
+                              foregroundColor:
+                                  isSelected ? gold : Colors.black,
+                              side: isSelected
+                                  ? const BorderSide(color: gold, width: 1.2)
+                                  : null,
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 12, horizontal: isCompact ? 4 : 8),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (isSelected) ...[
+                                    const Icon(Icons.check, size: 14),
+                                    const SizedBox(width: 4),
+                                    const Text(
+                                      "Selected",
+                                      maxLines: 1,
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ] else ...[
+                                    const Text(
+                                      "Select Lawyer",
+                                      maxLines: 1,
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.access_time, color: Colors.grey, size: 12),
-                        const SizedBox(width: 3),
-                        Text(
-                          lawyer.responseTime,
-                          style: const TextStyle(color: Colors.grey, fontSize: 10),
-                        ),
-                      ],
-                    ),
-                    // The "Consultation Fee" column was removed from this
-                    // recommendation card.
                   ],
                 ),
-              ],
+              ),
             ),
-            const SizedBox(height: 12),
-            
-            // Practice Area Tag Chips row
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                ...displayedTags.map((tag) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1B1B1C),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFF2B2B2C)),
-                      ),
-                      child: Text(
-                        tag,
-                        style: const TextStyle(color: Colors.grey, fontSize: 10),
-                      ),
-                    )),
-                if (remainingTagsCount > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1B1B1C),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFF2B2B2C)),
-                    ),
-                    child: Text(
-                      "+$remainingTagsCount",
-                      style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 10, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
+          ),
+        );
+      },
+    );
+  }
 
-            // Action Buttons row
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _viewLawyerProfileBottomSheet(lawyer),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFD4AF37),
-                      side: const BorderSide(color: Color(0xFFD4AF37), width: 1.0),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text("View Profile", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        if (isSelected) {
-                          _selectedLawyerModel = null;
-                        } else {
-                          _selectedLawyerModel = lawyer;
-                        }
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isSelected ? const Color(0xFFD4AF37).withValues(alpha: 0.1) : const Color(0xFFD4AF37),
-                      foregroundColor: isSelected ? const Color(0xFFD4AF37) : Colors.black,
-                      side: isSelected ? const BorderSide(color: Color(0xFFD4AF37), width: 1.2) : null,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (isSelected) ...[
-                          const Icon(Icons.check, size: 14),
-                          const SizedBox(width: 4),
-                          const Text("Selected", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                        ] else ...[
-                          const Text("Select Lawyer", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+  /// One icon + label stat as used under a lawyer's details. Kept on a single
+  /// line by [Flexible] so a long response time ellipsises instead of stacking
+  /// vertically, and sized to its content so a [Wrap] can reflow it.
+  Widget _buildLawyerStatLine({
+    required IconData icon,
+    required Color iconColor,
+    required String text,
+    required TextStyle textStyle,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: iconColor, size: 12),
+        const SizedBox(width: 3),
+        Flexible(
+          child: Text(
+            text,
+            style: textStyle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -3440,13 +3612,16 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
+                  // Four stats share the sheet's width evenly. Laid out at
+                  // their natural size they ran off the right edge of a
+                  // narrow phone.
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildProfileStat("Experience", "${lawyer.experience} Yrs"),
-                      _buildProfileStat("Rating", "${lawyer.rating} ★"),
-                      _buildProfileStat("Cases", "${lawyer.casesHandled}"),
-                      _buildProfileStat("Win Rate", "${lawyer.winPercentage}%"),
+                      Expanded(child: _buildProfileStat("Experience", "${lawyer.experience} Yrs")),
+                      Expanded(child: _buildProfileStat("Rating", "${lawyer.rating} ★")),
+                      Expanded(child: _buildProfileStat("Cases", "${lawyer.casesHandled}")),
+                      Expanded(child: _buildProfileStat("Win Rate", "${lawyer.winPercentage}%")),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -3505,9 +3680,16 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   Widget _buildProfileStat(String label, String value) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold, fontSize: 16)),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(value, style: const TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold, fontSize: 16)),
+        ),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: AppColors.mutedText, fontSize: 12)),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
+        ),
       ],
     );
   }

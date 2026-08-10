@@ -121,10 +121,16 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
           unselectedLabelColor: AppColors.mutedText,
           indicatorColor: AppColors.primaryGold,
           indicatorWeight: 2.0,
+          // A fixed TabBar gives each tab exactly a third of the width and a
+          // `Tab(text:)` neither wraps nor ellipsises, so "In Progress (3)" was
+          // being cut off mid-label. The tighter label padding buys back the
+          // space the default 16dp on each side was taking, and the labels
+          // scale down rather than clip once even that is not enough.
+          labelPadding: const EdgeInsets.symmetric(horizontal: 4),
           tabs: [
-            Tab(text: loc.all_cases_tab_header(allCount)),
-            Tab(text: loc.in_progress_tab_header(progressCount)),
-            Tab(text: loc.closed_tab_header(closedCount)),
+            _buildTab(loc.all_cases_tab_header(allCount)),
+            _buildTab(loc.in_progress_tab_header(progressCount)),
+            _buildTab(loc.closed_tab_header(closedCount)),
           ],
         ),
       ),
@@ -157,13 +163,37 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
 
 
 
+  /// A tab label that shrinks to fit instead of being clipped at the edge of
+  /// its third of the bar. [BoxFit.scaleDown] leaves the label at its designed
+  /// size whenever there is room, so wide screens look exactly as before.
+  Widget _buildTab(String label) {
+    return Tab(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(label, maxLines: 1),
+      ),
+    );
+  }
+
+  /// Room to scroll the last card clear of the docked "+" button.
+  ///
+  /// The shell's `bottomNavigationBar` already reserves its own height and the
+  /// system gesture inset, but the centre-docked FAB floats above that bar and
+  /// overhangs into the body, so without this the bottom of the last case card
+  /// sits underneath it. Derived from the FAB's own diameter rather than a
+  /// screen measurement.
+  EdgeInsets get _listPadding {
+    const double fabOverhang = 56 / 2 + 16;
+    return EdgeInsets.fromLTRB(16, 16, 16, 16 + fabOverhang);
+  }
+
   Widget _buildCaseList(List<CaseModel> casesList, int tabIndex, String emptyMessage) {
     if (casesList.isEmpty) {
       return _buildEmptyState();
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: _listPadding,
       itemCount: casesList.length,
       separatorBuilder: (c, i) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
@@ -204,38 +234,54 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Category & Status Badge Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.border,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        caseItem.category.toUpperCase(),
-                        style: const TextStyle(
-                          color: AppColors.primaryGold,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 9,
+                // Category & Status Badge Row. A `Wrap` rather than a `Row`:
+                // both badges size to their own text, and a long category next
+                // to a long status ("Awaiting Lawyer Acceptance") ran past the
+                // card edge on a narrow phone. While they both fit, this lays
+                // out exactly like the `spaceBetween` Row it replaces; when
+                // they do not, the status drops to its own line and stays
+                // readable instead of being truncated.
+                LayoutBuilder(
+                  builder: (context, constraints) => Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.border,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            caseItem.category.toUpperCase(),
+                            style: const TextStyle(
+                              color: AppColors.primaryGold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 9,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1),
+                          ),
+                          child: Text(
+                            caseItem.status,
+                            style: TextStyle(color: statusColor, fontSize: 9, fontWeight: FontWeight.bold),
+                          ),
+                        ),
                       ),
-                      child: Text(
-                        caseItem.status,
-                        style: TextStyle(color: statusColor, fontSize: 9, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
 
@@ -286,26 +332,44 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                       ),
                       const SizedBox(height: 4),
                     ],
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on_outlined, size: 13, color: AppColors.mutedText),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            caseItem.location,
-                            style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                    LayoutBuilder(
+                      builder: (context, constraints) => Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined, size: 13, color: AppColors.mutedText),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              caseItem.location,
+                              style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.mutedText),
-                        const SizedBox(width: 6),
-                        Text(
-                          formattedDate,
-                          style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
-                        ),
-                      ],
+                          const SizedBox(width: 12),
+                          // The date is laid out at its natural size — as it
+                          // always was — but capped at half the row so a large
+                          // system font can never squeeze the location out or
+                          // push the row past the card edge.
+                          ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: constraints.maxWidth / 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.mutedText),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    formattedDate,
+                                    style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -341,12 +405,20 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                     onPressed: () {
                       context.push('/case-progress/${caseItem.id}');
                     },
+                    // `min` + `Flexible`: the row filled the button's whole
+                    // width and its label was laid out at natural size, so a
+                    // large system font pushed the chevron off the end.
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
-                        Text(
-                          "View Case Details",
-                          style: TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold, fontSize: 12),
+                        Flexible(
+                          child: Text(
+                            "View Case Details",
+                            style: TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold, fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         SizedBox(width: 4),
                         Icon(Icons.arrow_forward_ios, size: 10, color: AppColors.primaryGold),
@@ -376,9 +448,11 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
           children: const [
             Icon(Icons.hourglass_empty, color: AppColors.primaryGold, size: 14),
             SizedBox(width: 8),
-            Text(
-              "Awaiting lawyer acceptance...",
-              style: TextStyle(color: AppColors.mutedText, fontSize: 11),
+            Expanded(
+              child: Text(
+                "Awaiting lawyer acceptance...",
+                style: TextStyle(color: AppColors.mutedText, fontSize: 11),
+              ),
             ),
           ],
         ),
@@ -538,58 +612,84 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.surface),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildTimelineStep("Posted", postedStr, step1),
-          _buildTimelineConnector(step2),
-          _buildTimelineStep("Selected", selectedStr, step2),
-          _buildTimelineConnector(step3),
-          _buildTimelineStep("Consult", consultStr, step3),
-          _buildTimelineConnector(step4),
-          _buildTimelineStep("Resolved", resolvedStr, step4),
-        ],
+      // Four steps sized to their own labels plus three `Expanded` connectors.
+      // The connectors can only shrink to zero, so once the labels themselves
+      // outgrow the row — a large system font on a small phone — the whole
+      // thing overflowed. Capping each step at a share of the row keeps the
+      // connectors visible and makes the labels ellipsise as a last resort;
+      // below that cap the steps render at their natural size exactly as
+      // before.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final double maxStepWidth = constraints.maxWidth * 0.22;
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildTimelineStep("Posted", postedStr, step1, maxStepWidth),
+              _buildTimelineConnector(step2),
+              _buildTimelineStep("Selected", selectedStr, step2, maxStepWidth),
+              _buildTimelineConnector(step3),
+              _buildTimelineStep("Consult", consultStr, step3, maxStepWidth),
+              _buildTimelineConnector(step4),
+              _buildTimelineStep("Resolved", resolvedStr, step4, maxStepWidth),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildTimelineStep(String label, String dateStr, bool isCompleted) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 14,
-          height: 14,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isCompleted ? AppColors.primaryGold : AppColors.border,
-            border: Border.all(
+  Widget _buildTimelineStep(
+    String label,
+    String dateStr,
+    bool isCompleted,
+    double maxWidth,
+  ) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
               color: isCompleted ? AppColors.primaryGold : AppColors.border,
-              width: 1.5,
+              border: Border.all(
+                color: isCompleted ? AppColors.primaryGold : AppColors.border,
+                width: 1.5,
+              ),
+            ),
+            child: isCompleted
+                ? const Center(child: Icon(Icons.check, size: 8, color: AppColors.onGold))
+                : null,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isCompleted ? AppColors.primaryText : AppColors.mutedText,
+              fontSize: 8,
+              fontWeight: isCompleted ? FontWeight.bold : FontWeight.normal,
             ),
           ),
-          child: isCompleted 
-              ? const Center(child: Icon(Icons.check, size: 8, color: AppColors.onGold)) 
-              : null,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: isCompleted ? AppColors.primaryText : AppColors.mutedText,
-            fontSize: 8,
-            fontWeight: isCompleted ? FontWeight.bold : FontWeight.normal,
+          const SizedBox(height: 2),
+          Text(
+            dateStr,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.mutedText,
+              fontSize: 7,
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          dateStr,
-          style: const TextStyle(
-            color: AppColors.mutedText,
-            fontSize: 7,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -626,10 +726,15 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              "Current Progress",
-              style: TextStyle(color: AppColors.mutedText, fontSize: 11),
+            const Flexible(
+              child: Text(
+                "Current Progress",
+                style: TextStyle(color: AppColors.mutedText, fontSize: 11),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
+            const SizedBox(width: 8),
             Text(
               "${(progressPct * 100).toInt()}%",
               style: const TextStyle(color: AppColors.primaryGold, fontSize: 11, fontWeight: FontWeight.bold),
@@ -741,9 +846,14 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                   color: AppColors.primaryGold,
                   size: 16,
                 ),
+                // Two side-by-side icon buttons on half a card each.
+                // `ElevatedButton.icon` already makes the label flexible, so
+                // it only needs to be told to ellipsise rather than overflow.
                 label: Text(
                   hasReview ? "Edit Review" : "Rate & Review",
                   style: const TextStyle(fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
@@ -765,6 +875,8 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                 label: const Text(
                   "Case Summary",
                   style: TextStyle(fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
@@ -788,11 +900,23 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // `spaceBetween` + `Flexible` instead of a `Spacer`: the
+                      // label now yields to the stars rather than pushing them
+                      // off the end of the row.
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text("Your Review", style: TextStyle(color: AppColors.mutedText, fontSize: 9)),
-                          const Spacer(),
+                          const Flexible(
+                            child: Text(
+                              "Your Review",
+                              style: TextStyle(color: AppColors.mutedText, fontSize: 9),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: List.generate(5, (index) {
                               return Icon(
                                 index < caseItem.rating! ? Icons.star : Icons.star_border,
@@ -1015,7 +1139,9 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
   Widget _buildEmptyState() {
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
+        // Bottom inset matches the list's, so "Post Your First Case" clears
+        // the docked "+" button.
+        padding: EdgeInsets.fromLTRB(32, 32, 32, 32 + _listPadding.bottom),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -1080,7 +1206,7 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
 
   Widget _buildShimmerLoading() {
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: _listPadding,
       itemCount: 3,
       separatorBuilder: (c, i) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
@@ -1116,7 +1242,9 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
 
   Widget _buildErrorWidget(String error) {
     return Center(
-      child: Padding(
+      // Scrollable like the empty state: a long error message on a short
+      // viewport (landscape, or a split-screen pane) used to overflow.
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

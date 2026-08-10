@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class TokenStorage {
@@ -8,12 +11,18 @@ class TokenStorage {
   static const String _tokenKey = 'jwt_token';
   static const String _roleKey = 'user_role';
   static const String _onboardingKey = 'onboarding_completed';
+  static const String _deviceIdKey = 'device_id';
 
   /// In-memory mirror of the stored JWT.
   static String? _cachedToken;
 
   /// Last known JWT, or null when signed out.
   static String? get cachedToken => _cachedToken;
+
+  /// In-memory mirror of the device id, for the same reason [_cachedToken]
+  /// exists: the id is read on every sign-in and sign-out, and a transient
+  /// secure-storage failure must not cause a fresh one to be minted.
+  static String? _cachedDeviceId;
 
   static const String _idKey = 'user_id';
   static const String _nameKey = 'user_name';
@@ -60,6 +69,45 @@ class TokenStorage {
     try {
       await _secureStorage.delete(key: _tokenKey);
     } catch (_) {}
+  }
+
+  /// A stable identifier for this installation, created on first use.
+  ///
+  /// The server tracks one live session per account and needs to tell "the user
+  /// is signed in on their other phone" from "the user is signing in again on
+  /// this phone" — the second is routine, because killing the app never runs
+  /// logout, and treating it as a conflict would lock people out of their own
+  /// accounts until the token expired a week later.
+  ///
+  /// Deliberately *not* cleared by [deleteToken] or [clearAll]: it identifies
+  /// the device, not the session, and signing out must not change it. It is not
+  /// hardware-derived, so it carries no device fingerprint and resets when the
+  /// app is reinstalled — which is the correct behaviour, since a reinstall has
+  /// no session to reclaim.
+  Future<String> getOrCreateDeviceId() async {
+    if (_cachedDeviceId != null) return _cachedDeviceId!;
+
+    try {
+      final stored = await _secureStorage.read(key: _deviceIdKey);
+      if (stored != null && stored.isNotEmpty) {
+        _cachedDeviceId = stored;
+        return stored;
+      }
+    } catch (_) {
+      // Fall through and mint one. Worst case it is not persisted and this
+      // sign-in looks like a new device, which is safe — never a lock-out.
+    }
+
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    final deviceId = base64Url.encode(bytes).replaceAll('=', '');
+
+    _cachedDeviceId = deviceId;
+    try {
+      await _secureStorage.write(key: _deviceIdKey, value: deviceId);
+    } catch (_) {}
+
+    return deviceId;
   }
 
   Future<void> saveRole(String role) async {

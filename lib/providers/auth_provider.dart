@@ -185,6 +185,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
     // the new user briefly sees the previous one's details.
     _profileChanged(state.userId);
 
+    // End the session server-side *before* the token is discarded — the call
+    // is authenticated by that token, so the order matters.
+    //
+    // Signing out used to be purely local: the server never heard about it and
+    // kept the session open for the token's full seven days, so the account
+    // stayed "logged in on another device" and the user could not sign in
+    // again anywhere, including here.
+    //
+    // Best-effort by design. If the request fails — offline, server down — the
+    // user is still signed out on this device rather than being trapped in a
+    // session they have asked to leave; the abandoned session then expires on
+    // its own, and re-authenticating from this same device reclaims it
+    // immediately because the device id is unchanged.
+    await _endServerSession();
+
     await _tokenStorage.deleteToken();
     await _tokenStorage.deleteRole();
     await _tokenStorage.deleteUserDetails();
@@ -200,6 +215,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
       userPhotoUrl: null,
       userLocation: null,
     );
+  }
+
+  /// Revokes this device's session on the server. Never throws — see [logout].
+  Future<void> _endServerSession() async {
+    if (TokenStorage.cachedToken == null &&
+        (await _tokenStorage.getToken()) == null) {
+      return;
+    }
+
+    try {
+      // Bounded twice over. `noRetryKey` skips the backoff ladder, and the
+      // timeout caps the connect attempt itself, which is configured at 15
+      // seconds and cannot be shortened per request. Between them an offline
+      // sign-out returns promptly instead of holding the user on the screen
+      // they are leaving.
+      await DioClient.dio
+          .post(
+            '/auth/logout',
+            options: Options(extra: const {noRetryKey: true}),
+          )
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Deliberately swallowed: the local sign-out must complete regardless.
+    }
   }
 
   Future<void> updateLocalDetails({

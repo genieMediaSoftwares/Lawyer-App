@@ -46,6 +46,10 @@ class DioClient {
   }
 }
 
+/// Set `extra: {noRetryKey: true}` on a request to exempt it from
+/// [RetryInterceptor]'s backoff ladder.
+const String noRetryKey = 'no_retry';
+
 class RetryInterceptor extends Interceptor {
   final Dio dio;
   final int maxRetries;
@@ -92,7 +96,14 @@ class RetryInterceptor extends Interceptor {
     // upload does.
     final isReplayableBody = requestOptions.data is! FormData;
 
+    // Opt-out for calls where a slow failure is worse than no answer at all.
+    // Sign-out is the case in hand: it is best-effort by design, and grinding
+    // through the full backoff ladder while offline would hold the user on the
+    // screen they are trying to leave for over a minute.
+    final optedOut = requestOptions.extra[noRetryKey] == true;
+
     final isRetryable = isRetryableError &&
+        !optedOut &&
         isReplayableBody &&
         (isIdempotent || neverReachedServer);
     final retryCount = requestOptions.extra['retry_count'] ?? 0;

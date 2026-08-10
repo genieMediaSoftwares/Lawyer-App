@@ -30,17 +30,33 @@ const signupValidation = [
 ];
 
 const loginValidation = [
+  // normalizeEmail must match signupValidation exactly. It did not before: the
+  // address was canonicalised on the way in and left raw on the way back, so
+  // an account registered as "Asha@Example.com" (stored "asha@example.com")
+  // could not be found by the very string its owner had typed to create it,
+  // and the login came back "Invalid email or password."
   body("email")
     .trim()
     .isEmail()
-    .withMessage("Valid email is required"),
+    .withMessage("Valid email is required")
+    .normalizeEmail(),
 
   body("password")
     .notEmpty()
     .withMessage("Password is required"),
 ];
 
+/** Address-only payloads: forgot-password and reset-password. */
+const emailValidation = [
+  body("email")
+    .trim()
+    .isEmail()
+    .withMessage("Valid email is required")
+    .normalizeEmail(),
+];
+
 module.exports = {
   signupValidation,
   loginValidation,
+  emailValidation,
 };

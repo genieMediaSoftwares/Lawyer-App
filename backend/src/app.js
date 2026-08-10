@@ -91,9 +91,29 @@ app.use(
   })
 );
 
-// Rate limiting. Without this, the login endpoint is open to credential
-// stuffing and the password-reset code is brute-forceable within its window.
-const authLimiter = (max, windowMinutes) =>
+// Rate limiting.
+//
+// These ceilings were low enough that ordinary use hit them, and every one of
+// them answers with the same "Too many attempts" body — which is how a wrong
+// password, a duplicate signup and a second-device login all ended up wearing
+// that message. Two things caused it:
+//
+//   * Login allowed 5 requests per 15 minutes and counted *successful* ones
+//     too, so five sign-ins across a household or an office — everyone behind
+//     one NAT address, one key as far as the limiter is concerned — locked the
+//     endpoint for everybody.
+//   * The catch-all `/api` limiter allowed 300 per 15 minutes for that same
+//     shared key. This app opens sockets, polls chats and loads dashboards;
+//     normal traffic exhausts it, and once it does *every* endpoint answers
+//     429 — including login, which then blames the user for too many login
+//     attempts they never made.
+//
+// The limits below are abuse ceilings, not attempt counters: high enough that
+// no legitimate user reaches them, low enough to stop credential stuffing and
+// brute-forcing a 6-digit reset code. Login additionally stops counting
+// requests that succeed, so a working sign-in never brings a user closer to
+// being blocked.
+const authLimiter = (max, windowMinutes, options = {}) =>
   rateLimit({
     windowMs: windowMinutes * 60 * 1000,
     max,
@@ -102,14 +122,35 @@ const authLimiter = (max, windowMinutes) =>
     message: {
       success: false,
       message: "Too many attempts. Please try again later.",
+      code: "RATE_LIMITED",
     },
+    ...options,
   });
 
-app.use("/api/auth/login", authLimiter(5, 15));
-app.use("/api/auth/signup", authLimiter(3, 60));
-app.use("/api/auth/forgot-password", authLimiter(3, 15));
-app.use("/api/auth/reset-password", authLimiter(5, 15));
-app.use("/api", authLimiter(300, 15));
+app.use(
+  "/api/auth/login",
+  authLimiter(60, 15, {
+    // Only failures count. Somebody signing in normally — including retrying
+    // after a genuine typo, or reconnecting from a shared network — is not
+    // spending budget.
+    skipSuccessfulRequests: true,
+  })
+);
+app.use("/api/auth/signup", authLimiter(20, 60));
+app.use("/api/auth/forgot-password", authLimiter(10, 15));
+// The reset code is six digits, so this window is the thing standing between
+// an attacker and 1-in-a-million guesses. Kept genuinely tight.
+app.use("/api/auth/reset-password", authLimiter(10, 15));
+
+// Catch-all ceiling for everything else. Auth is excluded because it is
+// covered above, and because a user who has been browsing must never be told
+// they cannot sign in.
+app.use(
+  "/api",
+  authLimiter(3000, 15, {
+    skip: (req) => req.path.startsWith("/auth/"),
+  })
+);
 
 // Compression
 app.use(compression());
