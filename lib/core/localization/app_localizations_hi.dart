@@ -626,6 +626,9 @@ class AppLocalizationsHi extends AppLocalizations {
       'अपनी साख, बार पंजीकरण प्रमाण पत्र या पहचान सत्यापन अपलोड करें।';
 
   @override
+  String get delete => 'हटाएं';
+
+  @override
   String get delete_document => 'दस्तावेज़ हटाएं';
 
   @override

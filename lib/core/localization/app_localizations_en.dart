@@ -625,6 +625,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Upload credentials, bar registration certificates, or identity verifications.';
 
   @override
+  String get delete => 'Delete';
+
+  @override
   String get delete_document => 'Delete Document';
 
   @override

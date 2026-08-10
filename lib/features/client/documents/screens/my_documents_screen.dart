@@ -152,7 +152,7 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
         content: Text(loc.confirm_delete_document),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text(loc.cancel)),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(loc.delete_account, style: const TextStyle(color: AppColors.error))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(loc.delete, style: const TextStyle(color: AppColors.error))),
         ],
       ),
     );

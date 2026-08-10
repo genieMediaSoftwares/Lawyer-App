@@ -632,6 +632,9 @@ class AppLocalizationsTe extends AppLocalizations {
       'మీ ఆధారాలు, బార్ రిజిస్ట్రేషన్ సర్టిఫికెట్లు లేదా గురింపు నిర్ధారణలను అప్‌లోడ్ చేయండి.';
 
   @override
+  String get delete => 'తొలగించు';
+
+  @override
   String get delete_document => 'పత్రాన్ని తొలగించండి';
 
   @override

@@ -1228,6 +1228,12 @@ abstract class AppLocalizations {
   /// **'Upload credentials, bar registration certificates, or identity verifications.'**
   String get upload_documents_tip;
 
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
   /// No description provided for @delete_document.
   ///
   /// In en, this message translates to:

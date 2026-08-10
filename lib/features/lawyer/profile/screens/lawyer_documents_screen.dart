@@ -177,7 +177,7 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text(loc.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(loc.delete_account, style: const TextStyle(color: AppColors.error)),
+            child: Text(loc.delete, style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),

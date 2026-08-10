@@ -249,6 +249,7 @@
   "upload_document": "Upload Document",
   "no_documents_found": "No Documents Found",
   "upload_documents_tip": "Upload credentials, bar registration certificates, or identity verifications.",
+  "delete": "Delete",
   "delete_document": "Delete Document",
   "confirm_delete_document": "Are you sure you want to permanently delete this document?",
   "doc_deleted_success": "Document deleted successfully.",
