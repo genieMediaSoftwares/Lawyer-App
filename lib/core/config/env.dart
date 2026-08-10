@@ -6,19 +6,48 @@ import '../storage/token_storage.dart';
 class Environment {
   Environment._();
 
+  static const _localFallback = 'http://localhost:5000/api';
+
+  /// Set once the fallback has been announced, so a getter called on every
+  /// request does not repeat itself.
+  static bool _warnedAboutFallback = false;
+
+  /// Says loudly, once, why the app is about to talk to localhost.
+  ///
+  /// This fallback is silent by design and that is what makes it expensive:
+  /// a stale or mis-edited `.env` produces a confident wrong base URL, and the
+  /// only symptom is a connection error at every screen that reads like the
+  /// server is down. Both times that has happened here it took a log dump to
+  /// work out that the app, not the backend, was misconfigured.
+  ///
+  /// The returned value is unchanged — this only makes the reason visible.
+  static String _fallback(String reason) {
+    if (!_warnedAboutFallback) {
+      _warnedAboutFallback = true;
+      debugPrint(
+        '⚠️  BASE_URL: $reason — falling back to $_localFallback.\n'
+        '    The app will only reach a backend running on this machine.\n'
+        '    Fix .env, then FULLY RESTART (hot reload does not reload assets):\n'
+        '      flutter clean && flutter pub get && flutter run',
+      );
+    }
+    return _localFallback;
+  }
+
   static String get baseUrl {
     final url = dotenv.env['BASE_URL'];
-    if (kIsWeb) {
-      if (url == null ||
-          url.isEmpty ||
-          url.contains('192.168.') ||
-          url.contains('10.0.2.2')) {
-        return 'http://localhost:5000/api';
-      }
-    }
+
     if (url == null || url.isEmpty) {
-      return 'http://localhost:5000/api';
+      return _fallback('not set in .env (missing, empty or commented out)');
     }
+
+    // A LAN or emulator address cannot be reached from a browser tab, so the
+    // web build substitutes localhost rather than failing obscurely.
+    if (kIsWeb && (url.contains('192.168.') || url.contains('10.0.2.2'))) {
+      return _fallback('"$url" is a device-only address and the web build '
+          'cannot reach it');
+    }
+
     return url;
   }
 
