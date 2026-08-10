@@ -1,9 +1,8 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
-import '../config/env.dart';
+import '../config/app_config.dart';
 import '../errors/error_handler.dart';
 import 'api_interceptor.dart';
 
@@ -15,10 +14,10 @@ class DioClient {
   static Dio _initDio() {
     final client = Dio(
       BaseOptions(
-        baseUrl: Environment.baseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
-        sendTimeout: const Duration(seconds: 15),
+        baseUrl: AppConfig.baseUrl,
+        connectTimeout: AppConfig.httpConnectTimeout,
+        receiveTimeout: AppConfig.httpReceiveTimeout,
+        sendTimeout: AppConfig.httpSendTimeout,
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
@@ -32,7 +31,7 @@ class DioClient {
       ErrorInterceptor(),
     ]);
 
-    if (kDebugMode) {
+    if (AppConfig.httpLogRequests) {
       client.interceptors.add(
         PrettyDioLogger(
           requestBody: true,
@@ -47,6 +46,10 @@ class DioClient {
   }
 }
 
+/// Set `extra: {noRetryKey: true}` on a request to exempt it from
+/// [RetryInterceptor]'s backoff ladder.
+const String noRetryKey = 'no_retry';
+
 class RetryInterceptor extends Interceptor {
   final Dio dio;
   final int maxRetries;
@@ -54,9 +57,10 @@ class RetryInterceptor extends Interceptor {
 
   RetryInterceptor({
     required this.dio,
-    this.maxRetries = 3,
-    this.retryDelay = const Duration(seconds: 2),
-  });
+    int? maxRetries,
+    Duration? retryDelay,
+  })  : maxRetries = maxRetries ?? AppConfig.httpMaxRetries,
+        retryDelay = retryDelay ?? AppConfig.httpRetryBaseDelay;
 
   static const _idempotentMethods = {'GET', 'HEAD', 'OPTIONS'};
 
@@ -83,8 +87,25 @@ class RetryInterceptor extends Interceptor {
         err.type == DioExceptionType.connectionTimeout ||
         (err.type == DioExceptionType.unknown && err.error is SocketException);
 
-    final isRetryable =
-        isRetryableError && (isIdempotent || neverReachedServer);
+    // A FormData body cannot be replayed. `finalize()` consumes its file
+    // streams and throws "The FormData has already been finalized" on a second
+    // read, so retrying one here either crashed the request or — worse, when
+    // the throw was swallowed upstream — resent an empty body and the server
+    // reported the upload as having no files at all. Multipart callers that
+    // want retries have to rebuild the body per attempt, which the AI intake
+    // upload does.
+    final isReplayableBody = requestOptions.data is! FormData;
+
+    // Opt-out for calls where a slow failure is worse than no answer at all.
+    // Sign-out is the case in hand: it is best-effort by design, and grinding
+    // through the full backoff ladder while offline would hold the user on the
+    // screen they are trying to leave for over a minute.
+    final optedOut = requestOptions.extra[noRetryKey] == true;
+
+    final isRetryable = isRetryableError &&
+        !optedOut &&
+        isReplayableBody &&
+        (isIdempotent || neverReachedServer);
     final retryCount = requestOptions.extra['retry_count'] ?? 0;
 
     if (isRetryable && retryCount < maxRetries) {

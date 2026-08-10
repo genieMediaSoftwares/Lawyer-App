@@ -8,7 +8,7 @@ import '../../../../providers/appointment_provider.dart';
 import '../../../../models/case_model.dart';
 import '../../post_case/widgets/premium_audio_player.dart';
 import '../../../../providers/chat_provider.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
@@ -331,7 +331,7 @@ class CaseProgressScreen extends ConsumerWidget {
             radius: 24,
             backgroundColor: AppColors.border,
             imageUrl: lawyerImage.isNotEmpty
-                ? Environment.getAttachmentUrl(lawyerImage)
+                ? AppConfig.getAttachmentUrl(lawyerImage)
                 : null,
             fallback: const Icon(Icons.person, color: AppColors.mutedText),
           ),

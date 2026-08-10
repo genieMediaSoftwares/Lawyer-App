@@ -35,7 +35,9 @@ const refreshTokenSchema = new mongoose.Schema(
 );
 
 refreshTokenSchema.index({ user: 1 });
-refreshTokenSchema.index({ token: 1 });
+// No explicit index on `token`: `unique: true` on the field already builds one,
+// and declaring it twice made Mongoose warn on every boot once this model
+// started being loaded.
 refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model("RefreshToken", refreshTokenSchema);

@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -39,19 +41,51 @@ class AISmartCaseProcessingScreen extends ConsumerStatefulWidget {
 
 class _AISmartCaseProcessingScreenState
     extends ConsumerState<AISmartCaseProcessingScreen> {
+  /// True from the moment this screen decides to open the Post Case form.
+  ///
+  /// Navigation is asynchronous and the notifier can settle more than once in
+  /// that window (a socket result and a poll result racing, a retry press
+  /// landing as the first run completes). Without this the form was pushed
+  /// twice and the client saw a duplicate screen behind the one they were
+  /// filling in.
+  bool _navigated = false;
+
+  /// True while a run is being awaited from *this* screen. The notifier already
+  /// refuses to start a second analysis, but this also keeps the Retry button
+  /// from stacking awaits.
+  bool _awaitingRun = false;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startProcess());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _startProcess();
+    });
   }
 
   Future<void> _startProcess() async {
-    final success = await ref.read(aiSmartCaseProvider.notifier).startExtraction();
+    if (_awaitingRun || _navigated) return;
+    _awaitingRun = true;
 
-    if (!mounted || !success) return;
+    try {
+      // Returns the outcome of the run in flight when one already exists, so a
+      // rebuild of this screen attaches to it rather than starting a duplicate.
+      final success = await ref.read(aiSmartCaseProvider.notifier).startExtraction();
 
-    final result = ref.read(aiSmartCaseProvider).result;
-    if (result == null) return;
+      if (!mounted || !success) return;
+
+      final result = ref.read(aiSmartCaseProvider).result;
+      if (result == null) return;
+
+      _openPostCaseForm(result);
+    } finally {
+      _awaitingRun = false;
+    }
+  }
+
+  void _openPostCaseForm(ExtractionResult result) {
+    if (_navigated || !mounted) return;
+    _navigated = true;
 
     // Straight into the ordinary Post Case form, pre-filled. There is no
     // separate review or confirmation screen: the client edits the values in
@@ -65,6 +99,19 @@ class _AISmartCaseProcessingScreenState
     ));
   }
 
+  /// Leaving before the analysis finishes releases the socket and the poll.
+  ///
+  /// The server-side run is detached and carries on regardless — its result
+  /// stays retrievable by session id — but this device stops holding a
+  /// connection and a timer for a screen that is no longer on the stack. That
+  /// leak was the reason a client who backed out of several analyses ended up
+  /// with a handful of sockets and pollers running until the app was killed.
+  void _abandonRunIfUnfinished() {
+    final notifier = ref.read(aiSmartCaseProvider.notifier);
+    if (_navigated) return;
+    notifier.cancelRun();
+  }
+
   /// How far the backend has got, as an index into [_stages].
   ///
   /// Unknown stage ids resolve to the current position rather than resetting
@@ -76,208 +123,253 @@ class _AISmartCaseProcessingScreenState
 
   @override
   Widget build(BuildContext context) {
+    // Safety net for the case where the awaited future never gets to run its
+    // continuation — the framework dropped the microtask across a rebuild, or
+    // the result landed while this screen was being reattached. The extraction
+    // is authoritative in the notifier, so watching for it there means a
+    // finished analysis always reaches the form.
+    ref.listen<AISmartCaseState>(aiSmartCaseProvider, (previous, next) {
+      if (!next.isExtracting && next.result != null && previous?.result != next.result) {
+        _openPostCaseForm(next.result!);
+      }
+    });
+
     final state = ref.watch(aiSmartCaseProvider);
     final progress = state.progress;
     final activeIndex = _reachedIndex(progress);
     final hasFailed = state.errorMessage != null;
 
-    return Scaffold(
-      backgroundColor: AppColors.aiSurfaceBackground,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight - 48),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [AppColors.aiAccentViolet, AppColors.aiAccentAmber],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+    return PopScope(
+      // Back is allowed; it just has to release the run this screen owns.
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) _abandonRunIfUnfinished();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.aiSurfaceBackground,
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight.isFinite
+                        ? math.max(0.0, constraints.maxHeight - 48.0)
+                        : 0.0,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [AppColors.aiAccentViolet, AppColors.aiAccentAmber],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.aiAccentViolet.withValues(alpha: 0.5),
+                              blurRadius: 24,
+                              spreadRadius: 4,
+                            ),
+                          ],
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.aiAccentViolet.withValues(alpha: 0.5),
-                            blurRadius: 24,
-                            spreadRadius: 4,
-                          ),
-                        ],
+                        child: const Icon(
+                          Icons.auto_awesome,
+                          color: AppColors.primaryText,
+                          size: 48,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.auto_awesome,
-                        color: AppColors.primaryText,
-                        size: 48,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
-                    const Text(
-                      "Analysing Your Documents",
-                      style: TextStyle(
-                        color: AppColors.primaryText,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Outfit',
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // The backend's own words for what it is doing right now.
-                    Text(
-                      progress.message.isNotEmpty
-                          ? progress.message
-                          : "Starting analysis…",
-                      style: const TextStyle(color: AppColors.mutedText, fontSize: 13),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Determinate: the percentage is computed server-side from
-                    // real stage weights, so the bar cannot run ahead of the work.
-                    if (!hasFailed) ...[
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: progress.percent / 100,
-                          minHeight: 8,
-                          backgroundColor:
-                              AppColors.primaryText.withValues(alpha: 0.12),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            AppColors.primaryGold,
-                          ),
+                      const Text(
+                        "Analysing Your Documents",
+                        style: TextStyle(
+                          color: AppColors.primaryText,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Outfit',
                         ),
                       ),
                       const SizedBox(height: 8),
+
+                      // The backend's own words for what it is doing right now.
                       Text(
-                        "${progress.percent}%",
-                        style: const TextStyle(
-                          color: AppColors.primaryGold,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 28),
-
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _stages.length,
-                      itemBuilder: (context, index) {
-                        final stage = _stages[index];
-                        final isDone = !hasFailed && index < activeIndex;
-                        final isCurrent = !hasFailed && index == activeIndex;
-
-                        // Prefer the backend's live line for the running stage.
-                        final label = isCurrent && progress.message.isNotEmpty
+                        progress.message.isNotEmpty
                             ? progress.message
-                            : stage.label;
+                            : "Starting analysis…",
+                        style: const TextStyle(color: AppColors.mutedText, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
 
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            children: [
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: isDone
-                                      ? AppColors.success
-                                      : (isCurrent
-                                          ? AppColors.primaryGold
-                                          : AppColors.primaryText
-                                              .withValues(alpha: 0.12)),
-                                ),
-                                child: isDone
-                                    ? const Icon(Icons.check,
-                                        color: AppColors.onGold, size: 14)
-                                    : (isCurrent && stage.id != 'completed'
-                                        ? const Padding(
-                                            padding: EdgeInsets.all(6),
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: AppColors.onGold,
-                                            ),
-                                          )
-                                        : (isCurrent
-                                            ? const Icon(Icons.check,
-                                                color: AppColors.onGold, size: 14)
-                                            : null)),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Text(
-                                  label,
-                                  style: TextStyle(
+                      // Determinate: the percentage is computed server-side from
+                      // real stage weights, so the bar cannot run ahead of the work.
+                      if (!hasFailed) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: progress.percent / 100,
+                            minHeight: 8,
+                            backgroundColor:
+                                AppColors.primaryText.withValues(alpha: 0.12),
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              AppColors.primaryGold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "${progress.percent}%",
+                          style: const TextStyle(
+                            color: AppColors.primaryGold,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 28),
+
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _stages.length,
+                        itemBuilder: (context, index) {
+                          final stage = _stages[index];
+                          final isDone = !hasFailed && index < activeIndex;
+                          final isCurrent = !hasFailed && index == activeIndex;
+
+                          // Prefer the backend's live line for the running stage.
+                          final label = isCurrent && progress.message.isNotEmpty
+                              ? progress.message
+                              : stage.label;
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              children: [
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 300),
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
                                     color: isDone
-                                        ? AppColors.primaryText
+                                        ? AppColors.success
                                         : (isCurrent
                                             ? AppColors.primaryGold
                                             : AppColors.primaryText
-                                                .withValues(alpha: 0.38)),
-                                    fontWeight: isCurrent || isDone
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    fontSize: 13,
+                                                .withValues(alpha: 0.12)),
+                                  ),
+                                  child: isDone
+                                      ? const Icon(Icons.check,
+                                          color: AppColors.onGold, size: 14)
+                                      : (isCurrent && stage.id != 'completed'
+                                          ? const Padding(
+                                              padding: EdgeInsets.all(6),
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: AppColors.onGold,
+                                              ),
+                                            )
+                                          : (isCurrent
+                                              ? const Icon(Icons.check,
+                                                  color: AppColors.onGold, size: 14)
+                                              : null)),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Text(
+                                    label,
+                                    style: TextStyle(
+                                      color: isDone
+                                          ? AppColors.primaryText
+                                          : (isCurrent
+                                              ? AppColors.primaryGold
+                                              : AppColors.primaryText
+                                                  .withValues(alpha: 0.38)),
+                                      fontWeight: isCurrent || isDone
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-
-                    if (hasFailed) ...[
-                      const SizedBox(height: 24),
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.error),
-                        ),
-                        child: Text(
-                          state.errorMessage!,
-                          style: const TextStyle(color: AppColors.error, fontSize: 13),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          OutlinedButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text("Back"),
-                          ),
-                          const SizedBox(width: 12),
-                          ElevatedButton(
-                            onPressed: _startProcess,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryGold,
-                              foregroundColor: AppColors.onGold,
+                              ],
                             ),
-                            child: const Text("Retry Analysis"),
-                          ),
-                        ],
+                          );
+                        },
                       ),
+
+                      if (hasFailed) ...[
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.error),
+                          ),
+                          child: Text(
+                            state.errorMessage!,
+                            style: const TextStyle(color: AppColors.error, fontSize: 13),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 44,
+                                child: OutlinedButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: AppColors.primaryGold),
+                                    foregroundColor: AppColors.primaryGold,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  child: const Text("Back"),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: SizedBox(
+                                height: 44,
+                                child: ElevatedButton(
+                                  // Disabled while a retry is already under way, so a
+                                  // second tap cannot stack another await on a run
+                                  // that is still uploading.
+                                  onPressed: _awaitingRun ? null : _startProcess,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryGold,
+                                    foregroundColor: AppColors.onGold,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  child: const Text("Retry Analysis"),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

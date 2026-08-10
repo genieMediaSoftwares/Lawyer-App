@@ -117,35 +117,53 @@ class ErrorHandler {
         final statusCode = error.response?.statusCode;
         final responseData = error.response?.data;
         String? serverMsg;
+        // Carried through so callers can tell *which* failure this is — a
+        // duplicate email, a wrong password, a session held on another device
+        // — without matching on the wording of the message.
+        String? serverCode;
         if (responseData is Map) {
           serverMsg =
               responseData['message']?.toString() ??
               responseData['error']?.toString();
+          serverCode = responseData['code']?.toString();
         }
 
         if (statusCode == 400) {
           return ServerException(
             serverMsg ?? "Bad Request. Please check your inputs.",
+            code: serverCode,
           );
         } else if (statusCode == 401) {
           return ServerException(
             serverMsg ?? "Unauthorized. Please login again.",
+            code: serverCode,
           );
         } else if (statusCode == 403) {
           return ServerException(
             serverMsg ?? "Access forbidden. You do not have permission.",
+            code: serverCode,
           );
         } else if (statusCode == 404) {
           return ServerException(
             serverMsg ?? "Resource not found on the server.",
+            code: serverCode,
+          );
+        } else if (statusCode == 409) {
+          // Duplicate signup details, or an account already signed in
+          // elsewhere. The backend always words these for the user.
+          return ServerException(
+            serverMsg ?? "That request conflicts with an existing record.",
+            code: serverCode,
           );
         } else if (statusCode == 500) {
           return ServerException(
             serverMsg ?? "Internal Server Error. Please try again later.",
+            code: serverCode,
           );
         }
         return ServerException(
           serverMsg ?? "Server returned error: $statusCode",
+          code: serverCode,
         );
 
       case DioExceptionType.cancel:

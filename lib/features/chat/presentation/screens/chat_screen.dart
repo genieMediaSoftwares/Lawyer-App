@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../models/message_model.dart';
 import '../../../../models/chat_model.dart';
@@ -164,7 +164,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   String _resolveImageUrl(String url) {
-    return Environment.getAttachmentUrl(url);
+    return AppConfig.getAttachmentUrl(url);
   }
 
   Future<void> _launchUrl(String urlString) async {

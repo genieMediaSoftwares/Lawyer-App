@@ -1,10 +1,27 @@
 const authService = require("../../services/auth/authService");
 const storageService = require("../../services/storageService");
 const ApiResponse = require("../../config/ApiResponse");
+
+/**
+ * Identifies the installation a request came from, for session tracking.
+ *
+ * The client sends a value it generated once and keeps in secure storage, so
+ * "the same device" survives a restart, an app update and a cleared session.
+ * An older build that sends nothing yields an undefined id: sessionService
+ * treats that as "no device match", so such a client can still sign in and
+ * still gets the active-session check — it just cannot claim an earlier
+ * session as its own. The header is accepted as a fallback for requests with
+ * no body of their own, such as logout.
+ */
+const deviceContext = (req) => ({
+  deviceId: req.body?.deviceId || req.get("X-Device-Id") || undefined,
+  ipAddress: req.ip,
+});
+
 class AuthController {
   async signup(req, res, next) {
     try {
-      const result = await authService.register(req.body);
+      const result = await authService.register(req.body, deviceContext(req));
 
       return ApiResponse.success(
         res,
@@ -23,7 +40,8 @@ class AuthController {
 
       const result = await authService.login(
         email,
-        password
+        password,
+        deviceContext(req)
       );
 
       return ApiResponse.success(
@@ -31,6 +49,24 @@ class AuthController {
         "Login successful.",
         result
       );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Ends the session this token names.
+   *
+   * `req.sessionId` is set by authMiddleware from the token's `sid` claim, so
+   * a caller can only ever end their own session. Tokens issued before session
+   * tracking existed carry no `sid`; there is nothing to revoke for those, and
+   * reporting success is right — the client clears its local state either way.
+   */
+  async logout(req, res, next) {
+    try {
+      await authService.logout(req.sessionId);
+
+      return ApiResponse.success(res, "Logged out successfully.");
     } catch (error) {
       next(error);
     }

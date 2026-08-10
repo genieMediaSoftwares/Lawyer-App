@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../models/chat_model.dart';
@@ -106,7 +106,12 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
           ),
 
           // ── Filter Chips ──
-          Padding(
+          //
+          // Scrollable: three chips plus their padding are wider than a 320dp
+          // screen, and a plain Row overflowed instead of shrinking, painting
+          // the yellow-and-black overflow stripe across the last chip.
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
@@ -263,162 +268,180 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                             width: isUnread ? 1.2 : 0.8,
                           ),
                         ),
-                        child: ListTile(
+                        // Laid out by hand rather than with ListTile.
+                        //
+                        // ListTile sizes itself from a one- or two-line model
+                        // and constrains `subtitle` to match. This row carries
+                        // three stacked lines — an optional specialisation, the
+                        // case, and the message preview — so the last of them
+                        // was being clipped out of the card. That is the
+                        // "messages are hidden" case: the text was rendered and
+                        // then cut off. A plain Row grows to whatever its
+                        // children need.
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
                           onTap: () {
                             context.push(
                                 '/chat/${chat.id}/${Uri.encodeComponent(otherParticipant.fullName)}');
                           },
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 10),
-                          leading: AppCircleAvatar(
-                            radius: 26,
-                            backgroundColor: AppColors.secondaryBackground,
-                            imageUrl: otherParticipant.profileImage.isNotEmpty
-                                ? Environment.getAttachmentUrl(
-                                    otherParticipant.profileImage)
-                                : null,
-                            fallback: const Icon(Icons.person,
-                                color: AppColors.primaryGold),
-                          ),
-                          title: Row(
-                            children: [
-                              Expanded(
-                                child: Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        otherParticipant.fullName,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontWeight: isUnread
-                                              ? FontWeight.bold
-                                              : FontWeight.w600,
-                                          fontSize: 16,
-                                          color: AppColors.primaryText,
-                                        ),
-                                      ),
-                                    ),
-                                    if (otherParticipant.role == 'lawyer' && otherParticipant.isVerified) ...[
-                                      const SizedBox(width: 4),
-                                      const Icon(Icons.verified, color: AppColors.primaryGold, size: 16),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                formattedTime,
-                                style: TextStyle(
-                                  color: isUnread
-                                      ? AppColors.primaryGold
-                                      : AppColors.mutedText,
-                                  fontSize: 11,
-                                  fontWeight: isUnread
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                ),
-                              ),
-                            ],
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (otherParticipant.role == 'lawyer' && otherParticipant.specialization.isNotEmpty) ...[
-                                  Text(
-                                    otherParticipant.specialization,
-                                    style: TextStyle(
-                                      color: AppColors.secondaryText,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                ],
-                                // Case title (if linked)
-                                Row(
-                                  children: [
-                                    const Icon(Icons.folder_open,
-                                        size: 12,
-                                        color: AppColors.primaryGold),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        chat.caseInfo?.title ??
-                                            "General Consultation",
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: AppColors.primaryGold,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                AppCircleAvatar(
+                                  radius: 26,
+                                  backgroundColor:
+                                      AppColors.secondaryBackground,
+                                  imageUrl: otherParticipant
+                                          .profileImage.isNotEmpty
+                                      ? AppConfig.getAttachmentUrl(
+                                          otherParticipant.profileImage)
+                                      : null,
+                                  fallback: const Icon(Icons.person,
+                                      color: AppColors.primaryGold),
                                 ),
-                                const SizedBox(height: 4),
-                                // Last message or typing indicator
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        typingUser != null
-                                            ? "typing..."
-                                            : (chat.lastMessage.isNotEmpty
-                                                ? chat.lastMessage
-                                                : "No messages yet."),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: typingUser != null
-                                              ? AppColors.success
-                                              : (isUnread
-                                                  ? AppColors.primaryText
-                                                  : AppColors.secondaryText),
-                                          fontStyle: typingUser != null
-                                              ? FontStyle.italic
-                                              : FontStyle.normal,
-                                          fontWeight: typingUser != null
-                                              ? FontWeight.bold
-                                              : (isUnread
-                                                  ? FontWeight.w600
-                                                  : FontWeight.normal),
-                                          fontSize: 13,
-                                        ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // ── Name + timestamp ──
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              otherParticipant.fullName,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontWeight: isUnread
+                                                    ? FontWeight.bold
+                                                    : FontWeight.w600,
+                                                fontSize: 16,
+                                                height: 1.2,
+                                                color: AppColors.primaryText,
+                                              ),
+                                            ),
+                                          ),
+                                          if (otherParticipant.role ==
+                                                  'lawyer' &&
+                                              otherParticipant.isVerified) ...[
+                                            const SizedBox(width: 4),
+                                            const Icon(Icons.verified,
+                                                color: AppColors.primaryGold,
+                                                size: 16),
+                                          ],
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            formattedTime,
+                                            style: TextStyle(
+                                              color: isUnread
+                                                  ? AppColors.primaryGold
+                                                  : AppColors.mutedText,
+                                              fontSize: 11,
+                                              fontWeight: isUnread
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                  ],
+
+                                      if (otherParticipant.role == 'lawyer' &&
+                                          otherParticipant
+                                              .specialization.isNotEmpty) ...[
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          otherParticipant.specialization,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: AppColors.secondaryText,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+
+                                      // ── Linked case ──
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.folder_open,
+                                              size: 12,
+                                              color: AppColors.primaryGold),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              chat.caseInfo?.title ??
+                                                  "General Consultation",
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: AppColors.primaryGold,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+
+                                      // ── Preview + unread badge ──
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              typingUser != null
+                                                  ? "typing..."
+                                                  : (chat.lastMessage.isNotEmpty
+                                                      ? chat.lastMessage
+                                                      : "No messages yet."),
+                                              // Two lines, so a normal message
+                                              // is readable in full instead of
+                                              // being cut off after a few words.
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: typingUser != null
+                                                    ? AppColors.success
+                                                    : (isUnread
+                                                        ? AppColors.primaryText
+                                                        : AppColors
+                                                            .secondaryText),
+                                                fontStyle: typingUser != null
+                                                    ? FontStyle.italic
+                                                    : FontStyle.normal,
+                                                fontWeight: typingUser != null
+                                                    ? FontWeight.bold
+                                                    : (isUnread
+                                                        ? FontWeight.w600
+                                                        : FontWeight.normal),
+                                                fontSize: 13,
+                                                height: 1.35,
+                                              ),
+                                            ),
+                                          ),
+                                          if (isUnread) ...[
+                                            const SizedBox(width: 10),
+                                            _UnreadBadge(
+                                                count: chat.unreadCount),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                          trailing: isUnread
-                              ? Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.primaryGold,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  constraints: const BoxConstraints(
-                                    minWidth: 20,
-                                    minHeight: 20,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      "${chat.unreadCount}",
-                                      style: const TextStyle(
-                                        color: AppColors.onGold,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : const SizedBox.shrink(),
                         ),
                       );
                     },
@@ -626,6 +649,45 @@ class _MessageShimmerTileState extends State<_MessageShimmerTile>
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Red pill carrying the unread count for one conversation.
+///
+/// A pill rather than a fixed circle so a two- or three-digit count stays
+/// inside it instead of overflowing; counts above 99 read as "99+", which is
+/// all the precision this badge needs.
+class _UnreadBadge extends StatelessWidget {
+  const _UnreadBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count > 99 ? '99+' : '$count';
+
+    return Container(
+      constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.error,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Center(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            height: 1.1,
           ),
         ),
       ),

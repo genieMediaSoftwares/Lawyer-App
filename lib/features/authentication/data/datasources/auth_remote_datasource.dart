@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../models/auth_model.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../../../core/errors/exceptions.dart';
+import '../../../../core/storage/token_storage.dart';
 
 abstract class AuthRemoteDataSource {
   Future<AuthResponse> signup({
@@ -17,8 +18,36 @@ abstract class AuthRemoteDataSource {
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final Dio dio;
+  final TokenStorage _tokenStorage = TokenStorage();
 
   AuthRemoteDataSourceImpl({required this.dio});
+
+  /// Turns a failed auth call into a [ServerException] that keeps the backend's
+  /// message *and* its code.
+  ///
+  /// The code is what lets a caller distinguish "this email is already
+  /// registered" from "invalid email or password" from "already signed in on
+  /// another device"; before, every one of them arrived as an untyped string.
+  /// [ErrorInterceptor] has usually mapped the response already, so prefer its
+  /// result and only re-read the body when it has not.
+  Never _throwMapped(DioException e, String fallback) {
+    final mapped = e.error;
+    if (mapped is ServerException) throw mapped;
+    if (mapped is NetworkException) throw mapped;
+
+    final responseData = e.response?.data;
+    if (responseData is Map) {
+      final message = responseData['message']?.toString();
+      if (message != null && message.isNotEmpty) {
+        throw ServerException(
+          message,
+          code: responseData['code']?.toString(),
+        );
+      }
+    }
+
+    throw ServerException(e.message ?? fallback);
+  }
 
   @override
   Future<AuthResponse> signup({
@@ -29,6 +58,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String role,
   }) async {
     try {
+      // Signing up leaves this device holding the new account's session, so it
+      // has to identify itself the same way login does — otherwise the sign-in
+      // that immediately follows looks like a second device and is refused.
+      final deviceId = await _tokenStorage.getOrCreateDeviceId();
+
       final response = await dio.post(
         '/auth/signup',
         data: {
@@ -37,6 +71,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'mobile': mobile,
           'password': password,
           'role': role,
+          'deviceId': deviceId,
         },
       );
 
@@ -45,14 +80,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final user = UserModel.fromJson(data['user']);
       return AuthResponse(token: token, user: user);
     } on DioException catch (e) {
-      final responseData = e.response?.data;
-      final errorMessage =
-          (responseData != null &&
-              responseData is Map &&
-              responseData.containsKey('message'))
-          ? responseData['message']
-          : (e.message ?? 'An error occurred during signup');
-      throw ServerException(errorMessage.toString());
+      _throwMapped(e, 'An error occurred during signup');
+    } on ServerException {
+      rethrow;
     } catch (e) {
       throw ServerException(e.toString());
     }
@@ -64,9 +94,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String password,
   }) async {
     try {
+      final deviceId = await _tokenStorage.getOrCreateDeviceId();
+
       final response = await dio.post(
         '/auth/login',
-        data: {'email': email, 'password': password},
+        data: {
+          'email': email,
+          'password': password,
+          'deviceId': deviceId,
+        },
       );
 
       final data = response.data['data'];
@@ -74,14 +110,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final user = UserModel.fromJson(data['user']);
       return AuthResponse(token: token, user: user);
     } on DioException catch (e) {
-      final responseData = e.response?.data;
-      final errorMessage =
-          (responseData != null &&
-              responseData is Map &&
-              responseData.containsKey('message'))
-          ? responseData['message']
-          : (e.message ?? 'An error occurred during login');
-      throw ServerException(errorMessage.toString());
+      _throwMapped(e, 'An error occurred during login');
+    } on ServerException {
+      rethrow;
     } catch (e) {
       throw ServerException(e.toString());
     }

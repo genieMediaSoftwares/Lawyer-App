@@ -35,6 +35,16 @@ Future<void> _pumpForm(WidgetTester tester, ExtractionResult result) async {
   // The post-frame callback lands on the next pump.
   await tester.pump();
   expect(tester.takeException(), isNull);
+
+  // The Lawyers step asks for recommendations as it builds. `flutter_test_config`
+  // answers that with an immediate 503 instead of a socket, but the request
+  // still has to be allowed to settle: Dio holds a zero-duration timer for the
+  // life of a request, and an unfinished one fails teardown with "a Timer is
+  // still pending". This used to settle by accident — `DioClient.dio` threw on
+  // first touch because dotenv was never loaded in tests, so the provider went
+  // straight to an error state and no request existed at all.
+  await tester.pump(Duration.zero);
+  expect(tester.takeException(), isNull);
 }
 
 ProviderContainer _containerOf(WidgetTester tester) =>

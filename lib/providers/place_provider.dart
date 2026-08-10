@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/config/app_config.dart';
 import '../models/place_model.dart';
 import '../repositories/place_repository.dart';
 import '../services/place_service.dart';
@@ -50,11 +51,13 @@ class PlaceSearchNotifier extends StateNotifier<PlaceSearchState> {
 
   /// Debounce window. Long enough to skip most intermediate keystrokes, short
   /// enough that the list still feels live while typing.
-  static const _debounce = Duration(milliseconds: 350);
+  /// Configured as PLACE_SEARCH_DEBOUNCE_MS in .env.
+  static Duration get _debounce => AppConfig.placeSearchDebounce;
 
   /// Below this length results are too broad to be useful and the request is
   /// wasted. The backend applies the same floor.
-  static const _minQueryLength = 2;
+  /// Configured as PLACE_SEARCH_MIN_QUERY_LENGTH in .env.
+  static int get _minQueryLength => AppConfig.placeSearchMinQueryLength;
 
   /// Recent queries and their results.
   ///

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../models/document_model.dart';
 import '../../../../providers/admin_provider.dart';
@@ -31,7 +31,7 @@ class _AdminDocumentsScreenState extends ConsumerState<AdminDocumentsScreen> {
       return;
     }
 
-    final uri = Uri.parse(Environment.getAttachmentUrl(doc.url));
+    final uri = Uri.parse(AppConfig.getAttachmentUrl(doc.url));
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
 
     if (!launched && mounted) {

@@ -8,6 +8,19 @@ const aiSmartCaseSessionSchema = new mongoose.Schema(
       required: true,
     },
 
+    /// Client-supplied idempotency key (`X-Request-Id`) for the upload that
+    /// created this session.
+    ///
+    /// A mobile client that loses the response to `POST /analyze` cannot tell
+    /// whether the upload landed, so it retries — and without a key that retry
+    /// started a second analysis of the same documents, billed twice and left
+    /// two rows in the client's history. The unique index below, scoped to the
+    /// client, makes the retry return the original session instead.
+    requestId: {
+      type: String,
+      default: undefined,
+    },
+
     // A session is created as "processing" the moment the upload lands, before
     // any AI work starts, so the client has a real id to subscribe to and the
     // run survives the client disconnecting. It ends as "extracted" or
@@ -179,7 +192,22 @@ const aiSmartCaseSessionSchema = new mongoose.Schema(
   }
 );
 
-aiSmartCaseSessionSchema.index({ client: 1 });
-aiSmartCaseSessionSchema.index({ status: 1 });
+aiSmartCaseSessionSchema.index({ client: 1, updatedAt: -1 });
+
+// Drives both the abandoned-run sweep (`status: "processing"` older than the
+// pipeline budget) and the per-client concurrency count, which run on every
+// analyze request.
+aiSmartCaseSessionSchema.index({ status: 1, "progress.updatedAt": 1 });
+
+// Idempotency. Partial rather than sparse so it only constrains documents that
+// actually carry a key — sessions created before this field existed, and any
+// created without one, are unaffected and can coexist freely.
+aiSmartCaseSessionSchema.index(
+  { client: 1, requestId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { requestId: { $type: "string" } },
+  }
+);
 
 module.exports = mongoose.model("AiSmartCaseSession", aiSmartCaseSessionSchema);

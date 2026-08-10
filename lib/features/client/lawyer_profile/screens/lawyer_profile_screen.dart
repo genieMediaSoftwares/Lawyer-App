@@ -6,7 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../models/lawyer_model.dart';
 import '../../../../providers/chat_provider.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
 
 import '../../../../providers/favorite_provider.dart';
@@ -217,7 +217,7 @@ class LawyerProfileScreen extends ConsumerWidget {
           AppCircleAvatar(
             radius: 45,
             imageUrl: lawyer.profileImage.isNotEmpty
-                ? Environment.getAttachmentUrl(lawyer.profileImage)
+                ? AppConfig.getAttachmentUrl(lawyer.profileImage)
                 : null,
             fallback: const Icon(Icons.person, size: 45),
           ),

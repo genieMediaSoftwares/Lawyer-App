@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -11,7 +11,7 @@ class ContactSupportScreen extends StatelessWidget {
   static const String _emailSubject = "Lawyer App Support";
 
   Future<void> _sendEmail(BuildContext context) async {
-    final supportEmail = Environment.supportEmail;
+    final supportEmail = AppConfig.supportEmail;
     final Uri mailUri = Uri(
       scheme: 'mailto',
       path: supportEmail,
@@ -49,7 +49,7 @@ class ContactSupportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    final supportEmail = Environment.supportEmail;
+    final supportEmail = AppConfig.supportEmail;
 
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,

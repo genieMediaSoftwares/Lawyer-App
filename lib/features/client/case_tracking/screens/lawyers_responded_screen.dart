@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../models/case_model.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
@@ -133,7 +133,7 @@ class LawyersRespondedScreen extends ConsumerWidget {
             AppCircleAvatar(
               radius: 30,
               imageUrl: proposal.profileImage.isNotEmpty
-                  ? Environment.getAttachmentUrl(proposal.profileImage)
+                  ? AppConfig.getAttachmentUrl(proposal.profileImage)
                   : null,
               fallback: const Icon(Icons.person, size: 30),
             ),

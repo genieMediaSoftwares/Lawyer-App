@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:record/record.dart' show Amplitude;
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../services/live_transcription_service.dart';
 import '../services/voice_audio_capture.dart';
@@ -53,11 +54,25 @@ class VoiceNoteRecorder extends StatefulWidget {
 
   /// Locale ids to prefer for recognition, best first — normally the app's
   /// current language followed by English.
-  final List<String> preferredLocales;
+  ///
+  /// Null means "use the configured list"; see [effectivePreferredLocales].
+  final List<String>? preferredLocales;
+
+  /// The locales actually used: the caller's override, or
+  /// SPEECH_PREFERRED_LOCALES from .env.
+  List<String> get effectivePreferredLocales =>
+      preferredLocales ?? AppConfig.speechPreferredLocales;
 
   /// Hard cap on one recording. Reaching it stops and finalises rather than
   /// letting a client produce a transcript nothing will accept.
-  final Duration maxDuration;
+  ///
+  /// Null means "use the configured cap"; see [effectiveMaxDuration].
+  final Duration? maxDuration;
+
+  /// The cap actually applied: an explicit [maxDuration] if the caller set one,
+  /// otherwise VOICE_NOTE_MAX_DURATION_MINUTES from .env.
+  Duration get effectiveMaxDuration =>
+      maxDuration ?? AppConfig.voiceNoteMaxDuration;
 
   /// Whether to also capture the raw audio while live transcription runs.
   ///
@@ -82,8 +97,8 @@ class VoiceNoteRecorder extends StatefulWidget {
     required this.onTranscriptChanged,
     required this.onAudioChanged,
     this.onListeningChanged,
-    this.preferredLocales = const ['en_IN', 'en_US'],
-    this.maxDuration = const Duration(minutes: 5),
+    this.preferredLocales,
+    this.maxDuration,
     this.captureAudio = false,
     this.transcriptionServiceFactory,
   });
@@ -143,7 +158,8 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
 
   /// A transcript longer than this is past anything a client dictates and past
   /// what the extraction prompt can use; the backend applies the same ceiling.
-  static const _maxTranscriptChars = 20000;
+  /// Configured as MAX_TRANSCRIPT_CHARS in .env.
+  static int get _maxTranscriptChars => AppConfig.maxTranscriptChars;
 
   @override
   void initState() {
@@ -303,7 +319,7 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
       unawaited(_pulse.repeat(reverse: true));
 
       final started = await _live.start(
-        preferredLocales: widget.preferredLocales,
+        preferredLocales: widget.effectivePreferredLocales,
         seed: seed,
       );
 
@@ -373,10 +389,10 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       _elapsedSeconds.value++;
-      if (_elapsedSeconds.value >= widget.maxDuration.inSeconds) {
+      if (_elapsedSeconds.value >= widget.effectiveMaxDuration.inSeconds) {
         unawaited(_stopRecording(
           interruptedMessage:
-              'Recording reached the ${widget.maxDuration.inMinutes}-minute limit and was saved.',
+              'Recording reached the ${widget.effectiveMaxDuration.inMinutes}-minute limit and was saved.',
         ));
       }
     });
@@ -729,7 +745,7 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
             ValueListenableBuilder<int>(
               valueListenable: _elapsedSeconds,
               builder: (_, seconds, _) => Text(
-                '${_formatDuration(seconds)} / ${_formatDuration(widget.maxDuration.inSeconds)}',
+                '${_formatDuration(seconds)} / ${_formatDuration(widget.effectiveMaxDuration.inSeconds)}',
                 style: const TextStyle(
                   color: AppColors.mutedText,
                   fontSize: 11.5,

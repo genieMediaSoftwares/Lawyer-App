@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
+import '../config/app_config.dart';
 import '../theme/app_colors.dart';
 
 /// A small round microphone button that records audio and reports the result.
@@ -33,8 +34,16 @@ class VoiceRecorderButton extends StatefulWidget {
   final ValueChanged<bool>? onRecordingStateChanged;
 
   /// Hard cap on length. Recording auto-stops here rather than letting the
-  /// user produce a file that will be rejected by the 10 MB upload limit.
-  final Duration maxDuration;
+  /// user produce a file that will be rejected by the upload size limit.
+  ///
+  /// Null means "use the configured cap"; see [effectiveMaxDuration]. There is
+  /// no literal default here, so the value always originates in .env.
+  final Duration? maxDuration;
+
+  /// The cap actually applied: an explicit [maxDuration] if the caller set one,
+  /// otherwise VOICE_NOTE_MAX_DURATION_MINUTES from .env.
+  Duration get effectiveMaxDuration =>
+      maxDuration ?? AppConfig.voiceNoteMaxDuration;
 
   /// Diameter of the collapsed button. Kept at a 48dp minimum tap target by
   /// the surrounding [SizedBox] regardless of this value.
@@ -47,7 +56,7 @@ class VoiceRecorderButton extends StatefulWidget {
     super.key,
     required this.onRecordingComplete,
     this.onRecordingStateChanged,
-    this.maxDuration = const Duration(minutes: 5),
+    this.maxDuration,
     this.size = 36,
     this.filePrefix = 'voice_note',
   });
@@ -151,7 +160,7 @@ class _VoiceRecorderButtonState extends State<VoiceRecorderButton> {
 
       _timer = Timer.periodic(const Duration(seconds: 1), (_) {
         _elapsedSeconds.value++;
-        if (_elapsedSeconds.value >= widget.maxDuration.inSeconds) {
+        if (_elapsedSeconds.value >= widget.effectiveMaxDuration.inSeconds) {
           _stop();
         }
       });

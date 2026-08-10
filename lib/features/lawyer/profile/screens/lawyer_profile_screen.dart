@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/config/env.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../routes/route_names.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
 import '../../../../providers/auth_provider.dart';
@@ -266,7 +266,7 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
             radius: 28,
             backgroundColor: theme.colorScheme.outline,
             imageUrl: lawyer.profileImage.isNotEmpty
-                ? Environment.getAttachmentUrl(lawyer.profileImage)
+                ? AppConfig.getAttachmentUrl(lawyer.profileImage)
                 : null,
             fallback: Text(
               lawyer.fullName.isNotEmpty ? lawyer.fullName[0].toUpperCase() : 'A',

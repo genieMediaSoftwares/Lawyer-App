@@ -1,47 +1,93 @@
 const path = require("path");
+const fs = require("fs");
+const mongoose = require("mongoose");
 const ApiResponse = require("../../config/ApiResponse");
 const AiSmartCaseSession = require("../../models/AiSmartCaseSession");
 const Document = require("../../models/Document");
-const { AiSmartCasePipeline } = require("../../services/ai/aiSmartCasePipeline");
+const {
+  AiSmartCasePipeline,
+  PIPELINE_BUDGET_MS,
+} = require("../../services/ai/aiSmartCasePipeline");
+const log = require("../../utils/aiLogger");
 
 /** Repo root, used to turn an absolute upload path into a served URL. */
 const PROJECT_ROOT = path.join(__dirname, "../../..");
 
 /**
  * Ceiling on a client-supplied voice transcript.
- *
- * Well past anything dictated in the five minutes the recorder allows, and it
- * keeps a malformed or hostile request from pushing an unbounded string into
- * the session document and the extraction prompt. The app applies the same cap.
  */
 const MAX_LIVE_TRANSCRIPT_CHARS = 20000;
+
+/**
+ * How many analyses one client may have running at once.
+ */
+const MAX_CONCURRENT_SESSIONS_PER_CLIENT = 3;
+
+/**
+ * Grace period on top of the pipeline's own budget before a "processing"
+ * session is considered abandoned.
+ */
+const STALE_GRACE_MS = 60 * 1000;
 
 class AiSmartCaseController {
   /**
    * POST /api/ai/smart-case/analyze
-   *
-   * Accepts the documents and optional voice note, persists a "processing"
-   * session, and returns its id straight away. The analysis itself runs
-   * detached and reports over the /ai Socket.IO namespace.
-   *
-   * This shape replaced a single blocking request that held the connection for
-   * the whole pipeline. That could not work: OCR plus transcription plus
-   * extraction routinely outran the client's receive timeout and Node's own
-   * request timeout, so the client aborted while the server carried on
-   * working, and the finished result had nowhere to go. Returning an id first
-   * also means the run survives the client backgrounding or reconnecting.
    */
   async analyzeSmartCase(req, res, next) {
+    let documentFiles = [];
+    let voiceFile = null;
+
     try {
-      const clientId = req.user._id;
+      const clientId = req.user?._id;
+      if (!clientId) {
+        return ApiResponse.error(res, "You must be signed in to use the AI assistant.", 401);
+      }
 
-      const documentFiles =
+      documentFiles =
         req.files?.documents || (Array.isArray(req.files) ? req.files : []);
-      const voiceFile = req.files?.voice ? req.files.voice[0] : req.file || null;
+      voiceFile = req.files?.voice ? req.files.voice[0] : req.file || null;
 
-      // The document is the primary input the assistant reasons from; voice
-      // and typed notes only ever supplement it.
+      // ── Idempotency ──────────────────────────────────────────────────────
+      // Accepted from either the header or a form field. Browsers cannot send
+      // `X-Request-Id` unless the CORS preflight allows it by name, and the
+      // reverse proxy in front of this app answers OPTIONS itself with a fixed
+      // allow-list that does not include it — so web clients send the key as a
+      // multipart field. Native clients still send the header.
+      //
+      // Without the fallback, a web upload would arrive with no key at all and
+      // every retry would start a *new* analysis instead of rejoining the one
+      // already running.
+      const requestId = String(
+        req.get("X-Request-Id") || req.body?.requestId || ""
+      )
+        .trim()
+        .slice(0, 128);
+
+      if (requestId) {
+        const existing = await AiSmartCaseSession.findOne({
+          client: clientId,
+          requestId,
+        });
+
+        if (existing) {
+          log.info("analyze:idempotent-replay", {
+            session: existing._id,
+            requestId,
+          });
+          await removeUploadedFiles([...documentFiles, voiceFile]);
+
+          return ApiResponse.success(res, "Analysis already started.", {
+            sessionId: existing._id.toString(),
+            status: existing.status,
+            progress: existing.progress,
+            uploadedDocuments: existing.uploadedDocuments,
+            documentCount: existing.uploadedDocuments.length,
+          }, 202);
+        }
+      }
+
       if (!documentFiles || documentFiles.length === 0) {
+        await removeUploadedFiles([voiceFile]);
         return ApiResponse.error(
           res,
           "Please upload at least one supporting document to use the AI Smart Assistant. A voice note or written notes can add extra detail, but a document is required.",
@@ -49,27 +95,37 @@ class AiSmartCaseController {
         );
       }
 
-      const typedDescription = ((req.body && req.body.issueDescription) || "").trim();
+      // ── Concurrency ──────────────────────────────────────────────────────
+      await failStaleSessions({ client: clientId });
 
-      // The app transcribes the voice note on the device while the client
-      // speaks and sends the text they reviewed. When it is present the
-      // pipeline uses it directly instead of transcribing the audio first, so
-      // nothing in the analysis waits on transcription. Its absence is the
-      // old path: transcribe the uploaded recording here.
+      const running = await AiSmartCaseSession.countDocuments({
+        client: clientId,
+        status: "processing",
+      });
+
+      if (running >= MAX_CONCURRENT_SESSIONS_PER_CLIENT) {
+        await removeUploadedFiles([...documentFiles, voiceFile]);
+        log.warn("analyze:rejected-concurrency", { client: clientId, running });
+        return ApiResponse.error(
+          res,
+          "You already have analyses running. Please wait for them to finish before starting another.",
+          429
+        );
+      }
+
+      const typedDescription = ((req.body && req.body.issueDescription) || "")
+        .toString()
+        .trim()
+        .slice(0, 5000);
+
       const liveVoiceTranscript = ((req.body && req.body.voiceTranscript) || "")
         .toString()
         .trim()
         .slice(0, MAX_LIVE_TRANSCRIPT_CHARS);
 
-      // Register each upload in the Document collection, the same one the
-      // manual Post Case upload writes to. Without this the AI flow produced
-      // files that existed on disk but had no record, so the Post Case form
-      // could not treat them as attached and asked the client to upload the
-      // very files they had just given us.
       const uploadedDocsForDb = [];
       for (const file of documentFiles) {
-        const url =
-          "/" + path.relative(PROJECT_ROOT, file.path).replace(/\\/g, "/");
+        const url = "/" + path.relative(PROJECT_ROOT, file.path).replace(/\\/g, "/");
 
         let documentId = null;
         try {
@@ -83,9 +139,7 @@ class AiSmartCaseController {
           });
           documentId = record._id;
         } catch (e) {
-          // A missing catalogue row must not lose the client's upload; the file
-          // is still on disk and still analysed.
-          console.error("Could not create Document record for AI upload:", e.message);
+          log.error("analyze:document-record-failed", e, { name: file.originalname });
         }
 
         uploadedDocsForDb.push({
@@ -100,21 +154,40 @@ class AiSmartCaseController {
         });
       }
 
-      const session = await AiSmartCaseSession.create({
-        client: clientId,
-        status: "processing",
-        uploadedDocuments: uploadedDocsForDb,
-        voiceTranscript: liveVoiceTranscript,
-        voiceTranscriptSource: liveVoiceTranscript ? "live" : "none",
-        progress: {
-          stage: "queued",
-          message: "Preparing your documents",
-          percent: 0,
-          current: null,
-          total: documentFiles.length,
-          updatedAt: new Date(),
-        },
-      });
+      let session;
+      try {
+        session = await AiSmartCaseSession.create({
+          client: clientId,
+          requestId: requestId || undefined,
+          status: "processing",
+          uploadedDocuments: uploadedDocsForDb,
+          voiceTranscript: liveVoiceTranscript,
+          voiceTranscriptSource: liveVoiceTranscript ? "live" : "none",
+          progress: {
+            stage: "queued",
+            message: "Preparing your documents",
+            percent: 0,
+            current: null,
+            total: documentFiles.length,
+            updatedAt: new Date(),
+          },
+        });
+      } catch (e) {
+        if (e.code === 11000 && requestId) {
+          const winner = await AiSmartCaseSession.findOne({ client: clientId, requestId });
+          if (winner) {
+            await removeUploadedFiles([...documentFiles, voiceFile]);
+            return ApiResponse.success(res, "Analysis already started.", {
+              sessionId: winner._id.toString(),
+              status: winner.status,
+              progress: winner.progress,
+              uploadedDocuments: winner.uploadedDocuments,
+              documentCount: winner.uploadedDocuments.length,
+            }, 202);
+          }
+        }
+        throw e;
+      }
 
       const payload = {
         sessionId: session._id.toString(),
@@ -124,34 +197,46 @@ class AiSmartCaseController {
         documentCount: documentFiles.length,
       };
 
-      // Respond before starting work. `setImmediate` defers the pipeline to the
-      // next tick so the response is flushed first and the client is already
-      // listening when the first progress event fires.
+      log.info("analyze:accepted", {
+        session: session._id,
+        client: clientId,
+        documents: documentFiles.length,
+        voice: Boolean(voiceFile),
+      });
+
       ApiResponse.success(res, "Analysis started.", payload, 202);
 
       const pipeline = new AiSmartCasePipeline(req.app.get("io"));
       setImmediate(() => {
         pipeline
           .run({ session, documentFiles, voiceFile, typedDescription, liveVoiceTranscript })
-          .catch((err) => console.error("Detached pipeline rejected:", err));
+          .catch((err) => log.error("analyze:detached-pipeline-rejected", err, {
+            session: session._id,
+          }));
       });
 
       return undefined;
     } catch (error) {
-      console.error("Analyze Smart Case Error:", error);
-      next(error);
+      log.error("analyze:failed", error);
+      await removeUploadedFiles([...documentFiles, voiceFile]);
+      if (res.headersSent) return undefined;
+      return next(error);
     }
   }
 
   /**
    * GET /api/ai/smart-case/history
-   * Previous intake sessions for the client.
    */
   async getSmartCaseHistory(req, res, next) {
     try {
+      const limit = Math.min(Number(req.query.limit) || 20, 50);
+
       const sessions = await AiSmartCaseSession.find({ client: req.user._id })
         .sort({ updatedAt: -1 })
-        .populate("createdCase", "title status createdAt");
+        .limit(limit)
+        .select("-ocrExtractedText")
+        .populate("createdCase", "title status createdAt")
+        .lean();
 
       return ApiResponse.success(res, "AI Smart Case sessions retrieved successfully.", {
         sessions,
@@ -163,15 +248,14 @@ class AiSmartCaseController {
 
   /**
    * GET /api/ai/smart-case/session/:id
-   *
-   * The reconnect and poll path. A client that missed socket events — it was
-   * backgrounded, the connection dropped, the user switched devices — reads the
-   * authoritative state here and renders exactly what the events would have
-   * produced.
    */
   async getSmartCaseSessionById(req, res, next) {
     try {
-      const session = await AiSmartCaseSession.findOne({
+      if (!mongoose.isValidObjectId(req.params.id)) {
+        return ApiResponse.error(res, "Session not found.", 404);
+      }
+
+      let session = await AiSmartCaseSession.findOne({
         _id: req.params.id,
         client: req.user._id,
       }).populate("createdCase");
@@ -180,11 +264,13 @@ class AiSmartCaseController {
         return ApiResponse.error(res, "Session not found.", 404);
       }
 
+      if (isStale(session)) {
+        log.warn("session:reaping-stale", { session: session._id });
+        session = await markAbandoned(session._id);
+      }
+
       return ApiResponse.success(res, "Session retrieved successfully.", {
         session,
-        // Flattened alongside the session so the completion payload is
-        // identical in shape to the `analysis_complete` socket event, and the
-        // client can parse both with one model.
         sessionId: session._id.toString(),
         status: session.status,
         progress: session.progress,
@@ -203,15 +289,16 @@ class AiSmartCaseController {
 
   /**
    * POST /api/ai/smart-case/session/:id/link-case
-   *
-   * Records which case an intake session produced, closing the audit trail
-   * from uploaded document through to filed case.
    */
   async linkSessionToCase(req, res, next) {
     try {
-      const { caseId } = req.body;
-      if (!caseId) {
-        return ApiResponse.error(res, "caseId is required.", 400);
+      const { caseId } = req.body || {};
+
+      if (!caseId || !mongoose.isValidObjectId(caseId)) {
+        return ApiResponse.error(res, "A valid caseId is required.", 400);
+      }
+      if (!mongoose.isValidObjectId(req.params.id)) {
+        return ApiResponse.error(res, "Session not found.", 404);
       }
 
       const session = await AiSmartCaseSession.findOneAndUpdate(
@@ -231,4 +318,91 @@ class AiSmartCaseController {
   }
 }
 
+function isStale(session) {
+  if (session.status !== "processing") return false;
+  const last = session.progress?.updatedAt || session.updatedAt || session.createdAt;
+  if (!last) return false;
+  return Date.now() - new Date(last).getTime() > PIPELINE_BUDGET_MS + STALE_GRACE_MS;
+}
+
+const ABANDONED_REASON =
+  "The analysis was interrupted and could not be completed. Please try again.";
+
+function abandonedPatch() {
+  return {
+    $set: {
+      status: "failed",
+      failureReason: ABANDONED_REASON,
+      progress: {
+        stage: "failed",
+        message: ABANDONED_REASON,
+        percent: 100,
+        current: null,
+        total: null,
+        updatedAt: new Date(),
+      },
+    },
+  };
+}
+
+async function markAbandoned(sessionId) {
+  return AiSmartCaseSession.findByIdAndUpdate(sessionId, abandonedPatch(), { new: true });
+}
+
+async function failStaleSessions(filter = {}) {
+  const cutoff = new Date(Date.now() - (PIPELINE_BUDGET_MS + STALE_GRACE_MS));
+
+  try {
+    const result = await AiSmartCaseSession.updateMany(
+      {
+        ...filter,
+        status: "processing",
+        $or: [
+          { "progress.updatedAt": { $lt: cutoff } },
+          { "progress.updatedAt": { $exists: false }, updatedAt: { $lt: cutoff } },
+        ],
+      },
+      abandonedPatch()
+    );
+
+    if (result.modifiedCount > 0) {
+      log.warn("recovery:failed-stale-sessions", { count: result.modifiedCount });
+    }
+    return result.modifiedCount;
+  } catch (e) {
+    log.error("recovery:sweep-failed", e);
+    return 0;
+  }
+}
+
+async function recoverAbandonedSessions() {
+  try {
+    const result = await AiSmartCaseSession.updateMany(
+      { status: "processing" },
+      abandonedPatch()
+    );
+    if (result.modifiedCount > 0) {
+      log.warn("recovery:boot-sweep", { count: result.modifiedCount });
+    }
+    return result.modifiedCount;
+  } catch (e) {
+    log.error("recovery:boot-sweep-failed", e);
+    return 0;
+  }
+}
+
+async function removeUploadedFiles(files) {
+  await Promise.all(
+    (files || [])
+      .filter((f) => f && f.path)
+      .map((f) =>
+        fs.promises
+          .unlink(f.path)
+          .catch((e) => log.warn("cleanup:unlink-failed", { path: f.path, error: e.message }))
+      )
+  );
+}
+
 module.exports = new AiSmartCaseController();
+module.exports.recoverAbandonedSessions = recoverAbandonedSessions;
+module.exports.failStaleSessions = failStaleSessions;
