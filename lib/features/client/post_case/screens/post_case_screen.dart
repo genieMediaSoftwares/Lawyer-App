@@ -19,11 +19,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:http_parser/http_parser.dart';
 import '../widgets/premium_audio_player.dart';
 import '../../../../core/widgets/voice_recorder_button.dart';
-import '../../../../core/widgets/location_autocomplete_field.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../models/category_item.dart';
 import 'package:intl/intl.dart';
-import '../../../../providers/court_provider.dart';
 import '../../../../routes/route_names.dart';
 import '../../ai_smart_case/models/ai_smart_case_models.dart';
 import '../../ai_smart_case/providers/ai_smart_case_provider.dart';
@@ -143,10 +141,8 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
   double? _selectedLatitude;
   double? _selectedLongitude;
 
-  // Court Suggestions State
+  // Court State
   String? _selectedCourtName;
-  String _courtFilter = "";
-  bool _showCourtSuggestions = false;
 
   bool _hasTouchedDescription = false;
 
@@ -213,18 +209,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       _cityController.text = userLocation;
       final parts = userLocation.split(',');
       _selectedCityName = parts[0].trim();
-      if (parts.length > 1) {
-        _selectedStateName = parts[1].trim();
-      }
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref
-            .read(courtsProvider.notifier)
-            .fetchCourtsForLocation(
-              city: _selectedCityName!,
-              district: _selectedDistrictName,
-              stateName: _selectedStateName ?? "",
-            );
-      });
     }
   }
 
@@ -759,15 +743,8 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     } else if (_descriptionController.text.trim().length < 20) {
       missing = "Describe the case in at least 20 characters.";
       missingStep = 1;
-    } else if (_selectedCityName == null) {
-      missing = "Add the city the case belongs to.";
-      missingStep = 1;
-    } else if (_selectedPlaceId == null || _selectedPlaceId!.isEmpty) {
-      // The city can be pre-filled from the profile or a saved draft, which
-      // is convenient but unverified — it is whatever string was stored.
-      // Matching a case to advocates by jurisdiction needs a real place, so
-      // require the client to pick one from the suggestions.
-      missing = "Select your city from the suggestions.";
+    } else if (_cityController.text.trim().isEmpty) {
+      missing = "Enter your city or location.";
       missingStep = 1;
     } else if (!_agreedToTerms) {
       // The checkbox is on this step, so stay here rather than sending the
@@ -1469,7 +1446,6 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     final theme = Theme.of(context);
     final primaryTextColor = theme.textTheme.titleMedium?.color;
     final secondaryTextColor = theme.textTheme.bodySmall?.color;
-    final courtsState = ref.watch(courtsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1558,67 +1534,24 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        // Live autocomplete — Post-a-Case only.
-        //
-        // Replaces ~130 lines of inline RawAutocomplete plus its own debounce
-        // timer, cache map, loading flag and error/retry row. All of that now
-        // lives in LocationAutocompleteField, which additionally cancels
-        // superseded in-flight requests (the inline version did not, so a slow
-        // earlier response could overwrite a newer one).
-        //
-        // The profile screens now use this same widget, each with its own
-        // fieldKey.
-        LocationAutocompleteField(
-          fieldKey: 'post_case',
-          initialText: _cityController.text,
-          label: null,
-          hintText: 'Start typing your city name...',
-          onCleared: () {
+        TextField(
+          controller: _cityController,
+          style: TextStyle(color: primaryTextColor),
+          onChanged: (val) {
             setState(() {
-              _cityController.clear();
-              _selectedCityName = null;
-              _selectedDistrictName = null;
-              _selectedStateName = null;
-              _selectedCountryName = null;
-              _selectedLatitude = null;
-              _selectedLongitude = null;
-              _selectedPlaceId = null;
-              _selectedCourtName = null;
-              _courtController.clear();
-              _courtFilter = "";
+              _selectedCityName = val.trim().isNotEmpty ? val.trim() : null;
             });
-            ref.read(courtsProvider.notifier).clear();
             _saveDraft();
           },
-          onSelected: (place) {
-            setState(() {
-              // Keep the local controller in step so the draft, the review
-              // step and the submit payload all read the same value.
-              _cityController.text = place.description;
-
-              _selectedCityName = place.city;
-              _selectedDistrictName = place.district;
-              _selectedStateName = place.state;
-              _selectedCountryName = place.country;
-              _selectedLatitude = place.latitude;
-              _selectedLongitude = place.longitude;
-              _selectedPlaceId = place.placeId;
-
-              // Court list is city-scoped, so a new city invalidates it.
-              _selectedCourtName = null;
-              _courtController.clear();
-              _courtFilter = "";
-            });
-
-            ref
-                .read(courtsProvider.notifier)
-                .fetchCourtsForLocation(
-                  city: place.city,
-                  district: place.district,
-                  stateName: place.state,
-                );
-            _saveDraft();
-          },
+          decoration: InputDecoration(
+            hintText: "Enter your city or location",
+            hintStyle: TextStyle(color: secondaryTextColor),
+            prefixIcon: const Icon(
+              Icons.location_on_outlined,
+              color: AppColors.primaryGold,
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         ),
         const SizedBox(height: 16),
 
@@ -1628,132 +1561,29 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 13,
-            color: _selectedCityName == null
-                ? theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5)
-                : primaryTextColor,
+            color: primaryTextColor,
           ),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: _courtController,
-          enabled: _selectedCityName != null && !courtsState.isLoading,
           style: TextStyle(color: primaryTextColor),
           onChanged: (val) {
             setState(() {
-              _courtFilter = val;
-              _showCourtSuggestions = true;
+              _selectedCourtName = val.trim().isNotEmpty ? val.trim() : null;
             });
-          },
-          onTap: () {
-            setState(() {
-              _showCourtSuggestions = true;
-            });
+            _saveDraft();
           },
           decoration: InputDecoration(
-            hintText: _selectedCityName == null
-                ? "Select a city first"
-                : (courtsState.isLoading
-                      ? "Loading courts..."
-                      : "Select court location"),
+            hintText: "Enter your preferred court location",
             hintStyle: TextStyle(color: secondaryTextColor),
-            suffixIcon: courtsState.isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : const Icon(Icons.arrow_drop_down),
+            prefixIcon: const Icon(
+              Icons.account_balance_outlined,
+              color: AppColors.primaryGold,
+            ),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
-        if (_selectedCityName != null && courtsState.isLoading) ...[
-          const SizedBox(height: 8),
-          const Center(child: CircularProgressIndicator()),
-        ],
-        if (_selectedCityName != null &&
-            !courtsState.isLoading &&
-            courtsState.courts.isEmpty) ...[
-          const SizedBox(height: 8),
-          const Text(
-            "No courts available.",
-            style: TextStyle(
-              color: AppColors.error,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-        if (_selectedCityName != null &&
-            _showCourtSuggestions &&
-            !courtsState.isLoading &&
-            courtsState.courts.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.colorScheme.outline),
-            ),
-            constraints: const BoxConstraints(maxHeight: 200),
-            child: Builder(
-              builder: (context) {
-                final filtered = courtsState.courts
-                    .where(
-                      (court) => court.courtName.toLowerCase().contains(
-                        _courtFilter.toLowerCase(),
-                      ),
-                    )
-                    .toList();
-
-                if (filtered.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      "No matching courts found.",
-                      style: TextStyle(color: secondaryTextColor, fontSize: 13),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) {
-                    final court = filtered[index];
-                    return ListTile(
-                      dense: true,
-                      title: Text(
-                        court.courtName,
-                        style: TextStyle(
-                          color: primaryTextColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: Text(
-                        "${court.courtType} • ${court.courtAddress}",
-                        style: TextStyle(
-                          color: secondaryTextColor,
-                          fontSize: 11,
-                        ),
-                      ),
-                      onTap: () {
-                        setState(() {
-                          _courtController.text = court.courtName;
-                          _selectedCourtName = court.courtName;
-                          _showCourtSuggestions = false;
-                        });
-                        _saveDraft();
-                      },
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
 
         // The Terms & Conditions checkbox lives on the Review step, the last
         // thing before Submit, and is the single implementation both the manual
@@ -3763,10 +3593,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
     final bool isLast = _currentStep == _reviewStepIndex;
     final theme = Theme.of(context);
 
-    // The terms are accepted on Review, so they no longer gate this step.
     final bool isForm1Valid =
         _descriptionController.text.trim().length >= 20 &&
-        _selectedCityName != null;
+        _cityController.text.trim().isNotEmpty;
 
     final bool nextDisabled =
         (_currentStep == 0 && _selectedSubcategory == null) ||

@@ -1,10 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:speech_to_text_platform_interface/speech_to_text_platform_interface.dart';
 
 import 'package:law/features/client/ai_smart_case/services/live_transcription_service.dart';
+import 'package:law/features/client/ai_smart_case/services/microphone_permission.dart';
+import 'package:law/features/client/ai_smart_case/services/voice_language.dart';
 
 /// The voice note is only as good as what survives a real recogniser's
 /// behaviour, and platform recognisers do not behave like one long stream:
@@ -15,14 +18,19 @@ void main() {
   late _FakeSpeechPlatform platform;
   late SpeechToText speech;
   late LiveTranscriptionService service;
+  late _FakePermission permission;
 
   setUp(() {
     platform = _FakeSpeechPlatform();
     SpeechToTextPlatform.instance = platform;
+    permission = _FakePermission();
     // A private instance rather than the `SpeechToText()` singleton, so one
     // test's initialisation cannot leak into the next.
     speech = SpeechToText.withMethodChannel();
-    service = LiveTranscriptionService(speech: speech);
+    service = LiveTranscriptionService(
+      speech: speech,
+      permission: permission.build(),
+    );
   });
 
   tearDown(() async => service.dispose());
@@ -107,12 +115,88 @@ void main() {
   });
 
   test('the requested language is used when the device has it', () async {
-    await service.start(preferredLocales: const ['hi_IN', 'en_IN']);
+    await service.start(preferredLocales: VoiceLanguage.hindi.localeCandidates);
     expect(platform.lastLocaleId, 'hi_IN');
   });
 
-  test('a language the device lacks falls back to the next choice', () async {
-    await service.start(preferredLocales: const ['te_IN', 'en_IN']);
+  test('English speech is transcribed as English, as it always was', () async {
+    await service.start(preferredLocales: VoiceLanguage.english.localeCandidates);
+    expect(platform.lastLocaleId, 'en_IN');
+
+    platform.emitResult('I need help with my property case', isFinal: true);
+
+    expect(service.transcript, 'I need help with my property case');
+    expect(service.detectedLanguage?.code, 'en');
+  });
+
+  test('Telugu speech stays in Telugu script and is labelled Telugu', () async {
+    await service.start(preferredLocales: VoiceLanguage.telugu.localeCandidates);
+    expect(platform.lastLocaleId, 'te_IN');
+
+    const spoken = 'నాకు నా ఆస్తి కేసు గురించి సహాయం కావాలి';
+    platform.emitResult(spoken, isFinal: true);
+
+    expect(service.transcript, spoken, reason: 'the words are not rewritten');
+    expect(service.detectedLanguage?.code, 'te');
+    // Neither translated into English nor spelled out in English letters.
+    expect(RegExp(r'[A-Za-z]').hasMatch(service.transcript), isFalse);
+  });
+
+  test('Hindi speech stays in Devanagari and is labelled Hindi', () async {
+    await service.start(preferredLocales: VoiceLanguage.hindi.localeCandidates);
+    expect(platform.lastLocaleId, 'hi_IN');
+
+    const spoken = 'मुझे अपने संपत्ति मामले के बारे में मदद चाहिए';
+    platform.emitResult(spoken, isFinal: true);
+
+    expect(service.transcript, spoken);
+    expect(service.detectedLanguage?.code, 'hi');
+    expect(RegExp(r'[A-Za-z]').hasMatch(service.transcript), isFalse);
+  });
+
+  test('a language the device lacks is refused, never swapped for English',
+      () async {
+    // The device has English and Hindi installed, but no Telugu pack — the
+    // exact configuration that used to hand a Telugu speaker the English
+    // recogniser, which then produced English words from Telugu sounds.
+    platform.supportedLocales = const [
+      'en_IN:English (India)',
+      'hi_IN:Hindi (India)',
+    ];
+
+    VoiceTranscriptionFailure? surfaced;
+    service.onFailure = (f) => surfaced = f;
+
+    final started =
+        await service.start(preferredLocales: VoiceLanguage.telugu.localeCandidates);
+
+    expect(started, isFalse);
+    expect(surfaced?.fault, VoiceTranscriptionFault.languageUnavailable);
+    expect(surfaced?.message, contains('Telugu'));
+
+    // Nothing was recorded in another language behind the client's back.
+    expect(platform.listenCalls, 0);
+    expect(platform.lastLocaleId, isNull);
+    expect(service.isListening, isFalse);
+  });
+
+  test('an unsupported language mid-session is reported, not worked around',
+      () async {
+    VoiceTranscriptionFailure? surfaced;
+    service.onFailure = (f) => surfaced = f;
+
+    await service.start(preferredLocales: VoiceLanguage.telugu.localeCandidates);
+    platform.emitError('error_language_unavailable', permanent: true);
+    await _settle();
+
+    expect(surfaced?.fault, VoiceTranscriptionFault.languageUnavailable);
+    expect(service.isListening, isFalse);
+  });
+
+  test('no preference still uses the system locale, as before', () async {
+    // The only path on which the device gets to choose. Callers that name a
+    // language are answered about that language or not at all.
+    await service.start();
     expect(platform.lastLocaleId, 'en_IN');
   });
 
@@ -127,18 +211,108 @@ void main() {
     expect(service.isListening, isFalse);
   });
 
-  test('a refused microphone is reported as a permission problem', () async {
-    platform.initializeResult = false;
-    platform.permission = false;
+  test('a granted microphone starts listening', () async {
+    permission.status = PermissionStatus.granted;
+
+    VoiceTranscriptionFailure? surfaced;
+    service.onFailure = (f) => surfaced = f;
+
+    expect(await service.start(), isTrue);
+    expect(surfaced, isNull);
+    expect(service.isListening, isTrue);
+    expect(permission.requests, 0, reason: 'already granted, so no prompt');
+  });
+
+  test('a refused microphone is reported as a permission problem, and asked '
+      'for rather than assumed', () async {
+    permission.status = PermissionStatus.denied;
+    permission.afterRequest = PermissionStatus.denied;
+
+    VoiceTranscriptionFailure? surfaced;
+    service.onFailure = (f) => surfaced = f;
+
+    expect(await service.start(), isFalse);
+
+    expect(permission.requests, 1, reason: 'the OS prompt is still worth showing');
+    expect(surfaced?.fault, VoiceTranscriptionFault.permissionDenied);
+    expect(surfaced?.message, contains('Microphone access'));
+    // A refusal is not a missing recogniser, and must not send the client to a
+    // Settings page they can still avoid.
+    expect(surfaced?.needsSettings, isFalse);
+    expect(surfaced?.shouldFallBackToRecording, isFalse);
+    expect(platform.initializeCalls, 0, reason: 'never initialised unpermitted');
+  });
+
+  test('a permanently denied microphone offers Settings and does not re-prompt',
+      () async {
+    permission.status = PermissionStatus.permanentlyDenied;
+
+    VoiceTranscriptionFailure? surfaced;
+    service.onFailure = (f) => surfaced = f;
+
+    expect(await service.start(), isFalse);
+
+    expect(surfaced?.fault, VoiceTranscriptionFault.permissionPermanentlyDenied);
+    expect(surfaced?.needsSettings, isTrue);
+    expect(surfaced?.message, contains('Settings'));
+    // Prompting again shows nothing at all, which reads as a dead button.
+    expect(permission.requests, 0);
+
+    expect(await service.openAppSettings(), isTrue);
+    expect(permission.settingsOpened, 1);
+  });
+
+  test('a restricted microphone is explained without offering Settings',
+      () async {
+    permission.status = PermissionStatus.restricted;
 
     VoiceTranscriptionFailure? surfaced;
     service.onFailure = (f) => surfaced = f;
 
     await service.start();
 
-    expect(surfaced?.fault, VoiceTranscriptionFault.permissionDenied);
-    expect(surfaced?.message, contains('Microphone access'));
+    expect(surfaced?.fault, VoiceTranscriptionFault.permissionRestricted);
+    // The client cannot grant it themselves, so Settings would be a dead end.
+    expect(surfaced?.needsSettings, isFalse);
   });
+
+  test('a recogniser that throws on start is a start-up failure, not a missing '
+      'microphone', () async {
+    platform.initializeThrows = true;
+
+    VoiceTranscriptionFailure? surfaced;
+    service.onFailure = (f) => surfaced = f;
+
+    expect(await service.start(), isFalse);
+
+    expect(surfaced?.fault, VoiceTranscriptionFault.initialisationFailed);
+    expect(surfaced?.message, isNot(contains('microphone')));
+    // The microphone works, so the voice note carries on by recording.
+    expect(surfaced?.shouldFallBackToRecording, isTrue);
+  });
+}
+
+/// A scriptable microphone permission.
+class _FakePermission {
+  PermissionStatus status = PermissionStatus.granted;
+
+  /// What a prompt resolves to. Defaults to whatever the status already is.
+  PermissionStatus? afterRequest;
+
+  int requests = 0;
+  int settingsOpened = 0;
+
+  MicrophonePermission build() => MicrophonePermission(
+        check: () async => status,
+        request: () async {
+          requests++;
+          return status = afterRequest ?? status;
+        },
+        openSettings: () async {
+          settingsOpened++;
+          return true;
+        },
+      );
 }
 
 /// Lets pending timers — the restart delay in particular — run.
@@ -151,6 +325,11 @@ class _FakeSpeechPlatform extends SpeechToTextPlatform {
   bool initializeResult = true;
   bool permission = true;
 
+  /// Makes `initialize` throw, which is a recogniser that exists but could not
+  /// be started — not a device without one.
+  bool initializeThrows = false;
+  int initializeCalls = 0;
+
   int listenCalls = 0;
   String? lastLocaleId;
   bool listening = false;
@@ -162,8 +341,11 @@ class _FakeSpeechPlatform extends SpeechToTextPlatform {
   Future<bool> initialize({
     debugLogging = false,
     List<SpeechConfigOption>? options,
-  }) async =>
-      initializeResult;
+  }) async {
+    initializeCalls++;
+    if (initializeThrows) throw Exception('recogniser failed to start');
+    return initializeResult;
+  }
 
   @override
   Future<bool> listen({
@@ -187,11 +369,17 @@ class _FakeSpeechPlatform extends SpeechToTextPlatform {
   @override
   Future<void> cancel() async => listening = false;
 
+  /// What the device has installed. Mutable so a test can take a language
+  /// away, which is the interesting case — most Indian devices ship without a
+  /// Telugu recognition pack.
+  List<String> supportedLocales = const [
+    'en_IN:English (India)',
+    'hi_IN:Hindi (India)',
+    'te_IN:Telugu (India)',
+  ];
+
   @override
-  Future<List<dynamic>> locales() async => <String>[
-        'en_IN:English (India)',
-        'hi_IN:Hindi (India)',
-      ];
+  Future<List<dynamic>> locales() async => supportedLocales;
 
   void emitResult(String words, {bool isFinal = false}) {
     onTextRecognition?.call(jsonEncode({

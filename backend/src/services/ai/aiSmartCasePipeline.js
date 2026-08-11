@@ -4,6 +4,10 @@ const ocrSanitizationService = require("./ocrSanitizationService");
 const aiSmartIntakeService = require("./aiSmartIntakeService");
 const gemini = require("./geminiClient");
 const log = require("../../utils/aiLogger");
+const {
+  detectTranscriptLanguage,
+  normaliseLanguageCode,
+} = require("../../utils/transcriptLanguage");
 
 /**
  * The AI Smart Case intake pipeline.
@@ -79,6 +83,52 @@ const EXTRACT_STEP_TIMEOUT_MS = 180 * 1000;
 
 /** A document with fewer readable characters than this needs vision help. */
 const SPARSE_TEXT_THRESHOLD = 40;
+
+/**
+ * What the model is told when it has to transcribe the audio itself — the path
+ * taken only by devices with no usable speech recogniser for the client's
+ * language.
+ *
+ * It previously read "transcribe this voice description of a legal issue
+ * verbatim into English", and "verbatim into English" is a contradiction: a
+ * client speaking Telugu cannot be quoted verbatim in English. The model
+ * resolved it the way it was asked to, by translating, so the case was built
+ * from an English paraphrase and the client's own words were never stored
+ * anywhere. Transcribing in the spoken language and script is the fix; the
+ * extraction step downstream reads Telugu and Hindi perfectly well and no
+ * longer needs the input flattened for it.
+ */
+const TRANSCRIPTION_PROMPT =
+  "Transcribe this voice description of a legal issue verbatim.\n" +
+  "Write the transcript in the language that is actually spoken — do not translate it.\n" +
+  "Use that language's own script: Telugu speech in Telugu script (తెలుగు), Hindi speech in " +
+  "Devanagari script (देवनागरी), English speech in Latin letters. Never romanise or " +
+  "transliterate Telugu or Hindi into English letters.\n" +
+  "If the speaker mixes languages, keep each phrase in the language and script it was spoken in. " +
+  "Legal terms said in English — FIR, IPC, BNS, CrPC, Section 138, High Court, bail, writ, " +
+  "case numbers and dates — stay in English letters exactly as spoken, inside the surrounding " +
+  "Telugu or Hindi sentence.\n" +
+  "Return ONLY the plain transcript, with no commentary.";
+
+/**
+ * Names the language when the client picked one in the recorder, so the model
+ * is told rather than left to infer.
+ *
+ * Detection is good but not free of doubt on a short or noisy clip, and a
+ * client who explicitly chose తెలుగు has already answered the question. An
+ * unrecognised or absent code adds nothing and leaves detection in charge —
+ * which is exactly what Auto wants.
+ */
+const LANGUAGE_NAMES = { en: "English", hi: "Hindi", te: "Telugu" };
+
+function promptFor(languageCode) {
+  const name = LANGUAGE_NAMES[languageCode];
+  if (!name) return TRANSCRIPTION_PROMPT;
+  return (
+    `The speaker has told us they are speaking ${name}. Transcribe in ${name}, ` +
+    `in its own script.\n${TRANSCRIPTION_PROMPT}`
+  );
+}
 
 /** Marker distinguishing "the step ran out of time" from "the step threw". */
 class StepTimeoutError extends Error {
@@ -187,8 +237,18 @@ class AiSmartCasePipeline {
    * @param {string} [liveVoiceTranscript] The transcript the client's device
    *   produced while they spoke, already reviewed and edited by them. When
    *   present it is used as-is and the transcription stage does no work.
+   * @param {string} [liveVoiceLanguage] ISO 639-1 code for the language that
+   *   transcript is in, as detected on the device. Only ever a label: the
+   *   transcript itself is stored and analysed exactly as the client left it.
    */
-  async run({ session, documentFiles, voiceFile, typedDescription, liveVoiceTranscript = "" }) {
+  async run({
+    session,
+    documentFiles,
+    voiceFile,
+    typedDescription,
+    liveVoiceTranscript = "",
+    liveVoiceLanguage = "",
+  }) {
     const startedAt = Date.now();
     const overBudget = () => Date.now() - startedAt > PIPELINE_BUDGET_MS;
 
@@ -234,6 +294,14 @@ class AiSmartCasePipeline {
       let voiceTranscriptionFailed = false;
       let voiceTranscriptSource = voiceTranscript ? "live" : "none";
 
+      // The device's answer is preferred over our own reading of the script,
+      // because the device knows which language it listened in — but a missing
+      // or unrecognised code still resolves rather than being left blank.
+      let voiceTranscriptLanguage = voiceTranscript
+        ? normaliseLanguageCode(liveVoiceLanguage) ||
+          detectTranscriptLanguage(voiceTranscript)
+        : "";
+
       if (voiceTranscript) {
         await this.report(session, "transcribing", "Using your voice note", { fraction: 1 });
       } else if (voiceFile) {
@@ -243,10 +311,19 @@ class AiSmartCasePipeline {
           await this.report(session, "transcribing", "Transcribing your voice note", {
             fraction: 0,
           });
-          const result = await this._transcribe(voiceFile);
+          // Auto sends no code and detection decides; an explicit choice is
+          // passed through so the model transcribes in the language the client
+          // actually selected.
+          const result = await this._transcribe(
+            voiceFile,
+            normaliseLanguageCode(liveVoiceLanguage)
+          );
           voiceTranscript = result.transcript;
           voiceTranscriptionFailed = result.failed;
-          if (!result.failed && result.transcript) voiceTranscriptSource = "server";
+          if (!result.failed && result.transcript) {
+            voiceTranscriptSource = "server";
+            voiceTranscriptLanguage = result.language;
+          }
         }
         await this.report(
           session,
@@ -368,6 +445,7 @@ class AiSmartCasePipeline {
             status: "extracted",
             ocrExtractedText: ocrText,
             voiceTranscript,
+            voiceTranscriptLanguage,
             voiceTranscriptSource,
             voiceTranscriptionFailed,
             extractedData: extracted,
@@ -398,6 +476,7 @@ class AiSmartCasePipeline {
         extracted,
         uploadedDocuments: completed.uploadedDocuments ?? [],
         voiceTranscript,
+        voiceTranscriptLanguage,
         voiceTranscriptSource,
         voiceTranscriptionFailed,
         extractionWarnings: warnings,
@@ -569,6 +648,16 @@ class AiSmartCasePipeline {
   }
 
   /**
+   * Transcribes retained audio *after* the client already has their result, so
+   * the server's own reading can be compared with the one their device
+   * produced. Never substituted for it, and never surfaced — see
+   * `serverVoiceTranscript` on the session.
+   *
+   * The opening `/**` above used to have no closing `*​/`, which commented the
+   * whole method away: the call in `run` then threw `is not a function`, the
+   * run's own catch turned that into `analysis_failed`, and a client whose
+   * analysis had just completed successfully was told it had gone wrong.
+   */
   _verifyVoiceInBackground(session, voiceFile) {
     setImmediate(async () => {
       try {
@@ -588,7 +677,7 @@ class AiSmartCasePipeline {
   /**
    * Transcribes the voice note. Routed through geminiClient for failover.
    */
-  async _transcribe(voiceFile) {
+  async _transcribe(voiceFile, languageCode = "") {
     try {
       if (!voiceFile.path || !fs.existsSync(voiceFile.path)) {
         log.warn("pipeline:voice-missing", { path: voiceFile.path });
@@ -608,11 +697,7 @@ class AiSmartCasePipeline {
                 data: audioBase64,
               },
             },
-            {
-              text:
-                "Transcribe this voice description of a legal issue verbatim into English. " +
-                "Return ONLY the plain transcript, with no commentary.",
-            },
+            { text: promptFor(languageCode) },
           ],
           { label: "smart-case:transcribe" }
         ),
@@ -620,10 +705,18 @@ class AiSmartCasePipeline {
         "transcription"
       );
 
-      return { transcript: text || "", failed: !text };
+      const transcript = text || "";
+      return {
+        transcript,
+        // The script the model actually produced, not the language it was
+        // asked for. A stated language that the transcript contradicts is
+        // worth knowing about; asserting the request back would hide it.
+        language: detectTranscriptLanguage(transcript),
+        failed: !text,
+      };
     } catch (err) {
       log.warn("pipeline:transcription-failed", { error: err.message });
-      return { transcript: "", failed: true };
+      return { transcript: "", language: "", failed: true };
     }
   }
 

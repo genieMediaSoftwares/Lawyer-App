@@ -42,6 +42,15 @@ class AISmartCaseState {
   /// than waiting on server-side transcription.
   final String voiceTranscript;
 
+  /// The language [voiceTranscript] is written in, as an ISO 639-1 code
+  /// (`en`, `hi`, `te`), or empty when there is no transcript.
+  ///
+  /// Detected from the script of the transcript itself and carried to the
+  /// backend with it. The transcript is never translated on the way — this
+  /// field is what lets everything downstream know which language it is
+  /// holding without anyone having to normalise it into English first.
+  final String voiceTranscriptLanguage;
+
   /// The client's typed notes, kept separate from [voiceTranscript] so the two
   /// reach the pipeline as distinct inputs.
   final String writtenNotes;
@@ -69,6 +78,7 @@ class AISmartCaseState {
     this.selectedFiles = const [],
     this.voiceFile,
     this.voiceTranscript = '',
+    this.voiceTranscriptLanguage = '',
     this.writtenNotes = '',
     this.isRecording = false,
     this.isExtracting = false,
@@ -106,6 +116,7 @@ class AISmartCaseState {
     File? voiceFile,
     bool clearVoiceFile = false,
     String? voiceTranscript,
+    String? voiceTranscriptLanguage,
     String? writtenNotes,
     bool? isRecording,
     bool? isExtracting,
@@ -122,6 +133,8 @@ class AISmartCaseState {
       selectedFiles: selectedFiles ?? this.selectedFiles,
       voiceFile: clearVoiceFile ? null : (voiceFile ?? this.voiceFile),
       voiceTranscript: voiceTranscript ?? this.voiceTranscript,
+      voiceTranscriptLanguage:
+          voiceTranscriptLanguage ?? this.voiceTranscriptLanguage,
       writtenNotes: writtenNotes ?? this.writtenNotes,
       isRecording: isRecording ?? this.isRecording,
       isExtracting: isExtracting ?? this.isExtracting,
@@ -229,6 +242,18 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
     state = state.copyWith(voiceTranscript: trimmed);
   }
 
+  /// Records the language the transcript is in, as reported by the recorder.
+  ///
+  /// Kept separate from [setVoiceTranscript] rather than derived inside it: the
+  /// recorder detects the language from the text it is actually showing, and
+  /// that is also the value the record-only path carries once the server has
+  /// transcribed. Nothing here inspects or rewrites the transcript.
+  void setVoiceTranscriptLanguage(String code) {
+    final trimmed = code.trim();
+    if (trimmed == state.voiceTranscriptLanguage) return;
+    state = state.copyWith(voiceTranscriptLanguage: trimmed);
+  }
+
   void setWrittenNotes(String text) {
     state = state.copyWith(writtenNotes: text);
   }
@@ -275,6 +300,7 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
       selectedFiles: const [],
       clearVoiceFile: true,
       voiceTranscript: '',
+      voiceTranscriptLanguage: '',
       writtenNotes: '',
       isRecording: false,
       isExtracting: false,
@@ -506,6 +532,7 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
           files: state.selectedFiles,
           voiceFile: state.voiceFile,
           voiceTranscript: state.voiceTranscript,
+          voiceLanguage: state.voiceTranscriptLanguage,
           issueDescription: state.writtenNotes,
           requestId: _requestId!,
           cancelToken: cancelToken,

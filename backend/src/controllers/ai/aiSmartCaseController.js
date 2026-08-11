@@ -9,6 +9,10 @@ const {
   PIPELINE_BUDGET_MS,
 } = require("../../services/ai/aiSmartCasePipeline");
 const log = require("../../utils/aiLogger");
+const {
+  detectTranscriptLanguage,
+  normaliseLanguageCode,
+} = require("../../utils/transcriptLanguage");
 
 /** Repo root, used to turn an absolute upload path into a served URL. */
 const PROJECT_ROOT = path.join(__dirname, "../../..");
@@ -123,6 +127,15 @@ class AiSmartCaseController {
         .trim()
         .slice(0, MAX_LIVE_TRANSCRIPT_CHARS);
 
+      // The language the client actually spoke, as detected on their device.
+      // Falls back to reading the transcript's own script, so a transcript is
+      // never left unlabelled just because an older app build sent no code.
+      // Neither path alters a character of the transcript itself.
+      const liveVoiceLanguage = liveVoiceTranscript
+        ? normaliseLanguageCode(req.body && req.body.voiceLanguage) ||
+          detectTranscriptLanguage(liveVoiceTranscript)
+        : "";
+
       const uploadedDocsForDb = [];
       for (const file of documentFiles) {
         const url = "/" + path.relative(PROJECT_ROOT, file.path).replace(/\\/g, "/");
@@ -162,6 +175,7 @@ class AiSmartCaseController {
           status: "processing",
           uploadedDocuments: uploadedDocsForDb,
           voiceTranscript: liveVoiceTranscript,
+          voiceTranscriptLanguage: liveVoiceLanguage,
           voiceTranscriptSource: liveVoiceTranscript ? "live" : "none",
           progress: {
             stage: "queued",
@@ -209,7 +223,14 @@ class AiSmartCaseController {
       const pipeline = new AiSmartCasePipeline(req.app.get("io"));
       setImmediate(() => {
         pipeline
-          .run({ session, documentFiles, voiceFile, typedDescription, liveVoiceTranscript })
+          .run({
+            session,
+            documentFiles,
+            voiceFile,
+            typedDescription,
+            liveVoiceTranscript,
+            liveVoiceLanguage,
+          })
           .catch((err) => log.error("analyze:detached-pipeline-rejected", err, {
             session: session._id,
           }));
@@ -277,6 +298,7 @@ class AiSmartCaseController {
         extracted: session.extractedData,
         uploadedDocuments: session.uploadedDocuments,
         voiceTranscript: session.voiceTranscript,
+        voiceTranscriptLanguage: session.voiceTranscriptLanguage,
         voiceTranscriptSource: session.voiceTranscriptSource,
         voiceTranscriptionFailed: session.voiceTranscriptionFailed,
         extractionWarnings: session.warnings,

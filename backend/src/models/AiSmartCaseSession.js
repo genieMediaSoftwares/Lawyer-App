@@ -105,6 +105,21 @@ const aiSmartCaseSessionSchema = new mongoose.Schema(
       default: "",
     },
 
+    /// The language `voiceTranscript` is written in, as an ISO 639-1 code.
+    ///
+    /// A label, never an instruction: the transcript is stored in the language
+    /// and script the client actually spoke, and nothing reads this field to
+    /// decide whether to convert it. It exists so that a Telugu voice note is
+    /// identifiable as Telugu without anyone re-deriving that from the bytes.
+    ///
+    /// Empty for sessions with no voice note, and for sessions created before
+    /// the field existed.
+    voiceTranscriptLanguage: {
+      type: String,
+      enum: ["", "en", "hi", "te"],
+      default: "",
+    },
+
     /// Where `voiceTranscript` came from.
     ///
     /// "live"   — transcribed on the device as the client spoke.

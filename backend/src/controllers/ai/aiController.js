@@ -1,5 +1,64 @@
 const ApiResponse = require("../../config/ApiResponse");
 const AiConversation = require("../../models/AiConversation");
+const {
+  detectTranscriptLanguage,
+  normaliseLanguageCode,
+} = require("../../utils/transcriptLanguage");
+
+/**
+ * The instruction given to the model for a voice note.
+ *
+ * This asks for a *transcription* and refuses everything adjacent to it. The
+ * previous version asked the opposite — it detected the spoken language and
+ * then, for Hindi and Telugu specifically, told the model to "translate/
+ * transcribe it into a single natural English transcript". That single
+ * instruction is why a client who spoke Telugu got English text back: the audio
+ * was understood correctly and then thrown away in favour of a translation of
+ * it.
+ *
+ * Three things are stated separately because a model will happily satisfy one
+ * and miss the others:
+ *
+ *  * write in the language that was spoken, whichever it is;
+ *  * write it in that language's own script — Telugu in Telugu letters, Hindi
+ *    in Devanagari — never romanised, which is the failure that looks like a
+ *    transcription and reads like a transliteration; and
+ *  * keep code-switching intact, because a client dictating in Telugu still
+ *    says "FIR", "High Court" and "Section 138" in English and rendering those
+ *    in Telugu script would be its own kind of translation.
+ */
+const TRANSCRIPTION_PROMPT =
+  "Transcribe this audio recording of a legal case description verbatim.\n" +
+  "Rules:\n" +
+  "1. Detect the language actually spoken and write the transcript in THAT language. " +
+  "Do not translate the speech into any other language.\n" +
+  "2. Use the native script of the spoken language: Telugu speech in Telugu script (తెలుగు), " +
+  "Hindi speech in Devanagari script (देवनागरी), English speech in Latin letters. " +
+  "Never romanise or transliterate Telugu or Hindi into English letters.\n" +
+  "3. If the speaker mixes languages, keep each phrase in the language and script it was spoken in.\n" +
+  "4. Legal terms said in English — FIR, IPC, BNS, CrPC, Section 138, High Court, bail, " +
+  "writ, case numbers and dates — stay in English letters exactly as spoken, inside the " +
+  "surrounding Telugu or Hindi sentence.\n" +
+  "5. Keep the speaker's own words, punctuation and sentence breaks. Do not summarise, " +
+  "correct, explain or add anything.\n" +
+  "Return only the transcript text — no preamble, no labels, no metadata.";
+
+/** Named languages, for the case where the client already told us which. */
+const LANGUAGE_NAMES = { en: "English", hi: "Hindi", te: "Telugu" };
+
+/**
+ * The prompt for one request, naming the client's language when they picked one
+ * in the recorder. Without a language the model detects, which is what the Auto
+ * option asks for.
+ */
+function transcriptionPromptFor(languageCode) {
+  const name = LANGUAGE_NAMES[languageCode];
+  if (!name) return TRANSCRIPTION_PROMPT;
+  return (
+    `The speaker has told us they are speaking ${name}. Transcribe in ${name}, ` +
+    `in its own script.\n${TRANSCRIPTION_PROMPT}`
+  );
+}
 
 function generateTitle(message) {
   if (!message) return "New Legal Conversation";
@@ -431,6 +490,12 @@ Responses are provided for informational purposes only and should not be conside
         );
       }
 
+      // Optional: the language the client picked in the recorder. Absent means
+      // "detect it", which is what the Auto option wants.
+      const requestedLanguage = normaliseLanguageCode(
+        req.body && req.body.language
+      );
+
       const fs = require("fs");
       const audioBuffer = fs.readFileSync(req.file.path);
       const audioBase64 = audioBuffer.toString("base64");
@@ -477,10 +542,7 @@ Responses are provided for informational purposes only and should not be conside
                           }
                         },
                         {
-                          text: "Transcribe the following audio recording of a legal case description. " +
-                                "Automatically detect the spoken language. If the language is English, generate an English transcript. " +
-                                "If the language is Hindi, Telugu, or a mixture of Hindi/Telugu/English, automatically translate/transcribe it into a single natural English transcript, preserving the original legal meaning and context. " +
-                                "Provide only the plain English transcription, keeping punctuation and formatting intact, without any introductory or concluding text, explanations, or metadata."
+                          text: transcriptionPromptFor(requestedLanguage)
                         }
                       ]
                     }
@@ -522,7 +584,16 @@ Responses are provided for informational purposes only and should not be conside
         return ApiResponse.error(res, `Failed to communicate with Gemini API: ${lastErrorText}`, 502);
       }
 
-      return ApiResponse.success(res, "Audio transcribed successfully.", { transcript: aiText.trim() });
+      const transcript = aiText.trim();
+
+      // Read back from the transcript's own script rather than asking the model
+      // to declare it: the script is the evidence that the transcript really is
+      // in the spoken language, and it costs nothing. `transcript` stays first
+      // in the payload and unchanged, so every existing caller is unaffected.
+      return ApiResponse.success(res, "Audio transcribed successfully.", {
+        transcript,
+        language: detectTranscriptLanguage(transcript),
+      });
     } catch (error) {
       next(error);
     }

@@ -74,6 +74,11 @@ dependencies:
   # be declared, or a change in dio's own dependencies could remove it.
   http_parser: ^4.1.2
   speech_to_text: ^7.4.0
+  # Neither `record` nor `speech_to_text` can distinguish "denied, ask again"
+  # from "denied for good": both return a bare false, which is why a client who
+  # had refused the microphone once was told it was "not available" forever with
+  # no way back. This reports the real status and opens the app's settings page.
+  permission_handler: ^13.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -489,7 +489,14 @@ class AppConfig {
   static Duration get voiceNoteMaxDuration =>
       _minutes('VOICE_NOTE_MAX_DURATION_MINUTES');
 
-  /// Locale ids offered to the speech recogniser, best first.
+  /// Last-resort locale ids for the speech recogniser, best first.
+  ///
+  /// Only reached when the app language is outside the set the voice note
+  /// supports. A supported language carries its own candidates
+  /// (`VoiceLanguage.localeCandidates`) and is never fell back out of: a
+  /// recogniser told to listen in a language the client is not speaking
+  /// produces that language's words, which is the whole defect this list must
+  /// not reintroduce.
   static List<String> get speechPreferredLocales =>
       _csvList('SPEECH_PREFERRED_LOCALES');
 

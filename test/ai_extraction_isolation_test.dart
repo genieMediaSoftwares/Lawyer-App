@@ -177,6 +177,70 @@ void main() {
       expect(repository.notesPerRun, ['rent receipts are in the second PDF']);
     });
 
+    test('a Telugu transcript is uploaded in Telugu, with its language',
+        () async {
+      final repository = _FakeRepository()..enqueueResult(_result('session-a'));
+
+      final notifier = AISmartCaseNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      const spoken = 'నాకు నా ఆస్తి కేసు గురించి సహాయం కావాలి';
+
+      notifier.addFiles([_file('a.pdf')]);
+      notifier.setVoiceTranscript(spoken);
+      notifier.setVoiceTranscriptLanguage('te');
+
+      await notifier.startExtraction();
+
+      // What the assistant is given is what the client actually said — not an
+      // English rendering of it made on the way out.
+      expect(repository.transcriptsPerRun, [spoken]);
+      expect(RegExp(r'[A-Za-z]').hasMatch(repository.transcriptsPerRun.single),
+          isFalse);
+      expect(repository.languagesPerRun, ['te']);
+    });
+
+    test('a Hindi transcript keeps its script and language through the upload',
+        () async {
+      final repository = _FakeRepository()..enqueueResult(_result('session-a'));
+
+      final notifier = AISmartCaseNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      const spoken = 'मुझे अपने संपत्ति मामले के बारे में मदद चाहिए';
+
+      notifier.addFiles([_file('a.pdf')]);
+      notifier.setVoiceTranscript(spoken);
+      notifier.setVoiceTranscriptLanguage('hi');
+
+      await notifier.startExtraction();
+
+      expect(repository.transcriptsPerRun, [spoken]);
+      expect(repository.languagesPerRun, ['hi']);
+    });
+
+    test('clearForNewIntake drops the language with the transcript', () async {
+      final repository = _FakeRepository()
+        ..enqueueResult(_result('session-a'))
+        ..enqueueResult(_result('session-b'));
+
+      final notifier = AISmartCaseNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      notifier.addFiles([_file('a.pdf')]);
+      notifier.setVoiceTranscript('నా ఆస్తి కేసు');
+      notifier.setVoiceTranscriptLanguage('te');
+      await notifier.startExtraction();
+
+      notifier.clearForNewIntake();
+      notifier.addFiles([_file('b.pdf')]);
+      await notifier.startExtraction();
+
+      // A second intake must not inherit the first one's language any more
+      // than it inherits its words.
+      expect(repository.languagesPerRun, ['te', '']);
+    });
+
     test('the transcript and the typed notes do not overwrite each other', () {
       final notifier = AISmartCaseNotifier(_FakeRepository());
       addTearDown(notifier.dispose);
@@ -432,6 +496,7 @@ class _FakeRepository implements AISmartCaseRepository {
   /// The voice transcript each run uploaded, so a test can assert the live
   /// transcript travels with the documents rather than after them.
   final List<String> transcriptsPerRun = [];
+  final List<String> languagesPerRun = [];
 
   /// The typed notes each run uploaded.
   final List<String> notesPerRun = [];
@@ -470,6 +535,7 @@ class _FakeRepository implements AISmartCaseRepository {
     required List<PlatformFile> files,
     File? voiceFile,
     String? voiceTranscript,
+    String? voiceLanguage,
     String? issueDescription,
     required String requestId,
     CancelToken? cancelToken,
@@ -477,6 +543,7 @@ class _FakeRepository implements AISmartCaseRepository {
   }) async {
     uploadsPerRun.add(files.map((f) => f.name).toList());
     transcriptsPerRun.add(voiceTranscript ?? '');
+    languagesPerRun.add(voiceLanguage ?? '');
     notesPerRun.add(issueDescription ?? '');
     requestIds.add(requestId);
 

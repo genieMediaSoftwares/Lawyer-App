@@ -5,19 +5,46 @@ import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
+import 'microphone_permission.dart';
+import 'voice_language.dart';
+
 /// Why live transcription could not start, or stopped.
 ///
 /// The fault is what the UI branches on; [VoiceTranscriptionFailure.message] is
 /// what it shows. Nothing here is ever thrown at the caller — every failure
 /// arrives through the [LiveTranscriptionService.onFailure] callback.
 enum VoiceTranscriptionFault {
-  /// The client refused, or previously refused, microphone access.
+  /// The client refused microphone access, but the OS will ask again.
   permissionDenied,
+
+  /// Refused for good — the system prompt will not reappear. The only remedy
+  /// is the Settings app, so this fault is the one that offers to open it.
+  permissionPermanentlyDenied,
+
+  /// Blocked by device policy or parental controls. The client cannot grant it
+  /// and Settings will not help, so nothing is offered beyond the explanation.
+  permissionRestricted,
 
   /// No speech recognition service on this device (no Google app, an
   /// unsupported OS, a desktop/web target). Recoverable only by falling back
   /// to record-and-transcribe-server-side.
   unavailable,
+
+  /// A recogniser exists and the microphone is granted, but starting it up
+  /// failed. Distinct from [unavailable] because the device is capable and a
+  /// retry may well work — and because reporting a start-up failure as "no
+  /// microphone" sends the client to a Settings page that is already correct.
+  initialisationFailed,
+
+  /// A recogniser exists, but not for the language the client speaks.
+  ///
+  /// Separate from [unavailable] because the remedy is the same but the cause
+  /// is not: the device is fine, it simply has no Telugu (or Hindi) pack
+  /// installed. Recovering by listening in *some other* language is what
+  /// produced English text for Telugu speech, so it is never done — the caller
+  /// falls back to record-and-transcribe-server-side, where the language is
+  /// detected from the audio itself.
+  languageUnavailable,
 
   /// Recognition needs the network and it is not reachable.
   network,
@@ -45,6 +72,20 @@ class VoiceTranscriptionFailure {
     this.message, {
     this.permanent = true,
   });
+
+  /// True when the client cannot fix this from inside the app, and the only
+  /// route back is the system Settings page. Exactly one fault qualifies:
+  /// offering Settings for a refusal the OS will still prompt for teaches the
+  /// client to go there instead of tapping Allow.
+  bool get needsSettings =>
+      fault == VoiceTranscriptionFault.permissionPermanentlyDenied;
+
+  /// True when the microphone works but this device cannot transcribe live, so
+  /// the caller should record the audio and let the backend transcribe it.
+  bool get shouldFallBackToRecording =>
+      fault == VoiceTranscriptionFault.unavailable ||
+      fault == VoiceTranscriptionFault.initialisationFailed ||
+      fault == VoiceTranscriptionFault.languageUnavailable;
 }
 
 /// Continuous on-device speech-to-text for the AI Smart Case voice note.
@@ -68,12 +109,19 @@ class VoiceTranscriptionFailure {
 ///     already recognised after a short grace period for the trailing final
 ///     result, so the UI can go straight to an editable transcript.
 class LiveTranscriptionService {
-  LiveTranscriptionService({SpeechToText? speech})
-      : _speech = speech ?? SpeechToText();
+  LiveTranscriptionService({
+    SpeechToText? speech,
+    MicrophonePermission? permission,
+  })  : _speech = speech ?? SpeechToText(),
+        _permission = permission ?? MicrophonePermission();
 
   /// `SpeechToText()` is an app-wide singleton, so this service must always
   /// leave it in a clean state — see [dispose].
   final SpeechToText _speech;
+
+  /// Asked *before* the recogniser is initialised, so a refusal is reported as
+  /// a refusal rather than as a device with no speech support.
+  final MicrophonePermission _permission;
 
   /// Per-session cap. iOS ends a recognition task on its own at roughly a
   /// minute; restarting just under that is smoother than being cut off.
@@ -131,6 +179,7 @@ class LiveTranscriptionService {
   String _partial = '';
 
   String? _localeId;
+  VoiceLanguage? _language;
   List<LocaleName>? _localeCache;
 
   Timer? _restartTimer;
@@ -148,12 +197,39 @@ class LiveTranscriptionService {
   /// True once the platform has confirmed a recogniser exists.
   bool get isAvailable => _initialised;
 
+  /// The locale the recogniser was actually given for the current session, once
+  /// [start] has resolved one. Null before the first start.
+  String? get localeId => _localeId;
+
+  /// The language [localeId] belongs to, when it is one the voice note
+  /// supports. This is the language the transcript is expected to come back in,
+  /// and it is what the rest of the pipeline carries alongside the text.
+  VoiceLanguage? get language => _language;
+
+  /// The language actually written in [transcript], judged by its script, or
+  /// the requested [language] while there is nothing to judge.
+  ///
+  /// Script beats intent deliberately: it is the only evidence that the words
+  /// on screen are in the language the client spoke rather than a translation
+  /// of it.
+  VoiceLanguage? get detectedLanguage =>
+      VoiceLanguage.detect(transcript) ?? _language;
+
   /// Begins listening.
   ///
   /// [preferredLocales] are tried in order against the locales the device
-  /// actually supports — pass the app's current language first. [seed] carries
-  /// an existing transcript forward, which is how "add more" appends to text
-  /// the client has already recorded and possibly edited.
+  /// actually supports. Pass the candidates for **one** language — normally
+  /// `VoiceLanguage.localeCandidates` for the client's own language. Listing
+  /// several languages here is what used to make Telugu speech come back as
+  /// English: `te_IN` was unavailable on the device, `en_IN` was next in the
+  /// list, and the English recogniser produced English words from Telugu
+  /// sounds. When none of the locales offered exists, this now fails with
+  /// [VoiceTranscriptionFault.languageUnavailable] instead, and the caller
+  /// records audio for server-side transcription — which detects the language
+  /// from the audio itself and answers in the right script.
+  ///
+  /// [seed] carries an existing transcript forward, which is how "add more"
+  /// appends to text the client has already recorded and possibly edited.
   ///
   /// Returns false if listening could not start; [onFailure] has already
   /// described why.
@@ -174,6 +250,26 @@ class LiveTranscriptionService {
     // Resolved per start rather than cached for the life of the service: the
     // client may have changed the app language since the last recording.
     _localeId = await _resolveLocale(preferredLocales);
+    _language = VoiceLanguage.forCode(_localeId) ??
+        VoiceLanguage.forCode(
+          preferredLocales.isEmpty ? null : preferredLocales.first,
+        );
+
+    // Nothing was asked for that this device can listen for. Say so rather than
+    // listening in whatever language happens to be installed.
+    if (_localeId == null && preferredLocales.isNotEmpty) {
+      final wanted = _language?.label;
+      _fail(VoiceTranscriptionFailure(
+        VoiceTranscriptionFault.languageUnavailable,
+        wanted == null
+            ? 'Live transcription is not available for your language on this device. '
+                'You can still record a voice note and we will transcribe it after upload.'
+            : '$wanted is not installed for live transcription on this device. '
+                'You can still record a voice note and we will transcribe it in $wanted after upload.',
+      ));
+      onListeningChanged?.call(false);
+      return false;
+    }
 
     _sessionOpen = true;
     final started = await _listen(isRestart: false);
@@ -263,6 +359,20 @@ class LiveTranscriptionService {
     }
     if (_initialising) return false;
 
+    // Runtime permission comes first, and separately.
+    //
+    // `initialize()` asks for the microphone itself and returns false when it
+    // is refused — the same false it returns when the device simply has no
+    // recogniser. Reading that one bit was the whole defect: a refusal was
+    // announced as "live transcription is not available on this device", and a
+    // permanent refusal had no route back at all. Ask plainly, first, so each
+    // outcome gets the message and the remedy that belong to it.
+    final permission = await _permission.ensure();
+    if (permission != MicPermissionState.granted) {
+      if (reportFailure) _fail(_permissionFailure(permission));
+      return false;
+    }
+
     _initialising = true;
     try {
       final worked = await _speech.initialize(
@@ -279,35 +389,62 @@ class LiveTranscriptionService {
       if (worked) {
         _attachListeners();
       } else if (reportFailure) {
-        // `initialize` returns false both when the client denied the
-        // microphone and when no recogniser exists. Ask which it was rather
-        // than guessing, so the message matches the fix.
-        final permitted = await _hasPermission();
-        _fail(permitted
-            ? const VoiceTranscriptionFailure(
-                VoiceTranscriptionFault.unavailable,
-                'Live transcription is not available on this device. '
-                'You can still record a voice note and we will transcribe it after upload.',
-              )
-            : const VoiceTranscriptionFailure(
-                VoiceTranscriptionFault.permissionDenied,
-                'Microphone access is needed to record a voice note. '
-                'Please allow it in your device settings and try again.',
-              ));
+        // The microphone is granted — checked above — so this is the platform
+        // saying it has no recognition service to offer.
+        _fail(const VoiceTranscriptionFailure(
+          VoiceTranscriptionFault.unavailable,
+          'Live transcription is not available on this device. '
+          'You can still record a voice note and we will transcribe it after upload.',
+        ));
       }
       return worked;
     } catch (e) {
+      // The recogniser exists and is permitted, but starting it threw. Say so
+      // as a start-up failure: calling it "unavailable" points the client at a
+      // device capability that is not the problem.
       debugPrint('LiveTranscriptionService initialize failed: $e');
       if (reportFailure) {
         _fail(const VoiceTranscriptionFailure(
-          VoiceTranscriptionFault.unavailable,
-          'Live transcription could not be started on this device. '
+          VoiceTranscriptionFault.initialisationFailed,
+          'Live transcription could not be started just now. '
           'You can still record a voice note and we will transcribe it after upload.',
         ));
       }
       return false;
     } finally {
       _initialising = false;
+    }
+  }
+
+  /// The failure that belongs to a permission state. Never called for
+  /// [MicPermissionState.granted].
+  VoiceTranscriptionFailure _permissionFailure(MicPermissionState state) {
+    switch (state) {
+      case MicPermissionState.permanentlyDenied:
+        return const VoiceTranscriptionFailure(
+          VoiceTranscriptionFault.permissionPermanentlyDenied,
+          'Microphone access is turned off for this app, so a voice note '
+          'cannot be recorded. Open Settings to allow it, then try again.',
+        );
+      case MicPermissionState.restricted:
+        return const VoiceTranscriptionFailure(
+          VoiceTranscriptionFault.permissionRestricted,
+          'Microphone access is blocked on this device by its restrictions '
+          'settings. You can still type your notes below.',
+        );
+      case MicPermissionState.unavailable:
+        return const VoiceTranscriptionFailure(
+          VoiceTranscriptionFault.unavailable,
+          'No microphone is available on this device. '
+          'You can still type your notes below.',
+        );
+      case MicPermissionState.denied:
+      case MicPermissionState.granted:
+        return const VoiceTranscriptionFailure(
+          VoiceTranscriptionFault.permissionDenied,
+          'Microphone access is needed to record a voice note. '
+          'Please allow it when asked and try again.',
+        );
     }
   }
 
@@ -318,14 +455,16 @@ class LiveTranscriptionService {
     _speech.statusListener = _onStatus;
   }
 
-  Future<bool> _hasPermission() async {
-    try {
-      return await _speech.hasPermission;
-    } catch (_) {
-      return false;
-    }
-  }
+  /// Opens the app's settings page, for a permanently denied microphone.
+  Future<bool> openAppSettings() => _permission.openSettings();
 
+  /// The locale to listen in, or null when the device has none of [preferred].
+  ///
+  /// Returning null is a real answer, not a fallback: the system locale is only
+  /// consulted when the caller expressed no preference at all. A caller that
+  /// named a language and does not get it must hear "not this device", because
+  /// the alternative — listening in the system language — is a translation the
+  /// client never asked for.
   Future<String?> _resolveLocale(List<String> preferred) async {
     try {
       _localeCache ??= await _speech.locales();
@@ -346,6 +485,8 @@ class LiveTranscriptionService {
             language);
         if (loose.isNotEmpty) return loose.first.localeId;
       }
+
+      if (preferred.isNotEmpty) return null;
 
       final system = await _speech.systemLocale();
       return system?.localeId;
@@ -497,10 +638,14 @@ class LiveTranscriptionService {
     }
 
     if (msg.contains('language')) {
-      return const VoiceTranscriptionFailure(
-        VoiceTranscriptionFault.unavailable,
-        'This language is not supported for live transcription on your device. '
-        'You can still record a voice note and we will transcribe it after upload.',
+      // `ERROR_LANGUAGE_UNAVAILABLE` / `ERROR_LANGUAGE_NOT_SUPPORTED`: the pack
+      // is missing or was removed mid-session. Same remedy as a language the
+      // locale list never offered — transcribe the audio server-side.
+      return VoiceTranscriptionFailure(
+        VoiceTranscriptionFault.languageUnavailable,
+        '${_language?.label ?? 'This language'} is not supported for live '
+        'transcription on your device. You can still record a voice note and '
+        'we will transcribe it after upload.',
       );
     }
 

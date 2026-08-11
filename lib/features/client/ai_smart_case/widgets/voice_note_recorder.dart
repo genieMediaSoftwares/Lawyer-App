@@ -7,7 +7,9 @@ import 'package:record/record.dart' show Amplitude;
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../services/live_transcription_service.dart';
+import '../services/microphone_permission.dart';
 import '../services/voice_audio_capture.dart';
+import '../services/voice_language.dart';
 
 /// Which engine is driving the current recording.
 enum _Engine {
@@ -52,8 +54,23 @@ class VoiceNoteRecorder extends StatefulWidget {
   /// navigating away.
   final ValueChanged<bool>? onListeningChanged;
 
-  /// Locale ids to prefer for recognition, best first — normally the app's
-  /// current language followed by English.
+  /// Reports the language the transcript is actually in, as an ISO 639-1 code
+  /// (`en`, `hi`, `te`), or an empty string when there is no transcript.
+  ///
+  /// Detected from the script of the text rather than from what was asked for,
+  /// so it describes what the client is looking at. The host carries it with
+  /// the transcript so nothing downstream has to guess — or "helpfully"
+  /// translate.
+  final ValueChanged<String>? onLanguageChanged;
+
+  /// Locale ids to prefer for recognition, best first.
+  ///
+  /// These should be the candidates for a **single** language — the client's
+  /// own. Mixing languages here is what made a Telugu voice note come back in
+  /// English: the device had no Telugu pack, the next entry was English, and
+  /// the English recogniser answered. When the language named here is not on
+  /// the device, recording falls back to server-side transcription, which
+  /// detects the language from the audio and keeps its script.
   ///
   /// Null means "use the configured list"; see [effectivePreferredLocales].
   final List<String>? preferredLocales;
@@ -86,21 +103,48 @@ class VoiceNoteRecorder extends StatefulWidget {
   /// best effort and its failure never affects the transcript.
   final bool captureAudio;
 
+  /// The language selected when the section is first shown.
+  ///
+  /// Defaults to the client's app language rather than to
+  /// [VoiceLanguageChoice.auto]: they chose it, it is the best evidence
+  /// available of the language they will speak, and it keeps the live
+  /// "your words appear as you speak" behaviour this screen promises. Auto is
+  /// there for a client whose speech and app language differ, and it takes the
+  /// record-and-transcribe route because no on-device recogniser can detect a
+  /// language for itself.
+  final VoiceLanguageChoice? initialLanguage;
+
   /// Builds the recogniser wrapper. Exists so a test can drive this widget from
   /// a fake platform instead of the app-wide `SpeechToText` singleton, whose
   /// initialised state would otherwise leak between tests.
   @visibleForTesting
   final LiveTranscriptionService Function()? transcriptionServiceFactory;
 
+  /// The microphone permission, injectable so tests can drive a refusal without
+  /// a device. Shared with the recogniser so both halves of the feature agree
+  /// about what the client has granted.
+  @visibleForTesting
+  final MicrophonePermission? permission;
+
+  /// Builds the audio recorder. Injectable so a test can drive a microphone
+  /// that will not open — the case this widget reports as "recording could not
+  /// be started" — without a device to take it away.
+  @visibleForTesting
+  final VoiceAudioCapture Function()? audioCaptureFactory;
+
   const VoiceNoteRecorder({
     super.key,
     required this.onTranscriptChanged,
     required this.onAudioChanged,
     this.onListeningChanged,
+    this.onLanguageChanged,
     this.preferredLocales,
+    this.initialLanguage,
     this.maxDuration,
     this.captureAudio = false,
     this.transcriptionServiceFactory,
+    this.permission,
+    this.audioCaptureFactory,
   });
 
   @override
@@ -110,7 +154,11 @@ class VoiceNoteRecorder extends StatefulWidget {
 class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   late final LiveTranscriptionService _live;
-  final VoiceAudioCapture _audio = VoiceAudioCapture(filePrefix: 'voice_case');
+  late final MicrophonePermission _permission;
+  late final VoiceAudioCapture _audio;
+
+  /// The language the client picked for this voice note.
+  late VoiceLanguageChoice _choice;
 
   final TextEditingController _transcriptController = TextEditingController();
 
@@ -134,6 +182,13 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
   /// The transcript the current session began with, which "Add more" seeds and
   /// Cancel restores. Empty for a fresh recording.
   String _seedAtStart = '';
+
+  /// The language code last handed to [VoiceNoteRecorder.onLanguageChanged], so
+  /// a per-keystroke detection does not become a per-keystroke callback.
+  String _reportedLanguage = '';
+
+  /// Whether the current notice is one only the Settings app can resolve.
+  bool _offerSettings = false;
 
   /// An interruption that arrived while another operation held [_busy].
   ///
@@ -161,6 +216,19 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
   /// Configured as MAX_TRANSCRIPT_CHARS in .env.
   static int get _maxTranscriptChars => AppConfig.maxTranscriptChars;
 
+  /// How long to let the recogniser hand the microphone back before the
+  /// recorder asks for it.
+  ///
+  /// Android and iOS give the microphone to one capture client at a time, and
+  /// the recogniser releases it asynchronously — `stop`/`cancel` return before
+  /// the platform has actually let go. Starting the recorder in the same turn
+  /// is what reported "Recording could not be started. Close anything else
+  /// using the microphone" on a device where nothing else was using it: the
+  /// only other client was this feature's own recogniser, on its way out. The
+  /// recogniser applies the same wait between its own sessions, for the same
+  /// reason.
+  static const _micHandover = Duration(milliseconds: 250);
+
   @override
   void initState() {
     super.initState();
@@ -174,11 +242,22 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
       duration: const Duration(milliseconds: 900),
     );
 
-    _live = (widget.transcriptionServiceFactory ?? LiveTranscriptionService.new)()
+    _permission = widget.permission ?? MicrophonePermission();
+    _audio = (widget.audioCaptureFactory ??
+        (() => VoiceAudioCapture(filePrefix: 'voice_case')))();
+    _choice = widget.initialLanguage ??
+        VoiceLanguageChoice.of(
+          VoiceLanguage.forCode(widget.effectivePreferredLocales.firstOrNull),
+        );
+
+    _live = (widget.transcriptionServiceFactory ??
+            (() => LiveTranscriptionService(permission: _permission)))()
       ..onTranscript = _onTranscript
       ..onSoundLevel = _pushLevel
       ..onFailure = _onFailure
       ..onListeningChanged = _onEngineListeningChanged;
+
+    _audio.onFailure = _onCaptureFailure;
 
     _transcriptController.addListener(_onTranscriptEdited);
   }
@@ -198,6 +277,8 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
       ..onSoundLevel = null
       ..onListeningChanged = null
       ..onFailure = null;
+
+    _audio.onFailure = null;
 
     // Fire and forget: both release platform resources and neither can throw
     // into dispose. Ordering does not matter, only that both run.
@@ -269,16 +350,69 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
   void _onFailure(VoiceTranscriptionFailure failure) {
     if (!mounted) return;
 
-    // The recogniser is missing or unusable on this device, but the microphone
-    // itself works. Drop to record-and-transcribe-server-side rather than
-    // denying the client a voice note.
-    if (failure.fault == VoiceTranscriptionFault.unavailable &&
-        _stage != _Stage.review) {
-      unawaited(_startAudioOnly(reason: failure.message));
+    // The recogniser is missing, failed to start, or has no pack for the
+    // language the client speaks — but the microphone itself works. Drop to
+    // record-and-transcribe-server-side rather than denying the client a voice
+    // note, and rather than listening in a language they did not choose.
+    if (failure.shouldFallBackToRecording && _stage != _Stage.review) {
+      // afterRecogniser: this arrives from inside the recogniser's own failure
+      // path, which releases the microphone without waiting for the platform to
+      // confirm it. The recorder must not ask for it in the same turn.
+      unawaited(_startAudioOnly(
+        reason: failure.message,
+        afterRecogniser: true,
+      ));
       return;
     }
 
-    _finaliseAfterFailure(failure.message);
+    // Everything else is a permission problem, and the client needs to know
+    // which one: an ordinary refusal can be retried from the mic button, a
+    // permanent one only from Settings.
+    _finaliseAfterFailure(failure.message, offerSettings: failure.needsSettings);
+  }
+
+  /// The recorder failed after it had started.
+  ///
+  /// Only Android reports capture failures this way, and only through
+  /// [VoiceAudioCapture.onFailure]; nothing observed that stream before, so a
+  /// microphone the platform could not open left the UI on "Recording…" and
+  /// produced an empty file that surfaced minutes later as "that recording was
+  /// too short".
+  ///
+  /// Ignored on the live engine: there the recording is a best-effort copy of
+  /// audio the transcript does not depend on, and losing it must not end a
+  /// session that is still producing words.
+  void _onCaptureFailure(String detail) {
+    if (!mounted || _stage != _Stage.listening) return;
+    if (_engine != _Engine.audioOnly) {
+      debugPrint('Voice note: optional audio capture failed: $detail');
+      return;
+    }
+
+    debugPrint('Voice note: capture failed mid-recording: $detail');
+    unawaited(_audio.stop(discard: true));
+    _finaliseAfterFailure(
+      'Recording stopped because the microphone became unavailable. Close '
+      'anything else using it and try again.',
+    );
+  }
+
+  /// What to tell a client whose recording would not start. One message per
+  /// cause, because the remedies differ — and because "close anything else
+  /// using the microphone" is useless advice for a refused permission.
+  String _captureFailureMessage(VoiceCaptureFault? fault) {
+    switch (fault) {
+      case VoiceCaptureFault.unsupportedPlatform:
+        return 'Voice notes can only be recorded in the mobile app. '
+            'You can still type your notes below.';
+      case VoiceCaptureFault.permissionDenied:
+        return 'Microphone access is needed to record a voice note. '
+            'Please allow it when asked and try again.';
+      case VoiceCaptureFault.recorderFailed:
+      case null:
+        return 'Recording could not be started. Close anything else using the '
+            'microphone — a call, or another recording app — and try again.';
+    }
   }
 
   // ── recording lifecycle ──────────────────────────────────────────────────
@@ -318,8 +452,19 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
       _elapsedSeconds.value = 0;
       unawaited(_pulse.repeat(reverse: true));
 
+      // Auto: no recogniser can be asked to "detect the language", so there is
+      // nothing to start here. Record the audio and let the backend, which does
+      // detect, transcribe it into the script of whatever was actually spoken.
+      if (_choice.isAuto) {
+        await _startAudioOnly(
+          reason: 'Your language will be detected from this recording, and the '
+              'transcript added when you submit.',
+        );
+        return;
+      }
+
       final started = await _live.start(
-        preferredLocales: widget.effectivePreferredLocales,
+        preferredLocales: _choice.localeCandidates,
         seed: seed,
       );
 
@@ -337,9 +482,11 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
 
       // Optional, best effort, and never allowed to affect the transcript.
       if (widget.captureAudio && !append) {
-        final captured = await _audio.start();
-        if (!captured) {
-          debugPrint('Voice note: audio capture unavailable alongside recognition.');
+        // The recogniser settled the permission on its way into listening.
+        final captured = await _audio.start(permissionAlreadyGranted: true);
+        if (!captured.started) {
+          debugPrint('Voice note: audio capture unavailable alongside '
+              'recognition (${captured.fault}) ${captured.detail ?? ''}');
         }
       }
 
@@ -350,26 +497,81 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
     }
   }
 
-  /// The device has no usable speech recogniser: record audio and let the
-  /// backend transcribe it, which is the behaviour this feature shipped with.
-  Future<void> _startAudioOnly({required String reason}) async {
-    final started = await _audio.start();
+  /// Records audio for the backend to transcribe.
+  ///
+  /// Two routes arrive here: the client chose Auto, or live transcription is
+  /// impossible on this device for the language they chose. Either way the
+  /// microphone itself is what is needed, so permission is settled here rather
+  /// than inferred from a failed `start()`. Reporting every refusal as "the
+  /// microphone is not available" is what was on screen when this was reported,
+  /// and it named neither the cause nor a way out of it.
+  Future<void> _startAudioOnly({
+    required String reason,
+    bool isError = false,
+    bool afterRecogniser = false,
+  }) async {
+    // Explain before asking, not after starting. Permission dialogs and
+    // encoder start-up both take a visible moment, and a client who chose
+    // Auto — or whose language has no pack — should be reading why their words
+    // are not appearing during that moment, not after it.
+    setState(() {
+      _notice = reason;
+      _noticeIsError = isError;
+      _offerSettings = false;
+    });
+
+    // Auto has no language to declare — the backend decides from the audio. An
+    // explicit choice does, and it is known now, before the recorder has even
+    // started, so the host carries it for the whole of the recording rather
+    // than only from the moment it succeeds.
+    _reportLanguageCode(_choice.code);
+
+    final permission = await _permission.ensure();
 
     if (!mounted) return;
 
-    if (!started) {
+    if (permission != MicPermissionState.granted) {
       _finaliseAfterFailure(
-        'The microphone is not available. Please check the app\'s microphone '
-        'permission and try again.',
+        _permissionMessage(permission),
+        offerSettings: permission == MicPermissionState.permanentlyDenied,
       );
+      return;
+    }
+
+    // Wait for the recogniser to give the device back before asking for it.
+    if (afterRecogniser) {
+      await _live.cancel();
+      if (!mounted) return;
+      await Future<void>.delayed(_micHandover);
+      if (!mounted) return;
+    }
+
+    // The permission is settled, so `record`'s own gate has nothing left to
+    // add and one thing to take away — see VoiceAudioCapture.start.
+    var result = await _audio.start(permissionAlreadyGranted: true);
+
+    // One retry, for a microphone still being released by whatever held it: a
+    // call that has just ended, a notification sound, the recogniser above.
+    // Cheap, and it is the difference between a voice note and an error on
+    // every device where the handover is slower than the wait allowed for it.
+    if (!result.started && result.fault == VoiceCaptureFault.recorderFailed) {
+      await Future<void>.delayed(_micHandover);
+      if (!mounted) return;
+      result = await _audio.start(permissionAlreadyGranted: true);
+    }
+
+    if (!mounted) return;
+
+    if (!result.started) {
+      debugPrint('Voice note: capture failed to start '
+          '(${result.fault}) ${result.detail ?? ''}');
+      _finaliseAfterFailure(_captureFailureMessage(result.fault));
       return;
     }
 
     setState(() {
       _engine = _Engine.audioOnly;
       _stage = _Stage.listening;
-      _notice = reason;
-      _noticeIsError = false;
     });
 
     _liveText.value = '';
@@ -478,7 +680,16 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
         _setTranscript(settled);
       }
 
-      setState(() => _stage = _Stage.review);
+      final mismatch =
+          interruptedMessage == null ? _scriptMismatchNotice(settled) : null;
+
+      setState(() {
+        _stage = _Stage.review;
+        if (mismatch != null) {
+          _notice = mismatch;
+          _noticeIsError = false;
+        }
+      });
     } catch (e) {
       debugPrint('Voice note stop failed: $e');
       if (mounted) {
@@ -552,6 +763,7 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
     await _discardAudio();
 
     widget.onTranscriptChanged('');
+    _reportLanguage('');
 
     if (!mounted) return;
     setState(() {
@@ -569,7 +781,7 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
     }
   }
 
-  void _finaliseAfterFailure(String message) {
+  void _finaliseAfterFailure(String message, {bool offerSettings = false}) {
     _pulse.stop();
     _timer?.cancel();
     _timer = null;
@@ -584,9 +796,57 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
       _stage = _transcriptController.text.trim().isEmpty ? _Stage.idle : _Stage.review;
       _notice = message;
       _noticeIsError = true;
+      _offerSettings = offerSettings;
       _awaitingFinal = false;
     });
     widget.onListeningChanged?.call(false);
+  }
+
+  /// What to tell a client whose microphone the platform will not give us.
+  ///
+  /// One message per state, because one remedy per state: ask again, open
+  /// Settings, or accept that this device will not allow it at all.
+  String _permissionMessage(MicPermissionState state) {
+    switch (state) {
+      case MicPermissionState.permanentlyDenied:
+        return 'Microphone access is turned off for this app, so a voice note '
+            'cannot be recorded. Open Settings to allow it, then try again.';
+      case MicPermissionState.restricted:
+        return 'Microphone access is blocked on this device by its '
+            'restrictions settings. You can still type your notes below.';
+      case MicPermissionState.unavailable:
+        return 'No microphone is available on this device. '
+            'You can still type your notes below.';
+      case MicPermissionState.denied:
+      case MicPermissionState.granted:
+        return 'Microphone access is needed to record a voice note. '
+            'Please allow it when asked and try again.';
+    }
+  }
+
+  Future<void> _openSettings() async {
+    final opened = await _live.openAppSettings();
+    if (!mounted || opened) return;
+    setState(() {
+      _notice = 'Settings could not be opened. Please allow microphone access '
+          'for this app from your device settings.';
+      _noticeIsError = true;
+      _offerSettings = false;
+    });
+  }
+
+  /// Switches the language this voice note will be recorded in.
+  ///
+  /// Only offered while idle or reviewing — changing the language of a
+  /// recording already in progress would mean discarding it, and the client did
+  /// not ask for that.
+  void _selectLanguage(VoiceLanguageChoice choice) {
+    if (_choice == choice || _stage == _Stage.listening) return;
+    setState(() {
+      _choice = choice;
+      _notice = null;
+      _offerSettings = false;
+    });
   }
 
   // ── transcript plumbing ──────────────────────────────────────────────────
@@ -606,7 +866,47 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
 
   void _onTranscriptEdited() {
     if (_stage == _Stage.review && !_awaitingFinal) _userEditedTranscript = true;
-    widget.onTranscriptChanged(_transcriptController.text.trim());
+    final text = _transcriptController.text.trim();
+    widget.onTranscriptChanged(text);
+    _reportLanguage(text);
+  }
+
+  /// Publishes the language of [text] to the host, at most once per change.
+  ///
+  /// Read from the script of the words themselves rather than from the locale
+  /// the recogniser was given: on the record-only path no locale was ever
+  /// chosen, and on any path the client is free to edit the text into another
+  /// language. What is on screen is the answer.
+  void _reportLanguage(String text) {
+    final code = text.isEmpty
+        ? ''
+        : (VoiceLanguage.detect(text) ?? _live.language ?? _choice.language)
+                ?.code ??
+            '';
+    _reportLanguageCode(code);
+  }
+
+  /// Publishes [code] to the host, at most once per distinct value.
+  void _reportLanguageCode(String code) {
+    if (code == _reportedLanguage) return;
+    _reportedLanguage = code;
+    widget.onLanguageChanged?.call(code);
+  }
+
+  /// Warns — without touching the text — when the recogniser answered in a
+  /// script the chosen language does not use.
+  ///
+  /// The client keeps every word: replacing or discarding a transcript because
+  /// of a script check would be the same silent substitution this whole change
+  /// exists to remove. They are simply told, and Re-record is already there.
+  String? _scriptMismatchNotice(String transcript) {
+    final intended = _live.language;
+    if (intended == null || transcript.isEmpty) return null;
+    if (intended.matchesScriptOf(transcript)) return null;
+
+    final actual = VoiceLanguage.detect(transcript);
+    return 'This came back in ${actual?.label ?? 'another language'} rather than '
+        '${intended.label}. Check the text below, and re-record if it is wrong.';
   }
 
   void _setAudio(File file) {
@@ -669,12 +969,39 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
               ),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(
-                  _notice!,
-                  style: TextStyle(
-                    color: _noticeIsError ? AppColors.error : AppColors.mutedText,
-                    fontSize: 11.5,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _notice!,
+                      style: TextStyle(
+                        color:
+                            _noticeIsError ? AppColors.error : AppColors.mutedText,
+                        fontSize: 11.5,
+                      ),
+                    ),
+                    // Shown only for a permanently denied microphone, where the
+                    // system prompt will never reappear and this is the one way
+                    // back. Any other refusal is retried from the mic button.
+                    if (_offerSettings)
+                      TextButton(
+                        onPressed: _openSettings,
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primaryGold,
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 30),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          alignment: Alignment.centerLeft,
+                        ),
+                        child: const Text(
+                          'Open Settings',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
@@ -684,16 +1011,56 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
     );
   }
 
+  /// The language selector: four small pills on one line, in the card's own
+  /// palette. Deliberately the least the feature can be given — the section
+  /// keeps its heading, its mic button, its waveform and its spacing, and this
+  /// sits above them as one more row.
+  Widget _buildLanguageSelector() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          const Icon(Icons.language, size: 14, color: AppColors.mutedText),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final option in VoiceLanguageChoice.options)
+                  _LanguagePill(
+                    label: option.label,
+                    selected: option == _choice,
+                    onTap: () => _selectLanguage(option),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildIdle() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLanguageSelector(),
+        _buildIdleRow(),
+      ],
+    );
+  }
+
+  Widget _buildIdleRow() {
     return Row(
       children: [
         _MicButton(onTap: () => _start(), busy: _busy),
         const SizedBox(width: 12),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Tap mic and start speaking',
                 style: TextStyle(
                   color: AppColors.primaryText,
@@ -701,10 +1068,12 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
                   fontSize: 14,
                 ),
               ),
-              SizedBox(height: 2),
+              const SizedBox(height: 2),
               Text(
-                'Your words appear as you speak — you can edit them before submitting.',
-                style: TextStyle(color: AppColors.mutedText, fontSize: 11),
+                _choice.isAuto
+                    ? 'Speak in any language — we detect it and transcribe after you submit.'
+                    : 'Your words appear as you speak — you can edit them before submitting.',
+                style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
               ),
             ],
           ),
@@ -846,6 +1215,7 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildLanguageSelector(),
         Row(
           children: [
             const Icon(Icons.check_circle, color: AppColors.success, size: 18),
@@ -1002,6 +1372,57 @@ class _MicButton extends StatelessWidget {
                   size: 20,
                 ),
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One option in the language selector.
+///
+/// A plain pill rather than a `ChoiceChip`: Material's chip brings its own
+/// theme, density and ripple, none of which match the card it sits in.
+class _LanguagePill extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _LanguagePill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: 'Record in $label',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppColors.primaryGold.withValues(alpha: 0.16)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: selected
+                  ? AppColors.primaryGold
+                  : AppColors.primaryText.withValues(alpha: 0.18),
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? AppColors.primaryGold : AppColors.mutedText,
+              fontSize: 11.5,
+              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
         ),

@@ -7,6 +7,7 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/localization/locale_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../providers/ai_smart_case_provider.dart';
+import '../services/voice_language.dart';
 import '../widgets/voice_note_recorder.dart';
 import '../repositories/ai_smart_case_repository.dart';
 import '../utils/ai_smart_case_logger.dart';
@@ -186,16 +187,24 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
   }
 
 
-  /// Recognition locales to try, best first: the client's chosen app language,
-  /// then English, which every recogniser that ships in India carries.
+  /// Recognition locales to try, best first — all of them for the *one*
+  /// language the client chose for the app.
+  ///
+  /// English is deliberately not appended as a safety net. It used to be, and
+  /// that is what turned Telugu and Hindi voice notes into English text: a
+  /// device without a `te_IN` pack fell straight through to `en_IN` and the
+  /// English recogniser dutifully produced English words. Offering only the
+  /// client's own language means a device that cannot listen in it says so, and
+  /// the recorder records audio for server-side transcription instead — which
+  /// detects the language from the audio and answers in its own script.
   List<String> _preferredSpeechLocales() {
     final language = ref.read(localeProvider).languageCode;
-    return <String>[
-      '${language}_IN',
-      language,
-      'en_IN',
-      'en_US',
-    ];
+    final voice = VoiceLanguage.forCode(language);
+    if (voice != null) return voice.localeCandidates;
+
+    // An app language outside the supported three. Fall back to the configured
+    // list rather than inventing a locale id.
+    return AppConfig.speechPreferredLocales;
   }
 
   Future<void> _onProceed() async {
@@ -452,10 +461,20 @@ class _AISmartCaseIntakeScreenState extends ConsumerState<AISmartCaseIntakeScree
                 // previous run's transcript in its own controller.
                 key: ValueKey('voice-note-$_intakeGeneration'),
                 preferredLocales: _preferredSpeechLocales(),
+                // Pre-selected, not forced: the selector inside the recorder
+                // lets the client switch to another language, or to Auto.
+                initialLanguage: VoiceLanguageChoice.of(
+                  VoiceLanguage.forCode(ref.read(localeProvider).languageCode),
+                ),
                 onTranscriptChanged: (text) =>
                     ref.read(aiSmartCaseProvider.notifier).setVoiceTranscript(text),
                 onAudioChanged: (file) =>
                     ref.read(aiSmartCaseProvider.notifier).setVoiceFile(file),
+                // Carried with the transcript so the backend never has to guess
+                // which language it is reading.
+                onLanguageChanged: (code) => ref
+                    .read(aiSmartCaseProvider.notifier)
+                    .setVoiceTranscriptLanguage(code),
                 onListeningChanged: (listening) {
                   if (_isRecording != listening) {
                     setState(() => _isRecording = listening);

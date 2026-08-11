@@ -117,6 +117,7 @@ class AISmartCaseRepository {
     required List<PlatformFile> files,
     File? voiceFile,
     String? voiceTranscript,
+    String? voiceLanguage,
     String? issueDescription,
     required String requestId,
     CancelToken? cancelToken,
@@ -133,6 +134,7 @@ class AISmartCaseRepository {
       requestId: requestId,
       voiceFile: voiceFile,
       voiceTranscript: voiceTranscript,
+      voiceLanguage: voiceLanguage,
       issueDescription: issueDescription,
     );
 
@@ -208,6 +210,7 @@ class AISmartCaseRepository {
     required String requestId,
     File? voiceFile,
     String? voiceTranscript,
+    String? voiceLanguage,
     String? issueDescription,
   }) async {
     final formData = FormData();
@@ -270,6 +273,15 @@ class AISmartCaseRepository {
     final transcript = voiceTranscript?.trim() ?? '';
     if (transcript.isNotEmpty) {
       formData.fields.add(MapEntry('voiceTranscript', transcript));
+
+      // The language the client actually spoke, travelling with their words so
+      // the backend labels the transcript rather than inferring — or
+      // normalising — a language for it. Sent only alongside a transcript,
+      // since on its own it describes nothing.
+      final language = voiceLanguage?.trim() ?? '';
+      if (language.isNotEmpty) {
+        formData.fields.add(MapEntry('voiceLanguage', language));
+      }
     }
 
     final description = (issueDescription ?? '').trim();
