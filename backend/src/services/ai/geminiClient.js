@@ -12,20 +12,49 @@
  */
 
 /**
- * Models tried in order. Ordering matters, and was chosen by probing the key:
- *  - `gemini-flash-latest` is an alias Google keeps pointed at a live model,
- *    so it survives model retirements. Occasionally returns 503 under load.
- *  - `gemini-3.5-flash` is the pinned backup and answered reliably in testing.
- *  - `gemini-2.0-flash` is last on purpose: it currently has zero quota on
- *    this project (HTTP 429, "limit: 0"), so trying it earlier burns a round
- *    trip on every single call. It stays in the list so it resumes serving
- *    traffic automatically once billing is sorted.
- *  - `gemini-1.5-flash` was removed entirely: it returns 404 (retired).
+ * Models tried in order, and the reason each one is where it is.
+ *
+ * This list is not decorative: when every entry in it is dead, OCR,
+ * transcription and extraction all fail at once and the intake reports a
+ * generic failure to the client. That is exactly what happened to the previous
+ * list — probed against this project's key on 2026-09-15, every one of its
+ * four entries was gone:
+ *
+ *   gemini-2.5-flash       404 "no longer available to new users"
+ *   gemini-2.0-flash       404 "no longer available"
+ *   gemini-2.0-flash-lite  404 "no longer available"
+ *   gemini-flash-latest    503, plain and structured alike
+ *
+ * ListModels still advertises several of those, so it is not a reliable guide
+ * to what a key may actually call. Entries here are confirmed by a real
+ * generateContent request carrying the extractor's own prompt and
+ * responseSchema — never by the catalogue.
+ *
+ * Ordering is by measured latency, because on the full legal-extraction
+ * payload (~10KB) the four working models returned the same answer: the right
+ * city under the priority rules, the right court, and a 48-63 word summary.
+ * When quality does not separate them, speed does.
+ *
+ *   gemini-3.5-flash-lite      2.3-2.6s   correct
+ *   gemini-flash-lite-latest   2.1-2.5s   correct
+ *   gemini-3.1-flash-lite      2.3-2.8s   correct
+ *   gemini-3.5-flash          10-14s      correct, and timed out at 60s once
+ *   gemini-flash-latest         503       both probe rounds
+ *
+ * So the lite models lead. `gemini-3.5-flash` is kept as the stronger reader
+ * for a document the quick ones stumble on, but placed below them because its
+ * long tail is paid on every request when it leads. The two `-latest` aliases
+ * are what stop this list going stale silently again: Google repoints them, so
+ * one of them should still answer after the pinned ids are retired.
+ *
+ * Deliberately excluded: `gemini-3.6-flash` and `gemini-3.7-flash`, both 503
+ * on probing, and preview ids, which are withdrawn without notice.
  */
 const DEFAULT_MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-2.0-flash-lite",
+  "gemini-3.5-flash-lite",
+  "gemini-flash-lite-latest",
+  "gemini-3.1-flash-lite",
+  "gemini-3.5-flash",
   "gemini-flash-latest",
 ];
 
@@ -57,6 +86,14 @@ class GeminiClient {
    * @param {number}   [options.timeoutMs]   Per-attempt timeout. Default 60s —
    *   OCR over a multi-page scanned PDF genuinely takes tens of seconds.
    * @param {string}   [options.label]       Shown in logs to identify the caller.
+   * @param {object}   [options.generationConfig] Passed straight through to the
+   *   API. This is how a caller asks for native structured output
+   *   (`responseMimeType: "application/json"` plus a `responseSchema`), which
+   *   is far more reliable than asking for JSON in the prompt and parsing
+   *   whatever prose comes back. Callers that use it should still be able to
+   *   cope with a plain-text answer: a model that does not support the config
+   *   answers 400, which `generate` reports as a fatal error rather than
+   *   silently degrading.
    * @returns {Promise<{text: string|null, model: string|null, error: string|null}>}
    *   Never throws. Callers decide whether an empty result is fatal.
    */
@@ -67,6 +104,7 @@ class GeminiClient {
       label = "gemini",
       passes = 2,
       passDelayMs = 2500,
+      generationConfig = null,
     } = options;
 
     if (!this.isConfigured) {
@@ -81,7 +119,7 @@ class GeminiClient {
         await new Promise((resolve) => setTimeout(resolve, passDelayMs));
       }
 
-      const result = await this._attemptPass(parts, models, timeoutMs, label);
+      const result = await this._attemptPass(parts, models, timeoutMs, label, generationConfig);
       if (result.text !== null) return result;
 
       // A non-retryable request-level error will fail identically next pass.
@@ -95,8 +133,13 @@ class GeminiClient {
   }
 
   /** One walk through the model list. */
-  async _attemptPass(parts, models, timeoutMs, label) {
+  async _attemptPass(parts, models, timeoutMs, label, generationConfig) {
     let lastError = null;
+    // Counted so a stale DEFAULT_MODELS reports itself. When every model 404s
+    // the run fails with whatever the last one said, which reads like a
+    // transient outage; it is not, and no amount of retrying fixes it. This
+    // list going stale silently is what broke the whole intake once already.
+    let retiredModels = 0;
 
     for (const model of models) {
       // Up to 2 attempts per model if rate limited (429)
@@ -115,7 +158,10 @@ class GeminiClient {
           const response = await fetch(`${ENDPOINT(model)}?key=${this.apiKey}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ role: "user", parts }] }),
+            body: JSON.stringify({
+              contents: [{ role: "user", parts }],
+              ...(generationConfig ? { generationConfig } : {}),
+            }),
             signal: controller.signal,
           });
 
@@ -136,6 +182,8 @@ class GeminiClient {
               continue;
             }
 
+            if (response.status === 404) retiredModels += 1;
+
             if (!isModelLevelFailure(response.status)) {
               console.error(`[${label}] non-retryable Gemini error: ${lastError}`);
               return { text: null, model: null, error: lastError, fatal: true };
@@ -155,6 +203,14 @@ class GeminiClient {
           clearTimeout(timer);
         }
       }
+    }
+
+    if (retiredModels === models.length && models.length > 0) {
+      console.error(
+        `[${label}] EVERY model in the list is retired (HTTP 404): ${models.join(", ")}. ` +
+          "This is not a transient outage — DEFAULT_MODELS in geminiClient.js needs updating. " +
+          "Verify replacements with a real generateContent call; ListModels still lists retired ids."
+      );
     }
 
     return { text: null, model: null, error: lastError, fatal: false };

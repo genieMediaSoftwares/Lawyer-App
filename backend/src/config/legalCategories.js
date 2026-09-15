@@ -174,11 +174,137 @@ const promptTaxonomy = () =>
     .map((c) => `- ${c.title}: ${c.subTypes.join(" | ")}`)
     .join("\n");
 
+/**
+ * Keyword signals per category, used ONLY as a last resort by
+ * `classifyByKeywords` below.
+ *
+ * Each entry is [regex, weight]. Weights let a decisive term outrank several
+ * incidental ones: a divorce petition that discusses property at length should
+ * land in Family & Divorce, and "divorce" carrying more weight than "property"
+ * is what makes that happen without any understanding of the text.
+ */
+const CATEGORY_SIGNALS = {
+  family_divorce: [
+    [/\b(divorce|talaq|khula)\b/i, 6],
+    [/\b(domestic violence|dowry|498a|cruelty by husband|beating me|abus(e|ing|ed) me)\b/i, 6],
+    [/\b(child custody|custody of (the |my )?child|guardianship)\b/i, 5],
+    [/\b(maintenance|alimony|stridhan)\b/i, 4],
+    [/\b(marriage registration|marital|husband|wife|spouse|in-laws)\b/i, 2],
+  ],
+  criminal_law: [
+    [/\b(fir|f\.i\.r|first information report)\b/i, 5],
+    [/\b(bail|anticipatory bail|remand|chargesheet|charge sheet)\b/i, 5],
+    [/\b(theft|robbery|burglary|assault|kidnap|murder|extortion)\b/i, 5],
+    [/\b(ipc|bns|crpc|police station|accused|complainant)\b/i, 3],
+    [/\b(cheating|forgery|criminal breach of trust)\b/i, 3],
+  ],
+  cyber_crime: [
+    [/\b(upi fraud|online scam|phishing|otp fraud|hacked|hacking|cyber ?crime)\b/i, 6],
+    [/\b(identity theft|fake profile|social media harassment|morph(ed|ing)|sextortion)\b/i, 5],
+    [/\b(cyber ?cell|1930|ncrp)\b/i, 4],
+  ],
+  property_land: [
+    [/\b(land encroachment|encroach(ed|ing)?|boundary dispute|partition of property)\b/i, 5],
+    [/\b(rera|builder delay|builder dispute|possession of (the )?flat)\b/i, 5],
+    [/\b(sale deed|title deed|mutation|patta|survey number|registry of (the )?property)\b/i, 4],
+    [/\b(property registration|landlord|tenant|eviction|lease of (the )?premises)\b/i, 2],
+  ],
+  civil_cases: [
+    [/\b(money recovery|recovery suit|outstanding (dues|amount|payment))\b/i, 4],
+    [/\b(breach of contract|contract dispute|specific performance|injunction)\b/i, 4],
+    [/\b(civil suit|o\.s\. no|plaint|decree)\b/i, 3],
+  ],
+  employment_labour: [
+    [/\b(wrongful termination|terminated|dismissal|resignation forced)\b/i, 5],
+    [/\b(salary|unpaid wages|full and final|gratuity|pf|provident fund)\b/i, 4],
+    [/\b(workplace harassment|posh|labour (court|dispute)|employment contract|notice period)\b/i, 4],
+  ],
+  consumer_complaints: [
+    [/\b(defective|refund|replacement|warranty|consumer (forum|court|commission))\b/i, 5],
+    [/\b(online shopping|e-?commerce|deficiency in service)\b/i, 4],
+  ],
+  banking_financial: [
+    [/\b(cheque bounce|cheque dishonour|dishonour of cheque|section 138|138 ni act)\b/i, 6],
+    [/\b(loan dispute|emi|credit card|bank fraud|recovery agent|nbfc)\b/i, 4],
+  ],
+  motor_accident_claims: [
+    [/\b(motor accident|road accident|hit and run|mact|rash driving)\b/i, 6],
+    [/\b(insurance claim|vehicle damage|injury compensation)\b/i, 3],
+  ],
+  medical_negligence: [
+    [/\b(medical negligence|wrong diagnosis|surgical error|hospital liability|malpractice)\b/i, 6],
+  ],
+  gst_taxation: [
+    [/\b(gst|income tax|tds|it notice|assessment order|tax filing)\b/i, 5],
+  ],
+  business_corporate: [
+    [/\b(shareholder|partnership (deed|dispute)|company registration|nclt|trademark|copyright|patent)\b/i, 5],
+  ],
+  education_law: [
+    [/\b(admission dispute|fee (refund|dispute)|degree (delay|withheld)|exam malpractice|ragging)\b/i, 5],
+  ],
+  immigration_visa: [
+    [/\b(visa|immigration|work permit|deportation|citizenship|permanent residen)\b/i, 5],
+  ],
+  documentation: [
+    [/\b(legal notice|rental agreement|affidavit|power of attorney|will preparation|drafting)\b/i, 3],
+  ],
+};
+
+/**
+ * Best-effort category from raw text, by explicit keyword weight.
+ *
+ * This is NOT a substitute for the model's judgement and is never used in its
+ * place — `resolveCategory` maps what the model actually said. This runs only
+ * when the model gave no usable category at all (it failed, or it answered with
+ * something that matched nothing), and its answer is always flagged for the
+ * client to confirm.
+ *
+ * It exists because `resolveCategory` is a name normaliser: handed free prose
+ * it matches on incidental words, and put "someone hacked my UPI and took
+ * money" under Civil Cases / Money Recovery. A wrong category filed silently is
+ * worse than none, so this returns null unless a real signal fires.
+ *
+ * @returns {{category: string, categoryId: string, subType: null, score: number}|null}
+ */
+const classifyByKeywords = (text) => {
+  const haystack = String(text || "");
+  if (haystack.trim().length < 12) return null;
+
+  let bestId = null;
+  let bestScore = 0;
+
+  for (const [categoryId, signals] of Object.entries(CATEGORY_SIGNALS)) {
+    let score = 0;
+    for (const [pattern, weight] of signals) {
+      if (pattern.test(haystack)) score += weight;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestId = categoryId;
+    }
+  }
+
+  // One incidental keyword is not a classification.
+  if (!bestId || bestScore < 4) return null;
+
+  const category = byId.get(bestId);
+  if (!category) return null;
+
+  return {
+    category: category.title,
+    categoryId: category.id,
+    subType: null,
+    score: bestScore,
+  };
+};
+
 module.exports = {
   categories,
   titles,
   allSubTypes,
   resolveCategory,
+  classifyByKeywords,
   promptTaxonomy,
   isCriminalLike,
   CRIMINAL_LIKE_CATEGORY_IDS,

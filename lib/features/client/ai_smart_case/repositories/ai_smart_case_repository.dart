@@ -401,7 +401,28 @@ class AISmartCaseRepository {
         AILog.debug('watch:ignored-foreign-complete', id);
         return;
       }
-      finish(AnalysisEvent.complete(ExtractionResult.fromJson(data)), 'complete via $source');
+      // The parsers this calls are written not to throw, but they are fed a
+      // payload from the network and this is the last frame before the result
+      // reaches the form. An exception escaping here would leave the stream
+      // open with no terminal event, so the processing screen would sit on a
+      // spinner until its own timeout rather than telling the client anything.
+      ExtractionResult result;
+      try {
+        result = ExtractionResult.fromJson(data);
+      } catch (e, stack) {
+        AILog.error('watch:unreadable-complete', e, stack);
+        // Emitted directly rather than through handleFailure, which is
+        // declared below this point.
+        finish(
+          AnalysisEvent.failed(
+            'We could not read the analysis result. Please try again, or fill '
+            'the form in manually.',
+          ),
+          'unreadable complete via $source',
+        );
+        return;
+      }
+      finish(AnalysisEvent.complete(result), 'complete via $source');
     }
 
     void handleFailure(String message, String source) {

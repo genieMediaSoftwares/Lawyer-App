@@ -1076,4 +1076,365 @@ class AppLocalizationsTe extends AppLocalizations {
   @override
   String get enter_valid_email =>
       'దయచేసి చెల్లుబాటు అయ్యే ఇమెయిల్ చిరునామాను నమోదు చేయండి.';
+
+  @override
+  String get practice_tools => 'నా ప్రాక్టీస్';
+
+  @override
+  String get practice_section_desc =>
+      'కేసులు, పత్రాలు, పరిశోధన, క్లయింట్లు, విచారణలు మరియు నోట్స్ ఒకే చోట.';
+
+  @override
+  String get nav_cases => 'కేసులు';
+
+  @override
+  String get nav_documents => 'పత్రాలు';
+
+  @override
+  String get nav_research => 'పరిశోధన';
+
+  @override
+  String get nav_hearings => 'విచారణలు';
+
+  @override
+  String get nav_notes => 'నోట్స్';
+
+  @override
+  String get save => 'సేవ్ చేయి';
+
+  @override
+  String get edit => 'సవరించు';
+
+  @override
+  String get all => 'అన్నీ';
+
+  @override
+  String get status => 'స్థితి';
+
+  @override
+  String get sort_by => 'క్రమబద్ధీకరించు';
+
+  @override
+  String get upcoming => 'రాబోయే';
+
+  @override
+  String get past => 'గత';
+
+  @override
+  String get something_went_wrong => 'ఏదో తప్పు జరిగింది.';
+
+  @override
+  String get clear_search => 'శోధనను తొలగించు';
+
+  @override
+  String get open_case => 'కేసును తెరవండి';
+
+  @override
+  String get lawyer_cases_title => 'నా కేసులు';
+
+  @override
+  String get search_cases_hint =>
+      'శీర్షిక, క్లయింట్, వర్గం లేదా కోర్టు ద్వారా వెతకండి';
+
+  @override
+  String get no_cases_yet => 'ఇంకా కేసులు లేవు';
+
+  @override
+  String get no_cases_yet_desc =>
+      'నా లీడ్స్ నుండి అభ్యర్థనను ఆమోదించండి, కేసు ఇక్కడ కనిపిస్తుంది.';
+
+  @override
+  String get no_cases_match => 'మీ శోధనకు సరిపోలే కేసులు లేవు';
+
+  @override
+  String get no_cases_match_desc =>
+      'వేరే పదం ప్రయత్నించండి, లేదా ఫిల్టర్లను తొలగించండి.';
+
+  @override
+  String cases_count_label(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count కేసులు',
+      one: '1 కేసు',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get case_details => 'కేసు వివరాలు';
+
+  @override
+  String get case_overview => 'అవలోకనం';
+
+  @override
+  String get case_description => 'వివరణ';
+
+  @override
+  String get filed_on => 'దాఖలు చేసిన తేదీ';
+
+  @override
+  String get next_hearing_label => 'తదుపరి విచారణ';
+
+  @override
+  String get no_hearing_scheduled => 'విచారణ షెడ్యూల్ కాలేదు';
+
+  @override
+  String get sort_newest => 'కొత్తవి';
+
+  @override
+  String get sort_oldest => 'పాతవి';
+
+  @override
+  String get sort_hearing => 'విచారణ తేదీ';
+
+  @override
+  String get sort_client => 'క్లయింట్';
+
+  @override
+  String get sort_status => 'స్థితి';
+
+  @override
+  String get practice_documents_title => 'పత్రాలు';
+
+  @override
+  String get search_documents_hint => 'పేరు ద్వారా పత్రాలను వెతకండి';
+
+  @override
+  String get no_documents_match => 'మీ శోధనకు సరిపోలే పత్రాలు లేవు';
+
+  @override
+  String get case_attachments => 'కేసు జతపరిచిన పత్రాలు';
+
+  @override
+  String get client_uploads => 'క్లయింట్ అప్‌లోడ్‌లు';
+
+  @override
+  String get open_document => 'తెరవండి';
+
+  @override
+  String get could_not_open_document => 'ఆ పత్రాన్ని తెరవలేకపోయాము.';
+
+  @override
+  String documents_count_label(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count పత్రాలు',
+      one: '1 పత్రం',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get research_title => 'న్యాయ పరిశోధన';
+
+  @override
+  String get research_intro_title => 'పరిశోధన సహాయకుడు';
+
+  @override
+  String get research_intro_desc =>
+      'చట్ట ప్రశ్న అడగండి, వాదనపై పని చేయండి, లేదా కేసు వ్యూహాన్ని రూపొందించండి.';
+
+  @override
+  String get research_hint => 'పరిశోధన ప్రశ్న అడగండి';
+
+  @override
+  String get research_disclaimer =>
+      'శిక్షణ డేటా ఆధారంగా AI సహాయం. Lawfly వద్ద కేస్-లా డేటాబేస్ లేదు — ఆధారపడే ముందు ప్రతి ఉల్లేఖనాన్ని ధృవీకరించండి.';
+
+  @override
+  String get research_new => 'కొత్త పరిశోధన';
+
+  @override
+  String get research_history => 'చరిత్ర';
+
+  @override
+  String get no_research_yet => 'ఇంకా పరిశోధన లేదు';
+
+  @override
+  String get no_research_yet_desc => 'మీ పరిశోధనలు ఇక్కడ జాబితా చేయబడతాయి.';
+
+  @override
+  String get research_failed =>
+      'పరిశోధన సహాయకుడు సమాధానం ఇవ్వలేకపోయాడు. దయచేసి మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get research_thinking => 'పని జరుగుతోంది…';
+
+  @override
+  String get delete_research => 'పరిశోధనను తొలగించు';
+
+  @override
+  String get confirm_delete_research =>
+      'ఈ పరిశోధనను తొలగించాలా? దీన్ని తిరిగి పొందలేరు.';
+
+  @override
+  String get practice_clients_title => 'క్లయింట్లు';
+
+  @override
+  String get search_clients_hint =>
+      'పేరు, ఇమెయిల్, ఫోన్ లేదా నగరం ద్వారా వెతకండి';
+
+  @override
+  String get no_clients_yet => 'ఇంకా క్లయింట్లు లేరు';
+
+  @override
+  String get no_clients_yet_desc =>
+      'మీరు కేసు తీసుకున్నప్పుడు లేదా సంప్రదింపు బుక్ అయినప్పుడు క్లయింట్లు ఇక్కడ కనిపిస్తారు.';
+
+  @override
+  String get no_clients_match => 'మీ శోధనకు సరిపోలే క్లయింట్లు లేరు';
+
+  @override
+  String get client_profile => 'క్లయింట్ ప్రొఫైల్';
+
+  @override
+  String get client_cases => 'కేసులు';
+
+  @override
+  String get contact_details => 'సంప్రదింపు';
+
+  @override
+  String get practice_hearings_title => 'విచారణలు';
+
+  @override
+  String get hearings_consultation_note =>
+      'కోర్టు విచారణలు మాత్రమే. క్లయింట్ సంప్రదింపులు మీ క్యాలెండర్‌లో ఉంటాయి.';
+
+  @override
+  String get add_hearing => 'విచారణను జోడించు';
+
+  @override
+  String get edit_hearing => 'విచారణను సవరించు';
+
+  @override
+  String get delete_hearing => 'విచారణను తొలగించు';
+
+  @override
+  String get confirm_delete_hearing => 'ఈ విచారణను కేసు నుండి తొలగించాలా?';
+
+  @override
+  String get hearing_date => 'తేదీ';
+
+  @override
+  String get hearing_time => 'సమయం';
+
+  @override
+  String get hearing_court => 'కోర్టు';
+
+  @override
+  String get hearing_purpose => 'ప్రయోజనం';
+
+  @override
+  String get hearing_notes => 'నోట్స్';
+
+  @override
+  String get hearing_status => 'స్థితి';
+
+  @override
+  String get hearing_status_scheduled => 'షెడ్యూల్ చేయబడింది';
+
+  @override
+  String get hearing_status_completed => 'పూర్తయింది';
+
+  @override
+  String get hearing_status_adjourned => 'వాయిదా వేయబడింది';
+
+  @override
+  String get hearing_status_cancelled => 'రద్దు చేయబడింది';
+
+  @override
+  String get no_hearings_yet => 'విచారణలు జాబితా చేయబడలేదు';
+
+  @override
+  String get no_hearings_yet_desc =>
+      'కోర్టు తేదీలను ట్రాక్ చేయడానికి విచారణను జోడించండి.';
+
+  @override
+  String get no_upcoming_hearings => 'రాబోయే విచారణలు లేవు';
+
+  @override
+  String get no_past_hearings => 'గత విచారణలు లేవు';
+
+  @override
+  String get hearing_saved => 'విచారణ సేవ్ చేయబడింది.';
+
+  @override
+  String get hearing_deleted => 'విచారణ తొలగించబడింది.';
+
+  @override
+  String get hearing_date_required => 'విచారణ తేదీని ఎంచుకోండి.';
+
+  @override
+  String get select_case => 'కేసును ఎంచుకోండి';
+
+  @override
+  String get hearing_time_hint => 'ఉదా. 10:30 AM';
+
+  @override
+  String get hearing_purpose_hint => 'ఉదా. అభియోగాల నిర్ధారణ';
+
+  @override
+  String get today => 'ఈ రోజు';
+
+  @override
+  String get tomorrow => 'రేపు';
+
+  @override
+  String get practice_notes_title => 'నోట్స్';
+
+  @override
+  String get notes_private_note =>
+      'మీకు మాత్రమే ప్రైవేట్. క్లయింట్లు వీటిని ఎప్పుడూ చూడరు.';
+
+  @override
+  String get add_note => 'నోట్ జోడించు';
+
+  @override
+  String get edit_note => 'నోట్ సవరించు';
+
+  @override
+  String get delete_note => 'నోట్ తొలగించు';
+
+  @override
+  String get confirm_delete_note =>
+      'ఈ నోట్‌ను తొలగించాలా? దీన్ని తిరిగి పొందలేరు.';
+
+  @override
+  String get note_title_label => 'శీర్షిక (ఐచ్ఛికం)';
+
+  @override
+  String get note_content_label => 'నోట్';
+
+  @override
+  String get note_content_required => 'సేవ్ చేసే ముందు ఏదైనా రాయండి.';
+
+  @override
+  String get note_saved => 'నోట్ సేవ్ చేయబడింది.';
+
+  @override
+  String get note_deleted => 'నోట్ తొలగించబడింది.';
+
+  @override
+  String get no_notes_yet => 'ఇంకా నోట్స్ లేవు';
+
+  @override
+  String get no_notes_yet_desc =>
+      'కాల్‌లు, వ్యూహం మరియు ఫాలో-అప్‌ల రికార్డును ఇక్కడ ఉంచండి.';
+
+  @override
+  String get no_notes_match => 'మీ శోధనకు సరిపోలే నోట్స్ లేవు';
+
+  @override
+  String get search_notes_hint => 'నోట్స్ వెతకండి';
+
+  @override
+  String get link_to_case => 'కేసుకు లింక్ చేయి';
+
+  @override
+  String get no_case_linked => 'కేసు లింక్ చేయబడలేదు';
+
+  @override
+  String get edited_label => 'సవరించబడింది';
 }

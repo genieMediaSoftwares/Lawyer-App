@@ -99,6 +99,24 @@ class _AISmartCaseProcessingScreenState
     ));
   }
 
+  /// Opens the ordinary Post Case form with nothing pre-filled.
+  ///
+  /// The failure state used to offer only Back and Retry, so a client whose
+  /// document could not be analysed — an unreadable scan, a model that returned
+  /// something unusable, an API that was down — had no way forward except to
+  /// keep retrying the thing that had just failed. The documents they uploaded
+  /// are already stored server-side and the manual flow attaches them at the
+  /// document step, so nothing they have done is lost by going this way.
+  void _openEmptyPostCaseForm() {
+    if (_navigated || !mounted) return;
+    _navigated = true;
+
+    unawaited(Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const PostCaseScreen()),
+    ));
+  }
+
   /// Leaving before the analysis finishes releases the socket and the poll.
   ///
   /// The server-side run is detached and carries on regardless — its result
@@ -362,6 +380,14 @@ class _AISmartCaseProcessingScreenState
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: _navigated ? null : _openEmptyPostCaseForm,
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primaryGold,
+                          ),
+                          child: const Text("Enter case details manually"),
                         ),
                       ],
                     ],

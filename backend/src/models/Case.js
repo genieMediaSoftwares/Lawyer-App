@@ -201,6 +201,82 @@ const caseSchema = new mongoose.Schema(
       default: null,
     },
 
+    /// Court hearings listed on this case.
+    ///
+    /// Embedded on Case rather than given its own collection: a hearing has no
+    /// meaning apart from its case, is always read together with it, and every
+    /// existing reader already reaches the case first. A separate collection
+    /// would have added a join to paths that currently need none.
+    ///
+    /// This does NOT replace nextHearing above. That field predates the array
+    /// and is read by the client My Cases screen, the lawyer Clients tab and
+    /// /lawyers/schedule/today. The controller keeps it mirrored to the
+    /// earliest upcoming scheduled hearing, so those three readers keep
+    /// working unchanged, and cases filed before this existed simply carry an
+    /// empty array.
+    ///
+    /// A court hearing is deliberately NOT an Appointment: Appointment models
+    /// a lawyer-client consultation (Chat/In-Person, synced to Google
+    /// Calendar). The two are distinct in the domain and stay distinct here.
+    hearings: [
+      {
+        date: {
+          type: Date,
+          required: true,
+        },
+
+        /// Free text ("10:30 AM", "Item 42"). Courts do not publish precise
+        /// slots, so this is not modelled as a time.
+        timeSlot: {
+          type: String,
+          default: "",
+        },
+
+        /// Court name as free text rather than a ref to the Court collection:
+        /// that collection is a seeded directory that does not cover every
+        /// bench, and a hearing must be recordable at a court missing from it.
+        court: {
+          type: String,
+          default: "",
+        },
+
+        /// What the hearing is for - "Framing of charges", "Final arguments".
+        purpose: {
+          type: String,
+          default: "",
+        },
+
+        status: {
+          type: String,
+          enum: ["scheduled", "completed", "adjourned", "cancelled"],
+          default: "scheduled",
+        },
+
+        /// Outcome or preparation notes. Carries the same visibility as the
+        /// rest of the case - this is not the lawyer's private notebook, which
+        /// lives on Client.notes and is filtered to its author.
+        notes: {
+          type: String,
+          default: "",
+        },
+
+        createdBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+
+        updatedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+
     closedDate: {
       type: Date,
       default: null,
@@ -248,6 +324,7 @@ const caseSchema = new mongoose.Schema(
 
 caseSchema.index({ client: 1, status: 1, createdAt: -1 });
 caseSchema.index({ assignedLawyer: 1, status: 1 });
+caseSchema.index({ assignedLawyer: 1, "hearings.date": 1 });
 caseSchema.index({ category: 1, locationCity: 1 });
 caseSchema.index({ locationState: 1 });
 caseSchema.index({ createdAt: -1 });

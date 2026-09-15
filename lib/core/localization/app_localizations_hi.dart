@@ -1066,4 +1066,362 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get enter_valid_email => 'कृपया एक वैध ईमेल पता दर्ज करें।';
+
+  @override
+  String get practice_tools => 'मेरी प्रैक्टिस';
+
+  @override
+  String get practice_section_desc =>
+      'मुकदमे, दस्तावेज़, शोध, मुवक्किल, सुनवाई और नोट्स एक ही जगह।';
+
+  @override
+  String get nav_cases => 'मुकदमे';
+
+  @override
+  String get nav_documents => 'दस्तावेज़';
+
+  @override
+  String get nav_research => 'शोध';
+
+  @override
+  String get nav_hearings => 'सुनवाई';
+
+  @override
+  String get nav_notes => 'नोट्स';
+
+  @override
+  String get save => 'सहेजें';
+
+  @override
+  String get edit => 'संपादित करें';
+
+  @override
+  String get all => 'सभी';
+
+  @override
+  String get status => 'स्थिति';
+
+  @override
+  String get sort_by => 'क्रमबद्ध करें';
+
+  @override
+  String get upcoming => 'आगामी';
+
+  @override
+  String get past => 'पिछली';
+
+  @override
+  String get something_went_wrong => 'कुछ गड़बड़ हो गई।';
+
+  @override
+  String get clear_search => 'खोज साफ़ करें';
+
+  @override
+  String get open_case => 'मुकदमा खोलें';
+
+  @override
+  String get lawyer_cases_title => 'मेरे मुकदमे';
+
+  @override
+  String get search_cases_hint =>
+      'शीर्षक, मुवक्किल, श्रेणी या न्यायालय से खोजें';
+
+  @override
+  String get no_cases_yet => 'अभी कोई मुकदमा नहीं';
+
+  @override
+  String get no_cases_yet_desc =>
+      'मेरी लीड्स से अनुरोध स्वीकार करें, मुकदमा यहाँ दिखेगा।';
+
+  @override
+  String get no_cases_match => 'आपकी खोज से कोई मुकदमा मेल नहीं खाता';
+
+  @override
+  String get no_cases_match_desc => 'कोई दूसरा शब्द आज़माएँ, या फ़िल्टर हटाएँ।';
+
+  @override
+  String cases_count_label(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count मुकदमे',
+      one: '1 मुकदमा',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get case_details => 'मुकदमे का विवरण';
+
+  @override
+  String get case_overview => 'अवलोकन';
+
+  @override
+  String get case_description => 'विवरण';
+
+  @override
+  String get filed_on => 'दर्ज किया गया';
+
+  @override
+  String get next_hearing_label => 'अगली सुनवाई';
+
+  @override
+  String get no_hearing_scheduled => 'कोई सुनवाई निर्धारित नहीं';
+
+  @override
+  String get sort_newest => 'नवीनतम';
+
+  @override
+  String get sort_oldest => 'पुराने';
+
+  @override
+  String get sort_hearing => 'सुनवाई तिथि';
+
+  @override
+  String get sort_client => 'मुवक्किल';
+
+  @override
+  String get sort_status => 'स्थिति';
+
+  @override
+  String get practice_documents_title => 'दस्तावेज़';
+
+  @override
+  String get search_documents_hint => 'नाम से दस्तावेज़ खोजें';
+
+  @override
+  String get no_documents_match => 'आपकी खोज से कोई दस्तावेज़ मेल नहीं खाता';
+
+  @override
+  String get case_attachments => 'मुकदमे के संलग्नक';
+
+  @override
+  String get client_uploads => 'मुवक्किल द्वारा अपलोड';
+
+  @override
+  String get open_document => 'खोलें';
+
+  @override
+  String get could_not_open_document => 'यह दस्तावेज़ नहीं खोला जा सका।';
+
+  @override
+  String documents_count_label(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count दस्तावेज़',
+      one: '1 दस्तावेज़',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get research_title => 'कानूनी शोध';
+
+  @override
+  String get research_intro_title => 'शोध सहायक';
+
+  @override
+  String get research_intro_desc =>
+      'कानून का प्रश्न पूछें, तर्क पर काम करें, या मुकदमे की रणनीति बनाएँ।';
+
+  @override
+  String get research_hint => 'शोध प्रश्न पूछें';
+
+  @override
+  String get research_disclaimer =>
+      'प्रशिक्षण डेटा पर आधारित AI सहायता। Lawfly के पास केस-लॉ डेटाबेस नहीं है — भरोसा करने से पहले हर उद्धरण की पुष्टि करें।';
+
+  @override
+  String get research_new => 'नया शोध';
+
+  @override
+  String get research_history => 'इतिहास';
+
+  @override
+  String get no_research_yet => 'अभी कोई शोध नहीं';
+
+  @override
+  String get no_research_yet_desc => 'आपके शोध यहाँ सूचीबद्ध होंगे।';
+
+  @override
+  String get research_failed =>
+      'शोध सहायक उत्तर नहीं दे सका। कृपया पुनः प्रयास करें।';
+
+  @override
+  String get research_thinking => 'काम चल रहा है…';
+
+  @override
+  String get delete_research => 'शोध हटाएँ';
+
+  @override
+  String get confirm_delete_research =>
+      'यह शोध हटाएँ? इसे वापस नहीं लाया जा सकता।';
+
+  @override
+  String get practice_clients_title => 'मुवक्किल';
+
+  @override
+  String get search_clients_hint => 'नाम, ईमेल, फ़ोन या शहर से खोजें';
+
+  @override
+  String get no_clients_yet => 'अभी कोई मुवक्किल नहीं';
+
+  @override
+  String get no_clients_yet_desc =>
+      'मुकदमा लेने या परामर्श बुक होने पर मुवक्किल यहाँ दिखेंगे।';
+
+  @override
+  String get no_clients_match => 'आपकी खोज से कोई मुवक्किल मेल नहीं खाता';
+
+  @override
+  String get client_profile => 'मुवक्किल प्रोफ़ाइल';
+
+  @override
+  String get client_cases => 'मुकदमे';
+
+  @override
+  String get contact_details => 'संपर्क';
+
+  @override
+  String get practice_hearings_title => 'सुनवाई';
+
+  @override
+  String get hearings_consultation_note =>
+      'केवल न्यायालय की सुनवाई। मुवक्किल परामर्श आपके कैलेंडर में रहते हैं।';
+
+  @override
+  String get add_hearing => 'सुनवाई जोड़ें';
+
+  @override
+  String get edit_hearing => 'सुनवाई संपादित करें';
+
+  @override
+  String get delete_hearing => 'सुनवाई हटाएँ';
+
+  @override
+  String get confirm_delete_hearing => 'इस सुनवाई को मुकदमे से हटाएँ?';
+
+  @override
+  String get hearing_date => 'तिथि';
+
+  @override
+  String get hearing_time => 'समय';
+
+  @override
+  String get hearing_court => 'न्यायालय';
+
+  @override
+  String get hearing_purpose => 'उद्देश्य';
+
+  @override
+  String get hearing_notes => 'नोट्स';
+
+  @override
+  String get hearing_status => 'स्थिति';
+
+  @override
+  String get hearing_status_scheduled => 'निर्धारित';
+
+  @override
+  String get hearing_status_completed => 'पूर्ण';
+
+  @override
+  String get hearing_status_adjourned => 'स्थगित';
+
+  @override
+  String get hearing_status_cancelled => 'रद्द';
+
+  @override
+  String get no_hearings_yet => 'कोई सुनवाई सूचीबद्ध नहीं';
+
+  @override
+  String get no_hearings_yet_desc =>
+      'न्यायालय की तिथियाँ ट्रैक करने के लिए सुनवाई जोड़ें।';
+
+  @override
+  String get no_upcoming_hearings => 'कोई आगामी सुनवाई नहीं';
+
+  @override
+  String get no_past_hearings => 'कोई पिछली सुनवाई नहीं';
+
+  @override
+  String get hearing_saved => 'सुनवाई सहेजी गई।';
+
+  @override
+  String get hearing_deleted => 'सुनवाई हटा दी गई।';
+
+  @override
+  String get hearing_date_required => 'सुनवाई की तिथि चुनें।';
+
+  @override
+  String get select_case => 'मुकदमा चुनें';
+
+  @override
+  String get hearing_time_hint => 'जैसे 10:30 AM';
+
+  @override
+  String get hearing_purpose_hint => 'जैसे आरोप तय करना';
+
+  @override
+  String get today => 'आज';
+
+  @override
+  String get tomorrow => 'कल';
+
+  @override
+  String get practice_notes_title => 'नोट्स';
+
+  @override
+  String get notes_private_note =>
+      'केवल आपके लिए। मुवक्किल इन्हें कभी नहीं देखते।';
+
+  @override
+  String get add_note => 'नोट जोड़ें';
+
+  @override
+  String get edit_note => 'नोट संपादित करें';
+
+  @override
+  String get delete_note => 'नोट हटाएँ';
+
+  @override
+  String get confirm_delete_note => 'यह नोट हटाएँ? इसे वापस नहीं लाया जा सकता।';
+
+  @override
+  String get note_title_label => 'शीर्षक (वैकल्पिक)';
+
+  @override
+  String get note_content_label => 'नोट';
+
+  @override
+  String get note_content_required => 'सहेजने से पहले कुछ लिखें।';
+
+  @override
+  String get note_saved => 'नोट सहेजा गया।';
+
+  @override
+  String get note_deleted => 'नोट हटा दिया गया।';
+
+  @override
+  String get no_notes_yet => 'अभी कोई नोट नहीं';
+
+  @override
+  String get no_notes_yet_desc =>
+      'कॉल, रणनीति और फ़ॉलो-अप का रिकॉर्ड यहाँ रखें।';
+
+  @override
+  String get no_notes_match => 'आपकी खोज से कोई नोट मेल नहीं खाता';
+
+  @override
+  String get search_notes_hint => 'नोट्स खोजें';
+
+  @override
+  String get link_to_case => 'मुकदमे से जोड़ें';
+
+  @override
+  String get no_case_linked => 'कोई मुकदमा नहीं जुड़ा';
+
+  @override
+  String get edited_label => 'संपादित';
 }

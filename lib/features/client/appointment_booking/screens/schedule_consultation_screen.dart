@@ -5,6 +5,8 @@ import '../../../../providers/appointment_provider.dart';
 import '../../../../providers/case_provider.dart';
 import '../widgets/calendar_widget.dart';
 import '../providers/calendar_provider.dart';
+import '../../../../services/payment_service.dart';
+import '../../../../core/payment/razorpay_checkout_helper.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class ScheduleConsultationScreen extends ConsumerStatefulWidget {
@@ -265,31 +267,76 @@ class _ScheduleConsultationScreenState
     final bookingNotifier = ref.read(appointmentsProvider.notifier);
     final caseNotifier = ref.read(casesProvider.notifier);
     final selectedDate = ref.read(selectedDateProvider);
+    final paymentService = PaymentService();
 
-    final success = await bookingNotifier.bookAppointment(
-      lawyerId: widget.lawyerUserId,
-      caseId: widget.caseId,
-      date: selectedDate,
-      timeSlot: _selectedTimeSlot!,
-      mode: _selectedMode,
-    );
+    try {
+      // 1. Create Razorpay order server-side with server-derived fee
+      final orderData = await paymentService.createConsultationOrder(
+        lawyerId: widget.lawyerUserId,
+        caseId: widget.caseId,
+      );
 
-    if (success) {
-      if (widget.caseId != null) {
-        await caseNotifier.acceptProposal(widget.caseId!, widget.lawyerUserId);
+      final orderId = orderData['orderId'] as String;
+      final amount = orderData['amount'] as num;
+      final keyId = orderData['keyId'] as String? ?? '';
+
+      // 2. Launch Razorpay Checkout sheet
+      final checkoutResult = await RazorpayCheckoutHelper.openCheckout(
+        orderId: orderId,
+        amount: amount,
+        keyId: keyId,
+        title: 'Lawfly Consultation',
+        description: 'Consultation Booking Fee',
+        userEmail: '',
+        userContact: '',
+      );
+
+      if (!checkoutResult.isSuccess || checkoutResult.razorpayPaymentId == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(checkoutResult.errorMessage ?? 'Payment checkout was cancelled or failed.')),
+          );
+        }
+        return;
       }
+
+      // 3. Verify Razorpay signature server-side
+      await paymentService.verifyPayment(
+        razorpayOrderId: checkoutResult.razorpayOrderId!,
+        razorpayPaymentId: checkoutResult.razorpayPaymentId!,
+        razorpaySignature: checkoutResult.razorpaySignature!,
+      );
+
+      // 4. Book appointment after successful payment verification
+      final success = await bookingNotifier.bookAppointment(
+        lawyerId: widget.lawyerUserId,
+        caseId: widget.caseId,
+        date: selectedDate,
+        timeSlot: _selectedTimeSlot!,
+        mode: _selectedMode,
+      );
+
+      if (success) {
+        if (widget.caseId != null) {
+          await caseNotifier.acceptProposal(widget.caseId!, widget.lawyerUserId);
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Payment verified and appointment scheduled successfully!')),
+          );
+          context.go('/my-cases');
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Payment processed, but appointment scheduling failed.')),
+          );
+        }
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Appointment scheduled successfully!')),
-        );
-        context.go('/my-cases');
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Failed to book appointment. Please try again.')),
+          SnackBar(content: Text('Payment Error: ${e.toString().replaceAll("Exception: ", "")}')),
         );
       }
     }

@@ -662,11 +662,15 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
       }
     });
 
+    // "City / Location" takes the city, not the address the city was read out
+    // of. This used to prefer `location` - the fuller locality string - so a
+    // document carrying "Flat 302, Sunrise Residency, Madhapur, Hyderabad"
+    // filed that entire address as the case's location. The extractor now
+    // reduces an address to its city server-side, and this takes that value.
     if (data.city.isNotEmpty) {
       _selectedCityName = data.city;
       _selectedStateName = data.state.isNotEmpty ? data.state : null;
-      _cityController.text =
-          data.location.isNotEmpty ? data.location : data.city;
+      _cityController.text = data.city;
     }
 
     if (data.court.isNotEmpty) {

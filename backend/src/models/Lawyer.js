@@ -88,7 +88,7 @@ const lawyerSchema = new mongoose.Schema(
     },
     subscriptionPlan: {
       type: String,
-      enum: ["Free", "Basic", "Premium", "Pro Hub"],
+      enum: ["Free", "Starter", "Professional", "Premium", "Elite", "Basic", "Pro Hub"],
       default: "Free",
     },
     googleConnected: {

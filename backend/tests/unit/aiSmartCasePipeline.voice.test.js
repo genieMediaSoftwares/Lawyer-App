@@ -516,6 +516,13 @@ describe("AI Smart Case pipeline — voice note", () => {
       extractionError: "unreadable",
     });
 
+    // Vision gets its look at the file and finds nothing either — the only
+    // state in which there is genuinely nothing to build a case from.
+    aiSmartIntakeService.extractCaseData.mockResolvedValue({
+      extracted: { title: "", description: "", summary: "", category: null, parties: [] },
+      warnings: [],
+    });
+
     const pipeline = new AiSmartCasePipeline(io);
 
     await pipeline.run({
@@ -526,7 +533,12 @@ describe("AI Smart Case pipeline — voice note", () => {
       liveVoiceTranscript: "",
     });
 
-    expect(aiSmartIntakeService.extractCaseData).not.toHaveBeenCalled();
+    // The document still goes to extraction, where vision gets a look at the
+    // bytes the text channel could not read — but with no voice note, no notes
+    // and nothing come back from vision, the run fails rather than inventing a
+    // case from the filename.
+    expect(aiSmartIntakeService.extractCaseData).toHaveBeenCalledTimes(1);
+    expect(aiSmartIntakeService.extractCaseData.mock.calls[0][0].ocrText).toBe("");
     expect(emitted.some((e) => e.event === "analysis_failed")).toBe(true);
   });
 

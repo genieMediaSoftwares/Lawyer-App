@@ -48,6 +48,30 @@ class RouteNames {
   static const String lawyerMessages = '/lawyer-messages';
   static const String lawyerSettings = '/lawyer-settings';
 
+  /// Lawyer — practice management.
+  ///
+  /// All six are pushed full-screen routes rather than new bottom-nav tabs:
+  /// the lawyer shell already has six tabs driven by
+  /// `/lawyer-dashboard?tab=0..5`, and adding to that row would have pushed the
+  /// existing labels past what fits on a phone. They are reached from the
+  /// Workspace tab's practice grid and from the drawer.
+  static const String lawyerCases = '/lawyer-cases';
+  static const String lawyerPracticeDocuments = '/lawyer-documents';
+  static const String lawyerResearch = '/lawyer-research';
+  static const String lawyerClients = '/lawyer-clients';
+  static const String lawyerHearings = '/lawyer-hearings';
+  static const String lawyerNotes = '/lawyer-notes';
+
+  /// The two detail screens are registered as child routes of the lists above,
+  /// so go_router composes their full patterns (`/lawyer-cases/:caseId` and
+  /// `/lawyer-clients/:clientId`) from the parent path. These builders are the
+  /// only way callers should construct them — a second copy of the pattern
+  /// held as a constant here would be free to drift from the router.
+  static String lawyerCaseDetailPath(String caseId) => '/lawyer-cases/$caseId';
+
+  static String lawyerClientDetailPath(String clientId) =>
+      '/lawyer-clients/$clientId';
+
   /// Role-neutral. Reached from both the client and the lawyer Settings screen.
   static const String languageSelection = '/language-selection';
 

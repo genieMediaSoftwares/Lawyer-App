@@ -47,6 +47,82 @@ const TRANSCRIPTION_PROMPT =
 const LANGUAGE_NAMES = { en: "English", hi: "Hindi", te: "Telugu" };
 
 /**
+ * System instruction for the advocate-facing research assistant.
+ *
+ * Kept separate from, and never merged with, the client-facing assistant
+ * further down: that one closes by telling the reader to "post your case in
+ * this app and connect with a verified lawyer", which is nonsense addressed to
+ * a practising advocate.
+ *
+ * The constraints on citations are the important part of this text. Lawfly has
+ * no case-law database, no judgment index and no subscription to any reporter,
+ * so the model is told plainly that it is working from training data and must
+ * never present a citation as verified. A fabricated citation handed to an
+ * advocate could reach a court.
+ */
+const RESEARCH_SYSTEM_INSTRUCTION = `You are the Lawfly Research Assistant, supporting a qualified practising advocate in India.
+
+You are speaking to a legal professional. Write as you would for a colleague: precise, concise, and without consumer-facing disclaimers or hand-holding. Do not suggest that they consult a lawyer, and do not suggest that they post a case in this application.
+
+==========================================================
+WHAT YOU ARE
+==========================================================
+
+You are a reasoning and drafting aid working from your training data. You are NOT connected to any case-law database, judgment repository, statutory index, court records system or legal reporter. You have no live access to SCC, Manupatra, India Code, eCourts, indiankanoon or any other source, and you cannot look anything up.
+
+==========================================================
+CITATIONS - THE MOST IMPORTANT RULE
+==========================================================
+
+Never fabricate authority. Specifically, never invent or guess:
+- case names, party names, or the court that decided a matter
+- citation references, neutral citations, year, volume or page numbers
+- judgment dates, bench composition or judge names
+- section, rule, article, order or schedule numbers
+- the text of any statutory provision
+
+If you are not confident that an authority exists and says what you are about to attribute to it, say so explicitly instead of producing it. It is always better to answer "I am not able to confirm a specific authority on this point" than to supply a plausible-looking citation.
+
+When you do mention a case or a provision that you are reasonably confident about, mark it as requiring verification, and say what should be checked. Present remembered authority as a lead to verify, never as a verified result.
+
+Flag clearly when a point is one where the law has moved recently, or where High Courts differ, since your training data has a cutoff and may be behind.
+
+==========================================================
+HOW TO ANSWER
+==========================================================
+
+Structure your answer with markdown headings, adapting to what was asked:
+
+### Issue
+The legal question, restated precisely.
+
+### Analysis
+The applicable principles and how they apply. Set out the competing positions where the point is arguable.
+
+### Authorities To Verify
+Provisions and decisions worth checking, each marked as unverified. State plainly if you cannot suggest any.
+
+### Practical Considerations
+Procedure, limitation, forum, pleadings, evidence, or drafting points that matter in practice.
+
+### Gaps
+What you could not determine, and what further facts or checks would settle it.
+
+Omit any heading that does not apply. Keep it tight - an advocate reading this is working.
+
+==========================================================
+JURISDICTION
+==========================================================
+
+Answer according to Indian law unless another jurisdiction is specified. Note the distinction where a point turns on state amendments, and where the IPC/CrPC/Evidence Act position differs from the BNS/BNSS/BSA position, since both remain relevant to live matters.
+
+==========================================================
+OUT OF SCOPE
+==========================================================
+
+If asked something outside legal research, say briefly that you are the research assistant and redirect.`;
+
+/**
  * The prompt for one request, naming the client's language when they picked one
  * in the recorder. Without a language the model detects, which is what the Auto
  * option asks for.
@@ -70,6 +146,27 @@ function generateTitle(message) {
   return title || "New Legal Conversation";
 }
 
+/**
+ * Normalises the optional `mode` on a request into a filter and a stored value.
+ *
+ * Two surfaces share this collection: the client-facing AI legal assistant
+ * ("chat") and the advocate-facing research assistant ("research"). They must
+ * not share a history list.
+ *
+ * The filter for chat is `$ne: "research"` rather than `eq: "chat"` on purpose:
+ * every conversation created before `mode` existed has no such field at all,
+ * and in MongoDB `$ne` matches documents where the field is missing. So the
+ * client chat keeps listing exactly the conversations it always listed, and a
+ * request that omits `mode` behaves precisely as it did before.
+ */
+const resolveMode = (value) => {
+  const mode = value === "research" ? "research" : "chat";
+  return {
+    mode,
+    filter: mode === "research" ? { mode: "research" } : { mode: { $ne: "research" } },
+  };
+};
+
 class AiController {
   /**
    * GET /api/ai/conversations
@@ -78,7 +175,12 @@ class AiController {
   async getConversations(req, res, next) {
     try {
       const userId = req.user._id;
-      const conversations = await AiConversation.find({ userId, status: "active" })
+      const { filter } = resolveMode(req.query.mode);
+      const conversations = await AiConversation.find({
+        userId,
+        status: "active",
+        ...filter,
+      })
         .sort({ updatedAt: -1 })
         .select("_id title messages createdAt updatedAt");
 
@@ -139,10 +241,12 @@ class AiController {
     try {
       const userId = req.user._id;
       const { title } = req.body;
+      const { mode } = resolveMode(req.body.mode);
 
       const conversation = await AiConversation.create({
         userId,
-        title: title || "New Legal Conversation",
+        title: title || (mode === "research" ? "New Research" : "New Legal Conversation"),
+        mode,
         messages: [],
       });
 
@@ -187,7 +291,10 @@ class AiController {
   async deleteAllConversations(req, res, next) {
     try {
       const userId = req.user._id;
-      await AiConversation.deleteMany({ userId });
+      // Scoped to the surface that asked, so clearing the client chat history
+      // cannot also wipe an advocate's saved research, or the other way round.
+      const { filter } = resolveMode(req.query.mode);
+      await AiConversation.deleteMany({ userId, ...filter });
 
       return ApiResponse.success(res, "All conversations deleted successfully.");
     } catch (error) {
@@ -203,6 +310,7 @@ class AiController {
     try {
       const { message, conversationId, history } = req.body;
       const userId = req.user._id;
+      const { mode } = resolveMode(req.body.mode);
 
       if (!message || typeof message !== "string" || !message.trim()) {
         return ApiResponse.error(res, "Message is required.", 400);
@@ -228,6 +336,7 @@ class AiController {
         conversation = new AiConversation({
           userId,
           title: generateTitle(message),
+          mode,
           messages: [],
         });
       }
@@ -395,6 +504,15 @@ Responses are provided for informational purposes only and should not be conside
         ]
       };
 
+      // The instruction above addresses a member of the public. A research
+      // request replaces it outright rather than appending to it - the two
+      // personas contradict each other, and the client-facing one ends by
+      // telling the reader to go and find a lawyer.
+      const activeSystemInstruction =
+        mode === "research"
+          ? { parts: [{ text: RESEARCH_SYSTEM_INSTRUCTION }] }
+          : systemInstruction;
+
       const candidateModels = [
         "gemini-2.0-flash",
         "gemini-flash-latest",
@@ -421,7 +539,7 @@ Responses are provided for informational purposes only and should not be conside
                 },
                 body: JSON.stringify({
                   contents,
-                  systemInstruction
+                  systemInstruction: activeSystemInstruction
                 })
               }
             );

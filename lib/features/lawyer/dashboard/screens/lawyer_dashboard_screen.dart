@@ -531,6 +531,58 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
           ),
           const SizedBox(height: 24),
 
+          // ── Practice management ────────────────────────────────────────
+          // Practice tools available for managing documents, research, hearings and notes.
+          Text(
+            loc.practice_tools,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            loc.practice_section_desc,
+            style: const TextStyle(fontSize: 11, color: AppColors.secondaryText),
+          ),
+          const SizedBox(height: 12),
+
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // Four across on tablet/web, 2x2 grid on mobile.
+              final columns = constraints.maxWidth >= 560 ? 4 : 2;
+              return GridView.count(
+                crossAxisCount: columns,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.55,
+                children: [
+                  _buildPracticeCard(
+                    icon: Icons.description_outlined,
+                    label: loc.nav_documents,
+                    onTap: () =>
+                        context.push(RouteNames.lawyerPracticeDocuments),
+                  ),
+                  _buildPracticeCard(
+                    icon: Icons.travel_explore_outlined,
+                    label: loc.nav_research,
+                    onTap: () => context.push(RouteNames.lawyerResearch),
+                  ),
+                  _buildPracticeCard(
+                    icon: Icons.gavel_outlined,
+                    label: loc.nav_hearings,
+                    onTap: () => context.push(RouteNames.lawyerHearings),
+                  ),
+                  _buildPracticeCard(
+                    icon: Icons.sticky_note_2_outlined,
+                    label: loc.nav_notes,
+                    onTap: () => context.push(RouteNames.lawyerNotes),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+
           // Daily Growth / Conversion Tip Box
           GestureDetector(
             onTap: () {
@@ -584,6 +636,56 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// A destination tile in the practice grid.
+  ///
+  /// Deliberately plainer than [_buildWorkspaceToolCard] above: these carry no
+  /// badge and no live count, so giving them the same visual weight as the
+  /// counters would have implied a number that is not there.
+  Widget _buildPracticeCard({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: theme.cardColor,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: theme.colorScheme.outline),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: AppColors.primaryGold.withValues(alpha: 0.1),
+                child: Icon(icon, color: AppColors.primaryGold, size: 16),
+              ),
+              Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

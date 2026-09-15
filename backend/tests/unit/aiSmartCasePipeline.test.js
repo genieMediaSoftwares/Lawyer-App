@@ -175,14 +175,43 @@ describe("AI Smart Case pipeline", () => {
     expect(completions[0].payload.extractionWarnings.join(" ")).toMatch(/broken\.pdf/);
   });
 
-  it("fails honestly when nothing at all could be read", async () => {
-    ocrSanitizationService.extractText.mockResolvedValue({
-      ...okOcr,
-      extractedText: "",
-      charCount: 0,
-      extractionFailed: true,
-      extractionError: "OCR service unavailable",
-      ocrQuality: "Extraction Unavailable",
+  const failedOcr = {
+    ...okOcr,
+    extractedText: "",
+    charCount: 0,
+    extractionFailed: true,
+    extractionError: "OCR service unavailable",
+    ocrQuality: "Extraction Unavailable",
+  };
+
+  it("tries vision on a document whose text extraction failed", async () => {
+    // A scan whose text layer will not read is exactly what vision is for, so
+    // the file itself is handed to extraction rather than the run being
+    // abandoned. It must go as bytes, not as a filename: inventing a case from
+    // "fir.pdf" is the failure this guards.
+    ocrSanitizationService.extractText.mockResolvedValue(failedOcr);
+
+    const io = makeIo();
+    const pipeline = new AiSmartCasePipeline(io);
+
+    await pipeline.run({
+      session: makeSession(),
+      documentFiles: [makeFile()],
+      voiceFile: null,
+      typedDescription: "",
+    });
+
+    expect(aiSmartIntakeService.extractCaseData).toHaveBeenCalledTimes(1);
+    const call = aiSmartIntakeService.extractCaseData.mock.calls[0][0];
+    expect(call.ocrText).toBe("");
+    expect(call.priorityFiles).toEqual([expect.objectContaining({ path: expect.any(String) })]);
+  });
+
+  it("fails honestly when vision also produces nothing", async () => {
+    ocrSanitizationService.extractText.mockResolvedValue(failedOcr);
+    aiSmartIntakeService.extractCaseData.mockResolvedValue({
+      extracted: { title: "", description: "", category: null, summary: "", parties: [] },
+      warnings: [],
     });
 
     const io = makeIo();
@@ -195,9 +224,87 @@ describe("AI Smart Case pipeline", () => {
       typedDescription: "",
     });
 
-    // Never invents a case out of a filename.
-    expect(aiSmartIntakeService.extractCaseData).not.toHaveBeenCalled();
     expect(io.emitted.filter((e) => e.event === "analysis_failed")).toHaveLength(1);
+    expect(io.emitted.filter((e) => e.event === "analysis_complete")).toHaveLength(0);
+  });
+
+  it("analyses the voice note when every document failed to read", async () => {
+    // The regression this exists for: a client recorded a voice note, their
+    // scan would not read, and the run was abandoned with "we could not read
+    // any text from the document(s) you uploaded" — discarding the spoken
+    // account that had already been transcribed one stage earlier.
+    ocrSanitizationService.extractText.mockResolvedValue(failedOcr);
+
+    const io = makeIo();
+    const pipeline = new AiSmartCasePipeline(io);
+
+    await pipeline.run({
+      session: makeSession(),
+      documentFiles: [makeFile()],
+      voiceFile: null,
+      liveVoiceTranscript: "My husband is abusing me and I want to file for divorce.",
+      typedDescription: "",
+    });
+
+    expect(aiSmartIntakeService.extractCaseData).toHaveBeenCalledTimes(1);
+    expect(aiSmartIntakeService.extractCaseData.mock.calls[0][0].voiceTranscript).toMatch(/divorce/);
+    expect(io.emitted.filter((e) => e.event === "analysis_complete")).toHaveLength(1);
+    expect(io.emitted.filter((e) => e.event === "analysis_failed")).toHaveLength(0);
+  });
+
+  it("analyses written notes when every document failed to read", async () => {
+    ocrSanitizationService.extractText.mockResolvedValue(failedOcr);
+
+    const io = makeIo();
+    const pipeline = new AiSmartCasePipeline(io);
+
+    await pipeline.run({
+      session: makeSession(),
+      documentFiles: [makeFile()],
+      voiceFile: null,
+      typedDescription: "The builder has not given possession of my flat for two years.",
+    });
+
+    expect(aiSmartIntakeService.extractCaseData).toHaveBeenCalledTimes(1);
+    expect(io.emitted.filter((e) => e.event === "analysis_complete")).toHaveLength(1);
+  });
+
+  it("never shows a raw provider error to the client", async () => {
+    ocrSanitizationService.extractText.mockResolvedValue({
+      ...failedOcr,
+      extractionError:
+        'gemini-1.5-pro: HTTP 404 { "error": { "code": 404, "message": "models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels"',
+    });
+
+    const io = makeIo();
+    const pipeline = new AiSmartCasePipeline(io);
+
+    await pipeline.run({
+      session: makeSession(),
+      documentFiles: [makeFile()],
+      voiceFile: null,
+      typedDescription: "My landlord will not return my deposit.",
+    });
+
+    const completion = io.emitted.find((e) => e.event === "analysis_complete");
+    const shown = completion.payload.extractionWarnings.join(" ");
+    expect(shown).toMatch(/fir\.pdf/);
+    expect(shown).not.toMatch(/HTTP 404|gemini|ListModels|generateContent/i);
+  });
+
+  it("does not claim a voice note failed when there was no voice note", async () => {
+    const io = makeIo();
+    const pipeline = new AiSmartCasePipeline(io);
+
+    await pipeline.run({
+      session: makeSession(),
+      documentFiles: [makeFile()],
+      voiceFile: null,
+      typedDescription: "",
+    });
+
+    const completion = io.emitted.find((e) => e.event === "analysis_complete");
+    expect(completion.payload.extractionWarnings.join(" ")).not.toMatch(/voice note/i);
   });
 
   it("does not overwrite a session that already reached a terminal state", async () => {

@@ -159,6 +159,47 @@ function withTimeout(work, ms, label) {
   ]);
 }
 
+/**
+ * Turns a technical extraction error into something a client can act on.
+ *
+ * `failures[].reason` carries whatever the OCR layer caught — which, when the
+ * provider is having a bad day, is a raw HTTP body. One of these reached a
+ * client's screen verbatim:
+ *
+ *   "sample_divorce_case.pdf: gemini-1.5-pro: HTTP 404 { "error": { "code":
+ *    404, "message": "models/gemini-1.5-pro is not found for API version
+ *    v1beta, or is not supported for generateContent. Call
+ *    ModelService.ListModels to see the list of avai"
+ *
+ * That tells the client nothing they can do anything about, names our
+ * infrastructure, and reads like the app is broken. The technical string is
+ * still logged in full at the point of failure; this is only what the client
+ * is shown.
+ */
+function clientSafeFailure(name, reason) {
+  const text = String(reason || "");
+
+  // Ours, not theirs: nothing about the document would change the outcome.
+  if (/HTTP \d{3}|ListModels|generateContent|API key|quota|rate limit|ECONNRESET|ETIMEDOUT|fetch failed|socket hang up/i.test(text)) {
+    return `${name}: our document reader was unavailable, so this file was not used. Your document is saved — you can retry the analysis.`;
+  }
+
+  if (/exceeded \d+s|timed out|too long/i.test(text)) {
+    return `${name}: took too long to read and was skipped. A smaller or clearer copy usually works.`;
+  }
+
+  if (/not found on disk/i.test(text)) {
+    return `${name}: could not be opened after upload. Please try uploading it again.`;
+  }
+
+  if (/unsupported file type/i.test(text)) {
+    // Already written for a client, and names the formats that do work.
+    return `${name}: ${text}`;
+  }
+
+  return `${name}: could not be read, so it was not used. Please upload a clearer copy if this document matters to your case.`;
+}
+
 class AiSmartCasePipeline {
   /**
    * @param {object} io  The Socket.IO server, from `app.get("io")`. Optional:
@@ -335,19 +376,56 @@ class AiSmartCasePipeline {
         );
       }
 
-      // Nothing readable from text-OCR: if all documents failed OCR and no text/voice was provided,
-      // fail honestly. If valid scanned/image documents exist, proceed to structured extraction
-      // with priorityFiles attached inline so Gemini Vision reads them.
+      // ── What is actually available to analyse ───────────────────────────
+      //
+      // A run is only unanalysable when EVERY source is missing. It is not
+      // unanalysable because one of them failed.
+      //
+      // This guard used to read `|| allOcrFailed`, which abandoned the whole
+      // intake whenever every document failed OCR — even when the client had
+      // recorded a voice note describing the matter, and even though that note
+      // had already been transcribed two stages above and was sitting right
+      // here in `voiceTranscript`. A client whose scan would not read was told
+      // "we could not read any text from the document(s) you uploaded" and sent
+      // back to the start, with their spoken account discarded unread. That is
+      // the single largest reliability defect in this pipeline.
+      //
+      // Files whose text extraction failed are not written off either: they are
+      // attached to the extraction call inline, where the model reads them with
+      // vision. A failed OCR pass means the text channel could not represent
+      // the document, not that the document is unreadable.
       const hasFilesToProcess = Array.isArray(documentFiles) && documentFiles.length > 0;
       const allOcrFailed = failures.length === documentFiles.length && hasFilesToProcess;
 
-      if ((!ocrText.trim() && !voiceTranscript.trim() && !typedDescription.trim() && !hasFilesToProcess) || allOcrFailed) {
+      const sources = {
+        document: Boolean(ocrText.trim()) || hasFilesToProcess,
+        documentText: Boolean(ocrText.trim()),
+        voice: Boolean(voiceTranscript.trim()),
+        notes: Boolean(typedDescription.trim()),
+      };
+
+      log.info("pipeline:sources", {
+        session: session._id,
+        ...sources,
+        documentsFailedOcr: failures.length,
+        documentsTotal: documentFiles.length,
+      });
+
+      if (!sources.document && !sources.voice && !sources.notes) {
         return this._fail(
           session,
-          failures.length
-            ? "We could not read any text from the document(s) you uploaded. Please upload a clearer copy, or describe your issue in writing, and try again."
-            : "There was nothing to analyse. Please upload a readable document or describe your issue."
+          "There was nothing to analyse. Please upload a readable document or describe your issue."
         );
+      }
+
+      // Every document failed to read AND there is nothing the client said.
+      // Vision is the only remaining channel; it is worth trying, but say so
+      // honestly in the warnings rather than implying the documents were read.
+      if (allOcrFailed && !sources.voice && !sources.notes) {
+        log.warn("pipeline:all-ocr-failed-vision-only", {
+          session: session._id,
+          documents: documentFiles.length,
+        });
       }
 
       if (overBudget()) {
@@ -416,18 +494,51 @@ class AiSmartCasePipeline {
         { fraction: 1 }
       );
 
-      // The client's own words are the most trustworthy text available, so
-      // they stand in when the model produced no description. This is not
-      // fabrication: it is the client's own account, verbatim.
+      // When the model produced no description, the client's own typed notes
+      // stand in — those are already their account of the problem, written by
+      // them, and putting them in the field they were going to write anyway is
+      // not fabrication.
+      //
+      // A VOICE transcript is not used this way. It is speech recognition
+      // output, often mid-sentence, often half in Telugu or Hindi, and often
+      // wrong: one client's Brief Description read "he was beating me so I want
+      // a gift I was to" — a mis-transcription of a domestic violence matter,
+      // filed verbatim as the case they were asking lawyers to take. The
+      // transcript is kept on the session and shown to the client separately;
+      // it does not become the case description. If the model could not write
+      // one, the field stays empty and is flagged, which is honest and takes
+      // the client one edit to fix.
       if (!extracted.description) {
-        extracted.description = typedDescription.trim() || voiceTranscript.trim();
+        extracted.description = typedDescription.trim();
+
+        if (!extracted.description) {
+          const review = new Set(extracted.needsReview || []);
+          review.add("description");
+          extracted.needsReview = [...review];
+          log.warn("pipeline:no-description-produced", {
+            session: session._id,
+            hasVoice: Boolean(voiceTranscript.trim()),
+            hasNotes: Boolean(typedDescription.trim()),
+          });
+        }
+      }
+
+      // Technical detail goes to the log; the client gets something actionable.
+      for (const failure of failures) {
+        log.warn("pipeline:document-unreadable", {
+          session: session._id,
+          name: failure.name,
+          reason: failure.reason,
+        });
       }
 
       const warnings = [
-        ...failures.map((f) => `${f.name}: ${f.reason}`),
+        ...failures.map((f) => clientSafeFailure(f.name, f.reason)),
         ...fraudFlags,
         ...extractionNotes,
-        ...(voiceTranscriptionFailed
+        // Only mention the voice note when there was one. A client who never
+        // recorded anything used to be told their voice note had failed.
+        ...(voiceTranscriptionFailed && voiceFile
           ? ["Your voice note could not be transcribed, so it was not used."]
           : []),
       ];
@@ -499,7 +610,7 @@ class AiSmartCasePipeline {
       log.error("pipeline:unhandled", error, { session: session._id });
       return this._fail(
         session,
-        "Something went wrong while analysing your documents. Please try again."
+        "We could not finish analysing your documents. Please try again, or enter your case details manually."
       );
     } finally {
       clearTimeout(watchdog);

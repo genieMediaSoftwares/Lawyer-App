@@ -66,13 +66,14 @@ class ErrorHandler {
 
     final requestOptions = exception.requestOptions;
     final response = exception.response;
+    final statusCode = response?.statusCode;
 
     final Map<String, dynamic> errorLog = {
       'URL': requestOptions.uri.toString(),
       'Method': requestOptions.method,
       'Headers': _redact(requestOptions.headers),
       'Request Data': _redact(requestOptions.data),
-      'Status Code': response?.statusCode,
+      'Status Code': statusCode,
       'Response Headers': _redact(response?.headers.map),
       'Response Data': _redact(response?.data),
       'Exception Message': exception.message,
@@ -80,19 +81,25 @@ class ErrorHandler {
       'Error Object': exception.error.toString(),
     };
 
-    _logger.e(
-      '🚨 DIO EXCEPTION DETECTED\n'
-      '--------------------------------------------------\n'
-      'URL: ${errorLog['URL']}\n'
-      'Method: ${errorLog['Method']}\n'
-      'Status Code: ${errorLog['Status Code']}\n'
-      'Response Body: ${errorLog['Response Data']}\n'
-      'Request Body: ${errorLog['Request Data']}\n'
-      'Headers: ${errorLog['Headers']}\n'
-      '--------------------------------------------------',
-      error: exception,
-      stackTrace: stackTrace,
-    );
+    final message = 'HTTP Request Notice [${statusCode ?? 'N/A'}]\n'
+        '--------------------------------------------------\n'
+        'URL: ${errorLog['URL']}\n'
+        'Method: ${errorLog['Method']}\n'
+        'Status Code: ${errorLog['Status Code']}\n'
+        'Response Body: ${errorLog['Response Data']}\n'
+        'Request Body: ${errorLog['Request Data']}\n'
+        'Headers: ${errorLog['Headers']}\n'
+        '--------------------------------------------------';
+
+    if (statusCode != null && statusCode >= 400 && statusCode < 500) {
+      _logger.w(message);
+    } else {
+      _logger.e(
+        message,
+        error: exception,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   static Exception handleDioError(DioException error, StackTrace stackTrace) {

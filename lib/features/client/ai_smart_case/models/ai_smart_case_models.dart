@@ -182,6 +182,21 @@ class ExtractedCaseData {
     return s.isEmpty ? null : s;
   }
 
+  /// A claim amount from whatever the field turned out to hold.
+  ///
+  /// The server normalises this to a number or null, but the cast it replaces
+  /// (`as num?`) threw on anything else — and that exception escaped into the
+  /// socket handler that builds this object, so one unexpected value left the
+  /// analysis screen spinning with no result and no error. Returns null rather
+  /// than throwing, which is the same thing "the documents did not say" already
+  /// means everywhere else in this class.
+  static double? _amount(dynamic v) {
+    if (v is num) return v.toDouble();
+    final s = _str(v);
+    if (s.isEmpty) return null;
+    return double.tryParse(s.replaceAll(RegExp(r'[^0-9.]'), ''));
+  }
+
   factory ExtractedCaseData.fromJson(Map<String, dynamic> json) {
     DateTime? parseDate(dynamic v) {
       final s = _str(v);
@@ -227,14 +242,16 @@ class ExtractedCaseData {
       firNumber: _str(json['firNumber']),
       policeStation: _str(json['policeStation']),
       bailDetails: _str(json['bailDetails']),
-      claimAmount: (json['claimAmount'] as num?)?.toDouble(),
+      claimAmount: _amount(json['claimAmount']),
       documentType: _str(json['documentType']),
       isCriminalLike: json['isCriminalLike'] == true,
       confidence: confidence,
-      needsReview: (json['needsReview'] as List? ?? const [])
-          .map((f) => f.toString())
-          .where((f) => f.isNotEmpty)
-          .toList(),
+      needsReview: json['needsReview'] is List
+          ? (json['needsReview'] as List)
+              .map((f) => f.toString())
+              .where((f) => f.isNotEmpty)
+              .toList()
+          : const [],
     );
   }
 }
@@ -316,22 +333,33 @@ class ExtractionResult {
         ? Map<String, dynamic>.from(json['data'] as Map)
         : json;
 
-    final rawDocs = data['uploadedDocuments'] as List? ?? const [];
+    // Every read below tests the shape it found rather than casting to the one
+    // it expects. This object is built straight from a socket frame, so a field
+    // arriving as the wrong type is a transport-level possibility, not a
+    // hypothetical — and a cast that throws here takes the whole analysis down
+    // with it after the work has already been paid for.
+    final rawExtracted = data['extracted'];
+    final rawDocs = data['uploadedDocuments'];
+    final rawWarnings = data['extractionWarnings'];
 
     return ExtractionResult(
       sessionId: (data['sessionId'] ?? data['_id'] ?? '').toString(),
-      extracted: ExtractedCaseData.fromJson(
-        Map<String, dynamic>.from((data['extracted'] ?? const {}) as Map),
-      ),
-      warnings: (data['extractionWarnings'] as List? ?? const [])
-          .map((w) => w.toString())
-          .where((w) => w.isNotEmpty)
-          .toList(),
+      extracted: rawExtracted is Map
+          ? ExtractedCaseData.fromJson(Map<String, dynamic>.from(rawExtracted))
+          : const ExtractedCaseData(),
+      warnings: rawWarnings is List
+          ? rawWarnings
+              .map((w) => w.toString().trim())
+              .where((w) => w.isNotEmpty)
+              .toList()
+          : const [],
       voiceTranscriptionFailed: data['voiceTranscriptionFailed'] == true,
-      uploadedDocuments: rawDocs
-          .whereType<Map>()
-          .map((d) => AnalyzedDocument.fromJson(Map<String, dynamic>.from(d)))
-          .toList(),
+      uploadedDocuments: rawDocs is List
+          ? rawDocs
+              .whereType<Map>()
+              .map((d) => AnalyzedDocument.fromJson(Map<String, dynamic>.from(d)))
+              .toList()
+          : const [],
       voiceTranscript: (data['voiceTranscript'] ?? '').toString(),
     );
   }

@@ -6,6 +6,58 @@ const Document = require("../../models/Document");
 const Payment = require("../../models/Payment");
 const ApiResponse = require("../../config/ApiResponse");
 
+/**
+ * True if `lawyerId` actually acts for the client user `clientUserId`.
+ *
+ * This is the same relationship getClients already uses to build an advocate's
+ * client list - a case they are assigned to, or a consultation booked with
+ * them - so the detail, notes and activity endpoints below admit exactly the
+ * clients that appear in that list, and no others.
+ *
+ * It is applied because these endpoints previously took a client id from the
+ * URL and answered without checking anything: any authenticated user could
+ * read any client's profile, contact details and full document list, and write
+ * notes onto any client's record, by changing the id.
+ */
+const isEngagedWithClient = async (lawyerId, clientUserId) => {
+  const [byCase, byAppointment] = await Promise.all([
+    Case.exists({ client: clientUserId, assignedLawyer: lawyerId }),
+    Appointment.exists({ client: clientUserId, lawyer: lawyerId }),
+  ]);
+  return Boolean(byCase || byAppointment);
+};
+
+/**
+ * Resolves the client record an advocate is asking about, or the reason they
+ * may not have it.
+ *
+ * Returns `{ error, status }` for the caller to hand straight to ApiResponse,
+ * so the four endpoints below cannot drift apart on who is allowed in.
+ */
+const resolveClientForLawyer = async (user, clientUserId) => {
+  if (user.role !== "lawyer" && user.role !== "admin") {
+    return { error: "Access forbidden.", status: 403 };
+  }
+
+  const clientUser = await User.findById(clientUserId).select(
+    "fullName email mobile profileImage location"
+  );
+  if (!clientUser) {
+    return { error: "Client not found.", status: 404 };
+  }
+
+  if (
+    user.role === "lawyer" &&
+    !(await isEngagedWithClient(user._id, clientUserId))
+  ) {
+    // 404 rather than 403: a 403 would confirm that this user exists and is a
+    // client of some other advocate.
+    return { error: "Client not found.", status: 404 };
+  }
+
+  return { clientUser };
+};
+
 class ClientController {
   async getClients(req, res, next) {
     try {
@@ -32,9 +84,12 @@ class ClientController {
       const { id } = req.params;
       const lawyerId = req.user._id;
 
-      const clientUser = await User.findById(id).select("fullName email mobile profileImage location");
-      if (!clientUser) {
-        return ApiResponse.error(res, "Client not found.", 404);
+      const { clientUser, error, status } = await resolveClientForLawyer(
+        req.user,
+        id
+      );
+      if (error) {
+        return ApiResponse.error(res, error, status);
       }
 
       // Fetch client metadata details
@@ -52,9 +107,15 @@ class ClientController {
       // Fetch Appointments
       const appointments = await Appointment.find({ client: id, lawyer: lawyerId });
 
+      // The notes array is dropped from the profile before it is returned: it
+      // holds every advocate's private notes on this client, and getNotes below
+      // is the only endpoint that reads it - filtered to its author.
+      const profile = clientProfile.toObject();
+      delete profile.notes;
+
       return ApiResponse.success(res, "Client profile retrieved.", {
         client: clientUser,
-        profile: clientProfile,
+        profile,
         caseHistory,
         documents,
         appointments,
@@ -67,11 +128,30 @@ class ClientController {
   async addNote(req, res, next) {
     try {
       const { id } = req.params;
-      const { text } = req.body;
+      const { text, title, caseId } = req.body;
       const lawyerId = req.user._id;
 
-      if (!text) {
+      if (!text || !text.trim()) {
         return ApiResponse.error(res, "Note content is required.", 400);
+      }
+
+      const { error, status } = await resolveClientForLawyer(req.user, id);
+      if (error) {
+        return ApiResponse.error(res, error, status);
+      }
+
+      // A note may be filed against a case, but only one this advocate is
+      // actually on and that belongs to this client - otherwise the caseId
+      // would be a way to attach a note to someone else's matter.
+      if (caseId) {
+        const ownsCase = await Case.exists({
+          _id: caseId,
+          client: id,
+          $or: [{ assignedLawyer: lawyerId }, { selectedLawyer: lawyerId }],
+        });
+        if (!ownsCase) {
+          return ApiResponse.error(res, "Case not found.", 404);
+        }
       }
 
       let clientProfile = await Client.findOne({ user: id });
@@ -81,13 +161,25 @@ class ClientController {
 
       clientProfile.notes.push({
         lawyer: lawyerId,
-        text,
+        text: text.trim(),
+        title: (title || "").trim(),
+        case: caseId || null,
         date: new Date(),
+        updatedAt: new Date(),
       });
 
       await clientProfile.save();
 
-      return ApiResponse.success(res, "Note added to client profile successfully.", clientProfile);
+      // Only the note just written is returned. Returning the whole profile
+      // handed the caller every other advocate's private notes on this client.
+      const created = clientProfile.notes[clientProfile.notes.length - 1];
+
+      return ApiResponse.success(
+        res,
+        "Note added to client profile successfully.",
+        created,
+        201
+      );
     } catch (error) {
       next(error);
     }
@@ -96,19 +188,134 @@ class ClientController {
   async getNotes(req, res, next) {
     try {
       const { id } = req.params;
+      const { caseId } = req.query;
       const lawyerId = req.user._id;
+
+      const { error, status } = await resolveClientForLawyer(req.user, id);
+      if (error) {
+        return ApiResponse.error(res, error, status);
+      }
 
       const clientProfile = await Client.findOne({ user: id }).populate("notes.lawyer", "fullName profileImage");
       if (!clientProfile) {
         return ApiResponse.success(res, "No client notes found.", []);
       }
 
-      // Filter notes authored by this lawyer
-      const lawyerNotes = clientProfile.notes.filter(
-        (n) => n.lawyer._id.toString() === lawyerId.toString()
+      // Filter notes authored by this lawyer. The `n.lawyer &&` guard matters:
+      // a note whose author reference is missing used to throw here and take
+      // the whole request down with it.
+      let lawyerNotes = clientProfile.notes.filter(
+        (n) =>
+          n.lawyer &&
+          (n.lawyer._id || n.lawyer).toString() === lawyerId.toString()
+      );
+
+      if (caseId) {
+        lawyerNotes = lawyerNotes.filter(
+          (n) => n.case && n.case.toString() === caseId.toString()
+        );
+      }
+
+      // Newest first, so the list opens on what the advocate wrote last.
+      lawyerNotes = lawyerNotes.sort(
+        (a, b) => new Date(b.date) - new Date(a.date)
       );
 
       return ApiResponse.success(res, "Client notes fetched.", lawyerNotes);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Edits a note. Author-only: an advocate may not touch a note another
+   * advocate wrote about the same client, and the client themselves has no
+   * endpoint that reaches this array at all.
+   */
+  async updateNote(req, res, next) {
+    try {
+      const { id, noteId } = req.params;
+      const { text, title, caseId } = req.body;
+      const lawyerId = req.user._id;
+
+      const { error, status } = await resolveClientForLawyer(req.user, id);
+      if (error) {
+        return ApiResponse.error(res, error, status);
+      }
+
+      const clientProfile = await Client.findOne({ user: id });
+      if (!clientProfile) {
+        return ApiResponse.error(res, "Note not found.", 404);
+      }
+
+      const note = clientProfile.notes.id(noteId);
+      if (
+        !note ||
+        !note.lawyer ||
+        note.lawyer.toString() !== lawyerId.toString()
+      ) {
+        return ApiResponse.error(res, "Note not found.", 404);
+      }
+
+      if (text !== undefined) {
+        if (!text.trim()) {
+          return ApiResponse.error(res, "Note content is required.", 400);
+        }
+        note.text = text.trim();
+      }
+      if (title !== undefined) note.title = title.trim();
+
+      if (caseId !== undefined) {
+        if (caseId) {
+          const ownsCase = await Case.exists({
+            _id: caseId,
+            client: id,
+            $or: [{ assignedLawyer: lawyerId }, { selectedLawyer: lawyerId }],
+          });
+          if (!ownsCase) {
+            return ApiResponse.error(res, "Case not found.", 404);
+          }
+        }
+        note.case = caseId || null;
+      }
+
+      note.updatedAt = new Date();
+      await clientProfile.save();
+
+      return ApiResponse.success(res, "Note updated successfully.", note);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteNote(req, res, next) {
+    try {
+      const { id, noteId } = req.params;
+      const lawyerId = req.user._id;
+
+      const { error, status } = await resolveClientForLawyer(req.user, id);
+      if (error) {
+        return ApiResponse.error(res, error, status);
+      }
+
+      const clientProfile = await Client.findOne({ user: id });
+      if (!clientProfile) {
+        return ApiResponse.error(res, "Note not found.", 404);
+      }
+
+      const note = clientProfile.notes.id(noteId);
+      if (
+        !note ||
+        !note.lawyer ||
+        note.lawyer.toString() !== lawyerId.toString()
+      ) {
+        return ApiResponse.error(res, "Note not found.", 404);
+      }
+
+      note.deleteOne();
+      await clientProfile.save();
+
+      return ApiResponse.success(res, "Note deleted successfully.", null);
     } catch (error) {
       next(error);
     }

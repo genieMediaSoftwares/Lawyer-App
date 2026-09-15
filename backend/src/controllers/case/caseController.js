@@ -5,6 +5,92 @@ const Proposal = require("../../models/Proposal");
 const ApiResponse = require("../../config/ApiResponse");
 const notificationService = require("../../services/notification/notificationService");
 
+/// Ids on a case that may be ObjectIds or populated documents, as one list of
+/// comparable strings.
+const partyIds = (caseItem, keys) =>
+  keys
+    .map((key) => caseItem[key])
+    .filter(Boolean)
+    .map((value) => (value._id ? value._id : value).toString());
+
+/**
+ * True if `user` may read `caseItem`.
+ *
+ * This mirrors, exactly, the visibility rule getCases already applies when it
+ * builds its query - clients see their own cases; lawyers see open Submitted
+ * cases plus the ones they are assigned to or selected for; admins see
+ * everything. It is written out here because getCaseById fetched by id and
+ * returned the case to whoever asked, so any authenticated user could read any
+ * case - including its documents and the client's contact details - by
+ * changing the id in the URL. Because the rule is the same one getCases uses,
+ * no caller that was reaching a case it was entitled to loses access.
+ */
+const canReadCase = (user, caseItem) => {
+  if (user.role === "admin") return true;
+
+  const userId = user._id.toString();
+
+  if (user.role === "client") {
+    return partyIds(caseItem, ["client"]).includes(userId);
+  }
+
+  if (user.role === "lawyer") {
+    if (caseItem.status === "Submitted") return true;
+    return partyIds(caseItem, ["assignedLawyer", "selectedLawyer"]).includes(
+      userId
+    );
+  }
+
+  return false;
+};
+
+/**
+ * True if `user` may add or change hearings on `caseItem`.
+ *
+ * Stricter than reading: an open Submitted case is readable by every lawyer
+ * browsing leads, but only the advocate actually engaged on the matter may
+ * list its hearings.
+ */
+const canManageHearings = (user, caseItem) => {
+  if (user.role === "admin") return true;
+  if (user.role !== "lawyer") return false;
+  return partyIds(caseItem, ["assignedLawyer", "selectedLawyer"]).includes(
+    user._id.toString()
+  );
+};
+
+/**
+ * Points `nextHearing` at the earliest still-scheduled hearing on the case, or
+ * clears it when none remain.
+ *
+ * nextHearing predates the hearings array and is read by the client My Cases
+ * screen, the lawyer Clients tab and /lawyers/schedule/today. Keeping it in
+ * step here means those three readers - and any other consumer of the existing
+ * API response - keep working without being touched.
+ */
+const syncNextHearing = (caseItem) => {
+  const upcoming = (caseItem.hearings || [])
+    .filter((h) => h.status === "scheduled" && h.date)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  caseItem.nextHearing = upcoming.length ? upcoming[0].date : null;
+};
+
+/// Broadcasts a case change to both sides, matching what the existing
+/// mutations on this controller already emit.
+const emitCaseUpdated = (req, caseItem) => {
+  const io = req.app.get("io");
+  if (!io) return;
+
+  for (const id of partyIds(caseItem, [
+    "client",
+    "assignedLawyer",
+    "selectedLawyer",
+  ])) {
+    io.of("/cases").to(id).emit("case_updated", caseItem);
+  }
+};
+
 class CaseController {
   async createCase(req, res, next) {
     try {
@@ -174,6 +260,12 @@ class CaseController {
         .lean();
 
       if (!caseItem) {
+        return ApiResponse.error(res, "Case not found.", 404);
+      }
+
+      // 404 rather than 403, so the response cannot be used to confirm that a
+      // case with this id exists.
+      if (!canReadCase(req.user, caseItem)) {
         return ApiResponse.error(res, "Case not found.", 404);
       }
 
@@ -788,6 +880,227 @@ class CaseController {
       }
 
       return ApiResponse.success(res, "Review submitted successfully.", caseItem);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ─── Hearings ──────────────────────────────────────────────────────────
+  // Court hearings on a case. These are NOT appointments: an Appointment is a
+  // lawyer-client consultation and keeps its own model, its own endpoints and
+  // its Google Calendar sync. Hearings deliberately do not touch Google
+  // Calendar - nothing synced them before, and writing them there now would
+  // risk duplicate events against the appointment sync.
+
+  async addHearing(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { date, timeSlot, court, purpose, status, notes } = req.body;
+
+      if (!date) {
+        return ApiResponse.error(res, "Hearing date is required.", 400);
+      }
+
+      const hearingDate = new Date(date);
+      if (Number.isNaN(hearingDate.getTime())) {
+        return ApiResponse.error(res, "Hearing date is not a valid date.", 400);
+      }
+
+      const caseItem = await Case.findById(id);
+      if (!caseItem) {
+        return ApiResponse.error(res, "Case not found.", 404);
+      }
+
+      if (!canManageHearings(req.user, caseItem)) {
+        return ApiResponse.error(
+          res,
+          "You are not assigned to this case.",
+          403
+        );
+      }
+
+      caseItem.hearings.push({
+        date: hearingDate,
+        timeSlot: timeSlot || "",
+        court: court || caseItem.preferredCourt || "",
+        purpose: purpose || "",
+        status: status || "scheduled",
+        notes: notes || "",
+        createdBy: req.user._id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      syncNextHearing(caseItem);
+      await caseItem.save();
+
+      // Best-effort: the hearing is saved either way, and failing the request
+      // because an alert could not be raised would tell the advocate their
+      // hearing did not save, which is untrue.
+      try {
+        if (caseItem.client) {
+          await notificationService.createAndSendNotification({
+            senderId: req.user._id,
+            receiverId: caseItem.client,
+            type: "case_update",
+            title: "Hearing Scheduled",
+            message: `A hearing on "${caseItem.title}" is listed for ${hearingDate.toDateString()}.`,
+            referenceId: caseItem._id.toString(),
+          });
+        }
+      } catch (notifyError) {
+        console.error(
+          "⚠️ hearing notification failed:",
+          notifyError.message
+        );
+      }
+
+      emitCaseUpdated(req, caseItem);
+
+      return ApiResponse.success(
+        res,
+        "Hearing added successfully.",
+        caseItem,
+        201
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateHearing(req, res, next) {
+    try {
+      const { id, hearingId } = req.params;
+      const { date, timeSlot, court, purpose, status, notes } = req.body;
+
+      const caseItem = await Case.findById(id);
+      if (!caseItem) {
+        return ApiResponse.error(res, "Case not found.", 404);
+      }
+
+      if (!canManageHearings(req.user, caseItem)) {
+        return ApiResponse.error(
+          res,
+          "You are not assigned to this case.",
+          403
+        );
+      }
+
+      const hearing = caseItem.hearings.id(hearingId);
+      if (!hearing) {
+        return ApiResponse.error(res, "Hearing not found.", 404);
+      }
+
+      if (date !== undefined) {
+        const hearingDate = new Date(date);
+        if (Number.isNaN(hearingDate.getTime())) {
+          return ApiResponse.error(res, "Hearing date is not a valid date.", 400);
+        }
+        hearing.date = hearingDate;
+      }
+
+      // Each field is applied only when the caller actually sent it, so a
+      // partial update cannot blank out the fields it left out.
+      if (timeSlot !== undefined) hearing.timeSlot = timeSlot;
+      if (court !== undefined) hearing.court = court;
+      if (purpose !== undefined) hearing.purpose = purpose;
+      if (status !== undefined) hearing.status = status;
+      if (notes !== undefined) hearing.notes = notes;
+      hearing.updatedAt = new Date();
+
+      syncNextHearing(caseItem);
+      await caseItem.save();
+
+      emitCaseUpdated(req, caseItem);
+
+      return ApiResponse.success(res, "Hearing updated successfully.", caseItem);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteHearing(req, res, next) {
+    try {
+      const { id, hearingId } = req.params;
+
+      const caseItem = await Case.findById(id);
+      if (!caseItem) {
+        return ApiResponse.error(res, "Case not found.", 404);
+      }
+
+      if (!canManageHearings(req.user, caseItem)) {
+        return ApiResponse.error(
+          res,
+          "You are not assigned to this case.",
+          403
+        );
+      }
+
+      const hearing = caseItem.hearings.id(hearingId);
+      if (!hearing) {
+        return ApiResponse.error(res, "Hearing not found.", 404);
+      }
+
+      hearing.deleteOne();
+
+      syncNextHearing(caseItem);
+      await caseItem.save();
+
+      emitCaseUpdated(req, caseItem);
+
+      return ApiResponse.success(res, "Hearing removed successfully.", caseItem);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Every hearing across the advocate's own cases, flattened into one list.
+   *
+   * The lawyer Hearings screen needs "my upcoming hearings" across all matters;
+   * deriving that client-side would mean pulling every case, including the open
+   * Submitted leads that carry no hearings at all.
+   */
+  async getMyHearings(req, res, next) {
+    try {
+      if (req.user.role !== "lawyer") {
+        return ApiResponse.error(res, "Access forbidden.", 403);
+      }
+
+      const cases = await Case.find({
+        $or: [
+          { assignedLawyer: req.user._id },
+          { selectedLawyer: req.user._id },
+        ],
+        "hearings.0": { $exists: true },
+      })
+        .populate("client", "fullName profileImage")
+        .select("title category status client hearings")
+        .lean();
+
+      const hearings = [];
+      for (const caseItem of cases) {
+        for (const hearing of caseItem.hearings || []) {
+          hearings.push({
+            ...hearing,
+            caseId: caseItem._id,
+            caseTitle: caseItem.title,
+            caseCategory: caseItem.category,
+            caseStatus: caseItem.status,
+            clientId: caseItem.client ? caseItem.client._id : null,
+            clientName: caseItem.client ? caseItem.client.fullName : "",
+            clientImage: caseItem.client ? caseItem.client.profileImage : "",
+          });
+        }
+      }
+
+      hearings.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      return ApiResponse.success(
+        res,
+        "Hearings fetched successfully.",
+        hearings
+      );
     } catch (error) {
       next(error);
     }

@@ -254,7 +254,17 @@ class AISmartCaseNotifier extends StateNotifier<AISmartCaseState> {
     state = state.copyWith(voiceTranscriptLanguage: trimmed);
   }
 
+  /// Written notes are a source the extraction reads, exactly like the
+  /// documents and the voice note, so changing them must invalidate a result
+  /// produced without them.
+  ///
+  /// This alone among the setters did not invalidate, so a client who ran the
+  /// analysis, went back, added the detail that explained their whole problem
+  /// and pressed Analyse again was handed the previous run's result — the one
+  /// that had never seen the note they just wrote.
   void setWrittenNotes(String text) {
+    if (text == state.writtenNotes) return;
+    _invalidateResult();
     state = state.copyWith(writtenNotes: text);
   }
 

@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
+import '../../../../services/payment_service.dart';
+import '../../../../core/payment/razorpay_checkout_helper.dart';
 
 class SubscriptionPlansScreen extends StatefulWidget {
   const SubscriptionPlansScreen({super.key});
@@ -181,12 +183,74 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       color: theme.scaffoldBackgroundColor,
-      child: ElevatedButton(
-        onPressed: () {
-          context.go('/lawyer-dashboard');
-        },
-        child: Text(loc.continue_button, style: const TextStyle(fontWeight: FontWeight.bold)),
+      child: SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: ElevatedButton(
+          onPressed: _handleSubscriptionCheckout,
+          child: Text(loc.continue_button, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ),
       ),
     );
+  }
+
+  Future<void> _handleSubscriptionCheckout() async {
+    final paymentService = PaymentService();
+
+    try {
+      final orderData = await paymentService.createSubscriptionOrder(plan: _selectedPlan);
+
+      if (orderData['isFree'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Free plan activated successfully!')),
+          );
+          context.go('/lawyer-dashboard');
+        }
+        return;
+      }
+
+      final orderId = orderData['orderId'] as String;
+      final amount = orderData['amount'] as num;
+      final keyId = orderData['keyId'] as String? ?? '';
+
+      final checkoutResult = await RazorpayCheckoutHelper.openCheckout(
+        orderId: orderId,
+        amount: amount,
+        keyId: keyId,
+        title: 'Lawfly Subscription',
+        description: 'Plan: $_selectedPlan (30 Days)',
+        userEmail: '',
+        userContact: '',
+      );
+
+      if (!checkoutResult.isSuccess || checkoutResult.razorpayPaymentId == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(checkoutResult.errorMessage ?? 'Payment checkout was cancelled or failed.')),
+          );
+        }
+        return;
+      }
+
+      await paymentService.verifyPayment(
+        razorpayOrderId: checkoutResult.razorpayOrderId!,
+        razorpayPaymentId: checkoutResult.razorpayPaymentId!,
+        razorpaySignature: checkoutResult.razorpaySignature!,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$_selectedPlan subscription activated successfully!')),
+        );
+        context.go('/lawyer-dashboard');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Subscription Error: ${e.toString().replaceAll("Exception: ", "")}')),
+        );
+      }
+    }
   }
 }

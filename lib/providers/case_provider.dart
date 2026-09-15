@@ -422,6 +422,116 @@ final filteredCasesProvider = Provider<AsyncValue<List<CaseModel>>>((ref) {
   );
 });
 
+// ─── Lawyer practice: the advocate's own matters ────────────────────────────
+// Derived from [casesProvider] rather than fetched separately. That provider
+// already holds every case the server is willing to show this user and is kept
+// live by the /cases socket, so a second request would only add a way for the
+// two lists to disagree.
+
+final lawyerCaseSearchProvider = StateProvider<String>((ref) => "");
+
+/// One of "All" or any value from Case.status. "All" is not a status the
+/// server knows about; it simply skips the filter.
+final lawyerCaseStatusFilterProvider = StateProvider<String>((ref) => "All");
+
+/// One of "Newest", "Oldest", "Hearing", "Client", "Status".
+final lawyerCaseSortProvider = StateProvider<String>((ref) => "Newest");
+
+/// The cases this advocate is actually on.
+///
+/// Excludes the open "Submitted" leads that [casesProvider] also carries for
+/// every lawyer — those are the Leads tab's job, and mixing them in here would
+/// show an advocate a case list mostly made of other people's matters.
+final lawyerCasesProvider = Provider<AsyncValue<List<CaseModel>>>((ref) {
+  final auth = ref.watch(authProvider);
+  final userId = auth.userId ?? "";
+
+  return ref.watch(casesProvider).whenData((cases) {
+    if (userId.isEmpty) return const <CaseModel>[];
+    return cases
+        .where(
+          (c) => c.assignedLawyerId == userId || c.selectedLawyerId == userId,
+        )
+        .toList();
+  });
+});
+
+/// [lawyerCasesProvider] with the search, status filter and sort applied.
+final filteredLawyerCasesProvider = Provider<AsyncValue<List<CaseModel>>>((ref) {
+  final query = ref.watch(lawyerCaseSearchProvider).toLowerCase().trim();
+  final statusFilter = ref.watch(lawyerCaseStatusFilterProvider);
+  final sortBy = ref.watch(lawyerCaseSortProvider);
+
+  return ref.watch(lawyerCasesProvider).whenData((cases) {
+    var list = List<CaseModel>.from(cases);
+
+    if (query.isNotEmpty) {
+      list = list.where((c) {
+        return c.title.toLowerCase().contains(query) ||
+            c.description.toLowerCase().contains(query) ||
+            c.category.toLowerCase().contains(query) ||
+            c.clientName.toLowerCase().contains(query) ||
+            c.location.toLowerCase().contains(query) ||
+            (c.preferredCourt ?? "").toLowerCase().contains(query) ||
+            c.id.toLowerCase().contains(query);
+      }).toList();
+    }
+
+    if (statusFilter != "All") {
+      list = list.where((c) => c.status == statusFilter).toList();
+    }
+
+    switch (sortBy) {
+      case "Oldest":
+        list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        break;
+      case "Hearing":
+        // Cases with a hearing listed come first, soonest at the top; the ones
+        // with no hearing settle underneath rather than being dropped.
+        list.sort((a, b) {
+          final aDate = a.nextHearing;
+          final bDate = b.nextHearing;
+          if (aDate == null && bDate == null) {
+            return b.createdAt.compareTo(a.createdAt);
+          }
+          if (aDate == null) return 1;
+          if (bDate == null) return -1;
+          return aDate.compareTo(bDate);
+        });
+        break;
+      case "Client":
+        list.sort(
+          (a, b) =>
+              a.clientName.toLowerCase().compareTo(b.clientName.toLowerCase()),
+        );
+        break;
+      case "Status":
+        list.sort((a, b) => a.status.compareTo(b.status));
+        break;
+      case "Newest":
+      default:
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
+
+    return list;
+  });
+});
+
+/// Every status present on the advocate's own cases, for the filter chips.
+///
+/// Read from the data rather than hardcoded against the Case status enum, so a
+/// status the server adds later shows up here without a code change, and one
+/// the advocate has never had does not clutter the row.
+final lawyerCaseStatusesProvider = Provider<List<String>>((ref) {
+  return ref.watch(lawyerCasesProvider).maybeWhen(
+    data: (cases) {
+      final statuses = cases.map((c) => c.status).toSet().toList()..sort();
+      return ["All", ...statuses];
+    },
+    orElse: () => const ["All"],
+  );
+});
+
 final caseDetailsProvider = StateNotifierProvider.family<CaseDetailsNotifier, AsyncValue<CaseModel?>, String>((ref, caseId) {
   return CaseDetailsNotifier(caseId);
 });

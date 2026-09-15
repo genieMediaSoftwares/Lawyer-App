@@ -155,8 +155,14 @@ app.use(
 // Compression
 app.use(compression());
 
-// Body Parser
-app.use(express.json());
+// Body Parser - Capture raw body for HMAC signature verification on webhooks
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true }));
 
 // Cookies

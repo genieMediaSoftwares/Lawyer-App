@@ -274,12 +274,68 @@ class AppDrawer extends ConsumerWidget {
       isRoot: true,
     );
 
+    Widget practice(IconData icon, String label, String target) => _destination(
+      context,
+      location: location,
+      icon: icon,
+      label: label,
+      target: target,
+      isRoot: false,
+    );
+
     return [
       tab(0, Icons.space_dashboard_outlined, loc.nav_workspace),
       tab(1, Icons.bar_chart_outlined, loc.nav_dashboard),
       tab(2, Icons.gavel_outlined, loc.nav_leads),
       tab(3, Icons.people_alt_outlined, loc.nav_clients),
       tab(4, Icons.calendar_month_outlined, loc.nav_calendar),
+
+      // ── Practice management ──────────────────────────────────────────
+      // Below the five shell tabs and separated from them, because these are
+      // pushed screens rather than tabs: tapping one covers the shell instead
+      // of switching inside it, and grouping them makes that difference
+      // visible before it is tapped.
+      const Padding(
+        padding: EdgeInsets.fromLTRB(16, 14, 16, 6),
+        child: Divider(height: 1),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+        child: Text(
+          loc.practice_tools,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.6,
+            color: AppColors.mutedText,
+          ),
+        ),
+      ),
+      practice(
+        Icons.description_outlined,
+        loc.nav_documents,
+        RouteNames.lawyerPracticeDocuments,
+      ),
+      practice(
+        Icons.travel_explore_outlined,
+        loc.nav_research,
+        RouteNames.lawyerResearch,
+      ),
+      practice(
+        Icons.gavel_outlined,
+        loc.nav_hearings,
+        RouteNames.lawyerHearings,
+      ),
+      practice(
+        Icons.sticky_note_2_outlined,
+        loc.nav_notes,
+        RouteNames.lawyerNotes,
+      ),
+      const Padding(
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 6),
+        child: Divider(height: 1),
+      ),
+
       _destination(
         context,
         location: location,

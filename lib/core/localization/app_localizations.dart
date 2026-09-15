@@ -1917,6 +1917,666 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please enter a valid email address.'**
   String get enter_valid_email;
+
+  /// No description provided for @practice_tools.
+  ///
+  /// In en, this message translates to:
+  /// **'My Practice'**
+  String get practice_tools;
+
+  /// No description provided for @practice_section_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Documents, research, hearings and notes in one place.'**
+  String get practice_section_desc;
+
+  /// No description provided for @nav_cases.
+  ///
+  /// In en, this message translates to:
+  /// **'Cases'**
+  String get nav_cases;
+
+  /// No description provided for @nav_documents.
+  ///
+  /// In en, this message translates to:
+  /// **'Documents'**
+  String get nav_documents;
+
+  /// No description provided for @nav_research.
+  ///
+  /// In en, this message translates to:
+  /// **'Research'**
+  String get nav_research;
+
+  /// No description provided for @nav_hearings.
+  ///
+  /// In en, this message translates to:
+  /// **'Hearings'**
+  String get nav_hearings;
+
+  /// No description provided for @nav_notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get nav_notes;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get all;
+
+  /// No description provided for @status.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get status;
+
+  /// No description provided for @sort_by.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get sort_by;
+
+  /// No description provided for @upcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming'**
+  String get upcoming;
+
+  /// No description provided for @past.
+  ///
+  /// In en, this message translates to:
+  /// **'Past'**
+  String get past;
+
+  /// No description provided for @something_went_wrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong.'**
+  String get something_went_wrong;
+
+  /// No description provided for @clear_search.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clear_search;
+
+  /// No description provided for @open_case.
+  ///
+  /// In en, this message translates to:
+  /// **'Open case'**
+  String get open_case;
+
+  /// No description provided for @lawyer_cases_title.
+  ///
+  /// In en, this message translates to:
+  /// **'My Cases'**
+  String get lawyer_cases_title;
+
+  /// No description provided for @search_cases_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by title, client, category or court'**
+  String get search_cases_hint;
+
+  /// No description provided for @no_cases_yet.
+  ///
+  /// In en, this message translates to:
+  /// **'No cases yet'**
+  String get no_cases_yet;
+
+  /// No description provided for @no_cases_yet_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept a request from My Leads and the matter will appear here.'**
+  String get no_cases_yet_desc;
+
+  /// No description provided for @no_cases_match.
+  ///
+  /// In en, this message translates to:
+  /// **'No cases match your search'**
+  String get no_cases_match;
+
+  /// No description provided for @no_cases_match_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Try a different word, or clear the filters.'**
+  String get no_cases_match_desc;
+
+  /// Number of cases shown in the lawyer case list
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 case} other{{count} cases}}'**
+  String cases_count_label(int count);
+
+  /// No description provided for @case_details.
+  ///
+  /// In en, this message translates to:
+  /// **'Case Details'**
+  String get case_details;
+
+  /// No description provided for @case_overview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get case_overview;
+
+  /// No description provided for @case_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get case_description;
+
+  /// No description provided for @filed_on.
+  ///
+  /// In en, this message translates to:
+  /// **'Filed on'**
+  String get filed_on;
+
+  /// No description provided for @next_hearing_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Next hearing'**
+  String get next_hearing_label;
+
+  /// No description provided for @no_hearing_scheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'No hearing scheduled'**
+  String get no_hearing_scheduled;
+
+  /// No description provided for @sort_newest.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest'**
+  String get sort_newest;
+
+  /// No description provided for @sort_oldest.
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest'**
+  String get sort_oldest;
+
+  /// No description provided for @sort_hearing.
+  ///
+  /// In en, this message translates to:
+  /// **'Hearing date'**
+  String get sort_hearing;
+
+  /// No description provided for @sort_client.
+  ///
+  /// In en, this message translates to:
+  /// **'Client'**
+  String get sort_client;
+
+  /// No description provided for @sort_status.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get sort_status;
+
+  /// No description provided for @practice_documents_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Documents'**
+  String get practice_documents_title;
+
+  /// No description provided for @search_documents_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search documents by name'**
+  String get search_documents_hint;
+
+  /// No description provided for @no_documents_match.
+  ///
+  /// In en, this message translates to:
+  /// **'No documents match your search'**
+  String get no_documents_match;
+
+  /// No description provided for @case_attachments.
+  ///
+  /// In en, this message translates to:
+  /// **'Case attachments'**
+  String get case_attachments;
+
+  /// No description provided for @client_uploads.
+  ///
+  /// In en, this message translates to:
+  /// **'Client uploads'**
+  String get client_uploads;
+
+  /// No description provided for @open_document.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get open_document;
+
+  /// No description provided for @could_not_open_document.
+  ///
+  /// In en, this message translates to:
+  /// **'That document could not be opened.'**
+  String get could_not_open_document;
+
+  /// Number of documents attached to a case
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 document} other{{count} documents}}'**
+  String documents_count_label(int count);
+
+  /// No description provided for @research_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Legal Research'**
+  String get research_title;
+
+  /// No description provided for @research_intro_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Research assistant'**
+  String get research_intro_title;
+
+  /// No description provided for @research_intro_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a question of law, work through an argument, or plan how to approach a matter.'**
+  String get research_intro_desc;
+
+  /// No description provided for @research_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a research question'**
+  String get research_hint;
+
+  /// No description provided for @research_disclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'AI assistance based on training data. Lawfly has no case-law database — verify every authority before relying on it.'**
+  String get research_disclaimer;
+
+  /// No description provided for @research_new.
+  ///
+  /// In en, this message translates to:
+  /// **'New research'**
+  String get research_new;
+
+  /// No description provided for @research_history.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get research_history;
+
+  /// No description provided for @no_research_yet.
+  ///
+  /// In en, this message translates to:
+  /// **'No research yet'**
+  String get no_research_yet;
+
+  /// No description provided for @no_research_yet_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Your research threads will be listed here.'**
+  String get no_research_yet_desc;
+
+  /// No description provided for @research_failed.
+  ///
+  /// In en, this message translates to:
+  /// **'The research assistant could not answer. Please try again.'**
+  String get research_failed;
+
+  /// No description provided for @research_thinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Working on it…'**
+  String get research_thinking;
+
+  /// No description provided for @delete_research.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete research'**
+  String get delete_research;
+
+  /// No description provided for @confirm_delete_research.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this research thread? This cannot be undone.'**
+  String get confirm_delete_research;
+
+  /// No description provided for @practice_clients_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Clients'**
+  String get practice_clients_title;
+
+  /// No description provided for @search_clients_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name, email, phone or city'**
+  String get search_clients_hint;
+
+  /// No description provided for @no_clients_yet.
+  ///
+  /// In en, this message translates to:
+  /// **'No clients yet'**
+  String get no_clients_yet;
+
+  /// No description provided for @no_clients_yet_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Clients appear here once you take on a case or a consultation is booked.'**
+  String get no_clients_yet_desc;
+
+  /// No description provided for @no_clients_match.
+  ///
+  /// In en, this message translates to:
+  /// **'No clients match your search'**
+  String get no_clients_match;
+
+  /// No description provided for @client_profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Client Profile'**
+  String get client_profile;
+
+  /// No description provided for @client_cases.
+  ///
+  /// In en, this message translates to:
+  /// **'Cases'**
+  String get client_cases;
+
+  /// No description provided for @contact_details.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get contact_details;
+
+  /// No description provided for @practice_hearings_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Hearings'**
+  String get practice_hearings_title;
+
+  /// No description provided for @hearings_consultation_note.
+  ///
+  /// In en, this message translates to:
+  /// **'Court hearings only. Client consultations stay on your Calendar.'**
+  String get hearings_consultation_note;
+
+  /// No description provided for @add_hearing.
+  ///
+  /// In en, this message translates to:
+  /// **'Add hearing'**
+  String get add_hearing;
+
+  /// No description provided for @edit_hearing.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit hearing'**
+  String get edit_hearing;
+
+  /// No description provided for @delete_hearing.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete hearing'**
+  String get delete_hearing;
+
+  /// No description provided for @confirm_delete_hearing.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this hearing from the case?'**
+  String get confirm_delete_hearing;
+
+  /// No description provided for @hearing_date.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get hearing_date;
+
+  /// No description provided for @hearing_time.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get hearing_time;
+
+  /// No description provided for @hearing_court.
+  ///
+  /// In en, this message translates to:
+  /// **'Court'**
+  String get hearing_court;
+
+  /// No description provided for @hearing_purpose.
+  ///
+  /// In en, this message translates to:
+  /// **'Purpose'**
+  String get hearing_purpose;
+
+  /// No description provided for @hearing_notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get hearing_notes;
+
+  /// No description provided for @hearing_status.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get hearing_status;
+
+  /// No description provided for @hearing_status_scheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled'**
+  String get hearing_status_scheduled;
+
+  /// No description provided for @hearing_status_completed.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get hearing_status_completed;
+
+  /// No description provided for @hearing_status_adjourned.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjourned'**
+  String get hearing_status_adjourned;
+
+  /// No description provided for @hearing_status_cancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get hearing_status_cancelled;
+
+  /// No description provided for @no_hearings_yet.
+  ///
+  /// In en, this message translates to:
+  /// **'No hearings listed'**
+  String get no_hearings_yet;
+
+  /// No description provided for @no_hearings_yet_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a hearing to start tracking court dates.'**
+  String get no_hearings_yet_desc;
+
+  /// No description provided for @no_upcoming_hearings.
+  ///
+  /// In en, this message translates to:
+  /// **'No upcoming hearings'**
+  String get no_upcoming_hearings;
+
+  /// No description provided for @no_past_hearings.
+  ///
+  /// In en, this message translates to:
+  /// **'No past hearings'**
+  String get no_past_hearings;
+
+  /// No description provided for @hearing_saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Hearing saved.'**
+  String get hearing_saved;
+
+  /// No description provided for @hearing_deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Hearing removed.'**
+  String get hearing_deleted;
+
+  /// No description provided for @hearing_date_required.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a hearing date.'**
+  String get hearing_date_required;
+
+  /// No description provided for @select_case.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a case'**
+  String get select_case;
+
+  /// No description provided for @hearing_time_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 10:30 AM'**
+  String get hearing_time_hint;
+
+  /// No description provided for @hearing_purpose_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Framing of charges'**
+  String get hearing_purpose_hint;
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// No description provided for @tomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get tomorrow;
+
+  /// No description provided for @practice_notes_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get practice_notes_title;
+
+  /// No description provided for @notes_private_note.
+  ///
+  /// In en, this message translates to:
+  /// **'Private to you. Clients never see these.'**
+  String get notes_private_note;
+
+  /// No description provided for @add_note.
+  ///
+  /// In en, this message translates to:
+  /// **'Add note'**
+  String get add_note;
+
+  /// No description provided for @edit_note.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit note'**
+  String get edit_note;
+
+  /// No description provided for @delete_note.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete note'**
+  String get delete_note;
+
+  /// No description provided for @confirm_delete_note.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this note? This cannot be undone.'**
+  String get confirm_delete_note;
+
+  /// No description provided for @note_title_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Title (optional)'**
+  String get note_title_label;
+
+  /// No description provided for @note_content_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get note_content_label;
+
+  /// No description provided for @note_content_required.
+  ///
+  /// In en, this message translates to:
+  /// **'Write something before saving.'**
+  String get note_content_required;
+
+  /// No description provided for @note_saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Note saved.'**
+  String get note_saved;
+
+  /// No description provided for @note_deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Note deleted.'**
+  String get note_deleted;
+
+  /// No description provided for @no_notes_yet.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes yet'**
+  String get no_notes_yet;
+
+  /// No description provided for @no_notes_yet_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep a record of calls, strategy and follow-ups here.'**
+  String get no_notes_yet_desc;
+
+  /// No description provided for @no_notes_match.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes match your search'**
+  String get no_notes_match;
+
+  /// No description provided for @search_notes_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search notes'**
+  String get search_notes_hint;
+
+  /// No description provided for @link_to_case.
+  ///
+  /// In en, this message translates to:
+  /// **'Link to a case'**
+  String get link_to_case;
+
+  /// No description provided for @no_case_linked.
+  ///
+  /// In en, this message translates to:
+  /// **'No case linked'**
+  String get no_case_linked;
+
+  /// No description provided for @edited_label.
+  ///
+  /// In en, this message translates to:
+  /// **'edited'**
+  String get edited_label;
 }
 
 class _AppLocalizationsDelegate

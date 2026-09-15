@@ -1,4 +1,5 @@
 import 'document_model.dart';
+import 'hearing_model.dart';
 
 class CaseModel {
   final String id;
@@ -43,6 +44,15 @@ class CaseModel {
   final String? claimAmount;
   final DateTime? consultationDate;
   final DateTime? nextHearing;
+
+  /// Every hearing listed on this case, upcoming and past.
+  ///
+  /// [nextHearing] above is not replaced by this: the server keeps it pointing
+  /// at the earliest still-scheduled hearing, and the client My Cases screen
+  /// still reads it. Defaults to empty so cases fetched from an endpoint that
+  /// does not project hearings — and cases filed before hearings existed —
+  /// load exactly as they did before.
+  final List<HearingModel> hearings;
   final DateTime? closedDate;
   final DateTime? acceptedAt;
   final DateTime? startedAt;
@@ -92,6 +102,7 @@ class CaseModel {
     this.claimAmount,
     this.consultationDate,
     this.nextHearing,
+    this.hearings = const [],
     this.closedDate,
     this.acceptedAt,
     this.startedAt,
@@ -150,6 +161,7 @@ class CaseModel {
     String? claimAmount,
     DateTime? consultationDate,
     DateTime? nextHearing,
+    List<HearingModel>? hearings,
     DateTime? closedDate,
     DateTime? acceptedAt,
     DateTime? startedAt,
@@ -205,6 +217,7 @@ class CaseModel {
       claimAmount: claimAmount ?? this.claimAmount,
       consultationDate: consultationDate ?? this.consultationDate,
       nextHearing: nextHearing ?? this.nextHearing,
+      hearings: hearings ?? this.hearings,
       closedDate: closedDate ?? this.closedDate,
       acceptedAt: acceptedAt ?? this.acceptedAt,
       startedAt: startedAt ?? this.startedAt,
@@ -342,6 +355,12 @@ class CaseModel {
       claimAmount: json['claimAmount']?.toString() ?? '',
       consultationDate: safeDate(json['consultationDate']),
       nextHearing: safeDate(json['nextHearing']),
+      hearings: safeList(
+        json['hearings'],
+        (h) => HearingModel.fromJson(
+          Map<String, dynamic>.from(h is Map ? h : {}),
+        ),
+      ),
       closedDate: safeDate(json['closedDate']),
       acceptedAt: safeDate(json['acceptedAt']),
       startedAt: safeDate(json['startedAt']),

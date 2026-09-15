@@ -30,6 +30,14 @@ import '../features/lawyer/dashboard/screens/lawyer_dashboard_screen.dart';
 import '../features/lawyer/profile/screens/lawyer_settings_screen.dart';
 import '../features/lawyer/profile/screens/language_selection_screen.dart';
 import '../features/lawyer/subscription/screens/subscription_plans_screen.dart';
+import '../features/lawyer/profile/screens/lawyer_documents_screen.dart';
+import '../features/lawyer/practice/screens/lawyer_cases_screen.dart';
+import '../features/lawyer/practice/screens/lawyer_case_detail_screen.dart';
+import '../features/lawyer/practice/screens/lawyer_clients_screen.dart';
+import '../features/lawyer/practice/screens/lawyer_client_detail_screen.dart';
+import '../features/lawyer/practice/screens/lawyer_hearings_screen.dart';
+import '../features/lawyer/practice/screens/lawyer_notes_screen.dart';
+import '../features/lawyer/practice/screens/lawyer_research_screen.dart';
 import '../features/authentication/presentation/signup/signup_screen.dart';
 import '../features/authentication/presentation/login/login_screen.dart';
 import '../features/authentication/presentation/forgot_password/forgot_password_screen.dart';
@@ -117,6 +125,27 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (path == RouteNames.lawyerDashboard && role != UserRole.lawyer) {
         return RouteNames.clientDashboard;
+      }
+
+      // Lawyer practice-management screens. Everything under these prefixes
+      // reads an advocate's own matters, clients and private notes, so a
+      // client or admin session is sent back to its own dashboard rather than
+      // being shown an empty shell. Prefix matching rather than equality
+      // because two of them carry a path parameter.
+      const lawyerPracticePrefixes = [
+        RouteNames.lawyerCases,
+        RouteNames.lawyerClients,
+        RouteNames.lawyerHearings,
+        RouteNames.lawyerNotes,
+        RouteNames.lawyerResearch,
+        RouteNames.lawyerPracticeDocuments,
+      ];
+
+      if (lawyerPracticePrefixes.any((prefix) => path.startsWith(prefix)) &&
+          role != UserRole.lawyer) {
+        return role == UserRole.admin
+            ? RouteNames.adminDashboard
+            : RouteNames.clientDashboard;
       }
 
       final clientRoutes = [
@@ -377,6 +406,59 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: RouteNames.subscriptionPlans,
         builder: (c, s) => const SubscriptionPlansScreen(),
+      ),
+
+      // ── Lawyer practice management ──────────────────────────────────────
+      // Pushed above the shell so each opens full-screen with a back button,
+      // matching how Messages and Settings already behave for an advocate.
+      // The detail routes are nested so that popping a case or client detail
+      // returns to its list rather than to whatever pushed the list.
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.lawyerCases,
+        builder: (c, s) => const LawyerCasesScreen(),
+        routes: [
+          GoRoute(
+            parentNavigatorKey: _rootNavigatorKey,
+            path: ':caseId',
+            builder: (c, s) =>
+                LawyerCaseDetailScreen(caseId: s.pathParameters['caseId']!),
+          ),
+        ],
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.lawyerClients,
+        builder: (c, s) => const LawyerClientsScreen(),
+        routes: [
+          GoRoute(
+            parentNavigatorKey: _rootNavigatorKey,
+            path: ':clientId',
+            builder: (c, s) => LawyerClientDetailScreen(
+              clientId: s.pathParameters['clientId']!,
+            ),
+          ),
+        ],
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.lawyerPracticeDocuments,
+        builder: (c, s) => const LawyerDocumentsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.lawyerResearch,
+        builder: (c, s) => const LawyerResearchScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.lawyerHearings,
+        builder: (c, s) => const LawyerHearingsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: RouteNames.lawyerNotes,
+        builder: (c, s) => const LawyerNotesScreen(),
       ),
       // Admin 5-tab Shell Route
       StatefulShellRoute.indexedStack(

@@ -7,6 +7,7 @@ const router = express.Router();
 router.use(authMiddleware);
 
 router.get("/", subscriptionController.getSubscription);
+router.post("/create-order", subscriptionController.createSubscriptionOrder);
 router.post("/subscribe", subscriptionController.subscribe);
 router.post("/cancel", subscriptionController.cancelSubscription);
 

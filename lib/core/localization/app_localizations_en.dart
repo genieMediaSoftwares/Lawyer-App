@@ -1058,4 +1058,362 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get enter_valid_email => 'Please enter a valid email address.';
+
+  @override
+  String get practice_tools => 'My Practice';
+
+  @override
+  String get practice_section_desc =>
+      'Documents, research, hearings and notes in one place.';
+
+  @override
+  String get nav_cases => 'Cases';
+
+  @override
+  String get nav_documents => 'Documents';
+
+  @override
+  String get nav_research => 'Research';
+
+  @override
+  String get nav_hearings => 'Hearings';
+
+  @override
+  String get nav_notes => 'Notes';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get all => 'All';
+
+  @override
+  String get status => 'Status';
+
+  @override
+  String get sort_by => 'Sort by';
+
+  @override
+  String get upcoming => 'Upcoming';
+
+  @override
+  String get past => 'Past';
+
+  @override
+  String get something_went_wrong => 'Something went wrong.';
+
+  @override
+  String get clear_search => 'Clear search';
+
+  @override
+  String get open_case => 'Open case';
+
+  @override
+  String get lawyer_cases_title => 'My Cases';
+
+  @override
+  String get search_cases_hint => 'Search by title, client, category or court';
+
+  @override
+  String get no_cases_yet => 'No cases yet';
+
+  @override
+  String get no_cases_yet_desc =>
+      'Accept a request from My Leads and the matter will appear here.';
+
+  @override
+  String get no_cases_match => 'No cases match your search';
+
+  @override
+  String get no_cases_match_desc =>
+      'Try a different word, or clear the filters.';
+
+  @override
+  String cases_count_label(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cases',
+      one: '1 case',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get case_details => 'Case Details';
+
+  @override
+  String get case_overview => 'Overview';
+
+  @override
+  String get case_description => 'Description';
+
+  @override
+  String get filed_on => 'Filed on';
+
+  @override
+  String get next_hearing_label => 'Next hearing';
+
+  @override
+  String get no_hearing_scheduled => 'No hearing scheduled';
+
+  @override
+  String get sort_newest => 'Newest';
+
+  @override
+  String get sort_oldest => 'Oldest';
+
+  @override
+  String get sort_hearing => 'Hearing date';
+
+  @override
+  String get sort_client => 'Client';
+
+  @override
+  String get sort_status => 'Status';
+
+  @override
+  String get practice_documents_title => 'Documents';
+
+  @override
+  String get search_documents_hint => 'Search documents by name';
+
+  @override
+  String get no_documents_match => 'No documents match your search';
+
+  @override
+  String get case_attachments => 'Case attachments';
+
+  @override
+  String get client_uploads => 'Client uploads';
+
+  @override
+  String get open_document => 'Open';
+
+  @override
+  String get could_not_open_document => 'That document could not be opened.';
+
+  @override
+  String documents_count_label(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count documents',
+      one: '1 document',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get research_title => 'Legal Research';
+
+  @override
+  String get research_intro_title => 'Research assistant';
+
+  @override
+  String get research_intro_desc =>
+      'Ask a question of law, work through an argument, or plan how to approach a matter.';
+
+  @override
+  String get research_hint => 'Ask a research question';
+
+  @override
+  String get research_disclaimer =>
+      'AI assistance based on training data. Lawfly has no case-law database — verify every authority before relying on it.';
+
+  @override
+  String get research_new => 'New research';
+
+  @override
+  String get research_history => 'History';
+
+  @override
+  String get no_research_yet => 'No research yet';
+
+  @override
+  String get no_research_yet_desc =>
+      'Your research threads will be listed here.';
+
+  @override
+  String get research_failed =>
+      'The research assistant could not answer. Please try again.';
+
+  @override
+  String get research_thinking => 'Working on it…';
+
+  @override
+  String get delete_research => 'Delete research';
+
+  @override
+  String get confirm_delete_research =>
+      'Delete this research thread? This cannot be undone.';
+
+  @override
+  String get practice_clients_title => 'Clients';
+
+  @override
+  String get search_clients_hint => 'Search by name, email, phone or city';
+
+  @override
+  String get no_clients_yet => 'No clients yet';
+
+  @override
+  String get no_clients_yet_desc =>
+      'Clients appear here once you take on a case or a consultation is booked.';
+
+  @override
+  String get no_clients_match => 'No clients match your search';
+
+  @override
+  String get client_profile => 'Client Profile';
+
+  @override
+  String get client_cases => 'Cases';
+
+  @override
+  String get contact_details => 'Contact';
+
+  @override
+  String get practice_hearings_title => 'Hearings';
+
+  @override
+  String get hearings_consultation_note =>
+      'Court hearings only. Client consultations stay on your Calendar.';
+
+  @override
+  String get add_hearing => 'Add hearing';
+
+  @override
+  String get edit_hearing => 'Edit hearing';
+
+  @override
+  String get delete_hearing => 'Delete hearing';
+
+  @override
+  String get confirm_delete_hearing => 'Remove this hearing from the case?';
+
+  @override
+  String get hearing_date => 'Date';
+
+  @override
+  String get hearing_time => 'Time';
+
+  @override
+  String get hearing_court => 'Court';
+
+  @override
+  String get hearing_purpose => 'Purpose';
+
+  @override
+  String get hearing_notes => 'Notes';
+
+  @override
+  String get hearing_status => 'Status';
+
+  @override
+  String get hearing_status_scheduled => 'Scheduled';
+
+  @override
+  String get hearing_status_completed => 'Completed';
+
+  @override
+  String get hearing_status_adjourned => 'Adjourned';
+
+  @override
+  String get hearing_status_cancelled => 'Cancelled';
+
+  @override
+  String get no_hearings_yet => 'No hearings listed';
+
+  @override
+  String get no_hearings_yet_desc =>
+      'Add a hearing to start tracking court dates.';
+
+  @override
+  String get no_upcoming_hearings => 'No upcoming hearings';
+
+  @override
+  String get no_past_hearings => 'No past hearings';
+
+  @override
+  String get hearing_saved => 'Hearing saved.';
+
+  @override
+  String get hearing_deleted => 'Hearing removed.';
+
+  @override
+  String get hearing_date_required => 'Pick a hearing date.';
+
+  @override
+  String get select_case => 'Select a case';
+
+  @override
+  String get hearing_time_hint => 'e.g. 10:30 AM';
+
+  @override
+  String get hearing_purpose_hint => 'e.g. Framing of charges';
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get tomorrow => 'Tomorrow';
+
+  @override
+  String get practice_notes_title => 'Notes';
+
+  @override
+  String get notes_private_note => 'Private to you. Clients never see these.';
+
+  @override
+  String get add_note => 'Add note';
+
+  @override
+  String get edit_note => 'Edit note';
+
+  @override
+  String get delete_note => 'Delete note';
+
+  @override
+  String get confirm_delete_note => 'Delete this note? This cannot be undone.';
+
+  @override
+  String get note_title_label => 'Title (optional)';
+
+  @override
+  String get note_content_label => 'Note';
+
+  @override
+  String get note_content_required => 'Write something before saving.';
+
+  @override
+  String get note_saved => 'Note saved.';
+
+  @override
+  String get note_deleted => 'Note deleted.';
+
+  @override
+  String get no_notes_yet => 'No notes yet';
+
+  @override
+  String get no_notes_yet_desc =>
+      'Keep a record of calls, strategy and follow-ups here.';
+
+  @override
+  String get no_notes_match => 'No notes match your search';
+
+  @override
+  String get search_notes_hint => 'Search notes';
+
+  @override
+  String get link_to_case => 'Link to a case';
+
+  @override
+  String get no_case_linked => 'No case linked';
+
+  @override
+  String get edited_label => 'edited';
 }
