@@ -514,9 +514,9 @@ Responses are provided for informational purposes only and should not be conside
           : systemInstruction;
 
       const candidateModels = [
-        "gemini-2.0-flash",
+        "gemini-3.6-flash",
         "gemini-flash-latest",
-        "gemini-2.0-flash-lite",
+        "gemini-3.6-flash",
         "gemini-1.5-pro",
         "gemini-1.5-flash-latest",
       ];
@@ -625,9 +625,9 @@ Responses are provided for informational purposes only and should not be conside
       }
 
       const candidateModels = [
-        "gemini-2.0-flash",
+        "gemini-3.6-flash",
         "gemini-flash-latest",
-        "gemini-2.0-flash-lite",
+        "gemini-3.6-flash",
         "gemini-1.5-pro",
         "gemini-1.5-flash-latest",
       ];

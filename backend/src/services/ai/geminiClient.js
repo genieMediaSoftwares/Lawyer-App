@@ -1,7 +1,7 @@
 /**
  * Single entry point for Gemini generateContent calls.
  *
- * Previously each call site hardcoded its own model. `gemini-2.0-flash` was
+ * Previously each call site hardcoded its own model. `gemini-3.6-flash` was
  * the usual choice, and when that model's quota went to zero every OCR and
  * transcription call started failing silently while the main analysis (which
  * happened to have a fallback loop) kept working. The result was an intake
@@ -21,8 +21,8 @@
  * four entries was gone:
  *
  *   gemini-2.5-flash       404 "no longer available to new users"
- *   gemini-2.0-flash       404 "no longer available"
- *   gemini-2.0-flash-lite  404 "no longer available"
+ *   gemini-3.6-flash       404 "no longer available"
+ *   gemini-3.6-flash  404 "no longer available"
  *   gemini-flash-latest    503, plain and structured alike
  *
  * ListModels still advertises several of those, so it is not a reliable guide
