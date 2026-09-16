@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/storage/token_storage.dart';
@@ -136,6 +138,70 @@ class AuthNotifier extends StateNotifier<AuthState> {
       userPhotoUrl: details['photo'],
       userLocation: details['location'],
     );
+
+    // Secure storage is a cache, not the record. The values above make the app
+    // usable immediately — the server then says what is actually true.
+    //
+    // Without this the avatar came only from whatever the last write to this
+    // device happened to leave behind, so a photo changed on another device
+    // never arrived, a photo lost to one failed storage write never came back,
+    // and both looked to the user like "the image sometimes disappears".
+    // Deliberately not awaited: it must not delay the first frame.
+    if (state.isLoggedIn) {
+      unawaited(refreshProfileFromServer());
+    }
+  }
+
+  /// Reconciles the cached profile with the database.
+  ///
+  /// The server's answer wins for every field it returns — that is what makes
+  /// the database the source of truth rather than this device's last known
+  /// state. Failure is silent by design: no network is not a reason to blank a
+  /// profile the user can already see, and a 401 is the session layer's
+  /// problem, handled by the refresh interceptor.
+  Future<void> refreshProfileFromServer() async {
+    final generation = _sessionGeneration;
+
+    try {
+      final response = await DioClient.dio.get('/auth/profile');
+      final body = response.data;
+      if (body is! Map || body['success'] != true || body['data'] is! Map) {
+        return;
+      }
+
+      // A sign-out or a different sign-in landed while this was in flight; its
+      // answer describes a user who is no longer the one on screen.
+      if (!mounted || generation != _sessionGeneration) return;
+
+      final user = Map<String, dynamic>.from(body['data'] as Map);
+      final photo = (user['profileImage'] ?? '').toString();
+
+      await _tokenStorage.saveUserDetails(
+        id: (user['_id'] ?? user['id'] ?? state.userId ?? '').toString(),
+        name: (user['fullName'] ?? state.userName ?? '').toString(),
+        email: (user['email'] ?? state.userEmail ?? '').toString(),
+        mobile: (user['mobile'] ?? state.userMobile ?? '').toString(),
+        photo: photo,
+        location: (user['location'] ?? state.userLocation ?? '').toString(),
+      );
+
+      if (!mounted || generation != _sessionGeneration) return;
+
+      state = state.copyWith(
+        userId: (user['_id'] ?? user['id'] ?? state.userId)?.toString(),
+        userName: (user['fullName'] ?? state.userName)?.toString(),
+        userEmail: (user['email'] ?? state.userEmail)?.toString(),
+        userMobile: (user['mobile'] ?? state.userMobile)?.toString(),
+        // Written even when empty: an image deleted server-side must clear
+        // here too, or the device keeps showing one the account no longer has.
+        userPhotoUrl: photo,
+        userLocation: (user['location'] ?? state.userLocation)?.toString(),
+      );
+
+      _profileChanged(state.userId);
+    } catch (_) {
+      // Offline, or the server is unreachable. The cached profile stands.
+    }
   }
 
   Future<void> completeOnboarding() async {

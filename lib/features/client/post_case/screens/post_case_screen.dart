@@ -708,6 +708,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           id: doc.documentId,
           clientId: '',
           originalName: doc.originalName,
+          // The intake has not renamed anything, so the display name is the
+          // name it was uploaded under.
+          name: doc.originalName,
           fileName: doc.originalName,
           filePath: doc.url,
           mimeType: doc.mimeType,
