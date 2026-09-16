@@ -9,6 +9,8 @@ import '../../../../models/case_model.dart';
 import '../../../../models/document_model.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/document_provider.dart';
+import '../../../../providers/auth_provider.dart';
+import '../../../../features/documents/document_actions.dart';
 import '../../../../routes/route_names.dart';
 import '../../practice/screens/lawyer_case_detail_screen.dart'
     show openPracticeDocument;
@@ -29,9 +31,12 @@ import '../../practice/widgets/practice_widgets.dart';
 ///   * case attachments — the files filed with a case itself, which live on the
 ///     case record.
 ///
-/// Files are opened through [openPracticeDocument], which routes the URL via
-/// AppConfig so the session token is attached for the protected upload folders.
-/// Nothing here weakens that: an advocate still only receives the documents the
+/// Uploaded documents open in the in-app viewer through [DocumentActions] —
+/// the same component the client My Documents screen uses, so View, Rename,
+/// Replace and Delete behave identically on both sides. Case attachments still
+/// go through [openPracticeDocument]: they are addressed by URL rather than by
+/// document id, so they cannot yet reach the authenticated view endpoint.
+/// Nothing here weakens access control: an advocate still only receives the documents the
 /// server was already willing to give them.
 class LawyerDocumentsScreen extends ConsumerStatefulWidget {
   const LawyerDocumentsScreen({super.key});
@@ -343,19 +348,49 @@ class _CaseAttachmentTile extends StatelessWidget {
   }
 }
 
-class _UploadTile extends StatelessWidget {
+/// One document in the lawyer's list.
+///
+/// Consumes the shared [DocumentActions], so View, Rename, Replace and Delete
+/// behave exactly as they do on the client My Documents screen — tapping a
+/// document opens the in-app viewer rather than handing a protected URL to the
+/// browser, which is what used to render a page of JSON.
+class _UploadTile extends ConsumerStatefulWidget {
   const _UploadTile({required this.document, required this.onDelete});
 
   final DocumentRecord document;
   final VoidCallback onDelete;
 
   @override
+  ConsumerState<_UploadTile> createState() => _UploadTileState();
+}
+
+class _UploadTileState extends ConsumerState<_UploadTile> {
+  bool _busy = false;
+
+  DocumentRecord get document => widget.document;
+
+  DocumentActions get _actions => DocumentActions(
+        ref: ref,
+        context: context,
+        onBusyChanged: (busy) {
+          if (mounted) setState(() => _busy = busy);
+        },
+      );
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final sizeInKb = (document.fileSize / 1024).toStringAsFixed(1);
 
+    // Writes are owner-only server-side. A lawyer reading a client's evidence
+    // is not offered actions that would be refused.
+    final canModify = DocumentActions.canModify(
+      document,
+      ref.watch(authProvider).userId,
+    );
+
     return PracticeCard(
-      onTap: () => openPracticeDocument(context, document.filePath),
+      onTap: _busy ? null : () => _actions.view(document),
       child: Row(
         children: [
           CircleAvatar(
@@ -373,8 +408,12 @@ class _UploadTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  document.originalName,
-                  maxLines: 1,
+                  // The display name, which is what a rename changes.
+                  // `originalName` never moves, so showing it meant a renamed
+                  // document still displayed its old name here while the client
+                  // screen showed the new one.
+                  document.name,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
@@ -383,7 +422,8 @@ class _UploadTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$sizeInKb KB · ${_formatDate(document.uploadedAt)}',
+                  '${document.extensionLabel} · $sizeInKb KB · '
+                  '${_formatDate(document.uploadedAt)}',
                   style: const TextStyle(
                     fontSize: 10,
                     color: AppColors.mutedText,
@@ -392,10 +432,76 @@ class _UploadTile extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 18),
-            onPressed: onDelete,
-          ),
+          if (_busy)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else
+            PopupMenuButton<String>(
+              tooltip: 'Document actions',
+              icon: const Icon(Icons.more_vert, size: 18),
+              onSelected: (value) {
+                switch (value) {
+                  case 'view':
+                    _actions.view(document);
+                  case 'rename':
+                    _actions.rename(document);
+                  case 'replace':
+                    _actions.replace(document);
+                  case 'delete':
+                    widget.onDelete();
+                }
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'view',
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.visibility_outlined),
+                    title: Text('View'),
+                  ),
+                ),
+                // Hidden rather than disabled when the document belongs to a
+                // client: the backend refuses these, and offering a button that
+                // always fails is worse than not offering it.
+                if (canModify) ...[
+                  const PopupMenuItem(
+                    value: 'rename',
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.edit_outlined),
+                      title: Text('Rename'),
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'replace',
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.swap_horiz),
+                      title: Text('Replace'),
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.delete_outline, color: AppColors.error),
+                      title: Text('Delete',
+                          style: TextStyle(color: AppColors.error)),
+                    ),
+                  ),
+                ],
+              ],
+            ),
         ],
       ),
     );

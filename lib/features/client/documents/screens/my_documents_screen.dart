@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/document_provider.dart';
+import '../../../documents/document_actions.dart';
 import 'document_viewer_screen.dart';
 
 /// The client's document manager: search, filter, sort, and per-document
@@ -103,7 +104,9 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
       context: context,
       isScrollControlled: true, // keeps the field above the keyboard
       backgroundColor: Colors.transparent,
-      builder: (_) => _RenameSheet(document: doc),
+      // The shared sheet, so the client and lawyer screens cannot drift apart
+      // on validation or on how the extension is handled.
+      builder: (_) => RenameDocumentSheet(document: doc),
     );
 
     if (newName == null || newName.trim().isEmpty) return;
@@ -717,144 +720,6 @@ class _CardAction extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           minimumSize: const Size(0, 40), // stays tappable
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-      ),
-    );
-  }
-}
-
-/// Rename sheet. Returns the new name, or null when dismissed.
-///
-/// The field is seeded with the name WITHOUT its extension, because the
-/// extension is not the client's to change — the server re-applies the stored
-/// file's own extension, so a .pdf cannot be renamed into something that
-/// presents as anything else.
-class _RenameSheet extends StatefulWidget {
-  const _RenameSheet({required this.document});
-
-  final DocumentRecord document;
-
-  @override
-  State<_RenameSheet> createState() => _RenameSheetState();
-}
-
-class _RenameSheetState extends State<_RenameSheet> {
-  late final TextEditingController _controller;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    final name = widget.document.name;
-    final dot = name.lastIndexOf('.');
-    _controller = TextEditingController(
-      text: dot > 0 ? name.substring(0, dot) : name,
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final value = _controller.text.trim();
-    if (value.isEmpty) {
-      setState(() => _error = 'Please enter a document name.');
-      return;
-    }
-    Navigator.pop(context, value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      // Lifts the sheet clear of the keyboard so the field stays visible.
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.outline,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Text(
-              'Rename document',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 17,
-                color: theme.textTheme.titleMedium?.color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Current: ${widget.document.name}',
-              style: TextStyle(
-                fontSize: 12,
-                color: theme.textTheme.bodySmall?.color,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _controller,
-              autofocus: true,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submit(),
-              onChanged: (_) {
-                if (_error != null) setState(() => _error = null);
-              },
-              decoration: InputDecoration(
-                labelText: 'New name',
-                // The extension is shown but not editable, so the client can
-                // see it is kept without being able to break it.
-                suffixText: () {
-                  final dot = widget.document.name.lastIndexOf('.');
-                  return dot > 0 ? widget.document.name.substring(dot) : '';
-                }(),
-                errorText: _error,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _submit,
-                    child: const Text('Save'),
-                  ),
-                ),
-              ],
-            ),
-          ],
         ),
       ),
     );

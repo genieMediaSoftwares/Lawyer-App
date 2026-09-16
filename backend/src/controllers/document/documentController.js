@@ -182,9 +182,26 @@ const clientIdsVisibleToLawyer = (lawyerId) =>
  */
 const scopeForUser = async (user) => {
   if (user.role === "admin") return {};
+
   if (user.role === "lawyer") {
-    return { clientId: { $in: await clientIdsVisibleToLawyer(user._id) } };
+    // Two sets, not one: documents the lawyer uploaded THEMSELVES, and
+    // documents belonging to clients they are engaged with.
+    //
+    // `uploadDocument` stores `clientId: req.user._id`, so a lawyer's own
+    // upload is owned by the lawyer — their id, not a client's. Scoping only
+    // to `clientIdsVisibleToLawyer` therefore excluded every document the
+    // lawyer had uploaded for themselves: the upload returned 201 and the file
+    // then never appeared in their list and could not be opened. That is what
+    // made the lawyer Documents section look broken while the client one
+    // worked.
+    return {
+      $or: [
+        { clientId: user._id },
+        { clientId: { $in: await clientIdsVisibleToLawyer(user._id) } },
+      ],
+    };
   }
+
   return { clientId: user._id };
 };
 
@@ -229,13 +246,23 @@ const notifyCounterpartiesOfUpload = async (user, document) => {
   }
 };
 
+/** True when this user owns the document outright. */
+const isOwner = (user, document) =>
+  document.clientId.toString() === user._id.toString();
+
 const canAccessDocument = async (user, document) => {
   if (user.role === "admin") return true;
+
+  // Owning it is sufficient for everyone, lawyers included — this is the check
+  // that was missing for a lawyer's own uploads. See scopeForUser.
+  if (isOwner(user, document)) return true;
+
   if (user.role === "lawyer") {
     const clientIds = await clientIdsVisibleToLawyer(user._id);
     return clientIds.some((id) => id.toString() === document.clientId.toString());
   }
-  return document.clientId.toString() === user._id.toString();
+
+  return false;
 };
 
 class DocumentController {
