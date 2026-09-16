@@ -35,6 +35,10 @@ class DocumentViewerScreen extends ConsumerStatefulWidget {
 
 class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
   Uint8List? _bytes;
+
+  /// Set instead of [_bytes] for a format the server converts for us (.docx).
+  DocumentPreview? _preview;
+
   String? _error;
   bool _loading = false;
 
@@ -45,7 +49,7 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.document.canPreviewInApp) {
+    if (widget.document.isViewable) {
       _load();
     }
   }
@@ -58,6 +62,22 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
     });
 
     try {
+      // .docx has no renderer for its raw bytes, so the server converts it into
+      // typed blocks instead. Same authenticated client, same permissions.
+      if (!widget.document.canPreviewInApp &&
+          widget.document.canPreviewViaConversion) {
+        final preview = await ref
+            .read(documentsProvider.notifier)
+            .fetchDocumentPreview(widget.document.id);
+
+        if (!mounted) return;
+        setState(() {
+          _preview = preview;
+          _loading = false;
+        });
+        return;
+      }
+
       final bytes = await ref
           .read(documentsProvider.notifier)
           .fetchDocumentBytes(widget.document.id);
@@ -130,7 +150,7 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
   Widget _buildBody(ThemeData theme) {
     final doc = widget.document;
 
-    if (!doc.canPreviewInApp) {
+    if (!doc.isViewable) {
       return _NoRendererAvailable(document: doc);
     }
 
@@ -149,6 +169,11 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
 
     if (_error != null) {
       return _ViewerError(message: _error!, onRetry: _load);
+    }
+
+    final preview = _preview;
+    if (preview != null) {
+      return _ConvertedDocument(preview: preview);
     }
 
     final bytes = _bytes;
@@ -225,6 +250,177 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
         String.fromCharCodes(bytes),
         style: const TextStyle(fontSize: 13, height: 1.5),
       ),
+    );
+  }
+}
+
+/// Renders a server-converted document — today, a .docx.
+///
+/// Drawn with ordinary Flutter widgets from typed blocks, so the result
+/// inherits the app's own typography and dark theme. Nothing here interprets
+/// markup: the blocks carry text and flags, never HTML, which is what keeps a
+/// hostile upload from being able to render anything it likes.
+class _ConvertedDocument extends StatelessWidget {
+  const _ConvertedDocument({required this.preview});
+
+  final DocumentPreview preview;
+
+  TextStyle _headingStyle(ThemeData theme, int level) {
+    const sizes = {1: 22.0, 2: 19.0, 3: 17.0, 4: 15.5, 5: 14.5, 6: 14.0};
+    return TextStyle(
+      fontSize: sizes[level] ?? 15.0,
+      fontWeight: FontWeight.bold,
+      height: 1.3,
+      color: theme.textTheme.titleMedium?.color,
+    );
+  }
+
+  /// One paragraph, with each run carrying its own bold/italic/underline.
+  Widget _runs(ThemeData theme, PreviewBlock block) {
+    final base = TextStyle(
+      fontSize: 14,
+      height: 1.55,
+      color: theme.textTheme.bodyMedium?.color,
+    );
+
+    // A block with no run detail still has its text — fall back to it rather
+    // than rendering nothing.
+    if (block.runs.isEmpty) {
+      return SelectableText(block.text, style: base);
+    }
+
+    return SelectableText.rich(
+      TextSpan(
+        children: [
+          for (final run in block.runs)
+            TextSpan(
+              text: run.text,
+              style: base.copyWith(
+                fontWeight: run.bold ? FontWeight.bold : null,
+                fontStyle: run.italic ? FontStyle.italic : null,
+                decoration: run.underline ? TextDecoration.underline : null,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (preview.blocks.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('This document has no readable content.'),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
+      itemCount: preview.blocks.length + (preview.truncated ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == preview.blocks.length) {
+          // Said plainly, so nobody reads a partial document believing it whole.
+          return Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: Text(
+              'This document is very long — only the first part is shown. '
+              'Download it to read the rest.',
+              style: TextStyle(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: theme.textTheme.bodySmall?.color,
+              ),
+            ),
+          );
+        }
+
+        final block = preview.blocks[index];
+
+        switch (block.type) {
+          case 'spacer':
+            return const SizedBox(height: 14);
+
+          case 'heading':
+            return Padding(
+              padding: const EdgeInsets.only(top: 18, bottom: 6),
+              child: SelectableText(
+                block.text,
+                style: _headingStyle(theme, block.level),
+              ),
+            );
+
+          case 'listItem':
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 8.0 + block.indent * 18.0,
+                bottom: 6,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 5, right: 10),
+                    child: Icon(
+                      Icons.circle,
+                      size: 5,
+                      color: theme.textTheme.bodySmall?.color,
+                    ),
+                  ),
+                  Expanded(child: _runs(theme, block)),
+                ],
+              ),
+            );
+
+          case 'table':
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: SingleChildScrollView(
+                // Wide tables scroll rather than overflowing a phone.
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  headingRowHeight: block.rows.length > 1 ? 40 : 0,
+                  columns: [
+                    for (final cell in block.rows.first)
+                      DataColumn(
+                        label: Text(
+                          cell,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ),
+                  ],
+                  rows: [
+                    for (final row in block.rows.skip(1))
+                      DataRow(
+                        cells: [
+                          for (var i = 0; i < block.rows.first.length; i++)
+                            DataCell(
+                              Text(
+                                i < row.length ? row[i] : '',
+                                style: const TextStyle(fontSize: 12.5),
+                              ),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            );
+
+          default:
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _runs(theme, block),
+            );
+        }
+      },
     );
   }
 }
@@ -325,8 +521,8 @@ class _NoRendererAvailable extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              '${document.extensionLabel} files open with your device’s '
-              'document app. Your file is stored safely and unchanged.',
+              'Preview is not available for ${document.extensionLabel} files. '
+              'Your document is stored safely and can be downloaded unchanged.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 height: 1.4,

@@ -10,6 +10,7 @@ const {
   sanitiseDisplayName,
   contentDisposition,
 } = require("../../utils/documentName");
+const { docxToBlocks } = require("../../services/document/docxPreview");
 
 /**
  * Absolute path of a stored document, refusing anything that escapes the
@@ -505,6 +506,79 @@ class DocumentController {
       if (uploadedPath) {
         fs.promises.unlink(uploadedPath).catch(() => {});
       }
+      next(error);
+    }
+  }
+
+  /**
+   * Structured preview for a format the app cannot render from its raw bytes.
+   *
+   * Today that means .docx: converted server-side into typed blocks the app
+   * draws with its own widgets. Deliberately not HTML — see docxPreview.js for
+   * why rendering markup derived from an uploaded file is a risk worth not
+   * taking in an app holding privileged material.
+   *
+   * The stored file is never modified; this reads it and returns a
+   * representation. The original remains downloadable byte-for-byte.
+   */
+  async previewDocument(req, res, next) {
+    try {
+      const document = await Document.findById(req.params.id);
+
+      if (!document) {
+        return ApiResponse.error(res, "Document not found.", 404);
+      }
+
+      if (!(await canAccessDocument(req.user, document))) {
+        // 404 rather than 403, matching view/download: a 403 confirms the id.
+        return ApiResponse.error(res, "Document not found.", 404);
+      }
+
+      const isDocx =
+        document.mimeType ===
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        /\.docx$/i.test(document.fileName || "");
+
+      if (!isDocx) {
+        return ApiResponse.error(
+          res,
+          "This file type cannot be previewed.",
+          415
+        );
+      }
+
+      const absolutePath = resolveStoredPath(document);
+      if (!absolutePath || !fs.existsSync(absolutePath)) {
+        return ApiResponse.error(res, "Document file is no longer available.", 404);
+      }
+
+      let converted;
+      try {
+        converted = docxToBlocks(fs.readFileSync(absolutePath));
+      } catch (conversionError) {
+        // A .docx that will not parse is damaged or is not really a .docx.
+        // Reported as itself, and logged for us rather than shown to the client.
+        console.warn(
+          `Document preview failed for ${document._id}:`,
+          conversionError.message
+        );
+        return ApiResponse.error(
+          res,
+          "This document appears to be damaged and could not be previewed.",
+          422
+        );
+      }
+
+      res.setHeader("Cache-Control", "private, no-store");
+
+      return ApiResponse.success(res, "Document preview generated.", {
+        documentId: document._id,
+        name: displayName(document),
+        mimeType: document.mimeType,
+        blocks: converted.blocks,
+        truncated: converted.truncated,
+      });
+    } catch (error) {
       next(error);
     }
   }

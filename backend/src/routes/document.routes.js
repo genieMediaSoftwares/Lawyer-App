@@ -22,6 +22,8 @@ router.get("/", documentController.getDocuments);
 
 // Declared before "/:id" so "view" and "download" are not swallowed as ids.
 router.get("/:id/view", documentController.viewDocument);
+// Structured preview for formats the app cannot render from raw bytes (.docx).
+router.get("/:id/preview", documentController.previewDocument);
 router.get("/:id/download", documentController.downloadDocument);
 
 router.get("/:id", documentController.getDocumentById);

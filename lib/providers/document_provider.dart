@@ -118,11 +118,21 @@ class DocumentRecord {
   bool get isText => mimeType.startsWith('text/');
   bool get isAudio => mimeType.startsWith('audio/');
 
-  /// True when the app can render this in place rather than handing it off.
-  ///
-  /// PDFs render through pdfrx, images and text natively. Only DOC/DOCX are
-  /// left without a renderer.
+  /// True when the stored bytes are renderable as-is: PDF through pdfrx,
+  /// images and text natively.
   bool get canPreviewInApp => isPdf || isImage || isText;
+
+  /// True when the server can convert this into renderable blocks.
+  ///
+  /// .docx only. The legacy binary .doc is a different format entirely and has
+  /// no converter here, so it falls through to the download fallback.
+  bool get canPreviewViaConversion =>
+      mimeType ==
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      name.toLowerCase().endsWith('.docx');
+
+  /// True when the viewer can show this at all, by either route.
+  bool get isViewable => canPreviewInApp || canPreviewViaConversion;
 
   /// "3.8 KB", "1.2 MB" — the size as the list shows it.
   String get readableSize {
@@ -132,6 +142,101 @@ class DocumentRecord {
       return '${(fileSize / 1024).toStringAsFixed(1)} KB';
     }
     return '${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+}
+
+/// One block of a converted document — a paragraph, heading, list item, table
+/// or spacer — as the backend's `/preview` endpoint describes it.
+///
+/// Deliberately typed rather than HTML: the app draws these with its own
+/// widgets, so a converted .docx inherits the dark theme instead of arriving as
+/// a foreign white page, and nothing renders markup derived from an uploaded
+/// file.
+class PreviewRun {
+  const PreviewRun({
+    required this.text,
+    this.bold = false,
+    this.italic = false,
+    this.underline = false,
+  });
+
+  final String text;
+  final bool bold;
+  final bool italic;
+  final bool underline;
+
+  factory PreviewRun.fromJson(Map<String, dynamic> json) => PreviewRun(
+        text: (json['text'] ?? '').toString(),
+        bold: json['bold'] == true,
+        italic: json['italic'] == true,
+        underline: json['underline'] == true,
+      );
+}
+
+class PreviewBlock {
+  const PreviewBlock({
+    required this.type,
+    this.text = '',
+    this.level = 0,
+    this.indent = 0,
+    this.runs = const [],
+    this.rows = const [],
+  });
+
+  /// paragraph | heading | listItem | table | spacer
+  final String type;
+  final String text;
+  final int level;
+  final int indent;
+  final List<PreviewRun> runs;
+  final List<List<String>> rows;
+
+  factory PreviewBlock.fromJson(Map<String, dynamic> json) {
+    final rawRuns = json['runs'];
+    final rawRows = json['rows'];
+
+    return PreviewBlock(
+      type: (json['type'] ?? 'paragraph').toString(),
+      text: (json['text'] ?? '').toString(),
+      level: (json['level'] is num) ? (json['level'] as num).toInt() : 0,
+      indent: (json['indent'] is num) ? (json['indent'] as num).toInt() : 0,
+      runs: rawRuns is List
+          ? rawRuns
+              .whereType<Map>()
+              .map((r) => PreviewRun.fromJson(Map<String, dynamic>.from(r)))
+              .toList()
+          : const [],
+      rows: rawRows is List
+          ? rawRows
+              .whereType<List>()
+              .map((row) => row.map((c) => c.toString()).toList())
+              .toList()
+          : const [],
+    );
+  }
+}
+
+/// A converted document, ready to render.
+class DocumentPreview {
+  const DocumentPreview({required this.blocks, this.truncated = false});
+
+  final List<PreviewBlock> blocks;
+
+  /// True when the document was longer than the converter's ceiling, so the
+  /// viewer can say so rather than quietly showing a partial document.
+  final bool truncated;
+
+  factory DocumentPreview.fromJson(Map<String, dynamic> json) {
+    final rawBlocks = json['blocks'];
+    return DocumentPreview(
+      blocks: rawBlocks is List
+          ? rawBlocks
+              .whereType<Map>()
+              .map((b) => PreviewBlock.fromJson(Map<String, dynamic>.from(b)))
+              .toList()
+          : const [],
+      truncated: json['truncated'] == true,
+    );
   }
 }
 
@@ -257,6 +362,8 @@ class DocumentNotifier extends StateNotifier<AsyncValue<List<DocumentRecord>>> {
       if (status == 403) return "You don't have permission to access this document.";
       if (status == 404) return 'Document not found.';
       if (status == 413) return 'File size exceeds the allowed limit.';
+      if (status == 415) return 'This file type cannot be previewed in the app.';
+      if (status == 422) return 'This document appears to be damaged.';
 
       final data = error.response?.data;
       if (data is Map && data['message'] is String) {
@@ -385,6 +492,28 @@ class DocumentNotifier extends StateNotifier<AsyncValue<List<DocumentRecord>>> {
       return response.data ?? const [];
     } catch (e) {
       throw Exception(_messageFrom(e, 'Unable to open this document.'));
+    }
+  }
+
+  /// Fetches a converted preview for a format the app cannot render from raw
+  /// bytes — today, .docx.
+  ///
+  /// Goes through the same authenticated client as everything else, so the
+  /// server checks the same permissions it checks for viewing the original.
+  Future<DocumentPreview> fetchDocumentPreview(String docId) async {
+    try {
+      final response = await DioClient.dio.get('/documents/$docId/preview');
+      final data = response.data;
+      if (data is Map && data['success'] == true && data['data'] is Map) {
+        return DocumentPreview.fromJson(
+          Map<String, dynamic>.from(data['data'] as Map),
+        );
+      }
+      throw Exception('Unable to preview this document.');
+    } catch (e) {
+      throw Exception(
+        _messageFrom(e, 'Unable to preview this document.'),
+      );
     }
   }
 

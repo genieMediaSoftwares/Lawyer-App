@@ -445,6 +445,147 @@ describe("Replace", () => {
   });
 });
 
+describe("DOCX preview", () => {
+  const zlib = require("zlib");
+
+  /** A real .docx: a ZIP holding a deflated word/document.xml. */
+  const makeDocx = (body) => {
+    const xml = `<?xml version="1.0"?><w:document xmlns:w="x"><w:body>${body}</w:body></w:document>`;
+    const name = Buffer.from("word/document.xml", "utf8");
+    const raw = Buffer.from(xml, "utf8");
+    const deflated = zlib.deflateRawSync(raw);
+
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(8, 8);
+    local.writeUInt32LE(deflated.length, 18);
+    local.writeUInt32LE(raw.length, 22);
+    local.writeUInt16LE(name.length, 26);
+    const localBlock = Buffer.concat([local, name, deflated]);
+
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(8, 10);
+    central.writeUInt32LE(deflated.length, 20);
+    central.writeUInt32LE(raw.length, 24);
+    central.writeUInt16LE(name.length, 28);
+    central.writeUInt32LE(0, 42);
+    const centralBlock = Buffer.concat([central, name]);
+
+    const eocd = Buffer.alloc(22);
+    eocd.writeUInt32LE(0x06054b50, 0);
+    eocd.writeUInt16LE(1, 8);
+    eocd.writeUInt16LE(1, 10);
+    eocd.writeUInt32LE(centralBlock.length, 12);
+    eocd.writeUInt32LE(localBlock.length, 16);
+
+    return Buffer.concat([localBlock, centralBlock, eocd]);
+  };
+
+  const DOCX_MIME =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+  /** Seeds a document whose stored bytes are a genuine .docx. */
+  const seedDocx = (bytes, overrides = {}) => {
+    const doc = seedDocument({ mimeType: DOCX_MIME, ...overrides });
+    const absolute = path.resolve(__dirname, "../..", doc.filePath);
+    fs.writeFileSync(absolute, bytes);
+    return doc;
+  };
+
+  it("converts a .docx into renderable blocks", async () => {
+    const doc = seedDocx(
+      makeDocx(
+        `<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>Petition</w:t></w:r></w:p>` +
+          `<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Ananya Rao</w:t></w:r>` +
+          `<w:r><w:t> v Vikram Sharma</w:t></w:r></w:p>`
+      )
+    );
+
+    const res = await request(app)
+      .get(`/api/documents/${doc._id}/preview`)
+      .set(auth(OWNER));
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.blocks[0]).toMatchObject({
+      type: "heading",
+      level: 1,
+      text: "Petition",
+    });
+    expect(res.body.data.blocks[1].runs[0]).toMatchObject({
+      text: "Ananya Rao",
+      bold: true,
+    });
+    expect(res.body.data.truncated).toBe(false);
+  });
+
+  it("never returns HTML, only typed blocks", async () => {
+    // A .docx carrying markup must not produce anything a renderer would
+    // interpret. The blocks carry text and flags; the angle brackets stay text.
+    const doc = seedDocx(
+      makeDocx(`<w:p><w:r><w:t>&lt;script&gt;alert(1)&lt;/script&gt;</w:t></w:r></w:p>`)
+    );
+
+    const res = await request(app)
+      .get(`/api/documents/${doc._id}/preview`)
+      .set(auth(OWNER));
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.blocks[0].text).toBe("<script>alert(1)</script>");
+    expect(res.body.data.blocks[0]).not.toHaveProperty("html");
+  });
+
+  it("refuses to preview another user's document", async () => {
+    const doc = seedDocx(makeDocx(`<w:p><w:r><w:t>Private</w:t></w:r></w:p>`));
+
+    const res = await request(app)
+      .get(`/api/documents/${doc._id}/preview`)
+      .set(auth(STRANGER));
+
+    expect(res.status).toBe(404);
+  });
+
+  it("requires authentication", async () => {
+    const doc = seedDocx(makeDocx(`<w:p><w:r><w:t>x</w:t></w:r></w:p>`));
+    expect((await request(app).get(`/api/documents/${doc._id}/preview`)).status).toBe(401);
+  });
+
+  it("answers 415 for a format with no converter", async () => {
+    const doc = seedDocument({ mimeType: "application/pdf" });
+
+    const res = await request(app)
+      .get(`/api/documents/${doc._id}/preview`)
+      .set(auth(OWNER));
+
+    expect(res.status).toBe(415);
+    expect(res.body.message).toMatch(/cannot be previewed/i);
+  });
+
+  it("answers 422 for a .docx that will not parse", async () => {
+    const doc = seedDocx(Buffer.from("this is not a zip archive at all"));
+
+    const res = await request(app)
+      .get(`/api/documents/${doc._id}/preview`)
+      .set(auth(OWNER));
+
+    expect(res.status).toBe(422);
+    expect(res.body.message).toMatch(/damaged/i);
+  });
+
+  it("leaves the original file byte-for-byte unchanged", async () => {
+    const bytes = makeDocx(`<w:p><w:r><w:t>Original</w:t></w:r></w:p>`);
+    const doc = seedDocx(bytes);
+
+    await request(app).get(`/api/documents/${doc._id}/preview`).set(auth(OWNER));
+
+    const onDisk = fs.readFileSync(path.resolve(__dirname, "../..", doc.filePath));
+    expect(onDisk.equals(bytes)).toBe(true);
+  });
+});
+
 describe("Delete", () => {
   it("removes the record and the file", async () => {
     const doc = seedDocument();
