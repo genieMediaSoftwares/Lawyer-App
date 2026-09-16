@@ -98,6 +98,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             name: response.user.fullName,
             email: response.user.email,
             mobile: response.user.mobile,
+            refreshToken: response.refreshToken,
           );
 
       if (response.user.language != null && response.user.language!.isNotEmpty) {

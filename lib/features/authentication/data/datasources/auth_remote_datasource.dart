@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:dio/dio.dart';
 import '../models/auth_model.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -17,6 +20,14 @@ abstract class AuthRemoteDataSource {
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
+  /// "android", "ios", "web" — what the session list shows beside a device.
+  static String get _platformName {
+    if (kIsWeb) return 'web';
+    if (Platform.isAndroid) return 'android';
+    if (Platform.isIOS) return 'ios';
+    return Platform.operatingSystem;
+  }
+
   final Dio dio;
   final TokenStorage _tokenStorage = TokenStorage();
 
@@ -78,7 +89,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final data = response.data['data'];
       final token = data['token'];
       final user = UserModel.fromJson(data['user']);
-      return AuthResponse(token: token, user: user);
+      return AuthResponse(
+        token: token,
+        refreshToken: (data['refreshToken'] ?? '').toString(),
+        user: user,
+      );
     } on DioException catch (e) {
       _throwMapped(e, 'An error occurred during signup');
     } on ServerException {
@@ -102,13 +117,20 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'email': email,
           'password': password,
           'deviceId': deviceId,
+          // Labels the account's session list. Nothing here identifies the
+          // person — only the kind of device the session belongs to.
+          'platform': _platformName,
         },
       );
 
       final data = response.data['data'];
       final token = data['token'];
       final user = UserModel.fromJson(data['user']);
-      return AuthResponse(token: token, user: user);
+      return AuthResponse(
+        token: token,
+        refreshToken: (data['refreshToken'] ?? '').toString(),
+        user: user,
+      );
     } on DioException catch (e) {
       _throwMapped(e, 'An error occurred during login');
     } on ServerException {

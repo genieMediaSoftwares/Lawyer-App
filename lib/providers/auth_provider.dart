@@ -152,9 +152,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String mobile,
     String? photoUrl,
     String? location,
+    /// This device's refresh token. Empty when the server did not issue one,
+    /// in which case nothing is stored and the app behaves as it did before.
+    String refreshToken = '',
   }) async {
     _sessionGeneration++;
     await _tokenStorage.saveToken(token);
+    if (refreshToken.isNotEmpty) {
+      await _tokenStorage.saveRefreshToken(refreshToken);
+    }
     await _tokenStorage.saveRole(role.name);
     await _tokenStorage.saveUserDetails(
       id: id,

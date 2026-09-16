@@ -715,6 +715,20 @@ Future<void> openPracticeDocument(BuildContext context, String url) async {
     return;
   }
 
+  // A protected upload reached without a session token will be refused by the
+  // server, and because this opens in the browser the refusal arrives as raw
+  // JSON on screen: {"success":false,"message":"Access denied. No token
+  // provided."}. Catching it here keeps that out of the client's face — there
+  // is nothing the browser can do about a missing token, so there is no point
+  // handing the request to it.
+  if (AppConfig.requiresSessionToken(url) &&
+      !resolved.contains('token=')) {
+    messenger.showSnackBar(
+      SnackBar(content: Text(loc.could_not_open_document)),
+    );
+    return;
+  }
+
   final uri = Uri.tryParse(resolved);
   final launched =
       uri != null &&

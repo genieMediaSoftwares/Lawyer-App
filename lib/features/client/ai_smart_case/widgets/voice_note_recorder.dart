@@ -174,6 +174,23 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
   _Engine _engine = _Engine.live;
   bool _busy = false;
 
+  /// Sets [_busy] and rebuilds.
+  ///
+  /// [_busy] gates the Cancel and Stop buttons, but it was written as a plain
+  /// field, so clearing it never repainted them. `_start` calls `setState` to
+  /// show the listening UI while [_busy] is still true — so Cancel and Stop are
+  /// built disabled — and then releases it in a `finally` with no `setState`.
+  /// Nothing else rebuilt that row: the timer and the live transcript both
+  /// repaint through their own ValueNotifiers and leave the buttons alone. The
+  /// result was a recording that ran normally, showed its waveform and its
+  /// text, and could not be stopped, because both buttons stayed greyed out for
+  /// the life of the session.
+  void _setBusy(bool value) {
+    if (_busy == value) return;
+    _busy = value;
+    if (mounted) setState(() {});
+  }
+
   /// Set while [stop] waits for the platform's trailing final result, so a late
   /// correction can still land — but only until the client touches the text.
   bool _awaitingFinal = false;
@@ -419,7 +436,7 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
 
   Future<void> _start({bool append = false}) async {
     if (_busy) return;
-    _busy = true;
+    _setBusy(true);
 
     // An interruption queued against a session that has since ended — cancelled
     // or stopped while it was still starting — must not be drained into this
@@ -492,7 +509,7 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
 
       _startTimer();
     } finally {
-      _busy = false;
+      _setBusy(false);
       _drainPendingStop();
     }
   }
@@ -607,15 +624,19 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
   /// if the recogniser sends one — is merged in behind the client.
   Future<void> _stopRecording({String? interruptedMessage}) async {
     if (_busy || _stage != _Stage.listening) return;
-    _busy = true;
-
-    _pulse.stop();
-    _timer?.cancel();
-    _timer = null;
-    await _amplitudeSub?.cancel();
-    _amplitudeSub = null;
+    _setBusy(true);
 
     try {
+      _pulse.stop();
+      _timer?.cancel();
+      _timer = null;
+      // Inside the try: this awaits a platform stream's cancel, which can
+      // throw. Outside it, a throw here skipped the finally and left _busy
+      // stuck true — Cancel and Stop disabled for good, with the card still
+      // saying "Listening...".
+      await _amplitudeSub?.cancel();
+      _amplitudeSub = null;
+
       if (_engine == _Engine.audioOnly) {
         final file = await _audio.stop();
         if (!mounted) return;
@@ -703,7 +724,7 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
         });
       }
     } finally {
-      _busy = false;
+      _setBusy(false);
       if (mounted) widget.onListeningChanged?.call(false);
     }
   }
@@ -717,21 +738,24 @@ class _VoiceNoteRecorderState extends State<VoiceNoteRecorder>
   /// said did not exist.
   Future<void> _cancelRecording() async {
     if (_busy) return;
-    _busy = true;
-
-    _pulse.stop();
-    _timer?.cancel();
-    _timer = null;
-    await _amplitudeSub?.cancel();
-    _amplitudeSub = null;
+    _setBusy(true);
 
     try {
+      _pulse.stop();
+      _timer?.cancel();
+      _timer = null;
+      // Inside the try for the same reason as in _stopRecording: a throw from
+      // the platform stream's cancel must not skip the finally and strand
+      // _busy, which would disable Cancel and Stop permanently.
+      await _amplitudeSub?.cancel();
+      _amplitudeSub = null;
+
       await _live.cancel();
       await _audio.stop(discard: true);
     } catch (e) {
       debugPrint('Voice note cancel failed: $e');
     } finally {
-      _busy = false;
+      _setBusy(false);
     }
 
     if (!mounted) return;

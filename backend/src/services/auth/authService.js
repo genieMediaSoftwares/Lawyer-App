@@ -6,6 +6,7 @@ const AppError = require("../../utils/AppError");
 const AUTH_CODES = require("../../utils/authCodes");
 const normalizeEmail = require("../../utils/normalizeEmail");
 const sessionService = require("./sessionService");
+const authLog = require("../../utils/authLog");
 
 // Reset codes are stored hashed, so the lookup in resetPassword has to hash the
 // candidate the same way. SHA-256 is appropriate here (unlike for passwords):
@@ -173,17 +174,27 @@ class AuthService {
     // sessionless token keeps every live token accounted for — and because the
     // device id is the same one the login flow sends, the "please log in" step
     // that follows signup replaces this session instead of colliding with it.
-    const sessionId = await sessionService.createSession({
+    const { session, refreshToken } = await sessionService.createSession({
       userId: user._id,
       deviceId: context.deviceId,
+      deviceName: context.deviceName,
+      platform: context.platform,
       ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
     });
 
-    // Generate JWT
-    const token = generateToken(user, sessionId);
+    const token = generateToken(user, session.sessionId);
+
+    authLog("SESSION_CREATED", {
+      userId: String(user._id),
+      sessionId: session.sessionId,
+      reason: "signup",
+    });
 
     return {
       token,
+      refreshToken,
+      expiresIn: sessionService.accessTokenTtlSeconds,
       user: publicUser(user),
     };
   }
@@ -215,6 +226,10 @@ class AuthService {
       await user.comparePassword(password);
 
     if (!isPasswordCorrect) {
+      authLog("LOGIN_FAILED", {
+        userId: String(user._id),
+        reason: "bad_password",
+      });
       throw new AppError(
         "Invalid email or password.",
         401,
@@ -227,33 +242,49 @@ class AuthService {
     // check at all and the only thing that ever interrupted a login was the
     // rate limiter, which is why every kind of failure — including this one —
     // could surface as "Too many attempts. Please try again later."
-    const { deviceId, ipAddress } = context;
+    const { deviceId, ipAddress, deviceName, platform, userAgent } = context;
 
     // Re-authenticating from the same installation replaces its own session
-    // rather than conflicting with it. This is the common case: the app was
-    // killed, or storage was cleared, so logout never ran.
+    // rather than stacking a second one on it. This is the common case: the app
+    // was killed, or storage was cleared, so logout never ran. It is scoped to
+    // this deviceId, so it cannot touch a session belonging to another device.
     await sessionService.revokeSessionsForDevice(user._id, deviceId);
 
-    const activeSession = await sessionService.findActiveSession(user._id);
-
-    if (activeSession) {
-      throw new AppError(
-        "This account is already logged in on another device.",
-        409,
-        AUTH_CODES.ACTIVE_SESSION_EXISTS
-      );
-    }
-
-    const sessionId = await sessionService.createSession({
+    // An account may hold as many live sessions as it has devices.
+    //
+    // A check used to sit here refusing the login outright when any other live
+    // session existed — "This account is already logged in on another device."
+    // Nothing underneath it ever required that: sessions have always been one
+    // row per device, carrying their own id, revoked one at a time. The check
+    // was policy layered over infrastructure that was already multi-device, and
+    // it made the ordinary case of a second phone, or a tablet, impossible.
+    //
+    // Removing it does not weaken anything. Every request still presents a
+    // signed token, that token still names a session, and the session is still
+    // checked against the table on every call — so revoking one device remains
+    // immediate and remains confined to that device.
+    const { session, refreshToken } = await sessionService.createSession({
       userId: user._id,
       deviceId,
+      deviceName,
+      platform,
       ipAddress,
+      userAgent,
     });
 
-    const token = generateToken(user, sessionId);
+    const token = generateToken(user, session.sessionId);
+
+    authLog("LOGIN_SUCCESS", {
+      userId: String(user._id),
+      sessionId: session.sessionId,
+      deviceId: deviceId || "unknown",
+      platform: platform || "unknown",
+    });
 
     return {
       token,
+      refreshToken,
+      expiresIn: sessionService.accessTokenTtlSeconds,
       user: publicUser(user),
     };
   }
@@ -267,8 +298,73 @@ class AuthService {
    * repeated or racing logout is not an error.
    */
   async logout(sessionId) {
-    await sessionService.revokeSession(sessionId);
+    const revoked = await sessionService.revokeSession(sessionId);
+
+    authLog("LOGOUT_SUCCESS", { sessionId: sessionId || "none", revoked });
     return true;
+  }
+
+  /**
+   * Ends every session the account holds — "sign out on all devices".
+   *
+   * Kept apart from [logout] on purpose. Ordinary logout must revoke only the
+   * session it was called from; routing it through here instead would sign a
+   * user out of every device whenever they left one.
+   */
+  async logoutAllDevices(userId) {
+    const revoked = await sessionService.revokeAllSessions(userId);
+
+    authLog("SESSION_REVOKED", {
+      userId: String(userId),
+      revoked,
+      reason: "logout-all",
+    });
+    return revoked;
+  }
+
+  /**
+   * Exchanges a refresh token for a fresh access token and a fresh refresh
+   * token, on that device's session alone.
+   */
+  async refreshSession(rawRefreshToken) {
+    const rotated = await sessionService.rotateRefreshToken(rawRefreshToken);
+
+    if (!rotated) {
+      // Unknown, already spent, revoked or expired — all indistinguishable to
+      // the caller on purpose, so the response is not an oracle for which.
+      authLog("REFRESH_FAILED", { reason: "invalid_or_revoked" });
+      throw new AppError(
+        "Your session has ended. Please sign in again.",
+        401,
+        AUTH_CODES.SESSION_EXPIRED
+      );
+    }
+
+    const user = await userRepository.findById(rotated.userId);
+
+    if (!user) {
+      await sessionService.revokeSession(rotated.sessionId);
+      authLog("REFRESH_FAILED", { reason: "user_missing" });
+      throw new AppError(
+        "Your session has ended. Please sign in again.",
+        401,
+        AUTH_CODES.SESSION_EXPIRED
+      );
+    }
+
+    const token = generateToken(user, rotated.sessionId);
+
+    authLog("REFRESH_SUCCESS", {
+      userId: String(user._id),
+      sessionId: rotated.sessionId,
+    });
+
+    return {
+      token,
+      refreshToken: rotated.refreshToken,
+      expiresIn: sessionService.accessTokenTtlSeconds,
+      user: publicUser(user),
+    };
   }
 
   /**

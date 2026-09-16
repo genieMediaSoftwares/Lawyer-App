@@ -9,6 +9,7 @@ class TokenStorage {
   );
 
   static const String _tokenKey = 'jwt_token';
+  static const String _refreshTokenKey = 'jwt_refresh_token';
   static const String _roleKey = 'user_role';
   static const String _onboardingKey = 'onboarding_completed';
   static const String _deviceIdKey = 'device_id';
@@ -66,9 +67,48 @@ class TokenStorage {
 
   Future<void> deleteToken() async {
     _cachedToken = null;
+    _cachedRefreshToken = null;
     try {
       await _secureStorage.delete(key: _tokenKey);
     } catch (_) {}
+    try {
+      await _secureStorage.delete(key: _refreshTokenKey);
+    } catch (_) {}
+  }
+
+  /// In-memory mirror of the refresh token, for the same reason
+  /// [_cachedToken] has one: secure storage can fail a read transiently, and
+  /// answering null there would sign the user out rather than refresh them.
+  static String? _cachedRefreshToken;
+
+  /// The long-lived token this device exchanges for new access tokens.
+  ///
+  /// One per device. Rotating it touches only this device's session, so it is
+  /// never shared and never reused across installations.
+  static String? get cachedRefreshToken => _cachedRefreshToken;
+
+  Future<void> saveRefreshToken(String? token) async {
+    _cachedRefreshToken = token;
+    try {
+      if (token == null || token.isEmpty) {
+        await _secureStorage.delete(key: _refreshTokenKey);
+      } else {
+        await _secureStorage.write(key: _refreshTokenKey, value: token);
+      }
+    } catch (_) {}
+  }
+
+  Future<String?> getRefreshToken() async {
+    try {
+      final token = await _secureStorage.read(key: _refreshTokenKey);
+      if (token != null && token.isNotEmpty) {
+        _cachedRefreshToken = token;
+        return token;
+      }
+      return _cachedRefreshToken;
+    } catch (_) {
+      return _cachedRefreshToken;
+    }
   }
 
   /// A stable identifier for this installation, created on first use.
@@ -204,7 +244,8 @@ class TokenStorage {
   }
 
   Future<void> clearAll() async {
-    _cachedToken = null;
+_cachedToken = null;
+    _cachedRefreshToken = null;
     try {
       await _secureStorage.delete(key: _tokenKey);
       await _secureStorage.delete(key: _roleKey);

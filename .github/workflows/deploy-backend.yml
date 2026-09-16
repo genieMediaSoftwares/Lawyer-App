@@ -1,0 +1,234 @@
+name: Deploy Backend
+
+# Backend only. This repository also holds the Flutter app; nothing here builds,
+# tests or ships it.
+on:
+  push:
+    branches: [main]
+    paths:
+      # Restricted to the backend so a Flutter-only commit does not restart
+      # production for no reason. Delete this `paths:` block if you would rather
+      # every push to main deploy.
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  # Manual runs, for redeploying the current main without a new commit.
+  workflow_dispatch:
+
+# One deployment at a time against the production directory. `cancel-in-progress`
+# is deliberately false: cancelling a run midway could leave EC2 between
+# `git reset` and `pm2 restart` — code updated, process still on the old build.
+# A second push queues behind the first instead.
+concurrency:
+  group: production-backend
+  cancel-in-progress: false
+
+# The job only needs to read the repo metadata; it never pushes.
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    # Belt and braces alongside the branch filter above, so a fork or a manual
+    # run from another ref cannot touch production.
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      # No actions/checkout: EC2 pulls from GitHub itself, so the runner never
+      # needs the source. Nothing is copied from runner to server.
+      - name: Configure SSH
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_PORT: ${{ secrets.EC2_PORT }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          # Written straight from the secret to a 600 file. It is never echoed,
+          # never interpolated into a command line, and the runner is destroyed
+          # after the job.
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          PORT="${EC2_PORT:-22}"
+
+          if [ -n "${EC2_KNOWN_HOSTS:-}" ]; then
+            # Pinned host key: the server's identity is verified against a value
+            # you captured yourself, so a redirected connection is refused.
+            printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            # Trust-on-first-use. Works, but the first handshake is unverified —
+            # set the EC2_KNOWN_HOSTS secret to close that gap. See the runbook.
+            echo "::warning::EC2_KNOWN_HOSTS is not set; falling back to ssh-keyscan (host key unverified)."
+            ssh-keyscan -p "$PORT" -H "$EC2_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          fi
+
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy backend and restart PM2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_PORT: ${{ secrets.EC2_PORT }}
+          # Not a secret — the port the app listens on, used only for the local
+          # health probe. Set the repository variable to override the default.
+          BACKEND_PORT: ${{ vars.BACKEND_PORT }}
+        run: |
+          set -euo pipefail
+
+          ssh -i ~/.ssh/deploy_key \
+              -p "${EC2_PORT:-22}" \
+              -o BatchMode=yes \
+              -o ConnectTimeout=20 \
+              "$EC2_USER@$EC2_HOST" \
+              "BACKEND_PORT='${BACKEND_PORT:-5000}' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          APP_DIR="$HOME/Lawyer-App"
+          BACKEND_DIR="$APP_DIR/backend"
+          PM2_NAME="lawyer-backend"
+
+          echo "::group::Environment"
+          echo "node    $(node --version)"
+          echo "npm     $(npm --version)"
+          echo "pm2     $(pm2 --version 2>/dev/null || echo 'not found')"
+          echo "dir     $APP_DIR"
+          echo "::endgroup::"
+
+          cd "$APP_DIR"
+
+          echo "::group::Working tree before deploy"
+          # Recorded, not silently discarded. Tracked files modified on the
+          # server are about to be overwritten by origin/main — most often
+          # backend/package-lock.json, rewritten by an `npm install` run by hand.
+          # If anything here matters, stop the workflow and rescue it.
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Local modifications that the reset below will discard:"
+            git status --porcelain
+          else
+            echo "working tree clean"
+          fi
+          echo "Currently deployed: $(git rev-parse --short HEAD)"
+          echo "::endgroup::"
+
+          echo "::group::Fetch and reset to origin/main"
+          git fetch origin main
+          # Deterministic: the server matches origin/main exactly, whatever state
+          # it was left in.
+          #
+          # `git clean` is deliberately NOT run here. reset --hard only touches
+          # TRACKED files, so backend/.env and backend/uploads/ — both untracked
+          # and gitignored — are left alone. `git clean -fd` would delete every
+          # uploaded document and the production .env.
+          git reset --hard origin/main
+          echo "Now deployed:      $(git rev-parse --short HEAD)"
+          echo "::endgroup::"
+
+          cd "$BACKEND_DIR"
+
+          echo "::group::Verify production configuration survived"
+          if [ ! -f .env ]; then
+            echo "ERROR: $BACKEND_DIR/.env is missing. Refusing to restart with no configuration."
+            exit 1
+          fi
+          echo ".env present ($(wc -c < .env) bytes)"   # size only, never content
+          echo "::endgroup::"
+
+          echo "::group::Install dependencies"
+          # `npm ci` installs exactly the committed lockfile and fails if
+          # package.json and the lockfile disagree — so the lockfile from GitHub
+          # is the source of truth, and nothing here rewrites it.
+          # --omit=dev leaves jest/nodemon/supertest off the server.
+          npm ci --omit=dev
+          echo "::endgroup::"
+
+          echo "::group::Restart PM2"
+          pm2 restart "$PM2_NAME" --update-env
+          pm2 save || true
+          echo "::endgroup::"
+
+          echo "::group::Verify process is online"
+          # Give it a moment to either come up or crash on boot.
+          sleep 5
+
+          STATUS="$(pm2 jlist | PM2_NAME="$PM2_NAME" node -e '
+            let raw = "";
+            process.stdin.on("data", (c) => (raw += c));
+            process.stdin.on("end", () => {
+              try {
+                const list = JSON.parse(raw.slice(raw.indexOf("[")));
+                const proc = list.find((p) => p.name === process.env.PM2_NAME);
+                console.log(proc ? proc.pm2_env.status : "missing");
+              } catch (e) {
+                console.log("unreadable");
+              }
+            });
+          ')"
+
+          echo "pm2 status: $STATUS"
+          pm2 status
+
+          if [ "$STATUS" != "online" ]; then
+            echo "ERROR: $PM2_NAME is '$STATUS', not online. Deployment failed."
+            # Last lines help diagnose a boot crash. Application logs, not env.
+            pm2 logs "$PM2_NAME" --lines 30 --nostream || true
+            exit 1
+          fi
+
+          # Restart counter climbing means it is crash-looping rather than up.
+          sleep 5
+          STATUS_AGAIN="$(pm2 jlist | PM2_NAME="$PM2_NAME" node -e '
+            let raw = "";
+            process.stdin.on("data", (c) => (raw += c));
+            process.stdin.on("end", () => {
+              try {
+                const list = JSON.parse(raw.slice(raw.indexOf("[")));
+                const proc = list.find((p) => p.name === process.env.PM2_NAME);
+                console.log(proc ? proc.pm2_env.status : "missing");
+              } catch (e) {
+                console.log("unreadable");
+              }
+            });
+          ')"
+
+          if [ "$STATUS_AGAIN" != "online" ]; then
+            echo "ERROR: $PM2_NAME did not stay online (now '$STATUS_AGAIN')."
+            pm2 logs "$PM2_NAME" --lines 30 --nostream || true
+            exit 1
+          fi
+          echo "::endgroup::"
+
+          echo "::group::Health check"
+          # The app's own existing endpoint — see app.js, `app.get("/api", ...)`.
+          # Nothing was added to the backend for this.
+          PORT="${BACKEND_PORT:-5000}"
+          OK=0
+          for attempt in 1 2 3 4 5 6; do
+            CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+                     "http://127.0.0.1:${PORT}/api" || echo 000)"
+            echo "attempt ${attempt}: HTTP ${CODE}"
+            if [ "$CODE" = "200" ]; then OK=1; break; fi
+            sleep 5
+          done
+
+          if [ "$OK" != "1" ]; then
+            echo "ERROR: health endpoint did not return 200 on port ${PORT}."
+            echo "If the app listens elsewhere, set the repository variable BACKEND_PORT."
+            pm2 logs "$PM2_NAME" --lines 30 --nostream || true
+            exit 1
+          fi
+          echo "::endgroup::"
+
+          echo "Deployment successful: $(git -C "$APP_DIR" rev-parse --short HEAD)"
+          REMOTE
+
+      - name: Remove deploy key
+        # Runs even when the deployment failed, so the key never outlives the job
+        # on a runner that is reused before teardown.
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

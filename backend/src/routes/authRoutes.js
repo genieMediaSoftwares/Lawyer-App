@@ -72,10 +72,17 @@ router.post("/delete-account", authMiddleware, authController.deleteAccount);
 // seven days and the next login anywhere reported a device conflict.
 router.post("/logout", authMiddleware, authController.logout);
 
-router.post("/refresh-token", (req, res) => {
-  // Mock endpoint for refreshing JWT token
-  return res.status(200).json({ success: true, message: "Token refreshed." });
-});
+// Was a stub that answered "Token refreshed." and issued nothing, so an
+// expired access token could never actually be renewed and the only way back in
+// was to sign in again. Now rotates the calling device's refresh token and
+// returns a new access token for that session alone.
+//
+// No authMiddleware: this is reached when the access token has already expired.
+router.post("/refresh-token", authController.refreshToken);
+
+// Signs the account out on every device. Distinct from /logout, which ends only
+// the session the caller is holding.
+router.post("/logout-all", authMiddleware, authController.logoutAllDevices);
 
 router.post(
   "/profile/certificate",

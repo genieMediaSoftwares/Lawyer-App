@@ -682,8 +682,28 @@ class AppConfig {
       try {
         final uri = Uri.parse(path);
         relative = uri.path; // e.g. /uploads/profiles/...
-        // Preserve query parameters if any
-        query = uri.hasQuery ? '?${uri.query}' : '';
+
+        // Any `token` already on the stored URL is dropped before a fresh one
+        // is attached below.
+        //
+        // Case documents were persisted through this very method, so their
+        // stored URLs carry the session JWT that was current when the case was
+        // filed. Opening one later appended today's token beside that stale
+        // one, and Express parses `?token=A&token=B` as a LIST — so
+        // `jwt.verify` was handed an array, threw "jwt must be a string", and
+        // the browser showed `{"success":false,"message":"Invalid or expired
+        // token."}`. A single stale token alone fails the same way once it
+        // expires.
+        //
+        // Stripping here is what makes the documents already stored that way
+        // openable again; the callers that used to write them have been fixed
+        // to store raw paths, but the rows they created are still in the
+        // database.
+        final preserved = Map<String, String>.from(uri.queryParameters)
+          ..remove('token');
+        query = preserved.isEmpty
+            ? ''
+            : '?${Uri(queryParameters: preserved).query}';
       } catch (_) {
         return path;
       }
@@ -692,6 +712,30 @@ class AppConfig {
     }
 
     return '$base$relative${_withAccessToken(relative, query)}';
+  }
+
+  /// True when [path] points at an upload folder the server guards.
+  ///
+  /// Shares its rule with [_withAccessToken] below, so a caller can tell
+  /// whether a missing token will cost it the request before making one.
+  static bool requiresSessionToken(String? path) {
+    if (path == null || path.isEmpty) return false;
+
+    String relative;
+    if (path.startsWith('http')) {
+      try {
+        relative = Uri.parse(path).path;
+      } catch (_) {
+        return false;
+      }
+    } else {
+      relative = path.startsWith('/') ? path : '/$path';
+    }
+
+    final segments = relative.split('/').where((s) => s.isNotEmpty).toList();
+    if (segments.isEmpty || segments.first != 'uploads') return false;
+    final folder = segments.length > 1 ? segments[1] : '';
+    return !publicUploadFolders.contains(folder);
   }
 
   /// Appends the session JWT to URLs for protected upload folders.

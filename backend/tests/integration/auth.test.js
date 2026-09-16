@@ -47,9 +47,16 @@ jest.mock("../../src/models/User", () => {
       return String(user[key]) === String(value);
     });
 
-  // `.select()` is a no-op here: the fake documents always carry every field,
-  // and none of the code under test asserts on its filtering.
-  const selectable = (value) => ({ select: () => Promise.resolve(value) });
+  // Stands in for a Mongoose Query: awaitable on its own AND chainable through
+  // .select(). Returning only `{select}` meant `await User.findById(id)` — the
+  // form userRepository uses — resolved to the helper object itself rather than
+  // to the document, so a caller that did not chain .select() silently got a
+  // user with no fields. `.select()` filtering is still a no-op; the fake
+  // documents carry every field and nothing under test asserts on it.
+  const selectable = (value) => ({
+    select: () => Promise.resolve(value),
+    then: (resolve, reject) => Promise.resolve(value).then(resolve, reject),
+  });
 
   return {
     findOne: (query) =>
@@ -113,6 +120,21 @@ jest.mock("../../src/models/RefreshToken", () => {
       sort: async () =>
         [...mockSessions].reverse().find((row) => matches(row, query)) || null,
     }),
+    find: (query) => ({
+      sort: async () => [...mockSessions].reverse().filter((row) => matches(row, query)),
+    }),
+    /**
+     * Mongo applies findOneAndUpdate atomically, which is exactly the property
+     * refresh-token rotation depends on: two requests spending the same token
+     * must produce one winner. Node is single-threaded and this fake does no
+     * awaiting between the match and the write, so it reproduces that.
+     */
+    findOneAndUpdate: async (query, update) => {
+      const row = mockSessions.find((r) => matches(r, query));
+      if (!row) return null;
+      Object.assign(row, update.$set);
+      return row;
+    },
     exists: async (query) =>
       mockSessions.some((row) => matches(row, query)) ? { _id: "x" } : null,
     updateOne: async (query, update) => {
@@ -168,6 +190,24 @@ const login = (overrides = {}) =>
       deviceId: DEVICE_A,
       ...overrides,
     });
+
+const DEVICE_C = "device-ccc";
+
+/** The session id a token names, so two logins can be shown to be distinct. */
+const decodeSid = (token) =>
+  require("jsonwebtoken").decode(token)?.sid;
+
+const profile = (token) =>
+  request(app).get("/api/auth/profile").set("Authorization", `Bearer ${token}`);
+
+const refresh = (refreshToken) =>
+  request(app).post("/api/auth/refresh-token").send({ refreshToken });
+
+const logoutAll = (token) =>
+  request(app)
+    .post("/api/auth/logout-all")
+    .set("Authorization", `Bearer ${token}`)
+    .send({});
 
 const logout = (token) =>
   request(app).post("/api/auth/logout").set("Authorization", `Bearer ${token}`);
@@ -333,46 +373,209 @@ describe("Login", () => {
   });
 });
 
-describe("Active sessions", () => {
-  it("refuses a second device while a session is live", async () => {
+describe("Multi-device sessions", () => {
+  it("lets three devices hold the same account at once", async () => {
+    await registerAccount();
+
+    const a = await login({ deviceId: DEVICE_A });
+    const b = await login({ deviceId: DEVICE_B });
+    const c = await login({ deviceId: DEVICE_C });
+
+    expect(a.status).toBe(200);
+    expect(b.status).toBe(200);
+    expect(c.status).toBe(200);
+
+    // Three independent sessions, not one being handed around.
+    const sids = [a, b, c].map((r) => decodeSid(r.body.data.token));
+    expect(new Set(sids).size).toBe(3);
+  });
+
+  it("never answers a second device with the old device-conflict error", async () => {
     await registerAccount();
     await login({ deviceId: DEVICE_A });
 
     const response = await login({ deviceId: DEVICE_B });
 
-    expect(response.status).toBe(409);
-    expect(response.body.message).toBe(
-      "This account is already logged in on another device."
-    );
-    expect(response.body.code).toBe(AUTH_CODES.ACTIVE_SESSION_EXISTS);
-    // The message the user used to get for this, and must never get again.
-    expect(response.body.message).not.toMatch(/too many/i);
+    expect(response.status).not.toBe(409);
+    expect(response.body.message || "").not.toMatch(/already logged in/i);
+    expect(response.body.code).not.toBe(AUTH_CODES.ACTIVE_SESSION_EXISTS);
+  });
+
+  it("keeps device A working after device B signs in", async () => {
+    await registerAccount();
+    const a = await login({ deviceId: DEVICE_A });
+    const b = await login({ deviceId: DEVICE_B });
+
+    expect((await profile(a.body.data.token)).status).toBe(200);
+    expect((await profile(b.body.data.token)).status).toBe(200);
+  });
+
+  it("logs out one device without touching the others", async () => {
+    await registerAccount();
+    const a = await login({ deviceId: DEVICE_A });
+    const b = await login({ deviceId: DEVICE_B });
+    const c = await login({ deviceId: DEVICE_C });
+
+    expect((await logout(a.body.data.token)).status).toBe(200);
+
+    expect((await profile(a.body.data.token)).status).toBe(401);
+    expect((await profile(b.body.data.token)).status).toBe(200);
+    expect((await profile(c.body.data.token)).status).toBe(200);
+  });
+
+  it("signs every device out on logout-all", async () => {
+    await registerAccount();
+    const a = await login({ deviceId: DEVICE_A });
+    const b = await login({ deviceId: DEVICE_B });
+    const c = await login({ deviceId: DEVICE_C });
+
+    expect((await logoutAll(a.body.data.token)).status).toBe(200);
+
+    expect((await profile(a.body.data.token)).status).toBe(401);
+    expect((await profile(b.body.data.token)).status).toBe(401);
+    expect((await profile(c.body.data.token)).status).toBe(401);
   });
 
   it("lets the same device sign in again, replacing its own session", async () => {
-    // The app was killed, so logout never ran. This is routine, not a conflict.
+    // The app was killed, so logout never ran. Routine, not a conflict — and it
+    // must not leave two rows behind for one handset.
+    await registerAccount();
+    const first = await login({ deviceId: DEVICE_A });
+
+    const second = await login({ deviceId: DEVICE_A });
+    expect(second.status).toBe(200);
+
+    // The replaced session stops working; the new one works.
+    expect((await profile(first.body.data.token)).status).toBe(401);
+    expect((await profile(second.body.data.token)).status).toBe(200);
+  });
+
+  it("records the device each session belongs to", async () => {
+    await registerAccount();
+    await login({ deviceId: DEVICE_A, deviceName: "Pixel 8", platform: "android" });
+
+    // The live row, not the one signup opened and this login replaced.
+    const session = mockSessions
+      .filter((s) => s.deviceInfo === DEVICE_A && !s.isRevoked)
+      .pop();
+    expect(session.deviceName).toBe("Pixel 8");
+    expect(session.platform).toBe("android");
+  });
+});
+
+describe("Refresh tokens", () => {
+  it("issues a refresh token at login", async () => {
+    await registerAccount();
+    const a = await login({ deviceId: DEVICE_A });
+
+    expect(typeof a.body.data.refreshToken).toBe("string");
+    expect(a.body.data.refreshToken.length).toBeGreaterThan(32);
+  });
+
+  it("never stores the refresh token in the clear", async () => {
+    await registerAccount();
+    const a = await login({ deviceId: DEVICE_A });
+    const raw = a.body.data.refreshToken;
+
+    const stored = mockSessions.find((s) => s.deviceInfo === DEVICE_A);
+    expect(stored.refreshTokenHash).toBeTruthy();
+    expect(stored.refreshTokenHash).not.toBe(raw);
+    expect(JSON.stringify(mockSessions)).not.toContain(raw);
+  });
+
+  it("exchanges a refresh token for a working access token", async () => {
+    await registerAccount();
+    const a = await login({ deviceId: DEVICE_A });
+
+    const refreshed = await refresh(a.body.data.refreshToken);
+
+    expect(refreshed.status).toBe(200);
+    expect((await profile(refreshed.body.data.token)).status).toBe(200);
+  });
+
+  it("keeps the refreshed token on the same session", async () => {
+    await registerAccount();
+    const a = await login({ deviceId: DEVICE_A });
+
+    const refreshed = await refresh(a.body.data.refreshToken);
+
+    expect(decodeSid(refreshed.body.data.token)).toBe(
+      decodeSid(a.body.data.token)
+    );
+  });
+
+  it("rotates the refresh token and rejects the spent one", async () => {
+    await registerAccount();
+    const a = await login({ deviceId: DEVICE_A });
+
+    const first = await refresh(a.body.data.refreshToken);
+    expect(first.status).toBe(200);
+    expect(first.body.data.refreshToken).not.toBe(a.body.data.refreshToken);
+
+    // Replaying the token that was just spent must fail.
+    expect((await refresh(a.body.data.refreshToken)).status).toBe(401);
+
+    // The one it was exchanged for still works.
+    expect((await refresh(first.body.data.refreshToken)).status).toBe(200);
+  });
+
+  it("refreshing one device does not disturb another", async () => {
+    await registerAccount();
+    const a = await login({ deviceId: DEVICE_A });
+    const b = await login({ deviceId: DEVICE_B });
+
+    expect((await refresh(a.body.data.refreshToken)).status).toBe(200);
+
+    // B's access token and refresh token both survive A's rotation.
+    expect((await profile(b.body.data.token)).status).toBe(200);
+    expect((await refresh(b.body.data.refreshToken)).status).toBe(200);
+  });
+
+  it("rejects an unknown refresh token", async () => {
     await registerAccount();
     await login({ deviceId: DEVICE_A });
 
-    const response = await login({ deviceId: DEVICE_A });
+    const response = await refresh("not-a-real-refresh-token");
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(401);
+    expect(response.body.code).toBe(AUTH_CODES.SESSION_EXPIRED);
   });
 
-  it("frees the account on logout so another device can sign in", async () => {
+  it("rejects a missing refresh token", async () => {
+    expect((await refresh(undefined)).status).toBe(401);
+  });
+
+  it("rejects the refresh token of a revoked session", async () => {
     await registerAccount();
+    const a = await login({ deviceId: DEVICE_A });
 
-    const first = await login({ deviceId: DEVICE_A });
-    expect(first.status).toBe(200);
+    await logout(a.body.data.token);
 
-    expect((await login({ deviceId: DEVICE_B })).status).toBe(409);
-
-    expect((await logout(first.body.data.token)).status).toBe(200);
-
-    const second = await login({ deviceId: DEVICE_B });
-    expect(second.status).toBe(200);
+    expect((await refresh(a.body.data.refreshToken)).status).toBe(401);
   });
 
+  it("survives two refreshes racing on the same token", async () => {
+    // A device firing several requests at once gets several 401s at once and
+    // may try to refresh more than once. Exactly one must win, and the session
+    // must survive intact.
+    await registerAccount();
+    const a = await login({ deviceId: DEVICE_A });
+
+    const [first, second] = await Promise.all([
+      refresh(a.body.data.refreshToken),
+      refresh(a.body.data.refreshToken),
+    ]);
+
+    const codes = [first.status, second.status].sort();
+    expect(codes).toEqual([200, 401]);
+
+    // The session itself is still usable by the winner.
+    const winner = first.status === 200 ? first : second;
+    expect((await profile(winner.body.data.token)).status).toBe(200);
+  });
+});
+
+describe("Active sessions", () => {
   it("lets the original device sign in again after logging out", async () => {
     await registerAccount();
 

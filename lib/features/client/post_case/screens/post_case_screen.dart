@@ -691,7 +691,13 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
 
       _uploadedDocs.add(DocumentModel(
         name: doc.originalName,
-        url: AppConfig.getAttachmentUrl(doc.url),
+        // The RAW path, not a resolved URL. `_uploadedDocs` is submitted as the
+        // case's document list, and `getAttachmentUrl` appends the session JWT
+        // as `?token=` — so resolving here wrote that token into the database,
+        // where it went stale and then collided with the fresh one added at
+        // open time. Resolution belongs at the moment a file is opened or
+        // displayed, never at the moment one is stored.
+        url: doc.url,
         size: doc.size > 0
             ? "${(doc.size / (1024 * 1024)).toStringAsFixed(1)} MB"
             : '',
@@ -797,7 +803,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
               "voice_description_${DateTime.now().millisecondsSinceEpoch}.m4a",
             );
         if (docRecord != null) {
-          voiceUrl = AppConfig.getAttachmentUrl(docRecord.filePath);
+          // Raw path for the same reason as the documents above: this is
+          // persisted on the case, and a stored URL must not carry a token.
+          voiceUrl = docRecord.filePath;
         }
       } catch (e) {
         if (!mounted) return;
@@ -1956,7 +1964,9 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
           ..add(
             DocumentModel(
               name: doc.originalName,
-              url: AppConfig.getAttachmentUrl(doc.filePath),
+              // Raw path — this list is submitted with the case. See the note
+              // in _applyPrefill.
+              url: doc.filePath,
               size: "${(doc.fileSize / (1024 * 1024)).toStringAsFixed(1)} MB",
             ),
           );

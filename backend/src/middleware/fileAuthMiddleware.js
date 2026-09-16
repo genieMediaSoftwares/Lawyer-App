@@ -29,7 +29,20 @@ const extractToken = (req) => {
   if (header && header.startsWith("Bearer ")) {
     return header.split(" ")[1];
   }
-  return req.query.token || null;
+
+  // `?token=A&token=B` arrives as an array, not a string. Handing that to
+  // jwt.verify throws "jwt must be a string", which this middleware reported as
+  // "Invalid or expired token." — a confusing answer to a client whose token
+  // was neither. The client no longer produces duplicates, but a stored URL or
+  // a stale link can still carry one, so the last value wins: the app appends
+  // the current token after anything already on the URL.
+  const query = req.query.token;
+  if (Array.isArray(query)) {
+    const last = query.filter((v) => typeof v === "string" && v).pop();
+    return last || null;
+  }
+
+  return typeof query === "string" && query ? query : null;
 };
 
 /**

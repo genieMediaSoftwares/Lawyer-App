@@ -15,6 +15,12 @@ const ApiResponse = require("../../config/ApiResponse");
  */
 const deviceContext = (req) => ({
   deviceId: req.body?.deviceId || req.get("X-Device-Id") || undefined,
+  // Labels for the account's session list. Optional, and deliberately limited
+  // to what names a handset — no advertising id, no serial, nothing that
+  // identifies the person rather than the installation.
+  deviceName: req.body?.deviceName || req.get("X-Device-Name") || undefined,
+  platform: req.body?.platform || req.get("X-Device-Platform") || undefined,
+  userAgent: req.get("User-Agent") || undefined,
   ipAddress: req.ip,
 });
 
@@ -64,9 +70,41 @@ class AuthController {
    */
   async logout(req, res, next) {
     try {
+      // The session named by the caller's own token, and only that one. Other
+      // devices belonging to this account stay signed in.
       await authService.logout(req.sessionId);
 
       return ApiResponse.success(res, "Logged out successfully.");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /** Signs the account out everywhere. Separate route, separate intent. */
+  async logoutAllDevices(req, res, next) {
+    try {
+      const revoked = await authService.logoutAllDevices(req.user._id);
+
+      return ApiResponse.success(res, "Signed out on all devices.", {
+        sessionsRevoked: revoked,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Exchanges a refresh token for a new access token.
+   *
+   * Unauthenticated by design: it is reached precisely when the access token
+   * has expired, so requiring one would make it unreachable. The refresh token
+   * itself is the credential.
+   */
+  async refreshToken(req, res, next) {
+    try {
+      const result = await authService.refreshSession(req.body?.refreshToken);
+
+      return ApiResponse.success(res, "Token refreshed.", result);
     } catch (error) {
       next(error);
     }

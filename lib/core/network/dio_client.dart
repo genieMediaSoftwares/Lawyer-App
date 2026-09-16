@@ -5,6 +5,7 @@ import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import '../config/app_config.dart';
 import '../errors/error_handler.dart';
 import 'api_interceptor.dart';
+import 'auth_refresh_interceptor.dart';
 
 class DioClient {
   DioClient._();
@@ -27,6 +28,11 @@ class DioClient {
 
     client.interceptors.addAll([
       ApiInterceptor(),
+      // Placed after ApiInterceptor (which attaches the token) and before
+      // ErrorInterceptor (which turns failures into user-facing messages), so
+      // an expired access token is renewed and the request replayed before
+      // anything downstream treats it as an error the user should hear about.
+      AuthRefreshInterceptor(dio: client, refreshEndpoint: '/auth/refresh-token'),
       RetryInterceptor(dio: client),
       ErrorInterceptor(),
     ]);
