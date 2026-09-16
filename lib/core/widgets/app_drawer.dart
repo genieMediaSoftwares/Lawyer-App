@@ -6,8 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/lawyer_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../routes/route_names.dart';
-import '../../core/config/app_config.dart';
-import 'app_circle_avatar.dart';
+import 'user_avatar.dart';
 import '../../core/theme/app_colors.dart';
 
 @visibleForTesting
@@ -77,9 +76,6 @@ class AppDrawer extends ConsumerWidget {
       }
     }
 
-    final resolvedPhotoUrl = (photoUrl != null && photoUrl.isNotEmpty)
-        ? AppConfig.getAttachmentUrl(photoUrl)
-        : null;
 
     return Drawer(
       child: Column(
@@ -95,11 +91,22 @@ class AppDrawer extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppCircleAvatar(
+                  // Raw value in, resolution handled by UserAvatar. Tapping
+                  // opens the picture fullscreen.
+                  //
+                  // The hero tag names the SURFACE as well as the user: the
+                  // same person's avatar also appears on the dashboard behind
+                  // this drawer, and two live widgets sharing a tag is a
+                  // runtime exception.
+                  UserAvatar(
+                    imagePath: photoUrl,
                     radius: 28,
-                    backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.12),
-                    imageUrl: resolvedPhotoUrl,
-                    fallback: Icon(Icons.person, color: theme.colorScheme.onSurface, size: 28),
+                    name: displayName,
+                    subtitle: isLawyer ? 'Advocate' : null,
+                    openOnTap: true,
+                    heroTag: 'drawer-avatar',
+                    backgroundColor:
+                        theme.colorScheme.onSurface.withValues(alpha: 0.12),
                   ),
                   const SizedBox(height: 12),
                   Row(

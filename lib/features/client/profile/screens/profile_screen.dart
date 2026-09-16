@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/auth_provider.dart';
@@ -13,7 +12,7 @@ import '../../../../routes/route_names.dart';
 import '../../../../core/widgets/location_autocomplete_field.dart';
 import '../../../../providers/notification_provider.dart';
 import '../../../../core/widgets/app_drawer.dart';
-import '../../../../core/widgets/app_circle_avatar.dart';
+import '../../../../core/widgets/user_avatar.dart';
 import '../../../../core/widgets/app_confirmation_dialogs.dart';
 import '../../../../core/widgets/settings_widgets.dart';
 
@@ -248,22 +247,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          AppCircleAvatar(
+          // Raw stored value; UserAvatar resolves it and owns the initials
+          // fallback. Tapping opens the picture fullscreen.
+          UserAvatar(
+            imagePath: profile.profileImage,
             radius: 28,
+            name: profile.fullName,
+            openOnTap: true,
+            heroTag: 'client-profile-avatar',
             backgroundColor: AppColors.border,
-            imageUrl: profile.profileImage.isNotEmpty
-                ? AppConfig.getAttachmentUrl(profile.profileImage)
-                : null,
-            fallback: Text(
-              profile.fullName.isNotEmpty
-                  ? profile.fullName[0].toUpperCase()
-                  : 'C',
-              style: const TextStyle(
-                color: AppColors.primaryGold,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
           ),
           const SizedBox(width: 16),
           Expanded(

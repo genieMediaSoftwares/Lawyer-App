@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/app_config.dart';
 import 'app_circle_avatar.dart';
+import 'profile_image_viewer.dart';
 
 /// The one place a stored profile-image value becomes something displayable.
 ///
@@ -21,6 +22,11 @@ class UserAvatar extends StatelessWidget {
     this.fallbackInitials,
     this.fallbackIcon,
     this.backgroundColor,
+    this.name,
+    this.subtitle,
+    this.openOnTap = false,
+    this.heroTag,
+    this.onTap,
   });
 
   /// The value exactly as stored: an absolute URL, a `/uploads/...` path, a
@@ -35,6 +41,33 @@ class UserAvatar extends StatelessWidget {
 
   final IconData? fallbackIcon;
   final Color? backgroundColor;
+
+  /// Shown in the fullscreen viewer's caption. Also the source of the initials
+  /// fallback when [fallbackInitials] is not given.
+  final String? name;
+
+  /// Role or profession, under the name in the viewer.
+  final String? subtitle;
+
+  /// Tapping opens the picture fullscreen.
+  ///
+  /// Off by default: an avatar inside a list row usually wants the row's own
+  /// tap, not its own, and silently stealing that would break navigation on
+  /// every list in the app.
+  final bool openOnTap;
+
+  /// Shared with the fullscreen viewer to animate between the two.
+  ///
+  /// Leave null when the same person's avatar can appear more than once on a
+  /// screen — a list of their cases, a chat list showing the same advocate in
+  /// several rows. Two live widgets sharing a Hero tag throws at runtime, and
+  /// the animation is not worth that. A tag built from a user id ALONE is the
+  /// usual way into that trap; include the surface too, e.g.
+  /// `'drawer-avatar-$userId'`.
+  final Object? heroTag;
+
+  /// Replaces the default tap behaviour entirely.
+  final VoidCallback? onTap;
 
   /// Resolves [imagePath] to something loadable, or null when there is nothing
   /// to load.
@@ -123,11 +156,11 @@ class UserAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final url = resolve(imagePath);
-    final initials = fallbackInitials;
+    final initials = fallbackInitials ?? initialsFrom(name);
 
     // AppCircleAvatar already owns the loading spinner and the error fallback,
     // so this adds resolution and initials rather than a second avatar widget.
-    return AppCircleAvatar(
+    Widget avatar = AppCircleAvatar(
       radius: radius,
       imageUrl: url,
       backgroundColor: backgroundColor,
@@ -147,6 +180,35 @@ class UserAvatar extends StatelessWidget {
               color: theme.colorScheme.primary,
               size: radius,
             ),
+    );
+
+    if (heroTag != null) {
+      avatar = Hero(tag: heroTag!, child: avatar);
+    }
+
+    final handler = onTap ??
+        (openOnTap
+            ? () => ProfileImageViewer.open(
+                  context,
+                  imagePath: imagePath,
+                  name: name,
+                  subtitle: subtitle,
+                  heroTag: heroTag,
+                )
+            : null);
+
+    if (handler == null) return avatar;
+
+    return Semantics(
+      button: true,
+      label: name != null && name!.isNotEmpty
+          ? 'View $name\'s profile picture'
+          : 'View profile picture',
+      child: InkWell(
+        onTap: handler,
+        customBorder: const CircleBorder(),
+        child: avatar,
+      ),
     );
   }
 }

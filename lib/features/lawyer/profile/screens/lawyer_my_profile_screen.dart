@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/user_avatar.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../core/widgets/location_autocomplete_field.dart';
@@ -109,30 +109,19 @@ class _LawyerMyProfileScreenState extends ConsumerState<LawyerMyProfileScreen> {
                         width: 2,
                       ),
                     ),
-                    child: CircleAvatar(
+                    // Was a bare CircleAvatar with a raw NetworkImage: no
+                    // loading state, and a failed load showed Flutter's broken
+                    // image rather than falling back. UserAvatar owns both, and
+                    // resolves the stored value the same way every other avatar
+                    // in the app now does.
+                    child: UserAvatar(
+                      imagePath: auth.userPhotoUrl,
                       radius: 56,
+                      name: auth.userName,
+                      subtitle: 'Advocate',
+                      openOnTap: true,
+                      heroTag: 'lawyer-profile-avatar',
                       backgroundColor: theme.colorScheme.outline,
-                      backgroundImage:
-                          auth.userPhotoUrl != null &&
-                              auth.userPhotoUrl!.isNotEmpty
-                          ? NetworkImage(
-                              AppConfig.getAttachmentUrl(auth.userPhotoUrl),
-                            )
-                          : null,
-                      child:
-                          (auth.userPhotoUrl == null ||
-                              auth.userPhotoUrl!.isEmpty)
-                          ? Text(
-                              auth.userName != null && auth.userName!.isNotEmpty
-                                  ? auth.userName![0].toUpperCase()
-                                  : 'A',
-                              style: TextStyle(
-                                color: theme.colorScheme.primary,
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                          : null,
                     ),
                   ),
                   if (_isSavingImage)
