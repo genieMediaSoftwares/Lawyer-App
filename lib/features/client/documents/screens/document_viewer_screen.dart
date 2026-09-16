@@ -2,21 +2,27 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pdfrx/pdfrx.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/document_provider.dart';
 
-/// Views a document in the app.
+/// Renders a stored document in the app.
 ///
-/// The bytes are fetched through the authenticated API client, never by handing
-/// a URL to a browser: the view endpoint is protected, and a browser attaches
-/// no session token — that is what produced a page of raw JSON where the
-/// document should have been. Nothing is written to disk on the way.
+/// PDFs are rendered page by page by pdfrx; images render with pinch-zoom;
+/// text renders as selectable text. Nothing here is a placeholder — a document
+/// the app genuinely cannot render says so and offers a download, which is only
+/// reached by formats with no renderer (DOC/DOCX).
 ///
-/// Images and text render here. Everything else is offered as a download,
-/// because the app carries no renderer for it — see the note on
-/// [_UnsupportedPreview], which says so plainly rather than showing a broken
-/// frame.
+/// The bytes are fetched once, through the authenticated API client, and handed
+/// to the renderer from memory. This is deliberate: the view endpoint is
+/// protected, and neither a browser nor a PDF widget pointed at a bare URL
+/// attaches the session token — that is what produced a page of JSON where the
+/// document should have been. Fetching first means the token travels as a
+/// header on a normal API call, and the renderer never touches the network.
+///
+/// Uploads are capped at 10MB server-side (upload.middleware), so holding one
+/// document in memory is bounded and well within budget.
 class DocumentViewerScreen extends ConsumerStatefulWidget {
   const DocumentViewerScreen({super.key, required this.document});
 
@@ -31,6 +37,10 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
   Uint8List? _bytes;
   String? _error;
   bool _loading = false;
+
+  /// Filled once the PDF opens, so the header can show "Page 2 of 14".
+  int? _pageCount;
+  int _currentPage = 1;
 
   @override
   void initState() {
@@ -51,7 +61,17 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
       final bytes = await ref
           .read(documentsProvider.notifier)
           .fetchDocumentBytes(widget.document.id);
+
       if (!mounted) return;
+
+      if (bytes.isEmpty) {
+        setState(() {
+          _error = 'This document is empty.';
+          _loading = false;
+        });
+        return;
+      }
+
       setState(() {
         _bytes = Uint8List.fromList(bytes);
         _loading = false;
@@ -69,6 +89,12 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final doc = widget.document;
+
+    final subtitle = [
+      doc.extensionLabel,
+      doc.readableSize,
+      if (_pageCount != null) 'Page $_currentPage of $_pageCount',
+    ].join(' • ');
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -88,7 +114,7 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             Text(
-              '${doc.extensionLabel} • ${doc.readableSize}',
+              subtitle,
               style: TextStyle(
                 fontSize: 11,
                 color: theme.textTheme.bodySmall?.color,
@@ -105,7 +131,7 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
     final doc = widget.document;
 
     if (!doc.canPreviewInApp) {
-      return _UnsupportedPreview(document: doc);
+      return _NoRendererAvailable(document: doc);
     }
 
     if (_loading) {
@@ -122,56 +148,77 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
     }
 
     if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 56, color: AppColors.error),
-              const SizedBox(height: 16),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: theme.textTheme.bodyMedium?.color),
-              ),
-              const SizedBox(height: 20),
-              OutlinedButton.icon(
-                onPressed: _load,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Try again'),
-              ),
-            ],
-          ),
-        ),
-      );
+      return _ViewerError(message: _error!, onRetry: _load);
     }
 
     final bytes = _bytes;
-    if (bytes == null || bytes.isEmpty) {
-      return const Center(child: Text('This document appears to be empty.'));
+    if (bytes == null) {
+      return const Center(child: CircularProgressIndicator());
     }
 
-    if (doc.isImage) {
-      // Pinch to zoom and drag to pan, without a dependency: InteractiveViewer
-      // is what Flutter ships for exactly this.
-      return InteractiveViewer(
-        minScale: 1,
-        maxScale: 5,
-        child: Center(
-          child: Image.memory(
-            bytes,
-            fit: BoxFit.contain,
-            semanticLabel: doc.name,
-            errorBuilder: (context, error, stack) => const Center(
-              child: Text('This image could not be displayed.'),
-            ),
+    if (doc.isPdf) return _buildPdf(bytes, theme);
+    if (doc.isImage) return _buildImage(bytes, doc.name);
+    return _buildText(bytes);
+  }
+
+  Widget _buildPdf(Uint8List bytes, ThemeData theme) {
+    return PdfViewer.data(
+      bytes,
+      // Identifies this document to the renderer's cache. The id is stable and
+      // unique; the display name is neither, and two documents may share one.
+      sourceName: widget.document.id,
+      params: PdfViewerParams(
+        margin: 6,
+        backgroundColor: theme.scaffoldBackgroundColor,
+        onViewerReady: (document, controller) {
+          if (!mounted) return;
+          setState(() => _pageCount = document.pages.length);
+        },
+        onPageChanged: (pageNumber) {
+          if (!mounted || pageNumber == null) return;
+          setState(() => _currentPage = pageNumber);
+        },
+        loadingBannerBuilder: (context, bytesDownloaded, totalBytes) =>
+            const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Rendering document…'),
+            ],
           ),
         ),
-      );
-    }
+        // A PDF that will not parse — corrupt, or encrypted with a password we
+        // do not have. Reported as itself rather than as a blank page.
+        errorBannerBuilder: (context, error, stackTrace, documentRef) =>
+            _ViewerError(
+          message: 'This PDF could not be displayed. '
+              'It may be damaged or password-protected.',
+          onRetry: _load,
+        ),
+      ),
+    );
+  }
 
-    // Text-family documents render as selectable text.
+  Widget _buildImage(Uint8List bytes, String name) {
+    return InteractiveViewer(
+      minScale: 1,
+      maxScale: 5,
+      child: Center(
+        child: Image.memory(
+          bytes,
+          fit: BoxFit.contain,
+          semanticLabel: name,
+          errorBuilder: (context, error, stack) => const Center(
+            child: Text('This image could not be displayed.'),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildText(Uint8List bytes) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: SelectableText(
@@ -182,14 +229,59 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
   }
 }
 
-/// Shown for a document the app has no renderer for — PDF, DOCX and the like.
+/// Error state with a way out of it.
+class _ViewerError extends StatelessWidget {
+  const _ViewerError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 56, color: AppColors.error),
+            const SizedBox(height: 16),
+            Text(
+              'Unable to load document',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: theme.textTheme.titleMedium?.color,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: theme.textTheme.bodySmall?.color),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown only for formats with no Flutter renderer — DOC and DOCX.
 ///
-/// Deliberately explicit. The alternative considered was opening the protected
-/// URL in a browser, which cannot attach the session token and therefore shows
-/// the client a page of JSON saying their token is invalid. Saying "open it
-/// with your device's viewer" is honest; showing a broken frame is not.
-class _UnsupportedPreview extends StatelessWidget {
-  const _UnsupportedPreview({required this.document});
+/// PDFs and images no longer reach this: they render above. Converting DOCX
+/// server-side would need a converter (LibreOffice headless) on the EC2 box,
+/// which is an infrastructure decision, not a code one.
+class _NoRendererAvailable extends StatelessWidget {
+  const _NoRendererAvailable({required this.document});
 
   final DocumentRecord document;
 
@@ -211,9 +303,7 @@ class _UnsupportedPreview extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Icon(
-                document.isPdf
-                    ? Icons.picture_as_pdf_outlined
-                    : Icons.description_outlined,
+                Icons.description_outlined,
                 size: 40,
                 color: theme.colorScheme.primary,
               ),
@@ -235,9 +325,8 @@ class _UnsupportedPreview extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Previewing ${document.extensionLabel} files in the app is not '
-              'available yet. Your document is stored safely and can be opened '
-              'with your device’s document viewer.',
+              '${document.extensionLabel} files open with your device’s '
+              'document app. Your file is stored safely and unchanged.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 height: 1.4,

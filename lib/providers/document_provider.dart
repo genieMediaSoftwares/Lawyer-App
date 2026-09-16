@@ -119,7 +119,10 @@ class DocumentRecord {
   bool get isAudio => mimeType.startsWith('audio/');
 
   /// True when the app can render this in place rather than handing it off.
-  bool get canPreviewInApp => isImage || isText;
+  ///
+  /// PDFs render through pdfrx, images and text natively. Only DOC/DOCX are
+  /// left without a renderer.
+  bool get canPreviewInApp => isPdf || isImage || isText;
 
   /// "3.8 KB", "1.2 MB" — the size as the list shows it.
   String get readableSize {

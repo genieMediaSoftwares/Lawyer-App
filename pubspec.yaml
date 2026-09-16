@@ -80,6 +80,7 @@ dependencies:
   # had refused the microphone once was told it was "not available" forever with
   # no way back. This reports the real status and opens the app's settings page.
   permission_handler: ^13.0.0
+  pdfrx: ^2.4.8
 dev_dependencies:
   flutter_test:
     sdk: flutter

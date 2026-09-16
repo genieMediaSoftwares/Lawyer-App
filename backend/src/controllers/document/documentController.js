@@ -92,9 +92,58 @@ const sendStoredFile = async (req, res, disposition) => {
   res.setHeader("Content-Security-Policy", "default-src 'none'");
   res.setHeader("Cache-Control", "private, no-store");
 
+  const { size } = fs.statSync(absolutePath);
+
+  // Range support. A PDF reader opening a large file asks for the trailer
+  // first, then individual objects, rather than reading from byte zero — so
+  // without this it has to pull the whole document before showing page one.
+  // Advertised even when the client does not ask, because a reader decides
+  // whether to range-request based on this header.
+  res.setHeader("Accept-Ranges", "bytes");
+
+  const rangeHeader = req.headers.range;
+  let streamOptions;
+
+  if (rangeHeader) {
+    // Only the single-range form, "bytes=START-END", is honoured. Multipart
+    // ranges are legal but no PDF reader sends them, and answering one
+    // incorrectly is worse than declining to.
+    const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
+
+    if (!match || (match[1] === "" && match[2] === "")) {
+      res.setHeader("Content-Range", `bytes */${size}`);
+      return res.status(416).end();
+    }
+
+    let start;
+    let end;
+
+    if (match[1] === "") {
+      // "bytes=-500" means the LAST 500 bytes, not the first.
+      const suffixLength = Number(match[2]);
+      start = Math.max(0, size - suffixLength);
+      end = size - 1;
+    } else {
+      start = Number(match[1]);
+      end = match[2] === "" ? size - 1 : Math.min(Number(match[2]), size - 1);
+    }
+
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || start >= size) {
+      res.setHeader("Content-Range", `bytes */${size}`);
+      return res.status(416).end();
+    }
+
+    res.status(206);
+    res.setHeader("Content-Range", `bytes ${start}-${end}/${size}`);
+    res.setHeader("Content-Length", end - start + 1);
+    streamOptions = { start, end };
+  } else {
+    res.setHeader("Content-Length", size);
+  }
+
   // Streamed, not read into memory: a 10MB cap per file still means a handful
   // of concurrent downloads holding the heap open for no reason.
-  const stream = fs.createReadStream(absolutePath);
+  const stream = fs.createReadStream(absolutePath, streamOptions);
   stream.on("error", (error) => {
     console.error("Document stream failed:", error.message);
     if (!res.headersSent) {
