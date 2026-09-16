@@ -11,7 +11,6 @@ on:
       # every push to main deploy.
       - 'backend/**'
       - '.github/workflows/deploy-backend.yml'
-  # Manual runs, for redeploying the current main without a new commit.
   workflow_dispatch:
 
 # One deployment at a time against the production directory. `cancel-in-progress`
