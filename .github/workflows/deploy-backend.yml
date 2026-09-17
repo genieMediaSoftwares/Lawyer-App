@@ -77,6 +77,9 @@ jobs:
           # Not a secret — the port the app listens on, used only for the local
           # health probe. Set the repository variable to override the default.
           BACKEND_PORT: ${{ vars.BACKEND_PORT }}
+          # The commit this run is deploying. The server proves it is on exactly
+          # this tree before installing anything.
+          GITHUB_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
 
@@ -85,7 +88,7 @@ jobs:
               -o BatchMode=yes \
               -o ConnectTimeout=20 \
               "$EC2_USER@$EC2_HOST" \
-              "BACKEND_PORT='${BACKEND_PORT:-5000}' bash -s" <<'REMOTE'
+              "BACKEND_PORT='${BACKEND_PORT:-5000}' EXPECTED_SHA='${GITHUB_SHA}' bash -s" <<'REMOTE'
           set -euo pipefail
 
           APP_DIR="$HOME/Lawyer-App"
@@ -128,6 +131,74 @@ jobs:
           echo "Now deployed:      $(git rev-parse --short HEAD)"
           echo "::endgroup::"
 
+          echo "::group::Prove the checkout matches the commit being deployed"
+          # `npm ci` failed here with "Missing: gcp-metadata@5.3.0 ..." while the
+          # SAME commit installed cleanly on a developer machine. Those versions
+          # belong to google-auth-library v8, which the committed lockfile does
+          # not contain — it resolves googleapis 173 to google-auth-library 10.
+          # So npm was reading a manifest that is not the committed one, and the
+          # checks below say which.
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          echo "expected commit: ${EXPECTED_SHA:-<not provided>}"
+          echo "actual commit:   $ACTUAL_SHA"
+
+          if [ -n "${EXPECTED_SHA:-}" ] && [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+            echo "ERROR: the checkout is not the commit being deployed."
+            echo "  Check that this clone's origin is genieMediaSoftwares/Lawyer-App:"
+            git remote -v
+            exit 1
+          fi
+
+          # Tracked files must match HEAD exactly. A modified package.json or
+          # lockfile here is the whole problem, and reset --hard should have
+          # already removed it — if this fires, something rewrites them after.
+          if ! git diff --exit-code HEAD -- backend/package.json backend/package-lock.json; then
+            echo "ERROR: backend dependency files differ from the commit."
+            exit 1
+          fi
+
+          echo "working tree:"
+          git status --short || true
+
+          echo "checksums (must match the committed files):"
+          sha256sum backend/package.json backend/package-lock.json
+          echo "::endgroup::"
+
+          echo "::group::npm manifest interference check"
+          # Files that override the committed lockfile AND survive
+          # `git reset --hard`, because reset only touches TRACKED files.
+          #
+          # npm-shrinkwrap.json is the dangerous one: npm gives it precedence
+          # over package-lock.json, so a leftover from an older dependency tree
+          # silently replaces the lockfile this repo ships — which produces
+          # exactly the "Missing: <old versions> from lock file" failure seen
+          # here, on a checkout that is otherwise byte-identical to the commit.
+          SHRINKWRAP="$BACKEND_DIR/npm-shrinkwrap.json"
+          if [ -f "$SHRINKWRAP" ]; then
+            echo "ERROR: $SHRINKWRAP exists and overrides the committed package-lock.json."
+            echo "  It is untracked, so 'git reset --hard' does not remove it."
+            echo "  It is not part of this repository — remove it once and redeploy:"
+            echo "      rm '$SHRINKWRAP'"
+            exit 1
+          fi
+          echo "npm-shrinkwrap.json: absent (good)"
+
+          for RC in "$BACKEND_DIR/.npmrc" "$APP_DIR/.npmrc" "$HOME/.npmrc"; do
+            if [ -f "$RC" ]; then
+              # Registry/auth lines can carry tokens, so only the keys are shown.
+              echo "note: $RC present — keys: $(sed -n 's/^\([A-Za-z0-9_@:/-]*\)=.*/\1/p' "$RC" | tr '\n' ' ')"
+            fi
+          done
+
+          NPM_ENV="$(env | grep '^NPM_CONFIG_' | sed 's/=.*/=<redacted>/' || true)"
+          if [ -n "$NPM_ENV" ]; then
+            echo "note: NPM_CONFIG_* environment overrides are set:"
+            echo "$NPM_ENV"
+          else
+            echo "NPM_CONFIG_* overrides: none"
+          fi
+          echo "::endgroup::"
+
           cd "$BACKEND_DIR"
 
           echo "::group::Verify production configuration survived"
@@ -136,6 +207,24 @@ jobs:
             exit 1
           fi
           echo ".env present ($(wc -c < .env) bytes)"   # size only, never content
+          echo "::endgroup::"
+
+          echo "::group::Toolchain"
+          echo "node    $(node --version)"
+          echo "npm     $(npm --version)"
+
+          # package.json declares engines.node 22.x. A different major resolves
+          # optional/peer trees differently and is worth seeing in the log
+          # rather than inferring later.
+          NODE_MAJOR="$(node --version | sed 's/^v\([0-9]*\).*/\1/')"
+          REQUIRED_MAJOR="$(node -p "require('$BACKEND_DIR/package.json').engines.node.replace(/[^0-9].*$/, '')" 2>/dev/null || echo 22)"
+          if [ "$NODE_MAJOR" != "$REQUIRED_MAJOR" ]; then
+            echo "::warning::EC2 is running Node ${NODE_MAJOR}.x but package.json requires ${REQUIRED_MAJOR}.x. Install Node ${REQUIRED_MAJOR} on the server so production matches what is tested."
+          fi
+
+          echo "package-lock     $(npm config get package-lock)"
+          echo "legacy-peer-deps $(npm config get legacy-peer-deps)"
+          echo "install-strategy $(npm config get install-strategy)"
           echo "::endgroup::"
 
           echo "::group::Install dependencies"
