@@ -34,6 +34,14 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
+      # The runner installs nothing — EC2 pulls from GitHub and runs npm there,
+      # so this is only so any node/npm invoked on the runner matches the
+      # project's engines field rather than whatever the image ships.
+      - name: Use Node 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
       # No actions/checkout: EC2 pulls from GitHub itself, so the runner never
       # needs the source. Nothing is copied from runner to server.
       - name: Configure SSH
@@ -209,22 +217,69 @@ jobs:
           echo ".env present ($(wc -c < .env) bytes)"   # size only, never content
           echo "::endgroup::"
 
-          echo "::group::Toolchain"
-          echo "node    $(node --version)"
-          echo "npm     $(npm --version)"
+          echo "::group::Select Node 22"
+          # THE FIX.
+          #
+          # `npm ci` failed here with "Missing: gcp-metadata@5.3.0 ..." on a
+          # checkout byte-identical to the one that installs cleanly locally.
+          # Those nine packages are exactly the dependency closure of
+          # gcp-metadata@5.3.0 — and mongodb (pulled in by mongoose) declares
+          #
+          #     "gcp-metadata": "^5.2.0"   with peerDependenciesMeta.optional
+          #
+          # An OPTIONAL peer. Modern npm leaves an uninstalled optional peer out
+          # of the tree, which is why it is absent from the committed lockfile
+          # and why the lockfile is correct. Older npm materialises it instead,
+          # then finds its closure missing from the lock and aborts. So the
+          # lockfile was never the problem — the npm reading it was.
+          #
+          # Node 22.x ships npm 10.9.x, which gets this right, and is what
+          # package.json's engines field asks for.
+          if [ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; then
+            # shellcheck disable=SC1091
+            . "${NVM_DIR:-$HOME/.nvm}/nvm.sh"
+            # `nvm use` is best-effort: a box without 22 installed keeps its
+            # current version and the gate below reports it.
+            nvm use 22 >/dev/null 2>&1 || nvm use --lts >/dev/null 2>&1 || true
+            echo "nvm: loaded from ${NVM_DIR:-$HOME/.nvm}"
+          else
+            echo "nvm: not installed — using the system Node"
+          fi
+          echo "::endgroup::"
 
-          # package.json declares engines.node 22.x. A different major resolves
-          # optional/peer trees differently and is worth seeing in the log
-          # rather than inferring later.
+          echo "::group::Toolchain"
+          echo "node             $(node --version)"
+          echo "npm              $(npm --version)"
+          echo "which node       $(command -v node)"
+          echo "which npm        $(command -v npm)"
+          echo "registry         $(npm config get registry)"
+          echo "package-lock     $(npm config get package-lock)"
+          echo "lockfile-version $(npm config get lockfile-version)"
+          echo "install-strategy $(npm config get install-strategy)"
+          echo "legacy-peer-deps $(npm config get legacy-peer-deps)"
+
           NODE_MAJOR="$(node --version | sed 's/^v\([0-9]*\).*/\1/')"
-          REQUIRED_MAJOR="$(node -p "require('$BACKEND_DIR/package.json').engines.node.replace(/[^0-9].*$/, '')" 2>/dev/null || echo 22)"
-          if [ "$NODE_MAJOR" != "$REQUIRED_MAJOR" ]; then
-            echo "::warning::EC2 is running Node ${NODE_MAJOR}.x but package.json requires ${REQUIRED_MAJOR}.x. Install Node ${REQUIRED_MAJOR} on the server so production matches what is tested."
+          NPM_MAJOR="$(npm --version | cut -d. -f1)"
+
+          if [ "$NODE_MAJOR" != "22" ]; then
+            echo "::warning::EC2 is on Node ${NODE_MAJOR}.x but package.json declares engines.node 22.x. Install Node 22 (nvm install 22 && nvm alias default 22) so production matches what is built and tested."
           fi
 
-          echo "package-lock     $(npm config get package-lock)"
-          echo "legacy-peer-deps $(npm config get legacy-peer-deps)"
-          echo "install-strategy $(npm config get install-strategy)"
+          # The hard gate is on npm, because npm is what mishandles the optional
+          # peer above. npm 10 ships with Node 20.5+ and 22, and resolves it
+          # correctly; anything older reproduces the failure this deploy hit.
+          if [ "$NPM_MAJOR" -lt 10 ]; then
+            echo "ERROR: npm $(npm --version) treats mongodb's OPTIONAL peer dependency"
+            echo "  gcp-metadata as required, and then reports its dependencies as"
+            echo "  missing from the lockfile. The lockfile is correct — this npm is not."
+            echo
+            echo "  Install Node 22 on the server and redeploy:"
+            echo "      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash"
+            echo "      . ~/.nvm/nvm.sh && nvm install 22 && nvm alias default 22"
+            echo
+            echo "  Refusing to install with an npm that cannot read this lockfile."
+            exit 1
+          fi
           echo "::endgroup::"
 
           echo "::group::Install dependencies"
