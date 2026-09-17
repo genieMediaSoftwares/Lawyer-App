@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../models/lawyer_model.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 class GetMatchedScreen extends ConsumerStatefulWidget {
   const GetMatchedScreen({super.key});
@@ -629,14 +630,17 @@ class _MatchedLawyerCard extends StatelessWidget {
                         border: Border.all(
                             color: gold.withValues(alpha: 0.5), width: 2),
                       ),
+                      // `lawyer.profileImage` went to Image.network raw:
+                      // a relative `/uploads/...` path is not a URL and never
+                      // loaded, so this always fell to the initials. UserAvatar
+                      // resolves it and keeps the same initials fallback.
                       child: lawyer.profileImage.isNotEmpty
-                          ? ClipOval(
-                              child: Image.network(
-                                lawyer.profileImage,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) =>
-                                    _InitialsWidget(initials: initials),
-                              ),
+                          ? UserAvatar(
+                              imagePath: lawyer.profileImage,
+                              radius: 27,
+                              name: lawyer.fullName,
+                              fallbackInitials: initials,
+                              openOnTap: true,
                             )
                           : _InitialsWidget(initials: initials),
                     ),

@@ -4,10 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../providers/lawyer_provider.dart';
-import '../../../../core/widgets/app_circle_avatar.dart';
-import '../../../../core/config/app_config.dart';
 import '../widgets/filter_drawer.dart';
 import '../widgets/sort_by_sheet.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 class AdvocatesScreen extends ConsumerStatefulWidget {
   const AdvocatesScreen({super.key});
@@ -269,11 +268,12 @@ class AdvocateCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // ── Avatar ──────────────────────────────────────
-          AppCircleAvatar(
+          UserAvatar(
+            imagePath: imageUrl,
             radius: 36,
+            name: name,
             backgroundColor: AppColors.border,
-            imageUrl: imageUrl.isNotEmpty ? AppConfig.getAttachmentUrl(imageUrl) : null,
-            fallback: Icon(Icons.person, color: AppColors.primaryText.withValues(alpha: 0.54), size: 36),
+            openOnTap: true,
           ),
 
           const SizedBox(width: 14),

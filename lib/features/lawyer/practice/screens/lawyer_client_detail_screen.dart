@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/config/app_config.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/user_avatar.dart';
 import '../../../../models/case_model.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/lawyer_client_provider.dart';
@@ -209,17 +209,14 @@ class _ProfileCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
+              UserAvatar(
+                imagePath: client.profileImage,
                 radius: 26,
+                name: client.fullName,
+                subtitle: 'Client',
                 backgroundColor: theme.colorScheme.surface,
-                backgroundImage: client.profileImage.isNotEmpty
-                    ? NetworkImage(
-                        AppConfig.getAttachmentUrl(client.profileImage),
-                      )
-                    : null,
-                child: client.profileImage.isEmpty
-                    ? const Icon(Icons.person, size: 26)
-                    : null,
+                openOnTap: true,
+                heroTag: 'client-detail-avatar-${client.id}',
               ),
               const SizedBox(width: 14),
               Expanded(

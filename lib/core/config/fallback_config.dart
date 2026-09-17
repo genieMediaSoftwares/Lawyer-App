@@ -92,6 +92,7 @@ class FallbackConfig {
     'AI_MAX_FILE_COUNT': '10',
     'AI_ALLOWED_UPLOAD_EXTENSIONS': 'pdf,png,jpg,jpeg,webp,docx,txt,csv,md',
     'AI_UPLOAD_PICKER_EXTENSIONS': 'pdf,png,jpg,jpeg,webp,docx,txt,csv',
+    'DOCUMENT_PICKER_EXTENSIONS': 'pdf,docx,txt,csv,md,jpg,jpeg,png,webp',
     'AI_POLL_INTERVAL_DISCONNECTED_SECONDS': '3',
     'AI_POLL_INTERVAL_CONNECTED_SECONDS': '12',
     'AI_POLL_BACKOFF_MAX_SECONDS': '30',

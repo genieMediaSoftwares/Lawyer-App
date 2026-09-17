@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/config/app_config.dart';
 import '../../../../routes/route_names.dart';
-import '../../../../core/widgets/app_circle_avatar.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/lawyer_provider.dart';
 import '../../../../models/lawyer_model.dart';
@@ -15,6 +13,7 @@ import 'lawyer_documents_screen.dart';
 
 import '../../../../providers/review_provider.dart';
 import '../../../../providers/case_provider.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 class LawyerProfileScreen extends ConsumerStatefulWidget {
   const LawyerProfileScreen({super.key});
@@ -262,20 +261,15 @@ class _LawyerProfileScreenState extends ConsumerState<LawyerProfileScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          AppCircleAvatar(
+          UserAvatar(
+            imagePath: lawyer.profileImage,
             radius: 28,
+            name: lawyer.fullName,
+            subtitle: loc.advocate_prefix,
             backgroundColor: theme.colorScheme.outline,
-            imageUrl: lawyer.profileImage.isNotEmpty
-                ? AppConfig.getAttachmentUrl(lawyer.profileImage)
-                : null,
-            fallback: Text(
-              lawyer.fullName.isNotEmpty ? lawyer.fullName[0].toUpperCase() : 'A',
-              style: TextStyle(
-                color: theme.colorScheme.primary,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            fallbackInitials:
+                lawyer.fullName.isNotEmpty ? lawyer.fullName[0].toUpperCase() : 'A',
+            openOnTap: true,
           ),
           const SizedBox(width: 16),
           Expanded(

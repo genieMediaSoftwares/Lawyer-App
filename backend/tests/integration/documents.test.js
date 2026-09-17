@@ -605,4 +605,28 @@ describe("Delete", () => {
     expect(res.status).toBe(403);
     expect(mockDocs.find((d) => d._id === doc._id)).toBeDefined();
   });
+
+  it("still removes the record when the file is already gone from disk", async () => {
+    // Not hypothetical: `uploads/` is untracked runtime state on a single
+    // instance, so a redeploy onto fresh storage leaves rows pointing at files
+    // that no longer exist. If that made delete fail, the owner could never
+    // clear the dead entry from their list.
+    const doc = seedDocument();
+    const absolute = path.resolve(__dirname, "../..", doc.filePath);
+    fs.unlinkSync(absolute);
+    expect(fs.existsSync(absolute)).toBe(false);
+
+    const res = await request(app).delete(`/api/documents/${doc._id}`).set(auth(OWNER));
+
+    expect(res.status).toBe(200);
+    expect(mockDocs.find((d) => d._id === doc._id)).toBeUndefined();
+  });
+
+  it("requires authentication", async () => {
+    const doc = seedDocument();
+    const res = await request(app).delete(`/api/documents/${doc._id}`);
+
+    expect(res.status).toBe(401);
+    expect(mockDocs.find((d) => d._id === doc._id)).toBeDefined();
+  });
 });

@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../models/case_model.dart';
-import '../../../../core/config/app_config.dart';
-import '../../../../core/widgets/app_circle_avatar.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 class LawyersRespondedScreen extends ConsumerWidget {
   final String caseId;
@@ -130,12 +129,11 @@ class LawyersRespondedScreen extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AppCircleAvatar(
+            UserAvatar(
+              imagePath: proposal.profileImage,
               radius: 30,
-              imageUrl: proposal.profileImage.isNotEmpty
-                  ? AppConfig.getAttachmentUrl(proposal.profileImage)
-                  : null,
-              fallback: const Icon(Icons.person, size: 30),
+              name: proposal.fullName,
+              openOnTap: true,
             ),
             const SizedBox(width: 16),
             Expanded(

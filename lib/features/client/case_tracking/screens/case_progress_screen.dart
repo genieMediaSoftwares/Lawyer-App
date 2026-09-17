@@ -8,10 +8,9 @@ import '../../../../providers/appointment_provider.dart';
 import '../../../../models/case_model.dart';
 import '../../post_case/widgets/premium_audio_player.dart';
 import '../../../../providers/chat_provider.dart';
-import '../../../../core/config/app_config.dart';
-import '../../../../core/widgets/app_circle_avatar.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 class CaseProgressScreen extends ConsumerWidget {
   final String caseId;
@@ -327,13 +326,13 @@ class CaseProgressScreen extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          AppCircleAvatar(
+          UserAvatar(
+            imagePath: lawyerImage,
             radius: 24,
+            name: lawyerName,
+            subtitle: loc.advocate_fallback,
             backgroundColor: AppColors.border,
-            imageUrl: lawyerImage.isNotEmpty
-                ? AppConfig.getAttachmentUrl(lawyerImage)
-                : null,
-            fallback: const Icon(Icons.person, color: AppColors.mutedText),
+            openOnTap: true,
           ),
           const SizedBox(width: 14),
           Expanded(

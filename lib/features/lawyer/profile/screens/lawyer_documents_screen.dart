@@ -10,6 +10,7 @@ import '../../../../models/document_model.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/document_provider.dart';
 import '../../../../providers/auth_provider.dart';
+import '../../../../features/documents/document_action_bar.dart';
 import '../../../../features/documents/document_actions.dart';
 import '../../../../routes/route_names.dart';
 import '../../practice/screens/lawyer_case_detail_screen.dart'
@@ -61,7 +62,7 @@ class _LawyerDocumentsScreenState extends ConsumerState<LawyerDocumentsScreen> {
     final loc = AppLocalizations.of(context)!;
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+      allowedExtensions: DocumentActions.pickerExtensions,
       withData: true,
     );
 
@@ -396,117 +397,74 @@ class _UploadTileState extends ConsumerState<_UploadTile> {
 
     return PracticeCard(
       onTap: _busy ? null : () => _actions.view(document),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-            child: Icon(
-              _mimeIcon(document.mimeType),
-              size: 16,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  // The display name, which is what a rename changes.
-                  // `originalName` never moves, so showing it meant a renamed
-                  // document still displayed its old name here while the client
-                  // screen showed the new one.
-                  document.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${document.extensionLabel} · $sizeInKb KB · '
-                  '${_formatDate(document.uploadedAt)}',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: AppColors.mutedText,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (_busy)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
+          Row(
+            children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+              child: Icon(
+                _mimeIcon(document.mimeType),
+                size: 16,
+                color: theme.colorScheme.primary,
               ),
-            )
-          else
-            PopupMenuButton<String>(
-              tooltip: 'Document actions',
-              icon: const Icon(Icons.more_vert, size: 18),
-              onSelected: (value) {
-                switch (value) {
-                  case 'view':
-                    _actions.view(document);
-                  case 'rename':
-                    _actions.rename(document);
-                  case 'replace':
-                    _actions.replace(document);
-                  case 'delete':
-                    widget.onDelete();
-                }
-              },
-              itemBuilder: (_) => [
-                const PopupMenuItem(
-                  value: 'view',
-                  child: ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.visibility_outlined),
-                    title: Text('View'),
-                  ),
-                ),
-                // Hidden rather than disabled when the document belongs to a
-                // client: the backend refuses these, and offering a button that
-                // always fails is worse than not offering it.
-                if (canModify) ...[
-                  const PopupMenuItem(
-                    value: 'rename',
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.edit_outlined),
-                      title: Text('Rename'),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    // The display name, which is what a rename changes.
+                    // `originalName` never moves, so showing it meant a renamed
+                    // document still displayed its old name here while the client
+                    // screen showed the new one.
+                    document.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
                     ),
                   ),
-                  const PopupMenuItem(
-                    value: 'replace',
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.swap_horiz),
-                      title: Text('Replace'),
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.delete_outline, color: AppColors.error),
-                      title: Text('Delete',
-                          style: TextStyle(color: AppColors.error)),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${document.extensionLabel} · $sizeInKb KB · '
+                    '${_formatDate(document.uploadedAt)}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppColors.mutedText,
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
+            if (_busy)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            ],
+          ),
+          const SizedBox(height: 6),
+          // The same action bar the client's cards use, so View, Rename,
+          // Replace and Delete read and behave identically on both sides of
+          // the app. The owner-only actions are omitted entirely when this
+          // advocate does not own the document — the server refuses those, and
+          // a button that always fails is worse than no button.
+          DocumentActionBar(
+            busy: _busy,
+            onView: () => _actions.view(document),
+            onRename: canModify ? () => _actions.rename(document) : null,
+            onReplace: canModify ? () => _actions.replace(document) : null,
+            onDelete: canModify ? widget.onDelete : null,
+          ),
         ],
       ),
     );

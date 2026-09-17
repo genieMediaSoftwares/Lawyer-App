@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/config/app_config.dart';
 import '../../../../models/case_model.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 // ─── Design tokens (matching reference image exactly) ───────────────────────
 const _bg = AppColors.primaryBackground;          // pure black background
@@ -49,12 +49,6 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
   int _match(String id) {
     const percents = [90, 85, 80, 88, 82, 86, 84, 87, 83, 81];
     return percents[id.hashCode.abs() % percents.length];
-  }
-
-  // ── resolve image URL ──────────────────────────────────────────────────────
-  ImageProvider? _img(String url) {
-    if (url.isEmpty) return null;
-    return NetworkImage(AppConfig.getAttachmentUrl(url));
   }
 
   // ── filter lists ──────────────────────────────────────────────────────────
@@ -138,7 +132,7 @@ class _LawyerLeadsScreenState extends ConsumerState<LawyerLeadsScreen>
                           lead: shown[i],
                           tab: _tab,
                           match: _match(shown[i].id),
-                          imgProvider: _img(shown[i].clientImage),
+                          clientImage: shown[i].clientImage,
                           onAccept: () => _accept(shown[i]),
                           onReject: () => _reject(shown[i]),
                           onComplete: () => _complete(shown[i]),
@@ -400,7 +394,8 @@ class _LeadCard extends StatelessWidget {
   final CaseModel lead;
   final int tab;
   final int match;
-  final ImageProvider? imgProvider;
+  /// The raw stored value; [UserAvatar] resolves it.
+  final String clientImage;
   final VoidCallback onAccept;
   final VoidCallback onReject;
   final VoidCallback onComplete;
@@ -411,7 +406,7 @@ class _LeadCard extends StatelessWidget {
     required this.lead,
     required this.tab,
     required this.match,
-    required this.imgProvider,
+    required this.clientImage,
     required this.onAccept,
     required this.onReject,
     required this.onComplete,
@@ -449,22 +444,16 @@ class _LeadCard extends StatelessWidget {
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        CircleAvatar(
+                        UserAvatar(
+                          imagePath: clientImage,
                           radius: 26,
+                          name: lead.clientName,
+                          subtitle: 'Client',
                           backgroundColor: AppColors.border,
-                          backgroundImage: imgProvider,
-                          child: imgProvider == null
-                              ? Text(
-                                  (lead.clientName.isNotEmpty
-                                      ? lead.clientName[0].toUpperCase()
-                                      : 'C'),
-                                  style: const TextStyle(
-                                    color: _gold,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
-                                  ),
-                                )
-                              : null,
+                          fallbackInitials: lead.clientName.isNotEmpty
+                              ? lead.clientName[0].toUpperCase()
+                              : 'C',
+                          openOnTap: true,
                         ),
                         if (tab == 0) ...[
                           const SizedBox(height: 6),

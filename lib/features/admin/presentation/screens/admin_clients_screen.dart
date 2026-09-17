@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/admin_provider.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 class AdminClientsScreen extends ConsumerStatefulWidget {
   const AdminClientsScreen({super.key});
@@ -111,16 +112,15 @@ class _AdminClientsScreenState extends ConsumerState<AdminClientsScreen> {
                         ),
                         child: Row(
                           children: [
-                            CircleAvatar(
+                            UserAvatar(
+                              imagePath: client.profileImage,
                               radius: 24,
+                              name: client.fullName,
                               backgroundColor: AppColors.secondaryBackground,
-                              backgroundImage: client.profileImage.isNotEmpty ? NetworkImage(client.profileImage) : null,
-                              child: client.profileImage.isEmpty
-                                  ? Text(
-                                      client.fullName.isNotEmpty ? client.fullName[0].toUpperCase() : 'C',
-                                      style: const TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold),
-                                    )
-                                  : null,
+                              fallbackInitials: client.fullName.isNotEmpty
+                                  ? client.fullName[0].toUpperCase()
+                                  : 'C',
+                              openOnTap: true,
                             ),
                             const SizedBox(width: 14),
                             Expanded(

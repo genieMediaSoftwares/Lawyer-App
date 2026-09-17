@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -64,25 +65,13 @@ class DocumentViewerScreen extends ConsumerStatefulWidget {
 
   final DocumentRecord document;
 
-  /// Case attachments carry no MIME type, so it is inferred from the extension
-  /// purely to choose a renderer. Nothing security-relevant depends on it — the
-  /// server decides what it will serve.
-  static String _guessMime(String name) {
-    final lower = name.toLowerCase();
-    if (lower.endsWith('.pdf')) return 'application/pdf';
-    if (lower.endsWith('.png')) return 'image/png';
-    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
-    if (lower.endsWith('.webp')) return 'image/webp';
-    if (lower.endsWith('.gif')) return 'image/gif';
-    if (lower.endsWith('.txt')) return 'text/plain';
-    if (lower.endsWith('.csv')) return 'text/csv';
-    if (lower.endsWith('.md')) return 'text/markdown';
-    if (lower.endsWith('.docx')) {
-      return 'application/vnd.openxmlformats-officedocument'
-          '.wordprocessingml.document';
-    }
-    return '';
-  }
+  /// Case attachments carry no MIME type, so it is inferred from the
+  /// extension purely to choose a renderer. Nothing security-relevant depends
+  /// on it — the server decides what it will serve.
+  ///
+  /// Delegates to [DocumentRecord.mimeTypeForName] so there is one extension
+  /// table in the app rather than one here and another in the record.
+  static String _guessMime(String name) => DocumentRecord.mimeTypeForName(name);
 
   @override
   ConsumerState<DocumentViewerScreen> createState() =>
@@ -245,7 +234,15 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
 
     if (doc.isPdf) return _buildPdf(bytes, theme);
     if (doc.isImage) return _buildImage(bytes, doc.name);
-    return _buildText(bytes);
+    if (doc.isText) return _buildText(bytes);
+
+    // Anything else reaching here has bytes we have no renderer for — a .docx
+    // opened by path (no document id, so the server-side conversion endpoint
+    // is not addressable), or a legacy binary .doc. This used to fall through
+    // to _buildText, which spelled the file's raw bytes out as characters and
+    // filled the screen with mojibake. An honest "cannot preview" with a way
+    // to open it elsewhere is better than pretending to have rendered it.
+    return _NoRendererAvailable(document: doc);
   }
 
   Widget _buildPdf(Uint8List bytes, ThemeData theme) {
@@ -306,10 +303,21 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
   }
 
   Widget _buildText(Uint8List bytes) {
+    // Decoded as UTF-8, which is what the files actually are.
+    //
+    // `String.fromCharCodes` reads each BYTE as a code unit, so it is only
+    // correct for pure ASCII. Every multi-byte character came out as two or
+    // three Latin-1 letters: a Telugu or Hindi note — and this app takes case
+    // descriptions in both — was unreadable, and so was any English document
+    // containing a rupee sign, a curly quote or an accented name.
+    //
+    // `allowMalformed` keeps a file that is not valid UTF-8 (a Windows-1252
+    // export, say) rendering with replacement characters instead of throwing
+    // and showing an error page for a document that is mostly readable.
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: SelectableText(
-        String.fromCharCodes(bytes),
+        utf8.decode(bytes, allowMalformed: true),
         style: const TextStyle(fontSize: 13, height: 1.5),
       ),
     );

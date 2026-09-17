@@ -7,6 +7,7 @@ import '../../../client/documents/screens/document_viewer_screen.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/user_avatar.dart';
 import '../../../../models/case_model.dart';
 import '../../../../models/case_note_model.dart';
 import '../../../../models/document_model.dart';
@@ -307,17 +308,15 @@ class _ClientSection extends StatelessWidget {
                 ),
           child: Row(
             children: [
-              CircleAvatar(
+              UserAvatar(
+                imagePath: caseItem.clientImage,
                 radius: 20,
+                name: caseItem.clientName,
+                subtitle: 'Client',
                 backgroundColor: theme.colorScheme.surface,
-                backgroundImage: caseItem.clientImage.isNotEmpty
-                    ? NetworkImage(
-                        AppConfig.getAttachmentUrl(caseItem.clientImage),
-                      )
-                    : null,
-                child: caseItem.clientImage.isEmpty
-                    ? const Icon(Icons.person, size: 20)
-                    : null,
+                // Opens the photo; the row's own tap still opens the client.
+                openOnTap: true,
+                heroTag: 'case-client-avatar-${caseItem.id}',
               ),
               const SizedBox(width: 12),
               Expanded(

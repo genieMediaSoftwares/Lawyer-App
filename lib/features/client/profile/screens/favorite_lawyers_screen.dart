@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/favorite_provider.dart';
-import '../../../../core/config/app_config.dart';
-import '../../../../core/widgets/app_circle_avatar.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 class FavoriteLawyersScreen extends ConsumerStatefulWidget {
   const FavoriteLawyersScreen({super.key});
@@ -105,12 +104,11 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                AppCircleAvatar(
+                UserAvatar(
+                  imagePath: fav.lawyerImage,
                   radius: 26,
-                  imageUrl: fav.lawyerImage.isNotEmpty
-                      ? AppConfig.getAttachmentUrl(fav.lawyerImage)
-                      : null,
-                  fallback: const Icon(Icons.person),
+                  name: fav.lawyerName,
+                  openOnTap: true,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -206,12 +204,11 @@ class _FavoriteLawyersScreenState extends ConsumerState<FavoriteLawyersScreen> {
                 Stack(
                   alignment: Alignment.topRight,
                   children: [
-                    AppCircleAvatar(
+                    UserAvatar(
+                      imagePath: fav.lawyerImage,
                       radius: 28,
-                      imageUrl: fav.lawyerImage.isNotEmpty
-                          ? AppConfig.getAttachmentUrl(fav.lawyerImage)
-                          : null,
-                      fallback: const Icon(Icons.person),
+                      name: fav.lawyerName,
+                      openOnTap: true,
                     ),
                     Positioned(
                       right: -10,

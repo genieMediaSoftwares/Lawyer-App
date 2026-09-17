@@ -5,8 +5,8 @@ import '../../../../providers/lawyer_provider.dart';
 import '../../../../providers/faq_provider.dart';
 import '../../../../routes/route_names.dart';
 import '../../../../core/config/app_config.dart';
-import '../../../../core/widgets/app_circle_avatar.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 class CategoryDetailScreen extends ConsumerStatefulWidget {
   final String categoryName;
@@ -192,10 +192,11 @@ class _CategoryDetailScreenState extends ConsumerState<CategoryDetailScreen> {
                                 padding: const EdgeInsets.all(12),
                                 child: Row(
                                   children: [
-                                    AppCircleAvatar(
+                                    UserAvatar(
+                                      imagePath: lawyer.profileImage,
                                       radius: 26,
-                                      imageUrl: lawyer.profileImage.isNotEmpty ? AppConfig.getAttachmentUrl(lawyer.profileImage) : null,
-                                      fallback: const Icon(Icons.person),
+                                      name: lawyer.fullName,
+                                      openOnTap: true,
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(

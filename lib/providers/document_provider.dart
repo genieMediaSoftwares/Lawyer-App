@@ -117,10 +117,75 @@ class DocumentRecord {
     return name.substring(dot + 1).toUpperCase();
   }
 
-  bool get isImage => mimeType.startsWith('image/');
-  bool get isPdf => mimeType == 'application/pdf';
-  bool get isText => mimeType.startsWith('text/');
-  bool get isAudio => mimeType.startsWith('audio/');
+  /// The MIME type a filename implies, or '' when the extension is unknown.
+  ///
+  /// The single place a file extension is turned into a type, so the list
+  /// cannot drift between the viewer, the card icons and the filters.
+  static String mimeTypeForName(String name) {
+    final dot = name.lastIndexOf('.');
+    if (dot < 0 || dot == name.length - 1) return '';
+    switch (name.substring(dot + 1).toLowerCase()) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'png':
+        return 'image/png';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'webp':
+        return 'image/webp';
+      case 'gif':
+        return 'image/gif';
+      case 'txt':
+        return 'text/plain';
+      case 'csv':
+        return 'text/csv';
+      case 'md':
+        return 'text/markdown';
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument'
+            '.wordprocessingml.document';
+      case 'doc':
+        return 'application/msword';
+      case 'mp3':
+        return 'audio/mpeg';
+      case 'wav':
+        return 'audio/wav';
+      case 'm4a':
+        return 'audio/mp4';
+      case 'ogg':
+        return 'audio/ogg';
+      case 'aac':
+        return 'audio/aac';
+      default:
+        return '';
+    }
+  }
+
+  /// The stored MIME type, or the one the filename implies when the stored one
+  /// says nothing useful.
+  ///
+  /// `mimeType` comes from whatever the uploading device reported. Android's
+  /// file picker frequently reports `application/octet-stream` for a perfectly
+  /// ordinary PDF, and case attachments carry no MIME type at all. Trusting it
+  /// alone meant such a document failed every `isPdf`/`isImage` check and was
+  /// shown as "cannot preview" — or, worse, spelled out as text — while its
+  /// name said `.pdf` the whole time.
+  String get effectiveMimeType {
+    final stored = mimeType.trim().toLowerCase();
+    if (stored.isNotEmpty &&
+        stored != 'application/octet-stream' &&
+        stored != 'binary/octet-stream') {
+      return stored;
+    }
+    final guessed = mimeTypeForName(name);
+    return guessed.isNotEmpty ? guessed : stored;
+  }
+
+  bool get isImage => effectiveMimeType.startsWith('image/');
+  bool get isPdf => effectiveMimeType == 'application/pdf';
+  bool get isText => effectiveMimeType.startsWith('text/');
+  bool get isAudio => effectiveMimeType.startsWith('audio/');
 
   /// True when the stored bytes are renderable as-is: PDF through pdfrx,
   /// images and text natively.
@@ -131,7 +196,7 @@ class DocumentRecord {
   /// .docx only. The legacy binary .doc is a different format entirely and has
   /// no converter here, so it falls through to the download fallback.
   bool get canPreviewViaConversion =>
-      mimeType ==
+      effectiveMimeType ==
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
       name.toLowerCase().endsWith('.docx');
 

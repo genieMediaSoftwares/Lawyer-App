@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/config/app_config.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/case_provider.dart';
 import '../../../../providers/lawyer_client_provider.dart';
 import '../../../../routes/route_names.dart';
 import '../widgets/practice_widgets.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 /// The advocate's client roster, client-first rather than case-first.
 ///
@@ -149,15 +149,15 @@ class _ClientCard extends StatelessWidget {
           context.push(RouteNames.lawyerClientDetailPath(client.id)),
       child: Row(
         children: [
-          CircleAvatar(
+          UserAvatar(
+            imagePath: client.profileImage,
             radius: 22,
+            name: client.fullName,
+            subtitle: 'Client',
             backgroundColor: theme.colorScheme.surface,
-            backgroundImage: client.profileImage.isNotEmpty
-                ? NetworkImage(AppConfig.getAttachmentUrl(client.profileImage))
-                : null,
-            child: client.profileImage.isEmpty
-                ? const Icon(Icons.person, size: 22)
-                : null,
+            // Tapping the picture opens the picture; tapping the rest of the
+            // row still opens the client, as it always did.
+            openOnTap: true,
           ),
           const SizedBox(width: 12),
           Expanded(

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:law/core/config/fallback_config.dart';
 import 'package:law/core/network/dio_client.dart';
 
@@ -32,6 +33,17 @@ import 'package:law/core/network/dio_client.dart';
 /// framework reports a pending timer after teardown. The shared Dio instance
 /// gets an adapter that refuses everything locally instead.
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
+  // The theme's text styles come from google_fonts. The binding has to exist
+  // before anything touches it, or building a ThemeData throws before the
+  // first test runs.
+  //
+  // Runtime fetching is deliberately left ON: this project bundles no font
+  // assets, so google_fonts downloads Inter at run time. With fetching
+  // disabled it throws for the missing asset; left enabled it attempts a
+  // request, the test HTTP override refuses it, and google_fonts falls back to
+  // the platform font — a warning on stderr, and the metrics a test needs.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   final envFile = File('.env');
   dotenv.loadFromString(
     envString: envFile.existsSync() ? envFile.readAsStringSync() : '',

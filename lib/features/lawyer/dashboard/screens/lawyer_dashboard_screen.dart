@@ -6,9 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../practice/screens/lawyer_case_detail_screen.dart'
     show openPracticeDocument;
 
-import '../../../../core/config/app_config.dart';
 import '../../../../core/localization/app_localizations.dart';
-import '../../../../core/widgets/app_circle_avatar.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/case_provider.dart';
@@ -27,6 +25,7 @@ import '../../profile/screens/lawyer_profile_screen.dart';
 import '../../../../routes/route_names.dart';
 import 'lawyer_notifications_screen.dart';
 import '../../leads/screens/lawyer_leads_screen.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 class LawyerDashboardScreen extends ConsumerStatefulWidget {
   final int initialTab;
@@ -776,13 +775,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.primaryGold, width: 2),
                   ),
-                  child: AppCircleAvatar(
+                  child: UserAvatar(
+                    imagePath: authState.userPhotoUrl,
                     radius: 28,
+                    name: authState.userName,
                     backgroundColor: AppColors.surface,
-                    imageUrl: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
-                        ? AppConfig.getAttachmentUrl(authState.userPhotoUrl)
-                        : null,
-                    fallback: const Icon(Icons.person, color: AppColors.primaryText, size: 28),
+                    fallbackIcon: Icons.person,
+                    openOnTap: true,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -823,13 +822,13 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.primaryGold, width: 2),
                   ),
-                  child: AppCircleAvatar(
+                  child: UserAvatar(
+                    imagePath: authState.userPhotoUrl,
                     radius: 28,
+                    name: authState.userName,
                     backgroundColor: AppColors.surface,
-                    imageUrl: authState.userPhotoUrl != null && authState.userPhotoUrl!.isNotEmpty
-                        ? AppConfig.getAttachmentUrl(authState.userPhotoUrl)
-                        : null,
-                    fallback: const Icon(Icons.person, color: AppColors.primaryText, size: 28),
+                    fallbackIcon: Icons.person,
+                    openOnTap: true,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -1432,13 +1431,21 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
+                      // Was `NetworkImage(clientCase.clientImage)` — the raw
+                      // stored value, handed straight to the loader with no
+                      // resolution at all. A profile recorded as a relative
+                      // `/uploads/profiles/...` path is not a URL, and one
+                      // recorded on a developer's machine still names
+                      // localhost, so neither could ever load; CircleAvatar has
+                      // no error builder, so the failure showed as an empty
+                      // grey circle rather than the person's initials.
+                      UserAvatar(
+                        imagePath: clientCase.clientImage,
                         radius: 20,
+                        name: clientCase.clientName,
+                        subtitle: 'Client',
                         backgroundColor: AppColors.surface,
-                        backgroundImage: clientCase.clientImage.isNotEmpty
-                            ? NetworkImage(clientCase.clientImage)
-                            : null,
-                        child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: AppColors.primaryText, size: 20) : null,
+                        openOnTap: true,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -1590,13 +1597,21 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
+                      // Was `NetworkImage(clientCase.clientImage)` — the raw
+                      // stored value, handed straight to the loader with no
+                      // resolution at all. A profile recorded as a relative
+                      // `/uploads/profiles/...` path is not a URL, and one
+                      // recorded on a developer's machine still names
+                      // localhost, so neither could ever load; CircleAvatar has
+                      // no error builder, so the failure showed as an empty
+                      // grey circle rather than the person's initials.
+                      UserAvatar(
+                        imagePath: clientCase.clientImage,
                         radius: 20,
+                        name: clientCase.clientName,
+                        subtitle: 'Client',
                         backgroundColor: AppColors.surface,
-                        backgroundImage: clientCase.clientImage.isNotEmpty
-                            ? NetworkImage(clientCase.clientImage)
-                            : null,
-                        child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: AppColors.primaryText, size: 20) : null,
+                        openOnTap: true,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -1779,13 +1794,21 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
+                      // Was `NetworkImage(clientCase.clientImage)` — the raw
+                      // stored value, handed straight to the loader with no
+                      // resolution at all. A profile recorded as a relative
+                      // `/uploads/profiles/...` path is not a URL, and one
+                      // recorded on a developer's machine still names
+                      // localhost, so neither could ever load; CircleAvatar has
+                      // no error builder, so the failure showed as an empty
+                      // grey circle rather than the person's initials.
+                      UserAvatar(
+                        imagePath: clientCase.clientImage,
                         radius: 20,
+                        name: clientCase.clientName,
+                        subtitle: 'Client',
                         backgroundColor: AppColors.surface,
-                        backgroundImage: clientCase.clientImage.isNotEmpty
-                            ? NetworkImage(clientCase.clientImage)
-                            : null,
-                        child: clientCase.clientImage.isEmpty ? const Icon(Icons.person, color: AppColors.primaryText, size: 20) : null,
+                        openOnTap: true,
                       ),
                       const SizedBox(width: 12),
                       Expanded(

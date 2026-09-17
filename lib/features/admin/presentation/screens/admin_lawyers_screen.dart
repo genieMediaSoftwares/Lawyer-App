@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/admin_provider.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 class AdminLawyersScreen extends ConsumerStatefulWidget {
   const AdminLawyersScreen({super.key});
@@ -187,16 +188,15 @@ class _AdminLawyersScreenState extends ConsumerState<AdminLawyersScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            CircleAvatar(
+                            UserAvatar(
+                              imagePath: lawyer.profileImage,
                               radius: 26,
+                              name: lawyer.fullName,
                               backgroundColor: AppColors.secondaryBackground,
-                              backgroundImage: lawyer.profileImage.isNotEmpty ? NetworkImage(lawyer.profileImage) : null,
-                              child: lawyer.profileImage.isEmpty
-                                  ? Text(
-                                      lawyer.fullName.isNotEmpty ? lawyer.fullName[0].toUpperCase() : 'L',
-                                      style: const TextStyle(color: AppColors.primaryGold, fontWeight: FontWeight.bold),
-                                    )
-                                  : null,
+                              fallbackInitials: lawyer.fullName.isNotEmpty
+                                  ? lawyer.fullName[0].toUpperCase()
+                                  : 'L',
+                              openOnTap: true,
                             ),
                             const SizedBox(width: 14),
                             Expanded(

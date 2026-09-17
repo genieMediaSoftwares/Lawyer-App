@@ -27,7 +27,7 @@ import '../../ai_smart_case/models/ai_smart_case_models.dart';
 import '../../ai_smart_case/providers/ai_smart_case_provider.dart';
 import '../../../../models/lawyer_model.dart';
 import '../../../../providers/lawyer_provider.dart';
-import '../../../../core/widgets/app_circle_avatar.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 class PostCaseScreen extends ConsumerStatefulWidget {
   final String? preselectedCategoryId;
@@ -2644,14 +2644,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
             ),
             child: Row(
               children: [
-                AppCircleAvatar(
+                UserAvatar(
+                  imagePath: _selectedLawyerModel!.profileImage,
                   radius: 28,
-                  imageUrl: _selectedLawyerModel!.profileImage.isNotEmpty
-                      ? AppConfig.getAttachmentUrl(
-                          _selectedLawyerModel!.profileImage,
-                        )
-                      : null,
-                  fallback: const Icon(Icons.person, color: Colors.grey),
+                  name: _selectedLawyerModel!.fullName,
+                  openOnTap: true,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -3416,12 +3413,11 @@ class _PostCaseScreenState extends ConsumerState<PostCaseScreen> {
                   ),
                   Row(
                     children: [
-                      AppCircleAvatar(
+                      UserAvatar(
+                        imagePath: lawyer.profileImage,
                         radius: 40,
-                        imageUrl: lawyer.profileImage.isNotEmpty
-                            ? AppConfig.getAttachmentUrl(lawyer.profileImage)
-                            : null,
-                        fallback: const Icon(Icons.person, size: 40, color: Colors.grey),
+                        name: lawyer.fullName,
+                        openOnTap: true,
                       ),
                       const SizedBox(width: 16),
                       Expanded(

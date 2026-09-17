@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../providers/document_provider.dart';
+import '../../../documents/document_action_bar.dart';
 import '../../../documents/document_actions.dart';
 import 'document_viewer_screen.dart';
 
@@ -67,7 +68,7 @@ class _MyDocumentsScreenState extends ConsumerState<MyDocumentsScreen> {
     }
   }
 
-  static const _pickerExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
+  List<String> get _pickerExtensions => DocumentActions.pickerExtensions;
 
   // ── operations ───────────────────────────────────────────────────────────
 
@@ -612,114 +613,17 @@ class _DocumentCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  _CardAction(
-                    icon: Icons.visibility_outlined,
-                    label: 'View',
-                    onPressed: busy ? null : onOpen,
-                  ),
-                  _CardAction(
-                    icon: Icons.edit_outlined,
-                    label: 'Rename',
-                    onPressed: busy ? null : onRename,
-                  ),
-                  _CardAction(
-                    icon: Icons.swap_horiz,
-                    label: 'Replace',
-                    onPressed: busy ? null : onReplace,
-                  ),
-                  const Spacer(),
-                  PopupMenuButton<String>(
-                    tooltip: 'More actions',
-                    enabled: !busy,
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'view':
-                          onOpen();
-                        case 'rename':
-                          onRename();
-                        case 'replace':
-                          onReplace();
-                        case 'delete':
-                          onDelete();
-                      }
-                    },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(
-                        value: 'view',
-                        child: ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(Icons.visibility_outlined),
-                          title: Text('View'),
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'rename',
-                        child: ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(Icons.edit_outlined),
-                          title: Text('Rename'),
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'replace',
-                        child: ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(Icons.swap_horiz),
-                          title: Text('Replace'),
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(Icons.delete_outline, color: AppColors.error),
-                          title: Text('Delete',
-                              style: TextStyle(color: AppColors.error)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              // Wraps onto a second line rather than clipping. See
+              // [DocumentActionBar] for what this replaced and why.
+              DocumentActionBar(
+                busy: busy,
+                onView: onOpen,
+                onRename: onRename,
+                onReplace: onReplace,
+                onDelete: onDelete,
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A card action sized for a thumb, with the label announced to screen readers.
-class _CardAction extends StatelessWidget {
-  const _CardAction({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: '$label document',
-      child: TextButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 17),
-        label: Text(label, style: const TextStyle(fontSize: 12)),
-        style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          minimumSize: const Size(0, 40), // stays tappable
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
       ),
     );

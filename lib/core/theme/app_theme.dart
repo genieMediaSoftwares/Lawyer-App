@@ -4,6 +4,7 @@ import 'app_text_theme.dart';
 import 'app_button_theme.dart';
 import 'app_input_theme.dart';
 import 'app_card_theme.dart';
+import 'app_chip_theme.dart';
 import 'theme_extensions.dart';
 
 class AppTheme {
@@ -86,22 +87,10 @@ class AppTheme {
         subtitleTextStyle: TextStyle(color: AppColors.mutedText, fontSize: 13),
       ),
 
-      // Chip Theme
-      chipTheme: ChipThemeData(
-        backgroundColor: AppColors.secondaryBackground,
-        disabledColor: Colors.transparent,
-        selectedColor: AppColors.primaryGold,
-        secondarySelectedColor: AppColors.primaryGold,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        labelStyle: const TextStyle(color: AppColors.primaryGold, fontSize: 13, fontWeight: FontWeight.w500),
-        secondaryLabelStyle: const TextStyle(color: AppColors.onGold, fontSize: 13, fontWeight: FontWeight.w600),
-        brightness: Brightness.dark,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppColors.primaryGold, width: 0.8),
-        ),
-        showCheckmark: false,
-      ),
+      // Chips and overflow menus. See AppChipTheme for why the chip label is a
+      // state-resolved colour rather than a plain one.
+      chipTheme: AppChipTheme.chipTheme,
+      popupMenuTheme: AppChipTheme.popupMenuTheme,
 
       // Divider Theme
       dividerTheme: const DividerThemeData(

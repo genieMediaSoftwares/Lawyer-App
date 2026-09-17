@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/config/app_config.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../models/chat_model.dart';
-import '../../../../core/widgets/app_circle_avatar.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
@@ -289,17 +288,15 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                AppCircleAvatar(
+                                UserAvatar(
+                                  imagePath: otherParticipant.profileImage,
                                   radius: 26,
+                                  name: otherParticipant.fullName,
                                   backgroundColor:
                                       AppColors.secondaryBackground,
-                                  imageUrl: otherParticipant
-                                          .profileImage.isNotEmpty
-                                      ? AppConfig.getAttachmentUrl(
-                                          otherParticipant.profileImage)
-                                      : null,
-                                  fallback: const Icon(Icons.person,
-                                      color: AppColors.primaryGold),
+                                  // As in WhatsApp: the picture opens the
+                                  // picture, the row opens the conversation.
+                                  openOnTap: true,
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(

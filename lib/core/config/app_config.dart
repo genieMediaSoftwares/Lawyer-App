@@ -386,6 +386,21 @@ class AppConfig {
   static List<String> get aiPickerExtensions =>
       _csvList('AI_UPLOAD_PICKER_EXTENSIONS');
 
+  /// Extensions offered when picking a file for the Documents section, on
+  /// either side of the app.
+  ///
+  /// Mirrors EXTENSION_BY_MIME in `backend/src/middleware/upload.middleware.js`
+  /// — a type the server will refuse has no business being offered. Three
+  /// screens each carried their own hardcoded copy reading
+  /// `['pdf','doc','docx','jpg','jpeg','png']`, which was wrong in both
+  /// directions: it offered `.doc`, which the backend deliberately rejects (a
+  /// pre-2007 binary format it cannot read), so picking one produced an upload
+  /// that always failed; and it omitted `.txt`, `.csv`, `.md` and `.webp`,
+  /// which the backend accepts and the in-app viewer can display — so a plain
+  /// text file could not be added through the UI at all.
+  static List<String> get documentPickerExtensions =>
+      _csvList('DOCUMENT_PICKER_EXTENSIONS');
+
   /// Poll cadence while the socket is down — the path that has to keep the
   /// screen moving, so the tighter of the two.
   static Duration get aiPollIntervalDisconnected =>
@@ -537,6 +552,7 @@ class AppConfig {
     () => aiMaxFileCount,
     () => aiAllowedUploadExtensions,
     () => aiPickerExtensions,
+    () => documentPickerExtensions,
     () => aiPollIntervalDisconnected,
     () => aiPollIntervalConnected,
     () => aiPollBackoffMax,

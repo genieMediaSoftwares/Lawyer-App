@@ -12,8 +12,7 @@ import '../../../../core/widgets/app_drawer.dart';
 import '../../post_case/widgets/premium_audio_player.dart';
 import '../../../../providers/chat_provider.dart';
 import '../../../../providers/notification_provider.dart';
-import '../../../../core/config/app_config.dart';
-import '../../../../core/widgets/app_circle_avatar.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
 class MyCasesScreen extends ConsumerStatefulWidget {
   const MyCasesScreen({super.key});
@@ -475,13 +474,12 @@ class _MyCasesScreenState extends ConsumerState<MyCasesScreen>
         Stack(
           clipBehavior: Clip.none,
           children: [
-            AppCircleAvatar(
+            UserAvatar(
+              imagePath: lawyerImage,
               radius: 18,
+              name: lawyerName,
               backgroundColor: AppColors.border,
-              imageUrl: lawyerImage.isNotEmpty
-                  ? AppConfig.getAttachmentUrl(lawyerImage)
-                  : null,
-              fallback: const Icon(Icons.person, size: 18, color: AppColors.mutedText),
+              openOnTap: true,
             ),
             if (isOnline)
               Positioned(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/document_provider.dart';
 import '../client/documents/screens/document_viewer_screen.dart';
@@ -35,7 +36,14 @@ class DocumentActions {
   /// caller can disable the card's buttons and show a spinner.
   final void Function(bool busy) onBusyChanged;
 
-  static const pickerExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
+  /// Offered in the system file picker.
+  ///
+  /// Read from configuration rather than written here, so this list and the
+  /// server's allowlist are changed in one place. See
+  /// [AppConfig.documentPickerExtensions] for what the hardcoded list got
+  /// wrong.
+  static List<String> get pickerExtensions =>
+      AppConfig.documentPickerExtensions;
 
   /// Whether [userId] may rename, replace or delete [document].
   ///
