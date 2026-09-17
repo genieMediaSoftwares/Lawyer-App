@@ -1,3 +1,332 @@
+# name: Deploy Backend
+
+# # Backend only. This repository also holds the Flutter app; nothing here builds,
+# # tests or ships it.
+# on:
+#   push:
+#     branches: [main]
+#     paths:
+#       # Restricted to the backend so a Flutter-only commit does not restart
+#       # production for no reason. Delete this `paths:` block if you would rather
+#       # every push to main deploy.
+#       - 'backend/**'
+#       - '.github/workflows/deploy-backend.yml'
+#   workflow_dispatch:
+
+# # One deployment at a time against the production directory. `cancel-in-progress`
+# # is deliberately false: cancelling a run midway could leave EC2 between
+# # `git reset` and `pm2 restart` — code updated, process still on the old build.
+# # A second push queues behind the first instead.
+# concurrency:
+#   group: production-backend
+#   cancel-in-progress: false
+
+# # The job only needs to read the repo metadata; it never pushes.
+# permissions:
+#   contents: read
+
+# jobs:
+#   deploy:
+#     name: Deploy to EC2
+#     runs-on: ubuntu-latest
+#     # Belt and braces alongside the branch filter above, so a fork or a manual
+#     # run from another ref cannot touch production.
+#     if: github.ref == 'refs/heads/main'
+
+#     steps:
+#       # No actions/checkout: EC2 pulls from GitHub itself, so the runner never
+#       # needs the source. Nothing is copied from runner to server.
+#       - name: Configure SSH
+#         env:
+#           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+#           EC2_HOST: ${{ secrets.EC2_HOST }}
+#           EC2_PORT: ${{ secrets.EC2_PORT }}
+#           EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+#         run: |
+#           set -euo pipefail
+
+#           mkdir -p ~/.ssh
+#           chmod 700 ~/.ssh
+
+#           # Written straight from the secret to a 600 file. It is never echoed,
+#           # never interpolated into a command line, and the runner is destroyed
+#           # after the job.
+#           printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/deploy_key
+#           chmod 600 ~/.ssh/deploy_key
+
+#           PORT="${EC2_PORT:-22}"
+
+#           if [ -n "${EC2_KNOWN_HOSTS:-}" ]; then
+#             # Pinned host key: the server's identity is verified against a value
+#             # you captured yourself, so a redirected connection is refused.
+#             printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
+#           else
+#             # Trust-on-first-use. Works, but the first handshake is unverified —
+#             # set the EC2_KNOWN_HOSTS secret to close that gap. See the runbook.
+#             echo "::warning::EC2_KNOWN_HOSTS is not set; falling back to ssh-keyscan (host key unverified)."
+#             ssh-keyscan -p "$PORT" -H "$EC2_HOST" > ~/.ssh/known_hosts 2>/dev/null
+#           fi
+
+#           chmod 600 ~/.ssh/known_hosts
+
+#       - name: Deploy backend and restart PM2
+#         env:
+#           EC2_HOST: ${{ secrets.EC2_HOST }}
+#           EC2_USER: ${{ secrets.EC2_USER }}
+#           EC2_PORT: ${{ secrets.EC2_PORT }}
+#           # Not a secret — the port the app listens on, used only for the local
+#           # health probe. Set the repository variable to override the default.
+#           BACKEND_PORT: ${{ vars.BACKEND_PORT }}
+#           # The commit this run is deploying. The server proves it is on exactly
+#           # this tree before installing anything.
+#           GITHUB_SHA: ${{ github.sha }}
+#         run: |
+#           set -euo pipefail
+
+#           ssh -i ~/.ssh/deploy_key \
+#               -p "${EC2_PORT:-22}" \
+#               -o BatchMode=yes \
+#               -o ConnectTimeout=20 \
+#               "$EC2_USER@$EC2_HOST" \
+#               "BACKEND_PORT='${BACKEND_PORT:-5000}' EXPECTED_SHA='${GITHUB_SHA}' bash -s" <<'REMOTE'
+#           set -euo pipefail
+
+#           APP_DIR="$HOME/Lawyer-App"
+#           BACKEND_DIR="$APP_DIR/backend"
+#           PM2_NAME="lawyer-backend"
+
+#           echo "::group::Environment"
+#           echo "node    $(node --version)"
+#           echo "npm     $(npm --version)"
+#           echo "pm2     $(pm2 --version 2>/dev/null || echo 'not found')"
+#           echo "dir     $APP_DIR"
+#           echo "::endgroup::"
+
+#           cd "$APP_DIR"
+
+#           echo "::group::Working tree before deploy"
+#           # Recorded, not silently discarded. Tracked files modified on the
+#           # server are about to be overwritten by origin/main — most often
+#           # backend/package-lock.json, rewritten by an `npm install` run by hand.
+#           # If anything here matters, stop the workflow and rescue it.
+#           if [ -n "$(git status --porcelain)" ]; then
+#             echo "Local modifications that the reset below will discard:"
+#             git status --porcelain
+#           else
+#             echo "working tree clean"
+#           fi
+#           echo "Currently deployed: $(git rev-parse --short HEAD)"
+#           echo "::endgroup::"
+
+#           echo "::group::Fetch and reset to origin/main"
+#           git fetch origin main
+#           # Deterministic: the server matches origin/main exactly, whatever state
+#           # it was left in.
+#           #
+#           # `git clean` is deliberately NOT run here. reset --hard only touches
+#           # TRACKED files, so backend/.env and backend/uploads/ — both untracked
+#           # and gitignored — are left alone. `git clean -fd` would delete every
+#           # uploaded document and the production .env.
+#           git reset --hard origin/main
+#           echo "Now deployed:      $(git rev-parse --short HEAD)"
+#           echo "::endgroup::"
+
+#           echo "::group::Prove the checkout matches the commit being deployed"
+#           # `npm ci` failed here with "Missing: gcp-metadata@5.3.0 ..." while the
+#           # SAME commit installed cleanly on a developer machine. Those versions
+#           # belong to google-auth-library v8, which the committed lockfile does
+#           # not contain — it resolves googleapis 173 to google-auth-library 10.
+#           # So npm was reading a manifest that is not the committed one, and the
+#           # checks below say which.
+#           ACTUAL_SHA="$(git rev-parse HEAD)"
+#           echo "expected commit: ${EXPECTED_SHA:-<not provided>}"
+#           echo "actual commit:   $ACTUAL_SHA"
+
+#           if [ -n "${EXPECTED_SHA:-}" ] && [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+#             echo "ERROR: the checkout is not the commit being deployed."
+#             echo "  Check that this clone's origin is genieMediaSoftwares/Lawyer-App:"
+#             git remote -v
+#             exit 1
+#           fi
+
+#           # Tracked files must match HEAD exactly. A modified package.json or
+#           # lockfile here is the whole problem, and reset --hard should have
+#           # already removed it — if this fires, something rewrites them after.
+#           if ! git diff --exit-code HEAD -- backend/package.json backend/package-lock.json; then
+#             echo "ERROR: backend dependency files differ from the commit."
+#             exit 1
+#           fi
+
+#           echo "working tree:"
+#           git status --short || true
+
+#           echo "checksums (must match the committed files):"
+#           sha256sum backend/package.json backend/package-lock.json
+#           echo "::endgroup::"
+
+#           echo "::group::npm manifest interference check"
+#           # Files that override the committed lockfile AND survive
+#           # `git reset --hard`, because reset only touches TRACKED files.
+#           #
+#           # npm-shrinkwrap.json is the dangerous one: npm gives it precedence
+#           # over package-lock.json, so a leftover from an older dependency tree
+#           # silently replaces the lockfile this repo ships — which produces
+#           # exactly the "Missing: <old versions> from lock file" failure seen
+#           # here, on a checkout that is otherwise byte-identical to the commit.
+#           SHRINKWRAP="$BACKEND_DIR/npm-shrinkwrap.json"
+#           if [ -f "$SHRINKWRAP" ]; then
+#             echo "ERROR: $SHRINKWRAP exists and overrides the committed package-lock.json."
+#             echo "  It is untracked, so 'git reset --hard' does not remove it."
+#             echo "  It is not part of this repository — remove it once and redeploy:"
+#             echo "      rm '$SHRINKWRAP'"
+#             exit 1
+#           fi
+#           echo "npm-shrinkwrap.json: absent (good)"
+
+#           for RC in "$BACKEND_DIR/.npmrc" "$APP_DIR/.npmrc" "$HOME/.npmrc"; do
+#             if [ -f "$RC" ]; then
+#               # Registry/auth lines can carry tokens, so only the keys are shown.
+#               echo "note: $RC present — keys: $(sed -n 's/^\([A-Za-z0-9_@:/-]*\)=.*/\1/p' "$RC" | tr '\n' ' ')"
+#             fi
+#           done
+
+#           NPM_ENV="$(env | grep '^NPM_CONFIG_' | sed 's/=.*/=<redacted>/' || true)"
+#           if [ -n "$NPM_ENV" ]; then
+#             echo "note: NPM_CONFIG_* environment overrides are set:"
+#             echo "$NPM_ENV"
+#           else
+#             echo "NPM_CONFIG_* overrides: none"
+#           fi
+#           echo "::endgroup::"
+
+#           cd "$BACKEND_DIR"
+
+#           echo "::group::Verify production configuration survived"
+#           if [ ! -f .env ]; then
+#             echo "ERROR: $BACKEND_DIR/.env is missing. Refusing to restart with no configuration."
+#             exit 1
+#           fi
+#           echo ".env present ($(wc -c < .env) bytes)"   # size only, never content
+#           echo "::endgroup::"
+
+#           echo "::group::Toolchain"
+#           echo "node    $(node --version)"
+#           echo "npm     $(npm --version)"
+
+#           # package.json declares engines.node 22.x. A different major resolves
+#           # optional/peer trees differently and is worth seeing in the log
+#           # rather than inferring later.
+#           NODE_MAJOR="$(node --version | sed 's/^v\([0-9]*\).*/\1/')"
+#           REQUIRED_MAJOR="$(node -p "require('$BACKEND_DIR/package.json').engines.node.replace(/[^0-9].*$/, '')" 2>/dev/null || echo 22)"
+#           if [ "$NODE_MAJOR" != "$REQUIRED_MAJOR" ]; then
+#             echo "::warning::EC2 is running Node ${NODE_MAJOR}.x but package.json requires ${REQUIRED_MAJOR}.x. Install Node ${REQUIRED_MAJOR} on the server so production matches what is tested."
+#           fi
+
+#           echo "package-lock     $(npm config get package-lock)"
+#           echo "legacy-peer-deps $(npm config get legacy-peer-deps)"
+#           echo "install-strategy $(npm config get install-strategy)"
+#           echo "::endgroup::"
+
+#           echo "::group::Install dependencies"
+#           # `npm ci` installs exactly the committed lockfile and fails if
+#           # package.json and the lockfile disagree — so the lockfile from GitHub
+#           # is the source of truth, and nothing here rewrites it.
+#           # --omit=dev leaves jest/nodemon/supertest off the server.
+#           npm ci --omit=dev
+#           echo "::endgroup::"
+
+#           echo "::group::Restart PM2"
+#           pm2 restart "$PM2_NAME" --update-env
+#           pm2 save || true
+#           echo "::endgroup::"
+
+#           echo "::group::Verify process is online"
+#           # Give it a moment to either come up or crash on boot.
+#           sleep 5
+
+#           STATUS="$(pm2 jlist | PM2_NAME="$PM2_NAME" node -e '
+#             let raw = "";
+#             process.stdin.on("data", (c) => (raw += c));
+#             process.stdin.on("end", () => {
+#               try {
+#                 const list = JSON.parse(raw.slice(raw.indexOf("[")));
+#                 const proc = list.find((p) => p.name === process.env.PM2_NAME);
+#                 console.log(proc ? proc.pm2_env.status : "missing");
+#               } catch (e) {
+#                 console.log("unreadable");
+#               }
+#             });
+#           ')"
+
+#           echo "pm2 status: $STATUS"
+#           pm2 status
+
+#           if [ "$STATUS" != "online" ]; then
+#             echo "ERROR: $PM2_NAME is '$STATUS', not online. Deployment failed."
+#             # Last lines help diagnose a boot crash. Application logs, not env.
+#             pm2 logs "$PM2_NAME" --lines 30 --nostream || true
+#             exit 1
+#           fi
+
+#           # Restart counter climbing means it is crash-looping rather than up.
+#           sleep 5
+#           STATUS_AGAIN="$(pm2 jlist | PM2_NAME="$PM2_NAME" node -e '
+#             let raw = "";
+#             process.stdin.on("data", (c) => (raw += c));
+#             process.stdin.on("end", () => {
+#               try {
+#                 const list = JSON.parse(raw.slice(raw.indexOf("[")));
+#                 const proc = list.find((p) => p.name === process.env.PM2_NAME);
+#                 console.log(proc ? proc.pm2_env.status : "missing");
+#               } catch (e) {
+#                 console.log("unreadable");
+#               }
+#             });
+#           ')"
+
+#           if [ "$STATUS_AGAIN" != "online" ]; then
+#             echo "ERROR: $PM2_NAME did not stay online (now '$STATUS_AGAIN')."
+#             pm2 logs "$PM2_NAME" --lines 30 --nostream || true
+#             exit 1
+#           fi
+#           echo "::endgroup::"
+
+#           echo "::group::Health check"
+#           # The app's own existing endpoint — see app.js, `app.get("/api", ...)`.
+#           # Nothing was added to the backend for this.
+#           PORT="${BACKEND_PORT:-5000}"
+#           OK=0
+#           for attempt in 1 2 3 4 5 6; do
+#             CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+#                      "http://127.0.0.1:${PORT}/api" || echo 000)"
+#             echo "attempt ${attempt}: HTTP ${CODE}"
+#             if [ "$CODE" = "200" ]; then OK=1; break; fi
+#             sleep 5
+#           done
+
+#           if [ "$OK" != "1" ]; then
+#             echo "ERROR: health endpoint did not return 200 on port ${PORT}."
+#             echo "If the app listens elsewhere, set the repository variable BACKEND_PORT."
+#             pm2 logs "$PM2_NAME" --lines 30 --nostream || true
+#             exit 1
+#           fi
+#           echo "::endgroup::"
+
+#           echo "Deployment successful: $(git -C "$APP_DIR" rev-parse --short HEAD)"
+#           REMOTE
+
+#       - name: Remove deploy key
+#         # Runs even when the deployment failed, so the key never outlives the job
+#         # on a runner that is reused before teardown.
+#         if: always()
+#         run: rm -f ~/.ssh/deploy_key
+
+
+
+
+
+
+
 name: Deploy Backend
 
 # Backend only. This repository also holds the Flutter app; nothing here builds,
@@ -7,21 +336,19 @@ on:
     branches: [main]
     paths:
       # Restricted to the backend so a Flutter-only commit does not restart
-      # production for no reason. Delete this `paths:` block if you would rather
-      # every push to main deploy.
+      # production for no reason.
       - 'backend/**'
       - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
 
-# One deployment at a time against the production directory. `cancel-in-progress`
-# is deliberately false: cancelling a run midway could leave EC2 between
-# `git reset` and `pm2 restart` — code updated, process still on the old build.
-# A second push queues behind the first instead.
+# One deployment at a time against the production directory.
+# Do not cancel a deployment midway because EC2 could be left between
+# git reset and PM2 restart.
 concurrency:
   group: production-backend
   cancel-in-progress: false
 
-# The job only needs to read the repo metadata; it never pushes.
+# The job only needs to read repo metadata; it never pushes.
 permissions:
   contents: read
 
@@ -29,65 +356,69 @@ jobs:
   deploy:
     name: Deploy to EC2
     runs-on: ubuntu-latest
-    # Belt and braces alongside the branch filter above, so a fork or a manual
-    # run from another ref cannot touch production.
+
+    # Only main can deploy to production.
     if: github.ref == 'refs/heads/main'
 
     steps:
-      # The runner installs nothing — EC2 pulls from GitHub and runs npm there,
-      # so this is only so any node/npm invoked on the runner matches the
-      # project's engines field rather than whatever the image ships.
-      - name: Use Node 22.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
 
-      # No actions/checkout: EC2 pulls from GitHub itself, so the runner never
-      # needs the source. Nothing is copied from runner to server.
+      # ============================================================
+      # SSH CONFIGURATION
+      # ============================================================
+      #
+      # No actions/checkout is required.
+      # EC2 pulls the repository directly from GitHub.
+      #
       - name: Configure SSH
         env:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_PORT: ${{ secrets.EC2_PORT }}
           EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+
         run: |
           set -euo pipefail
 
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
 
-          # Written straight from the secret to a 600 file. It is never echoed,
-          # never interpolated into a command line, and the runner is destroyed
-          # after the job.
+          # Write private deployment key securely.
           printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
           PORT="${EC2_PORT:-22}"
 
           if [ -n "${EC2_KNOWN_HOSTS:-}" ]; then
-            # Pinned host key: the server's identity is verified against a value
-            # you captured yourself, so a redirected connection is refused.
+            # Preferred: pinned EC2 host key.
             printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
           else
-            # Trust-on-first-use. Works, but the first handshake is unverified —
-            # set the EC2_KNOWN_HOSTS secret to close that gap. See the runbook.
+            # Fallback if EC2_KNOWN_HOSTS has not been configured yet.
             echo "::warning::EC2_KNOWN_HOSTS is not set; falling back to ssh-keyscan (host key unverified)."
+
             ssh-keyscan -p "$PORT" -H "$EC2_HOST" > ~/.ssh/known_hosts 2>/dev/null
           fi
 
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Deploy backend and restart PM2
+
+      # ============================================================
+      # DEPLOY BACKEND
+      # ============================================================
+      -
+        name: Deploy backend and restart PM2
+
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
           EC2_PORT: ${{ secrets.EC2_PORT }}
-          # Not a secret — the port the app listens on, used only for the local
-          # health probe. Set the repository variable to override the default.
+
+          # Repository variable.
+          # Defaults to 5000 if not configured.
           BACKEND_PORT: ${{ vars.BACKEND_PORT }}
-          # The commit this run is deploying. The server proves it is on exactly
-          # this tree before installing anything.
+
+          # Exact commit that triggered this workflow.
           GITHUB_SHA: ${{ github.sha }}
+
         run: |
           set -euo pipefail
 
@@ -97,281 +428,772 @@ jobs:
               -o ConnectTimeout=20 \
               "$EC2_USER@$EC2_HOST" \
               "BACKEND_PORT='${BACKEND_PORT:-5000}' EXPECTED_SHA='${GITHUB_SHA}' bash -s" <<'REMOTE'
+
           set -euo pipefail
+
+
+          # ========================================================
+          # PATHS / PROCESS
+          # ========================================================
 
           APP_DIR="$HOME/Lawyer-App"
           BACKEND_DIR="$APP_DIR/backend"
           PM2_NAME="lawyer-backend"
 
+
+          # ========================================================
+          # ENVIRONMENT
+          # ========================================================
+
           echo "::group::Environment"
-          echo "node    $(node --version)"
-          echo "npm     $(npm --version)"
-          echo "pm2     $(pm2 --version 2>/dev/null || echo 'not found')"
-          echo "dir     $APP_DIR"
+
+          echo "Initial node: $(node --version 2>/dev/null || echo 'not found')"
+          echo "Initial npm:  $(npm --version 2>/dev/null || echo 'not found')"
+          echo "pm2:          $(pm2 --version 2>/dev/null || echo 'not found')"
+          echo "dir:          $APP_DIR"
+
           echo "::endgroup::"
+
+
+          # ========================================================
+          # WORKING TREE BEFORE DEPLOY
+          # ========================================================
 
           cd "$APP_DIR"
 
           echo "::group::Working tree before deploy"
-          # Recorded, not silently discarded. Tracked files modified on the
-          # server are about to be overwritten by origin/main — most often
-          # backend/package-lock.json, rewritten by an `npm install` run by hand.
-          # If anything here matters, stop the workflow and rescue it.
+
           if [ -n "$(git status --porcelain)" ]; then
-            echo "Local modifications that the reset below will discard:"
+            echo "Local modifications on EC2:"
             git status --porcelain
+
+            echo ""
+            echo "Tracked modifications will be replaced by origin/main."
+            echo "Ignored/untracked production files such as backend/.env"
+            echo "and backend/uploads/ are NOT removed."
           else
             echo "working tree clean"
           fi
+
           echo "Currently deployed: $(git rev-parse --short HEAD)"
+
           echo "::endgroup::"
+
+
+          # ========================================================
+          # FETCH + RESET
+          # ========================================================
 
           echo "::group::Fetch and reset to origin/main"
+
           git fetch origin main
-          # Deterministic: the server matches origin/main exactly, whatever state
-          # it was left in.
+
+          # Deterministic deployment.
+          # This makes EC2 exactly match origin/main.
           #
-          # `git clean` is deliberately NOT run here. reset --hard only touches
-          # TRACKED files, so backend/.env and backend/uploads/ — both untracked
-          # and gitignored — are left alone. `git clean -fd` would delete every
-          # uploaded document and the production .env.
+          # IMPORTANT:
+          # git clean is intentionally NOT used.
+          #
+          # This preserves:
+          #   backend/.env
+          #   backend/uploads/
+          #
+          # because those are production files and are not tracked.
           git reset --hard origin/main
-          echo "Now deployed:      $(git rev-parse --short HEAD)"
+
+          echo "Now deployed: $(git rev-parse --short HEAD)"
+
           echo "::endgroup::"
 
+
+          # ========================================================
+          # VERIFY COMMIT
+          # ========================================================
+
           echo "::group::Prove the checkout matches the commit being deployed"
-          # `npm ci` failed here with "Missing: gcp-metadata@5.3.0 ..." while the
-          # SAME commit installed cleanly on a developer machine. Those versions
-          # belong to google-auth-library v8, which the committed lockfile does
-          # not contain — it resolves googleapis 173 to google-auth-library 10.
-          # So npm was reading a manifest that is not the committed one, and the
-          # checks below say which.
+
           ACTUAL_SHA="$(git rev-parse HEAD)"
+
           echo "expected commit: ${EXPECTED_SHA:-<not provided>}"
           echo "actual commit:   $ACTUAL_SHA"
 
           if [ -n "${EXPECTED_SHA:-}" ] && [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
-            echo "ERROR: the checkout is not the commit being deployed."
-            echo "  Check that this clone's origin is genieMediaSoftwares/Lawyer-App:"
+            echo "ERROR: EC2 checkout does not match GitHub commit."
+
+            echo ""
+            echo "Git remote:"
             git remote -v
+
             exit 1
           fi
 
-          # Tracked files must match HEAD exactly. A modified package.json or
-          # lockfile here is the whole problem, and reset --hard should have
-          # already removed it — if this fires, something rewrites them after.
-          if ! git diff --exit-code HEAD -- backend/package.json backend/package-lock.json; then
+
+          # Make absolutely sure dependency manifests match HEAD.
+          if ! git diff --exit-code HEAD -- \
+              backend/package.json \
+              backend/package-lock.json; then
+
             echo "ERROR: backend dependency files differ from the commit."
+
             exit 1
           fi
 
-          echo "working tree:"
+
+          echo ""
+          echo "Working tree:"
           git status --short || true
 
-          echo "checksums (must match the committed files):"
-          sha256sum backend/package.json backend/package-lock.json
+
+          echo ""
+          echo "Dependency manifest checksums:"
+          sha256sum \
+            backend/package.json \
+            backend/package-lock.json
+
+
           echo "::endgroup::"
 
+
+          # ========================================================
+          # NPM MANIFEST INTERFERENCE CHECK
+          # ========================================================
+
           echo "::group::npm manifest interference check"
-          # Files that override the committed lockfile AND survive
-          # `git reset --hard`, because reset only touches TRACKED files.
+
+
+          # npm-shrinkwrap.json takes precedence over package-lock.json.
           #
-          # npm-shrinkwrap.json is the dangerous one: npm gives it precedence
-          # over package-lock.json, so a leftover from an older dependency tree
-          # silently replaces the lockfile this repo ships — which produces
-          # exactly the "Missing: <old versions> from lock file" failure seen
-          # here, on a checkout that is otherwise byte-identical to the commit.
+          # If an old untracked shrinkwrap file exists on EC2,
+          # npm ci can resolve a completely different dependency tree.
           SHRINKWRAP="$BACKEND_DIR/npm-shrinkwrap.json"
+
           if [ -f "$SHRINKWRAP" ]; then
-            echo "ERROR: $SHRINKWRAP exists and overrides the committed package-lock.json."
-            echo "  It is untracked, so 'git reset --hard' does not remove it."
-            echo "  It is not part of this repository — remove it once and redeploy:"
-            echo "      rm '$SHRINKWRAP'"
+
+            echo "ERROR: $SHRINKWRAP exists."
+
+            echo ""
+            echo "This file overrides package-lock.json."
+            echo "It is untracked, so git reset --hard does not remove it."
+
+            echo ""
+            echo "Remove it once on EC2:"
+            echo "  rm '$SHRINKWRAP'"
+
             exit 1
           fi
+
           echo "npm-shrinkwrap.json: absent (good)"
 
-          for RC in "$BACKEND_DIR/.npmrc" "$APP_DIR/.npmrc" "$HOME/.npmrc"; do
+
+          # Check npmrc files without printing credentials/tokens.
+          for RC in \
+            "$BACKEND_DIR/.npmrc" \
+            "$APP_DIR/.npmrc" \
+            "$HOME/.npmrc"; do
+
             if [ -f "$RC" ]; then
-              # Registry/auth lines can carry tokens, so only the keys are shown.
-              echo "note: $RC present — keys: $(sed -n 's/^\([A-Za-z0-9_@:/-]*\)=.*/\1/p' "$RC" | tr '\n' ' ')"
+
+              echo "note: $RC present"
+
+              echo "keys:"
+              sed \
+                -n \
+                's/^\([A-Za-z0-9_@:/-]*\)=.*/\1/p' \
+                "$RC" \
+                | tr '\n' ' '
+
+              echo ""
             fi
           done
 
-          NPM_ENV="$(env | grep '^NPM_CONFIG_' | sed 's/=.*/=<redacted>/' || true)"
+
+          # Show NPM_CONFIG_* variables without exposing their values.
+          NPM_ENV="$(
+            env \
+              | grep '^NPM_CONFIG_' \
+              | sed 's/=.*/=<redacted>/' \
+              || true
+          )"
+
           if [ -n "$NPM_ENV" ]; then
-            echo "note: NPM_CONFIG_* environment overrides are set:"
+
+            echo "NPM_CONFIG_* environment overrides are set:"
             echo "$NPM_ENV"
+
           else
+
             echo "NPM_CONFIG_* overrides: none"
+
           fi
+
+
           echo "::endgroup::"
+
+
+          # ========================================================
+          # PRODUCTION ENVIRONMENT
+          # ========================================================
 
           cd "$BACKEND_DIR"
 
-          echo "::group::Verify production configuration survived"
+          echo "::group::Verify production configuration"
+
+
           if [ ! -f .env ]; then
-            echo "ERROR: $BACKEND_DIR/.env is missing. Refusing to restart with no configuration."
+
+            echo "ERROR: $BACKEND_DIR/.env is missing."
+
+            echo "Refusing to restart backend without production configuration."
+
             exit 1
           fi
-          echo ".env present ($(wc -c < .env) bytes)"   # size only, never content
+
+
+          # Never print .env contents.
+          echo ".env present ($(wc -c < .env) bytes)"
+
+
           echo "::endgroup::"
+
+
+          # ========================================================
+          # SELECT NODE 22
+          # ========================================================
+          #
+          # package.json requires Node 22.x.
+          #
+          # IMPORTANT:
+          # Do NOT silently fall back to another Node/LTS version.
+          #
+          # The previous workflow used:
+          #
+          #   nvm use 22 || nvm use --lts || true
+          #
+          # That could silently run Node 24/20/etc.
+          #
+          # Production must use Node 22.
+          #
 
           echo "::group::Select Node 22"
-          # THE FIX.
-          #
-          # `npm ci` failed here with "Missing: gcp-metadata@5.3.0 ..." on a
-          # checkout byte-identical to the one that installs cleanly locally.
-          # Those nine packages are exactly the dependency closure of
-          # gcp-metadata@5.3.0 — and mongodb (pulled in by mongoose) declares
-          #
-          #     "gcp-metadata": "^5.2.0"   with peerDependenciesMeta.optional
-          #
-          # An OPTIONAL peer. Modern npm leaves an uninstalled optional peer out
-          # of the tree, which is why it is absent from the committed lockfile
-          # and why the lockfile is correct. Older npm materialises it instead,
-          # then finds its closure missing from the lock and aborts. So the
-          # lockfile was never the problem — the npm reading it was.
-          #
-          # Node 22.x ships npm 10.9.x, which gets this right, and is what
-          # package.json's engines field asks for.
-          if [ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; then
-            # shellcheck disable=SC1091
-            . "${NVM_DIR:-$HOME/.nvm}/nvm.sh"
-            # `nvm use` is best-effort: a box without 22 installed keeps its
-            # current version and the gate below reports it.
-            nvm use 22 >/dev/null 2>&1 || nvm use --lts >/dev/null 2>&1 || true
-            echo "nvm: loaded from ${NVM_DIR:-$HOME/.nvm}"
+
+
+          NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+
+
+          if [ -s "$NVM_DIR/nvm.sh" ]; then
+
+            echo "Loading nvm from $NVM_DIR"
+
+            . "$NVM_DIR/nvm.sh"
+
           else
-            echo "nvm: not installed — using the system Node"
+
+            echo "ERROR: nvm is not installed on EC2."
+            echo ""
+            echo "Install Node 22 on EC2 first:"
+            echo ""
+            echo "  nvm install 22"
+            echo "  nvm alias default 22"
+            echo ""
+            echo "Then rerun the GitHub Actions deployment."
+
+            exit 1
+
           fi
-          echo "::endgroup::"
 
-          echo "::group::Toolchain"
-          echo "node             $(node --version)"
-          echo "npm              $(npm --version)"
-          echo "which node       $(command -v node)"
-          echo "which npm        $(command -v npm)"
-          echo "registry         $(npm config get registry)"
-          echo "package-lock     $(npm config get package-lock)"
-          echo "lockfile-version $(npm config get lockfile-version)"
-          echo "install-strategy $(npm config get install-strategy)"
-          echo "legacy-peer-deps $(npm config get legacy-peer-deps)"
 
-          NODE_MAJOR="$(node --version | sed 's/^v\([0-9]*\).*/\1/')"
-          NPM_MAJOR="$(npm --version | cut -d. -f1)"
+          if ! command -v nvm >/dev/null 2>&1; then
+
+            echo "ERROR: nvm command is unavailable."
+
+            exit 1
+
+          fi
+
+
+          # Make sure Node 22 is installed.
+          if ! nvm ls 22 >/dev/null 2>&1; then
+
+            echo "ERROR: Node 22.x is not installed through nvm."
+
+            echo ""
+            echo "Install it once on EC2:"
+            echo ""
+            echo "  nvm install 22"
+            echo "  nvm alias default 22"
+
+            exit 1
+
+          fi
+
+
+          # Select Node 22.
+          nvm use 22
+
+
+          # Refresh shell command cache.
+          hash -r
+
+
+          NODE_VERSION="$(node --version)"
+          NPM_VERSION="$(npm --version)"
+
+
+          echo "Node: $NODE_VERSION"
+          echo "npm:  $NPM_VERSION"
+
+          echo "node path: $(command -v node)"
+          echo "npm path:  $(command -v npm)"
+
+
+          NODE_MAJOR="$(
+            node --version \
+              | sed 's/^v\([0-9]*\).*/\1/'
+          )"
+
 
           if [ "$NODE_MAJOR" != "22" ]; then
-            echo "::warning::EC2 is on Node ${NODE_MAJOR}.x but package.json declares engines.node 22.x. Install Node 22 (nvm install 22 && nvm alias default 22) so production matches what is built and tested."
+
+            echo "ERROR: Expected Node 22.x."
+
+            echo "Actual Node: $(node --version)"
+
+            exit 1
+
           fi
 
-          # The hard gate is on npm, because npm is what mishandles the optional
-          # peer above. npm 10 ships with Node 20.5+ and 22, and resolves it
-          # correctly; anything older reproduces the failure this deploy hit.
-          if [ "$NPM_MAJOR" -lt 10 ]; then
-            echo "ERROR: npm $(npm --version) treats mongodb's OPTIONAL peer dependency"
-            echo "  gcp-metadata as required, and then reports its dependencies as"
-            echo "  missing from the lockfile. The lockfile is correct — this npm is not."
-            echo
-            echo "  Install Node 22 on the server and redeploy:"
-            echo "      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash"
-            echo "      . ~/.nvm/nvm.sh && nvm install 22 && nvm alias default 22"
-            echo
-            echo "  Refusing to install with an npm that cannot read this lockfile."
-            exit 1
-          fi
+
+          echo "Node 22 confirmed."
+
+
           echo "::endgroup::"
+
+
+          # ========================================================
+          # STANDARDIZE NPM
+          # ========================================================
+          #
+          # Your local environment successfully completes:
+          #
+          #   npm ci --omit=dev
+          #
+          # with npm 11.13.0.
+          #
+          # Production will therefore use the same npm version.
+          #
+
+          echo "::group::Standardize npm"
+
+
+          echo "Installing npm 11.13.0..."
+
+          npm install --global npm@11.13.0
+
+
+          # Refresh shell command cache.
+          hash -r
+
+
+          echo ""
+          echo "Node after npm installation:"
+          node --version
+
+          echo ""
+          echo "npm after npm installation:"
+          npm --version
+
+          echo ""
+          echo "npm path:"
+          command -v npm
+
+
+          EXPECTED_NPM="11.13.0"
+          ACTUAL_NPM="$(npm --version)"
+
+
+          if [ "$ACTUAL_NPM" != "$EXPECTED_NPM" ]; then
+
+            echo "ERROR: Expected npm $EXPECTED_NPM."
+
+            echo "Actual npm: $ACTUAL_NPM"
+
+            exit 1
+
+          fi
+
+
+          echo "npm $EXPECTED_NPM confirmed."
+
+
+          echo "::endgroup::"
+
+
+          # ========================================================
+          # FINAL TOOLCHAIN VERIFICATION
+          # ========================================================
+
+          echo "::group::Production toolchain"
+
+
+          echo "node              $(node --version)"
+          echo "npm               $(npm --version)"
+
+          echo "which node        $(command -v node)"
+          echo "which npm         $(command -v npm)"
+
+          echo "npm registry      $(npm config get registry)"
+          echo "package-lock      $(npm config get package-lock)"
+          echo "lockfile-version  $(npm config get lockfile-version)"
+          echo "install-strategy  $(npm config get install-strategy)"
+          echo "legacy-peer-deps  $(npm config get legacy-peer-deps)"
+
+
+          NODE_MAJOR="$(
+            node --version \
+              | sed 's/^v\([0-9]*\).*/\1/'
+          )"
+
+          NPM_VERSION="$(npm --version)"
+
+
+          if [ "$NODE_MAJOR" != "22" ]; then
+
+            echo "ERROR: Node 22.x is required."
+
+            exit 1
+
+          fi
+
+
+          if [ "$NPM_VERSION" != "11.13.0" ]; then
+
+            echo "ERROR: npm 11.13.0 is required."
+
+            exit 1
+
+          fi
+
+
+          echo ""
+          echo "Production toolchain verified:"
+          echo "  Node  = $(node --version)"
+          echo "  npm   = $(npm --version)"
+
+
+          echo "::endgroup::"
+
+
+          # ========================================================
+          # INSTALL PRODUCTION DEPENDENCIES
+          # ========================================================
 
           echo "::group::Install dependencies"
-          # `npm ci` installs exactly the committed lockfile and fails if
-          # package.json and the lockfile disagree — so the lockfile from GitHub
-          # is the source of truth, and nothing here rewrites it.
-          # --omit=dev leaves jest/nodemon/supertest off the server.
+
+
+          # IMPORTANT:
+          #
+          # npm ci:
+          #   - uses package-lock.json
+          #   - does not rewrite package-lock.json
+          #   - fails if package.json and package-lock.json disagree
+          #
+          # --omit=dev:
+          #   - does not install development dependencies
+          #   - keeps Jest/nodemon/supertest/etc. off production
+          #
+          echo "Running:"
+          echo "  npm ci --omit=dev"
+
           npm ci --omit=dev
+
+
+          echo "Production dependencies installed successfully."
+
+
           echo "::endgroup::"
+
+
+          # ========================================================
+          # RESTART PM2
+          # ========================================================
 
           echo "::group::Restart PM2"
+
+
+          echo "Restarting: $PM2_NAME"
+
           pm2 restart "$PM2_NAME" --update-env
+
+
+          # Persist PM2 process list.
           pm2 save || true
+
+
           echo "::endgroup::"
+
+
+          # ========================================================
+          # VERIFY PM2 PROCESS
+          # ========================================================
 
           echo "::group::Verify process is online"
-          # Give it a moment to either come up or crash on boot.
+
+
+          # Give the application time to boot.
           sleep 5
 
-          STATUS="$(pm2 jlist | PM2_NAME="$PM2_NAME" node -e '
-            let raw = "";
-            process.stdin.on("data", (c) => (raw += c));
-            process.stdin.on("end", () => {
-              try {
-                const list = JSON.parse(raw.slice(raw.indexOf("[")));
-                const proc = list.find((p) => p.name === process.env.PM2_NAME);
-                console.log(proc ? proc.pm2_env.status : "missing");
-              } catch (e) {
-                console.log("unreadable");
-              }
-            });
-          ')"
+
+          STATUS="$(
+            pm2 jlist \
+              | PM2_NAME="$PM2_NAME" node -e '
+
+                let raw = "";
+
+                process.stdin.on("data", (c) => {
+                  raw += c;
+                });
+
+                process.stdin.on("end", () => {
+
+                  try {
+
+                    const list = JSON.parse(
+                      raw.slice(raw.indexOf("["))
+                    );
+
+                    const proc = list.find(
+                      (p) => p.name === process.env.PM2_NAME
+                    );
+
+                    console.log(
+                      proc
+                        ? proc.pm2_env.status
+                        : "missing"
+                    );
+
+                  } catch (e) {
+
+                    console.log("unreadable");
+
+                  }
+
+                });
+
+              '
+          )"
+
 
           echo "pm2 status: $STATUS"
+
           pm2 status
 
+
           if [ "$STATUS" != "online" ]; then
-            echo "ERROR: $PM2_NAME is '$STATUS', not online. Deployment failed."
-            # Last lines help diagnose a boot crash. Application logs, not env.
-            pm2 logs "$PM2_NAME" --lines 30 --nostream || true
+
+            echo ""
+            echo "ERROR: $PM2_NAME is '$STATUS', not online."
+
+            echo ""
+            echo "Last PM2 logs:"
+
+            pm2 logs "$PM2_NAME" \
+              --lines 30 \
+              --nostream \
+              || true
+
             exit 1
+
           fi
 
-          # Restart counter climbing means it is crash-looping rather than up.
+
+          # Check again to catch immediate crash loops.
           sleep 5
-          STATUS_AGAIN="$(pm2 jlist | PM2_NAME="$PM2_NAME" node -e '
-            let raw = "";
-            process.stdin.on("data", (c) => (raw += c));
-            process.stdin.on("end", () => {
-              try {
-                const list = JSON.parse(raw.slice(raw.indexOf("[")));
-                const proc = list.find((p) => p.name === process.env.PM2_NAME);
-                console.log(proc ? proc.pm2_env.status : "missing");
-              } catch (e) {
-                console.log("unreadable");
-              }
-            });
-          ')"
+
+
+          STATUS_AGAIN="$(
+            pm2 jlist \
+              | PM2_NAME="$PM2_NAME" node -e '
+
+                let raw = "";
+
+                process.stdin.on("data", (c) => {
+                  raw += c;
+                });
+
+                process.stdin.on("end", () => {
+
+                  try {
+
+                    const list = JSON.parse(
+                      raw.slice(raw.indexOf("["))
+                    );
+
+                    const proc = list.find(
+                      (p) => p.name === process.env.PM2_NAME
+                    );
+
+                    console.log(
+                      proc
+                        ? proc.pm2_env.status
+                        : "missing"
+                    );
+
+                  } catch (e) {
+
+                    console.log("unreadable");
+
+                  }
+
+                });
+
+              '
+          )"
+
+
+          echo "pm2 status after stability check: $STATUS_AGAIN"
+
 
           if [ "$STATUS_AGAIN" != "online" ]; then
-            echo "ERROR: $PM2_NAME did not stay online (now '$STATUS_AGAIN')."
-            pm2 logs "$PM2_NAME" --lines 30 --nostream || true
+
+            echo ""
+            echo "ERROR: $PM2_NAME did not stay online."
+
+            echo "Current status: $STATUS_AGAIN"
+
+            echo ""
+            echo "Last PM2 logs:"
+
+            pm2 logs "$PM2_NAME" \
+              --lines 30 \
+              --nostream \
+              || true
+
             exit 1
+
           fi
+
+
+          echo "PM2 process is online and stable."
+
+
           echo "::endgroup::"
+
+
+          # ========================================================
+          # HEALTH CHECK
+          # ========================================================
 
           echo "::group::Health check"
-          # The app's own existing endpoint — see app.js, `app.get("/api", ...)`.
-          # Nothing was added to the backend for this.
+
+
+          # Existing backend endpoint:
+          #
+          # GET /api
+          #
+          # Expected:
+          # HTTP 200
+          #
+
           PORT="${BACKEND_PORT:-5000}"
+
+          echo "Health check port: $PORT"
+
+
           OK=0
+
+
           for attempt in 1 2 3 4 5 6; do
-            CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
-                     "http://127.0.0.1:${PORT}/api" || echo 000)"
+
+            CODE="$(
+              curl \
+                -s \
+                -o /dev/null \
+                -w '%{http_code}' \
+                --max-time 10 \
+                "http://127.0.0.1:${PORT}/api" \
+                || echo 000
+            )"
+
+
             echo "attempt ${attempt}: HTTP ${CODE}"
-            if [ "$CODE" = "200" ]; then OK=1; break; fi
+
+
+            if [ "$CODE" = "200" ]; then
+
+              OK=1
+
+              break
+
+            fi
+
+
             sleep 5
+
           done
 
+
           if [ "$OK" != "1" ]; then
-            echo "ERROR: health endpoint did not return 200 on port ${PORT}."
-            echo "If the app listens elsewhere, set the repository variable BACKEND_PORT."
-            pm2 logs "$PM2_NAME" --lines 30 --nostream || true
+
+            echo ""
+            echo "ERROR: health endpoint did not return HTTP 200."
+
+            echo "Checked:"
+            echo "  http://127.0.0.1:${PORT}/api"
+
+            echo ""
+            echo "If the backend listens on another port,"
+            echo "set the GitHub repository variable:"
+            echo "  BACKEND_PORT"
+
+
+            echo ""
+            echo "Last PM2 logs:"
+
+            pm2 logs "$PM2_NAME" \
+              --lines 30 \
+              --nostream \
+              || true
+
             exit 1
+
           fi
+
+
+          echo "Health check passed."
+
+
           echo "::endgroup::"
 
-          echo "Deployment successful: $(git -C "$APP_DIR" rev-parse --short HEAD)"
+
+          # ========================================================
+          # SUCCESS
+          # ========================================================
+
+          echo ""
+          echo "=============================================="
+          echo "       BACKEND DEPLOYMENT SUCCESSFUL"
+          echo "=============================================="
+
+          echo "Commit: $(git -C "$APP_DIR" rev-parse --short HEAD)"
+          echo "Node:   $(node --version)"
+          echo "npm:    $(npm --version)"
+          echo "PM2:    $PM2_NAME"
+          echo "Port:   $PORT"
+          echo ""
+          echo "Backend is online and responding."
+          echo "=============================================="
+
+
           REMOTE
 
+
+      # ============================================================
+      # REMOVE SSH KEY
+      # ============================================================
+
       - name: Remove deploy key
-        # Runs even when the deployment failed, so the key never outlives the job
-        # on a runner that is reused before teardown.
+
         if: always()
-        run: rm -f ~/.ssh/deploy_key
+
+        run: |
+          rm -f ~/.ssh/deploy_key
