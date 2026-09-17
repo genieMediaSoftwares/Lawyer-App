@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../practice/screens/lawyer_case_detail_screen.dart'
+    show openPracticeDocument;
+
 import '../../../../core/config/app_config.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/widgets/app_circle_avatar.dart';
@@ -2621,21 +2623,21 @@ class _LawyerDashboardScreenState extends ConsumerState<LawyerDashboardScreen> {
                           subtitle: Text(doc.size, style: const TextStyle(fontSize: 10, color: AppColors.secondaryText)),
                           trailing: IconButton(
                             icon: const Icon(Icons.open_in_new, color: AppColors.primaryGold, size: 18),
-                            onPressed: () async {
-                              final String urlStr = doc.url.startsWith("http")
-                                  ? doc.url
-                                  : "${AppConfig.baseUrl}${doc.url}";
-                              final Uri uri = Uri.parse(urlStr);
-                              if (await canLaunchUrl(uri)) {
-                                await launchUrl(uri, mode: LaunchMode.externalApplication);
-                              } else {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text("Could not open document: $urlStr")),
-                                  );
-                                }
-                              }
-                            },
+                            // Opens in the app, through the same authenticated
+                            // path every other attachment uses.
+                            //
+                            // This built its own URL as `baseUrl + doc.url`,
+                            // and baseUrl ends in `/api` — so a stored
+                            // `/uploads/cases/x.pdf` became
+                            // `<host>/api/uploads/cases/x.pdf`, which matches no
+                            // route. It also skipped getAttachmentUrl, so no
+                            // session token was ever attached, and it showed the
+                            // failing URL to the user in a snackbar.
+                            onPressed: () => openPracticeDocument(
+                              context,
+                              doc.url,
+                              name: doc.name,
+                            ),
                           ),
                         ),
                       );

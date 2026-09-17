@@ -24,9 +24,65 @@ import '../../../../providers/document_provider.dart';
 /// Uploads are capped at 10MB server-side (upload.middleware), so holding one
 /// document in memory is bounded and well within budget.
 class DocumentViewerScreen extends ConsumerStatefulWidget {
-  const DocumentViewerScreen({super.key, required this.document});
+  const DocumentViewerScreen({super.key, required this.document})
+      : uploadPath = null;
+
+  /// Opens an attachment addressed by its stored upload PATH.
+  ///
+  /// Case attachments live on `Case.documents[]`, which records only
+  /// `{name, url, size}` — no document id — so they cannot use the
+  /// `/documents/:id/view` endpoint the client's own documents use. They are
+  /// read through the guarded `/uploads` mount instead, which authorises each
+  /// request against the case the file belongs to.
+  ///
+  /// Before this they were handed to the device browser, which attaches no
+  /// session token — so a private attachment either refused to open or showed
+  /// a page of JSON where the document should have been.
+  DocumentViewerScreen.fromUpload({
+    super.key,
+    required String path,
+    required String name,
+    String mimeType = '',
+    int size = 0,
+  })  : uploadPath = path,
+        document = DocumentRecord(
+          // Synthesised for display only — nothing here is sent anywhere.
+          id: path,
+          clientId: '',
+          originalName: name,
+          name: name,
+          fileName: name,
+          filePath: path,
+          mimeType: mimeType.isNotEmpty ? mimeType : _guessMime(name),
+          fileSize: size,
+          uploadedAt: DateTime.now(),
+        );
+
+  /// Non-null when this viewer was opened from a stored path rather than a
+  /// document record, which decides how the bytes are fetched.
+  final String? uploadPath;
 
   final DocumentRecord document;
+
+  /// Case attachments carry no MIME type, so it is inferred from the extension
+  /// purely to choose a renderer. Nothing security-relevant depends on it — the
+  /// server decides what it will serve.
+  static String _guessMime(String name) {
+    final lower = name.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'application/pdf';
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    if (lower.endsWith('.gif')) return 'image/gif';
+    if (lower.endsWith('.txt')) return 'text/plain';
+    if (lower.endsWith('.csv')) return 'text/csv';
+    if (lower.endsWith('.md')) return 'text/markdown';
+    if (lower.endsWith('.docx')) {
+      return 'application/vnd.openxmlformats-officedocument'
+          '.wordprocessingml.document';
+    }
+    return '';
+  }
 
   @override
   ConsumerState<DocumentViewerScreen> createState() =>
@@ -64,7 +120,8 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
     try {
       // .docx has no renderer for its raw bytes, so the server converts it into
       // typed blocks instead. Same authenticated client, same permissions.
-      if (!widget.document.canPreviewInApp &&
+      if (widget.uploadPath == null &&
+          !widget.document.canPreviewInApp &&
           widget.document.canPreviewViaConversion) {
         final preview = await ref
             .read(documentsProvider.notifier)
@@ -78,9 +135,14 @@ class _DocumentViewerScreenState extends ConsumerState<DocumentViewerScreen> {
         return;
       }
 
-      final bytes = await ref
-          .read(documentsProvider.notifier)
-          .fetchDocumentBytes(widget.document.id);
+      final uploadPath = widget.uploadPath;
+      final bytes = uploadPath != null
+          // Addressed by path: the guarded /uploads mount.
+          ? await ref.read(documentsProvider.notifier).fetchUploadBytes(uploadPath)
+          // Addressed by id: the document API.
+          : await ref
+              .read(documentsProvider.notifier)
+              .fetchDocumentBytes(widget.document.id);
 
       if (!mounted) return;
 

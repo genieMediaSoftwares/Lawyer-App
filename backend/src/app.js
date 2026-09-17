@@ -8,6 +8,7 @@ const rateLimit = require("express-rate-limit");
 const fileAuthMiddleware = require("./middleware/fileAuthMiddleware");
 
 const errorMiddleware = require("./middleware/errorMiddleware");
+const notFoundMiddleware = require("./middleware/notFoundMiddleware");
 const authRoutes = require("./routes/authRoutes");
 const caseRoutes = require("./routes/case.routes");
 const appointmentRoutes = require("./routes/appointment.routes");
@@ -268,6 +269,12 @@ app.use("/api/courts", courtRoutes);
 app.use("/api/places", placeRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/admin", adminRoutes);
+
+// Anything that matched no route above. Must sit here — after every route and
+// before the error handler — or Express's finalhandler answers with an HTML
+// "Cannot GET <path>" page, which is what production users saw when a case
+// attachment was missing from disk.
+app.use(notFoundMiddleware);
 
 // Global Error Handler
 app.use(errorMiddleware);

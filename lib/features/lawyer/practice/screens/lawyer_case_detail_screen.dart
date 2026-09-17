@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../../client/documents/screens/document_viewer_screen.dart';
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/localization/app_localizations.dart';
@@ -648,7 +648,7 @@ class _DocumentTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     return PracticeCard(
-      onTap: () => openPracticeDocument(context, document.url),
+      onTap: () => openPracticeDocument(context, document.url, name: document.name),
       child: Row(
         children: [
           CircleAvatar(
@@ -703,43 +703,42 @@ class _DocumentTile extends StatelessWidget {
 /// That is what the server's file authorization middleware expects — a raw
 /// path would be refused, and building the URL any other way here would mean
 /// two places that have to agree about how private files are reached.
-Future<void> openPracticeDocument(BuildContext context, String url) async {
+Future<void> openPracticeDocument(
+  BuildContext context,
+  String url, {
+  String? name,
+}) async {
   final loc = AppLocalizations.of(context)!;
   final messenger = ScaffoldMessenger.of(context);
 
-  final resolved = AppConfig.getAttachmentUrl(url);
-  if (resolved.isEmpty) {
+  if (url.trim().isEmpty) {
     messenger.showSnackBar(
       SnackBar(content: Text(loc.could_not_open_document)),
     );
     return;
   }
 
-  // A protected upload reached without a session token will be refused by the
-  // server, and because this opens in the browser the refusal arrives as raw
-  // JSON on screen: {"success":false,"message":"Access denied. No token
-  // provided."}. Catching it here keeps that out of the client's face — there
-  // is nothing the browser can do about a missing token, so there is no point
-  // handing the request to it.
-  if (AppConfig.requiresSessionToken(url) &&
-      !resolved.contains('token=')) {
-    messenger.showSnackBar(
-      SnackBar(content: Text(loc.could_not_open_document)),
-    );
-    return;
-  }
+  // Opens IN the app rather than in the device browser.
+  //
+  // `launchUrl` handed a protected `/uploads/...` address to the browser, which
+  // attaches no session token — so a private case attachment either refused to
+  // open or rendered the server's JSON refusal as a web page. The viewer fetches
+  // the bytes through the authenticated client instead, and renders PDFs,
+  // images and text in place.
+  final fileName = (name ?? '').trim().isNotEmpty
+      ? name!.trim()
+      : Uri.tryParse(url)?.pathSegments.lastOrNull ?? 'Document';
 
-  final uri = Uri.tryParse(resolved);
-  final launched =
-      uri != null &&
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-
-  if (!launched) {
-    messenger.showSnackBar(
-      SnackBar(content: Text(loc.could_not_open_document)),
-    );
-  }
+  await Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => DocumentViewerScreen.fromUpload(
+        path: url,
+        name: fileName,
+      ),
+    ),
+  );
 }
+
 
 // ─── Notes ───────────────────────────────────────────────────────────────────
 

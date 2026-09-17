@@ -3,7 +3,11 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:flutter/foundation.dart' show debugPrint;
+
+import '../core/config/app_config.dart';
 import '../core/network/dio_client.dart';
+import '../core/storage/token_storage.dart';
 
 /// How the document list is ordered. Values match the backend's `sort` query.
 enum DocumentSort {
@@ -513,6 +517,60 @@ class DocumentNotifier extends StateNotifier<AsyncValue<List<DocumentRecord>>> {
     } catch (e) {
       throw Exception(
         _messageFrom(e, 'Unable to preview this document.'),
+      );
+    }
+  }
+
+  /// Fetches the bytes of a stored upload addressed by PATH rather than by
+  /// document id.
+  ///
+  /// Case attachments live on `Case.documents[]`, which records only
+  /// `{name, url, size}` — no document id — so they cannot use
+  /// `/documents/:id/view`. They are served by the guarded `/uploads` mount
+  /// instead, which `fileAuthMiddleware` authorises per request against the
+  /// case the file belongs to. Same privilege model, different address.
+  ///
+  /// Dio attaches the session token as a header, so this works whether or not
+  /// the stored URL also carries `?token=`.
+  Future<List<int>> fetchUploadBytes(String storedPath) async {
+    final url = AppConfig.getAttachmentUrl(storedPath);
+    if (url.isEmpty) {
+      throw Exception('This attachment has no usable address.');
+    }
+
+    try {
+      final response = await Dio().get<List<int>>(
+        url,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {
+            if (TokenStorage.cachedToken != null)
+              'Authorization': 'Bearer ${TokenStorage.cachedToken}',
+          },
+          // 404 and 401 are answers, not transport failures — handled below.
+          validateStatus: (code) => code != null && code < 500,
+        ),
+      );
+
+      final status = response.statusCode ?? 0;
+      if (status == 200) return response.data ?? const [];
+
+      // Logged for us, never shown raw. The path identifies the file; the token
+      // is deliberately not logged.
+      // ignore: avoid_print
+      debugPrint('[DocumentViewer] upload fetch failed status=$status path=$storedPath');
+
+      if (status == 401 || status == 403) {
+        throw Exception("You don't have permission to open this document.");
+      }
+      if (status == 404) {
+        throw Exception('This document is no longer available on the server.');
+      }
+      throw Exception('Unable to open this document.');
+    } on DioException catch (e) {
+      debugPrint('[DocumentViewer] upload fetch error type=${e.type}');
+      throw Exception(
+        'Unable to load the document. Check your connection and try again.',
       );
     }
   }

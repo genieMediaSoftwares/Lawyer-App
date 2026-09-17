@@ -34,7 +34,8 @@ import '../../practice/widgets/practice_widgets.dart';
 /// Uploaded documents open in the in-app viewer through [DocumentActions] —
 /// the same component the client My Documents screen uses, so View, Rename,
 /// Replace and Delete behave identically on both sides. Case attachments still
-/// go through [openPracticeDocument]: they are addressed by URL rather than by
+/// go through [openPracticeDocument], which opens the same in-app viewer via
+/// the guarded /uploads mount: they are addressed by URL rather than by
 /// document id, so they cannot yet reach the authenticated view endpoint.
 /// Nothing here weakens access control: an advocate still only receives the documents the
 /// server was already willing to give them.
@@ -292,7 +293,11 @@ class _CaseAttachmentTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     return PracticeCard(
-      onTap: () => openPracticeDocument(context, attachment.document.url),
+      onTap: () => openPracticeDocument(
+        context,
+        attachment.document.url,
+        name: attachment.document.name,
+      ),
       child: Row(
         children: [
           CircleAvatar(
