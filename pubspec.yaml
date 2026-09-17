@@ -38,7 +38,6 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  cupertino_icons: ^1.0.8
   flutter_svg: ^2.0.10
 
   flutter_riverpod: ^2.6.1

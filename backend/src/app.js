@@ -36,11 +36,46 @@ const app = express();
 // user base as one client and the global 300/15min ceiling is reached by
 // ordinary traffic, locking everyone out.
 //
-// Set to 1 (a single trusted hop) rather than `true`, which would trust a
-// client-supplied X-Forwarded-For and let anyone spoof their way past the
-// limiter. Increase it only if you add another proxy in front.
-if (process.env.NODE_ENV === "production") {
-  app.set("trust proxy", 1);
+// The hop count is read from TRUST_PROXY rather than inferred from NODE_ENV.
+// It used to be `if (NODE_ENV === "production")`, and a deployment whose .env
+// still said `NODE_ENV=development` therefore ran behind nginx with trust proxy
+// OFF — which is exactly what express-rate-limit reports as
+// ERR_ERL_UNEXPECTED_X_FORWARDED_FOR: the header is present, so a proxy is
+// plainly there, but Express has been told to distrust it. Whether a proxy sits
+// in front is a fact about the deployment's network, not about its log verbosity
+// or its CORS policy, so it gets its own setting.
+//
+// The value is a HOP COUNT, never `true`. `true` trusts a client-supplied
+// X-Forwarded-For, which lets anyone put an arbitrary address at the front of
+// the chain and spoof past the limiter.
+//
+//   1  nginx only           <- the current EC2 setup
+//   2  ALB -> nginx         <- when the load balancer lands
+//   0  no proxy             <- local development
+//
+// Defaults to 0 so a machine with nothing in front never trusts a header a
+// client could have written; the deployment is what declares a proxy exists.
+const trustProxyHops = Number.parseInt(process.env.TRUST_PROXY ?? "", 10);
+
+if (Number.isInteger(trustProxyHops) && trustProxyHops > 0) {
+  app.set("trust proxy", trustProxyHops);
+} else if (!Number.isNaN(trustProxyHops) && trustProxyHops === 0) {
+  app.set("trust proxy", false);
+} else {
+  // Unset or unparseable. Fall back to the old NODE_ENV inference so an
+  // existing deployment that has not added TRUST_PROXY yet is no worse off
+  // than before, and warn so the gap is visible rather than silent.
+  const inferred = process.env.NODE_ENV === "production";
+  app.set("trust proxy", inferred ? 1 : false);
+
+  if (!inferred) {
+    console.warn(
+      "[startup] TRUST_PROXY is not set and NODE_ENV is not production — " +
+        "Express will not trust X-Forwarded-For. If this server sits behind " +
+        "nginx or a load balancer, set TRUST_PROXY=1 (or 2 behind an ALB), " +
+        "or rate limiting will treat all traffic as a single client."
+    );
+  }
 }
 
 // Security

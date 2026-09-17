@@ -1,3 +1,19 @@
+/**
+ * Turns a schema path into something a person can read.
+ *
+ * Array paths arrive as "documents.0.url"; the index is dropped because the
+ * client shows one message per field, not per element.
+ */
+function readableFieldName(path) {
+  const last = String(path)
+    .split(".")
+    .filter((part) => !/^\d+$/.test(part))
+    .join(" ");
+
+  const spaced = last.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
 const AppError = require("../utils/AppError");
 
 /**
@@ -31,13 +47,47 @@ const translateInfrastructureError = (err) => {
   // Schema validation. The field names are ours and safe to name; the rest of
   // the Mongoose message is not.
   if (err.name === "ValidationError" && err.errors) {
-    const fields = Object.keys(err.errors);
+    const names = Object.keys(err.errors);
+
+    // A per-field map, so the client can mark the offending input instead of
+    // showing one sentence listing field names. The text is composed HERE from
+    // the KIND of failure — never from err.errors[x].message, which carries
+    // Mongoose's own wording, the model name and sometimes the rejected value.
+    const fields = {};
+    for (const name of names) {
+      const detail = err.errors[name];
+      const label = readableFieldName(name);
+
+      switch (detail?.kind) {
+        case "required":
+          fields[name] = `${label} is required.`;
+          break;
+        case "enum":
+          fields[name] = `${label} is not one of the accepted values.`;
+          break;
+        case "ObjectId":
+          fields[name] = `${label} is not a valid reference.`;
+          break;
+        case "Number":
+        case "Date":
+          fields[name] = `${label} is not a valid ${detail.kind.toLowerCase()}.`;
+          break;
+        case "minlength":
+        case "maxlength":
+          fields[name] = `${label} is not an accepted length.`;
+          break;
+        default:
+          fields[name] = `${label} is not valid.`;
+      }
+    }
+
     return {
       statusCode: 400,
-      message: fields.length
-        ? `Please check the following: ${fields.join(", ")}.`
+      message: names.length
+        ? "Some of the details provided are not valid."
         : "Some of the details provided are not valid.",
       code: "VALIDATION_ERROR",
+      fields,
     };
   }
 
@@ -89,6 +139,8 @@ const errorMiddleware = (
   let message = err.message || "Internal Server Error";
   let statusCode = err.statusCode || 500;
   let code = err instanceof AppError ? err.code : undefined;
+  // Per-field detail, when the translator produced any.
+  let fields;
 
   if (err.code === "LIMIT_FILE_SIZE") {
     message = "Maximum allowed file size is 10 MB.";
@@ -98,6 +150,9 @@ const errorMiddleware = (
     const translated = translateInfrastructureError(err);
     if (translated) {
       ({ message, statusCode, code } = translated);
+      // Destructuring the three named keys alone silently dropped `fields`, so
+      // the per-field map never reached the client.
+      fields = translated.fields;
     }
   }
 
@@ -105,6 +160,7 @@ const errorMiddleware = (
     success: false,
     message,
     ...(code ? { code } : {}),
+    ...(fields && Object.keys(fields).length ? { fields } : {}),
   };
 
   res.status(statusCode).json(body);

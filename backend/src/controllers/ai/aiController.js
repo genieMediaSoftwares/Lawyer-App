@@ -1,4 +1,5 @@
 const ApiResponse = require("../../config/ApiResponse");
+const { DEFAULT_MODELS: GEMINI_MODELS } = require("../../services/ai/geminiClient");
 const AiConversation = require("../../models/AiConversation");
 const {
   detectTranscriptLanguage,
@@ -513,13 +514,16 @@ Responses are provided for informational purposes only and should not be conside
           ? { parts: [{ text: RESEARCH_SYSTEM_INSTRUCTION }] }
           : systemInstruction;
 
-      const candidateModels = [
-        "gemini-3.6-flash",
-        "gemini-flash-latest",
-        "gemini-3.6-flash",
-        "gemini-1.5-pro",
-        "gemini-1.5-flash-latest",
-      ];
+      // The shared, probed list — see DEFAULT_MODELS in geminiClient.js for how
+      // each entry was verified and why the order is what it is.
+      //
+      // This used to be its own hardcoded copy holding "gemini-1.5-pro" and
+      // "gemini-1.5-flash-latest", both retired and answering 404, plus
+      // "gemini-3.6-flash" listed TWICE — so a chat request burned several round
+      // trips on models that could never answer before reaching one that could.
+      // Two lists also meant fixing a retirement in one place left the other
+      // broken, which is exactly what happened.
+      const candidateModels = GEMINI_MODELS;
 
       let aiText = null;
       let lastErrorText = "";
@@ -624,13 +628,16 @@ Responses are provided for informational purposes only and should not be conside
         mimeType = "audio/mp4";
       }
 
-      const candidateModels = [
-        "gemini-3.6-flash",
-        "gemini-flash-latest",
-        "gemini-3.6-flash",
-        "gemini-1.5-pro",
-        "gemini-1.5-flash-latest",
-      ];
+      // The shared, probed list — see DEFAULT_MODELS in geminiClient.js for how
+      // each entry was verified and why the order is what it is.
+      //
+      // This used to be its own hardcoded copy holding "gemini-1.5-pro" and
+      // "gemini-1.5-flash-latest", both retired and answering 404, plus
+      // "gemini-3.6-flash" listed TWICE — so a chat request burned several round
+      // trips on models that could never answer before reaching one that could.
+      // Two lists also meant fixing a retirement in one place left the other
+      // broken, which is exactly what happened.
+      const candidateModels = GEMINI_MODELS;
 
       let aiText = null;
       let lastErrorText = "";
