@@ -1,0 +1,16 @@
+# Miscellaneous
+*.log
+*.swp
+.DS_Store
+.history
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Environment files (never commit secrets)
+.env
+backend/.env
+frontend/.env

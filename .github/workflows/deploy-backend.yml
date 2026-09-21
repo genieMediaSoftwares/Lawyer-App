@@ -1,0 +1,837 @@
+name: Deploy Backend
+
+# Backend only. This repository also holds the Flutter app; nothing here builds,
+# tests or ships it.
+on:
+  push:
+    branches: [main]
+    paths:
+      # Deploy only when backend code or this workflow changes.
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+
+  workflow_dispatch:
+
+
+# ============================================================
+# DEPLOYMENT CONCURRENCY
+# ============================================================
+
+# Only one production deployment can run at a time.
+concurrency:
+  group: production-backend
+  cancel-in-progress: false
+
+
+# ============================================================
+# PERMISSIONS
+# ============================================================
+
+permissions:
+  contents: read
+
+
+# ============================================================
+# JOB
+# ============================================================
+
+jobs:
+
+  deploy:
+
+    name: Deploy to EC2
+
+    runs-on: ubuntu-latest
+
+    # Only main can deploy to production.
+    if: github.ref == 'refs/heads/main'
+
+
+    steps:
+
+      # ========================================================
+      # SSH CONFIGURATION
+      # ========================================================
+
+      - name: Configure SSH
+
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_PORT: ${{ secrets.EC2_PORT }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+
+        run: |
+          set -euo pipefail
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          # Write deployment private key securely.
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          PORT="${EC2_PORT:-22}"
+
+          if [ -n "${EC2_KNOWN_HOSTS:-}" ]; then
+
+            # Preferred: pinned EC2 host key.
+            printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+          else
+
+            # Fallback when EC2_KNOWN_HOSTS is not configured.
+            echo "::warning::EC2_KNOWN_HOSTS is not set; falling back to ssh-keyscan (host key unverified)."
+
+            ssh-keyscan \
+              -p "$PORT" \
+              -H "$EC2_HOST" \
+              > ~/.ssh/known_hosts 2>/dev/null
+
+          fi
+
+          chmod 600 ~/.ssh/known_hosts
+
+
+      # ========================================================
+      # DEPLOY BACKEND
+      # ========================================================
+
+      - name: Deploy backend and restart PM2
+
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_PORT: ${{ secrets.EC2_PORT }}
+
+          # Repository variable.
+          # Defaults to 5000.
+          BACKEND_PORT: ${{ vars.BACKEND_PORT }}
+
+          # Exact GitHub commit that triggered this deployment.
+          GITHUB_SHA: ${{ github.sha }}
+
+        run: |
+          set -euo pipefail
+
+          ssh \
+            -i ~/.ssh/deploy_key \
+            -p "${EC2_PORT:-22}" \
+            -o BatchMode=yes \
+            -o ConnectTimeout=20 \
+            "$EC2_USER@$EC2_HOST" \
+            "BACKEND_PORT='${BACKEND_PORT:-5000}' EXPECTED_SHA='${GITHUB_SHA}' bash -s" <<'REMOTE'
+
+          set -euo pipefail
+
+
+          # ======================================================
+          # APPLICATION PATHS
+          # ======================================================
+
+          APP_DIR="$HOME/Lawyer-App"
+          BACKEND_DIR="$APP_DIR/backend"
+          PM2_NAME="lawyer-backend"
+
+
+          # ======================================================
+          # INITIAL ENVIRONMENT
+          # ======================================================
+
+          echo "::group::Environment"
+
+          echo "node: $(node --version 2>/dev/null || echo 'not found')"
+          echo "npm:  $(npm --version 2>/dev/null || echo 'not found')"
+          echo "pm2:  $(pm2 --version 2>/dev/null || echo 'not found')"
+          echo "app:  $APP_DIR"
+
+          echo "::endgroup::"
+
+
+          # ======================================================
+          # WORKING TREE
+          # ======================================================
+
+          cd "$APP_DIR"
+
+          echo "::group::Working tree before deploy"
+
+          if [ -n "$(git status --porcelain)" ]; then
+
+            echo "Local modifications on EC2:"
+            git status --porcelain
+
+            echo ""
+            echo "Tracked files will be synchronized with origin/main."
+            echo "Production .env and uploads are preserved."
+
+          else
+
+            echo "working tree clean"
+
+          fi
+
+          echo "Currently deployed: $(git rev-parse --short HEAD)"
+
+          echo "::endgroup::"
+
+
+          # ======================================================
+          # FETCH + RESET
+          # ======================================================
+
+          echo "::group::Fetch and reset to origin/main"
+
+          git fetch origin main
+
+          # Make EC2 exactly match GitHub main.
+          #
+          # IMPORTANT:
+          # git clean is NOT used.
+          #
+          # Therefore:
+          #   backend/.env
+          #   backend/uploads/
+          #
+          # remain untouched.
+
+          git reset --hard origin/main
+
+          echo "Now deployed: $(git rev-parse --short HEAD)"
+
+          echo "::endgroup::"
+
+
+          # ======================================================
+          # VERIFY COMMIT
+          # ======================================================
+
+          echo "::group::Verify checkout"
+
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+
+          echo "Expected commit: ${EXPECTED_SHA:-<not provided>}"
+          echo "Actual commit:   $ACTUAL_SHA"
+
+
+          if [ -n "${EXPECTED_SHA:-}" ] &&
+             [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+
+            echo "ERROR: EC2 checkout does not match GitHub commit."
+
+            echo ""
+            echo "Git remote:"
+            git remote -v
+
+            exit 1
+
+          fi
+
+
+          # Verify dependency manifests match HEAD.
+          if ! git diff --exit-code HEAD -- \
+              backend/package.json \
+              backend/package-lock.json; then
+
+            echo "ERROR: backend dependency files differ from HEAD."
+
+            exit 1
+
+          fi
+
+
+          echo ""
+          echo "Working tree:"
+          git status --short || true
+
+
+          echo ""
+          echo "Dependency manifest checksums:"
+          sha256sum \
+            backend/package.json \
+            backend/package-lock.json
+
+
+          echo "::endgroup::"
+
+
+          # ======================================================
+          # NPM MANIFEST INTERFERENCE CHECK
+          # ======================================================
+
+          echo "::group::npm manifest interference check"
+
+
+          # npm-shrinkwrap.json overrides package-lock.json.
+          #
+          # It must not exist on production unless intentionally used.
+
+          SHRINKWRAP="$BACKEND_DIR/npm-shrinkwrap.json"
+
+
+          if [ -f "$SHRINKWRAP" ]; then
+
+            echo "ERROR: $SHRINKWRAP exists."
+
+            echo ""
+            echo "npm-shrinkwrap.json overrides package-lock.json."
+
+            echo ""
+            echo "Remove it once from EC2 with:"
+            echo "  rm '$SHRINKWRAP'"
+
+            exit 1
+
+          fi
+
+
+          echo "npm-shrinkwrap.json: absent (good)"
+
+
+          # Inspect npmrc files without exposing tokens/passwords.
+          for RC in \
+            "$BACKEND_DIR/.npmrc" \
+            "$APP_DIR/.npmrc" \
+            "$HOME/.npmrc"; do
+
+            if [ -f "$RC" ]; then
+
+              echo "note: $RC present"
+
+              echo "configuration keys:"
+
+              sed \
+                -n \
+                's/^\([A-Za-z0-9_@:/-]*\)=.*/\1/p' \
+                "$RC" \
+                | tr '\n' ' '
+
+              echo ""
+
+            fi
+
+          done
+
+
+          # Check NPM_CONFIG environment variables without exposing values.
+          NPM_ENV="$(
+            env |
+              grep '^NPM_CONFIG_' |
+              sed 's/=.*/=<redacted>/' ||
+              true
+          )"
+
+
+          if [ -n "$NPM_ENV" ]; then
+
+            echo "NPM_CONFIG_* environment overrides are set:"
+            echo "$NPM_ENV"
+
+          else
+
+            echo "NPM_CONFIG_* overrides: none"
+
+          fi
+
+
+          echo "::endgroup::"
+
+
+          # ======================================================
+          # VERIFY PRODUCTION ENVIRONMENT
+          # ======================================================
+
+          cd "$BACKEND_DIR"
+
+          echo "::group::Verify production configuration"
+
+
+          if [ ! -f .env ]; then
+
+            echo "ERROR: backend/.env is missing."
+
+            echo "Refusing to restart backend without production configuration."
+
+            exit 1
+
+          fi
+
+
+          # Never print .env contents.
+          echo ".env present ($(wc -c < .env) bytes)"
+
+
+          echo "::endgroup::"
+
+
+          # ======================================================
+          # VERIFY NODE 22
+          # ======================================================
+          #
+          # EC2 already has Node 22.23.2.
+          #
+          # NVM is NOT required.
+          #
+          # We simply verify the installed Node version.
+          #
+
+          echo "::group::Verify Node 22"
+
+
+          NODE_VERSION="$(node --version)"
+          NPM_VERSION="$(npm --version)"
+
+
+          echo "Node: $NODE_VERSION"
+          echo "npm:  $NPM_VERSION"
+
+          echo "Node path: $(command -v node)"
+          echo "npm path:  $(command -v npm)"
+
+
+          NODE_MAJOR="$(
+            node --version |
+              sed 's/^v\([0-9]*\).*/\1/'
+          )"
+
+
+          if [ "$NODE_MAJOR" != "22" ]; then
+
+            echo "ERROR: Node 22.x is required."
+
+            echo "Actual Node: $(node --version)"
+
+            echo ""
+            echo "The EC2 server must use Node 22."
+
+            exit 1
+
+          fi
+
+
+          echo "Node 22 confirmed."
+
+
+          echo "::endgroup::"
+
+
+          # ======================================================
+          # STANDARDIZE NPM
+          # ======================================================
+          #
+          # EC2 currently has npm 10.9.8.
+          #
+          # Local environment successfully runs with npm 11.13.0.
+          #
+          # Therefore production uses the same npm version.
+          #
+
+          echo "::group::Standardize npm"
+
+
+          CURRENT_NPM="$(npm --version)"
+
+          echo "Current npm: $CURRENT_NPM"
+
+          echo "Installing npm 11.13.0..."
+
+
+          sudo npm install --global npm@11.13.0
+
+
+          # Refresh command lookup.
+          hash -r
+
+
+          FINAL_NPM="$(npm --version)"
+
+
+          echo "npm after installation: $FINAL_NPM"
+          echo "npm path: $(command -v npm)"
+
+
+          EXPECTED_NPM="11.13.0"
+
+
+          if [ "$FINAL_NPM" != "$EXPECTED_NPM" ]; then
+
+            echo "ERROR: npm $EXPECTED_NPM is required."
+
+            echo "Actual npm: $FINAL_NPM"
+
+            exit 1
+
+          fi
+
+
+          echo "npm 11.13.0 confirmed."
+
+
+          echo "::endgroup::"
+
+
+          # ======================================================
+          # FINAL TOOLCHAIN VERIFICATION
+          # ======================================================
+
+          echo "::group::Production toolchain"
+
+
+          NODE_VERSION="$(node --version)"
+          NPM_VERSION="$(npm --version)"
+
+
+          echo "Node:             $NODE_VERSION"
+          echo "npm:              $NPM_VERSION"
+          echo "Node executable:  $(command -v node)"
+          echo "npm executable:   $(command -v npm)"
+
+          echo "Registry:         $(npm config get registry)"
+          echo "Package lock:     $(npm config get package-lock)"
+          echo "Lockfile version: $(npm config get lockfile-version)"
+          echo "Install strategy: $(npm config get install-strategy)"
+          echo "Legacy peers:     $(npm config get legacy-peer-deps)"
+
+
+          NODE_MAJOR="$(
+            node --version |
+              sed 's/^v\([0-9]*\).*/\1/'
+          )"
+
+
+          if [ "$NODE_MAJOR" != "22" ]; then
+
+            echo "ERROR: Node 22.x is required."
+
+            exit 1
+
+          fi
+
+
+          if [ "$NPM_VERSION" != "11.13.0" ]; then
+
+            echo "ERROR: npm 11.13.0 is required."
+
+            exit 1
+
+          fi
+
+
+          echo ""
+          echo "Production toolchain verified."
+
+
+          echo "::endgroup::"
+
+
+          # ======================================================
+          # INSTALL PRODUCTION DEPENDENCIES
+          # ======================================================
+
+          echo "::group::Install dependencies"
+
+
+          echo "Running:"
+          echo "npm ci --omit=dev"
+
+          npm ci --omit=dev
+
+
+          echo ""
+          echo "Production dependencies installed successfully."
+
+
+          echo "::endgroup::"
+
+
+          # ======================================================
+          # RESTART PM2
+          # ======================================================
+
+          echo "::group::Restart PM2"
+
+
+          echo "Restarting $PM2_NAME..."
+
+          pm2 restart "$PM2_NAME" --update-env
+
+
+          # Save PM2 process list.
+          pm2 save || true
+
+
+          echo "::endgroup::"
+
+
+          # ======================================================
+          # VERIFY PM2
+          # ======================================================
+
+          echo "::group::Verify process is online"
+
+
+          sleep 5
+
+
+          STATUS="$(
+            pm2 jlist |
+              PM2_NAME="$PM2_NAME" node -e '
+
+                let raw = "";
+
+                process.stdin.on("data", (c) => {
+                  raw += c;
+                });
+
+                process.stdin.on("end", () => {
+
+                  try {
+
+                    const list = JSON.parse(
+                      raw.slice(raw.indexOf("["))
+                    );
+
+                    const proc = list.find(
+                      (p) => p.name === process.env.PM2_NAME
+                    );
+
+                    console.log(
+                      proc
+                        ? proc.pm2_env.status
+                        : "missing"
+                    );
+
+                  } catch (e) {
+
+                    console.log("unreadable");
+
+                  }
+
+                });
+
+              '
+          )"
+
+
+          echo "PM2 status: $STATUS"
+
+
+          pm2 status
+
+
+          if [ "$STATUS" != "online" ]; then
+
+            echo ""
+            echo "ERROR: $PM2_NAME is not online."
+
+            echo "Status: $STATUS"
+
+            echo ""
+            echo "Last PM2 logs:"
+
+            pm2 logs \
+              "$PM2_NAME" \
+              --lines 30 \
+              --nostream \
+              || true
+
+            exit 1
+
+          fi
+
+
+          # ======================================================
+          # PM2 STABILITY CHECK
+          # ======================================================
+
+          echo "Waiting for PM2 stability..."
+
+          sleep 5
+
+
+          STATUS_AGAIN="$(
+            pm2 jlist |
+              PM2_NAME="$PM2_NAME" node -e '
+
+                let raw = "";
+
+                process.stdin.on("data", (c) => {
+                  raw += c;
+                });
+
+                process.stdin.on("end", () => {
+
+                  try {
+
+                    const list = JSON.parse(
+                      raw.slice(raw.indexOf("["))
+                    );
+
+                    const proc = list.find(
+                      (p) => p.name === process.env.PM2_NAME
+                    );
+
+                    console.log(
+                      proc
+                        ? proc.pm2_env.status
+                        : "missing"
+                    );
+
+                  } catch (e) {
+
+                    console.log("unreadable");
+
+                  }
+
+                });
+
+              '
+          )"
+
+
+          echo "PM2 status after stability check: $STATUS_AGAIN"
+
+
+          if [ "$STATUS_AGAIN" != "online" ]; then
+
+            echo ""
+            echo "ERROR: $PM2_NAME crashed after restart."
+
+            echo ""
+            echo "Last PM2 logs:"
+
+            pm2 logs \
+              "$PM2_NAME" \
+              --lines 30 \
+              --nostream \
+              || true
+
+            exit 1
+
+          fi
+
+
+          echo "PM2 process is online and stable."
+
+
+          echo "::endgroup::"
+
+
+          # ======================================================
+          # HEALTH CHECK
+          # ======================================================
+
+          echo "::group::Health check"
+
+
+          PORT="${BACKEND_PORT:-5000}"
+
+
+          echo "Health check URL:"
+          echo "http://127.0.0.1:${PORT}/api"
+
+
+          OK=0
+
+
+          for attempt in 1 2 3 4 5 6; do
+
+            CODE="$(
+              curl \
+                -s \
+                -o /dev/null \
+                -w '%{http_code}' \
+                --max-time 10 \
+                "http://127.0.0.1:${PORT}/api" \
+                || echo 000
+            )"
+
+
+            echo "Attempt ${attempt}: HTTP ${CODE}"
+
+
+            if [ "$CODE" = "200" ]; then
+
+              OK=1
+
+              break
+
+            fi
+
+
+            sleep 5
+
+          done
+
+
+          if [ "$OK" != "1" ]; then
+
+            echo ""
+            echo "ERROR: Backend health check failed."
+
+            echo "Expected HTTP 200 from:"
+            echo "http://127.0.0.1:${PORT}/api"
+
+
+            echo ""
+            echo "If the backend listens on another port,"
+            echo "set the GitHub repository variable:"
+            echo "BACKEND_PORT"
+
+
+            echo ""
+            echo "Last PM2 logs:"
+
+            pm2 logs \
+              "$PM2_NAME" \
+              --lines 30 \
+              --nostream \
+              || true
+
+
+            exit 1
+
+          fi
+
+
+          echo ""
+          echo "Health check passed."
+
+
+          echo "::endgroup::"
+
+
+          # ======================================================
+          # DEPLOYMENT SUCCESS
+          # ======================================================
+
+          echo ""
+          echo "=============================================="
+          echo "       BACKEND DEPLOYMENT SUCCESSFUL"
+          echo "=============================================="
+
+          echo "Commit: $(git -C "$APP_DIR" rev-parse --short HEAD)"
+          echo "Node:   $(node --version)"
+          echo "npm:    $(npm --version)"
+          echo "PM2:    $PM2_NAME"
+          echo "Port:   $PORT"
+
+          echo ""
+          echo "Backend is online and responding."
+
+          echo "=============================================="
+
+
+          REMOTE
+
+
+      # ========================================================
+      # REMOVE DEPLOYMENT KEY
+      # ========================================================
+
+      - name: Remove deploy key
+
+        if: always()
+
+        run: |
+          rm -f ~/.ssh/deploy_key
