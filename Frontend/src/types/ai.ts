@@ -88,4 +88,16 @@ export interface PickedFile {
   type: string | null;
   size: number | null;
   file?: unknown;
+  // Set once a file over 3 MB has been made to fit.
+  optimization?: {
+    method: 'compressed' | 'optimized';
+    originalSize: number;
+  };
+  // A PDF optimized on the server; sent by reference instead of re-uploaded.
+  preparedToken?: string;
+}
+
+export interface ImageCompressionStep {
+  maxDimension: number;
+  quality: number;
 }

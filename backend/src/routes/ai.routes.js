@@ -9,7 +9,7 @@ const upload = require("../middleware/upload.middleware");
 
 const router = express.Router();
 
-function handleUploadErrors(uploadMiddleware) {
+function handleUploadErrors(uploadMiddleware, overrides = {}) {
   return (req, res, next) => {
     uploadMiddleware(req, res, (err) => {
       if (!err) return next();
@@ -21,6 +21,7 @@ function handleUploadErrors(uploadMiddleware) {
           LIMIT_UNEXPECTED_FILE:
             "You can attach up to 10 documents and one voice note.",
           LIMIT_PART_COUNT: "Too many parts in the upload.",
+          ...overrides,
         };
         return res.status(400).json({
           success: false,
@@ -57,12 +58,24 @@ router.delete("/conversations/:id", aiController.deleteConversation);
 router.delete("/conversations", aiController.deleteAllConversations);
 
 router.post(
+  "/smart-case/optimize",
+  handleUploadErrors(upload.optimizeInput.single("document"), {
+    LIMIT_FILE_SIZE: "This PDF is larger than 20 MB, too large to optimize. Please split it into smaller PDFs.",
+    LIMIT_UNEXPECTED_FILE: "Send one PDF at a time for optimization.",
+  }),
+  aiSmartCaseController.optimizeDocument
+);
+router.post(
   "/smart-case/analyze",
   handleUploadErrors(
     upload.fields([
       { name: "documents", maxCount: 10 },
       { name: "voice", maxCount: 1 },
-    ])
+    ]),
+    {
+      LIMIT_FILE_SIZE:
+        "Each document must be 3 MB or smaller, and a voice note 10 MB or smaller.",
+    }
   ),
   aiSmartCaseController.analyzeSmartCase
 );

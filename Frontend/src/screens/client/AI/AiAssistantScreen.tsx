@@ -26,14 +26,19 @@ import {
   TrashIcon,
 } from '../../../components/icons/ClientIcons';
 import {
+  AI_MAX_FILE_BYTES,
   UPLOAD_LIMITS,
   aiApi,
   knownTotalBytes,
-  maxAiFileBytes,
   maxAiUploadBytes,
-  rejectionReasonFor,
   uploadTooLargeReason,
 } from '../../../api/aiApi';
+import {
+  describeOptimization,
+  prepareAiFiles,
+  stageLabel,
+} from '../../../services/aiFileOptimizer';
+import type { PrepareStage } from '../../../services/aiFileOptimizer';
 import { filePicker } from '../../../services/filePicker';
 import { voiceRecorder } from '../../../services/voiceRecorder';
 import { toAppError } from '../../../utils/errors';
@@ -104,6 +109,9 @@ export const AiAssistantScreen: React.FC<
   const [isTranscribing, setIsTranscribing] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [preparing, setPreparing] = useState<{ name: string; stage: PrepareStage } | null>(
+    null,
+  );
   const [uploadFraction, setUploadFraction] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -120,17 +128,16 @@ export const AiAssistantScreen: React.FC<
         return;
       }
 
-      const accepted: PickedFile[] = [];
-      const rejections: string[] = [];
-
-      for (const file of picked) {
-        const reason = rejectionReasonFor(file);
-        if (reason) {
-          rejections.push(reason);
-        } else {
-          accepted.push(file);
-        }
+      let prepared;
+      try {
+        prepared = await prepareAiFiles(picked, (file, stage) =>
+          setPreparing({ name: file.name, stage }),
+        );
+      } finally {
+        setPreparing(null);
       }
+      const accepted = prepared.ready;
+      const rejections = [...prepared.rejections];
 
       const maxTotal = maxAiUploadBytes();
       let runningTotal = knownTotalBytes([...documents, voice]);
@@ -141,7 +148,7 @@ export const AiAssistantScreen: React.FC<
           rejections.push(
             `${file.name} was not added: it would take the upload to ${formatFileSize(
               next,
-            )}, over the ${formatFileSize(maxTotal)} limit. Please reduce its size first.`,
+            )}, over the ${formatFileSize(maxTotal)} limit for one upload.`,
           );
         } else {
           fitting.push(file);
@@ -281,16 +288,16 @@ export const AiAssistantScreen: React.FC<
     voice,
   ]);
 
-  const uploadDisabled = isSubmitting || remainingSlots <= 0;
+  const uploadDisabled = isSubmitting || preparing !== null || remainingSlots <= 0;
 
   const maxUploadBytes = maxAiUploadBytes();
   const usedBytes = knownTotalBytes([...documents, voice]);
   const uploadLimitNotice =
     maxUploadBytes === null
       ? null
-      : `Before uploading, make sure all your files together (documents plus voice note) are no more than ${formatFileSize(
+      : `All your files together (documents plus voice note) can be up to ${formatFileSize(
           maxUploadBytes,
-        )}. Please reduce large files first — for example, compress the PDF, scan or photograph pages at a lower resolution, or upload only the pages that matter.`;
+        )} per upload.`;
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background">
@@ -329,7 +336,9 @@ export const AiAssistantScreen: React.FC<
             required
             subtitle={`Supported formats: PDF, PNG, JPG, WEBP, DOCX, TXT (Multiple allowed) · up to ${
               UPLOAD_LIMITS.maxDocuments
-            } files, ${formatFileSize(maxAiFileBytes())} each`}
+            } files, ${formatFileSize(
+              AI_MAX_FILE_BYTES,
+            )} each. Larger images and PDFs are optimized automatically.`}
           />
 
           {uploadLimitNotice ? (
@@ -349,13 +358,19 @@ export const AiAssistantScreen: React.FC<
                 <GenieText variant="body-md" numberOfLines={1}>
                   {file.name}
                 </GenieText>
-                <GenieText variant="caption" tone="muted" className="mt-0.5">
-                  {[
-                    file.size !== null ? formatFileSize(file.size) : '',
-                    'Ready to upload',
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
+                <GenieText
+                  variant="caption"
+                  tone={file.optimization ? 'success' : 'muted'}
+                  className="mt-0.5"
+                  testID={`ai-document-status-${index}`}
+                >
+                  {describeOptimization(file) ??
+                    [
+                      file.size !== null ? formatFileSize(file.size) : '',
+                      'Ready to upload',
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
                 </GenieText>
               </View>
 
@@ -371,6 +386,24 @@ export const AiAssistantScreen: React.FC<
               ) : null}
             </View>
           ))}
+
+          {preparing ? (
+            <View
+              testID="ai-document-preparing"
+              accessibilityLiveRegion="polite"
+              className="mb-2 flex-row items-center rounded-card border border-gold-wash bg-card p-3"
+            >
+              <ActivityIndicator size="small" color={colors.gold} />
+              <View className="ml-3 flex-1">
+                <GenieText variant="body-md" numberOfLines={1}>
+                  {preparing.name}
+                </GenieText>
+                <GenieText variant="caption" tone="gold" className="mt-0.5">
+                  {stageLabel(preparing.stage)}
+                </GenieText>
+              </View>
+            </View>
+          ) : null}
 
           <Pressable
             onPress={addDocuments}
@@ -579,7 +612,7 @@ export const AiAssistantScreen: React.FC<
               label="Analyse & Generate Case with AI"
               loadingLabel="Uploading…"
               loading={isSubmitting}
-              disabled={documents.length === 0}
+              disabled={documents.length === 0 || preparing !== null}
               onPress={submit}
               icon={
                 <ChevronRightIcon

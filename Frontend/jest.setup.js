@@ -26,3 +26,8 @@ jest.mock('react-native-audio-recorder-player', () => ({
   OutputFormatAndroidType: { MPEG_4: 2 },
   AVEncoderAudioQualityIOSType: { HIGH: 96 },
 }));
+
+jest.mock('@bam.tech/react-native-image-resizer', () => ({
+  __esModule: true,
+  default: { createResizedImage: jest.fn() },
+}));

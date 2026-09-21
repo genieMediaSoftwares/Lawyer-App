@@ -412,7 +412,7 @@ describe('LawyerClientDetailsScreen', () => {
 
 describe('Contact Support', () => {
   it('dials the support phone number', async () => {
-    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
     const { root, done } = await mount(<ContactSupportRows />);
 
     expect(textOf(root)).toContain('9966888428');
@@ -425,7 +425,7 @@ describe('Contact Support', () => {
   });
 
   it('opens a mail to the support address', async () => {
-    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
     const { root, done } = await mount(<ContactSupportRows />);
 
     expect(textOf(root)).toContain('kkdigitalteamwork@gmail.com');

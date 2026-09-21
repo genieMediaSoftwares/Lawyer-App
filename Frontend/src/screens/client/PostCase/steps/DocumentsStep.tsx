@@ -17,8 +17,14 @@ import {
   UploadArrowIcon,
 } from '../../../../components/icons/ClientIcons';
 import { CheckIcon, EyeIcon } from '../../../../components/icons/Icons';
-import { UPLOAD_LIMITS, aiApi, rejectionReasonFor } from '../../../../api/aiApi';
+import {
+  AI_MAX_FILE_BYTES,
+  UPLOAD_LIMITS,
+  aiApi,
+  rejectionReasonFor,
+} from '../../../../api/aiApi';
 import { documentsApi } from '../../../../api/documentsApi';
+import { prepareAiFiles, stageLabel } from '../../../../services/aiFileOptimizer';
 import { filePicker } from '../../../../services/filePicker';
 import { toAppError } from '../../../../utils/errors';
 import { formatFileSize } from '../../../../utils/format';
@@ -125,6 +131,7 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
 
   const [uploadFraction, setUploadFraction] = useState(0);
   const [isStartingAnalysis, setIsStartingAnalysis] = useState(false);
+  const [preparingLabel, setPreparingLabel] = useState<string | null>(null);
 
   const requestId = useRef(makeRequestId());
 
@@ -246,24 +253,25 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
       return;
     }
 
-    const accepted: PickedFile[] = [];
-    const rejections: string[] = [];
-    for (const file of picked) {
-      const reason = rejectionReasonFor(file);
-      if (reason) {
-        rejections.push(reason);
-      } else {
-        accepted.push(file);
-      }
+    setIsStartingAnalysis(true);
+    setUploadFraction(0);
+
+    let accepted: PickedFile[];
+    let rejections: string[];
+    try {
+      ({ ready: accepted, rejections } = await prepareAiFiles(picked, (file, stage) =>
+        setPreparingLabel(`${file.name}: ${stageLabel(stage)}`),
+      ));
+    } finally {
+      setPreparingLabel(null);
     }
 
     if (accepted.length === 0) {
+      setIsStartingAnalysis(false);
       setError(rejections.join('\n'));
       return;
     }
 
-    setIsStartingAnalysis(true);
-    setUploadFraction(0);
     try {
       const accepted202 = await aiApi.analyze({
         documents: accepted,
@@ -314,8 +322,8 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
   if (isStartingAnalysis) {
     return (
       <AiProcessingPanel
-        percent={Math.round(uploadFraction * 100)}
-        message="Uploading your documents…"
+        percent={preparingLabel ? 0 : Math.round(uploadFraction * 100)}
+        message={preparingLabel ?? 'Uploading your documents…'}
         current={null}
         total={null}
         uploading
@@ -445,7 +453,9 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
             <GenieText variant="caption" tone="muted" className="mt-1 text-center">
               {`Up to ${UPLOAD_LIMITS.maxDocuments} files · ${UPLOAD_LIMITS.documentExtensions.join(
                 ' · ',
-              )} · 10 MB each`}
+              )} · ${formatFileSize(
+                AI_MAX_FILE_BYTES,
+              )} each (larger images and PDFs are optimized automatically)`}
             </GenieText>
           </Pressable>
 

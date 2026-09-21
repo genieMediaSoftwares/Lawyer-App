@@ -9,6 +9,9 @@ const {
   PIPELINE_BUDGET_MS,
 } = require("../../services/ai/aiSmartCasePipeline");
 const log = require("../../utils/aiLogger");
+const pdfOptimizer = require("../../services/document/pdfOptimizer");
+const preparedDocuments = require("../../services/ai/preparedDocuments");
+const { AI_MAX_FILE_BYTES, AI_MAX_DOCUMENTS } = require("../../config/uploadLimits");
 const {
   detectTranscriptLanguage,
   normaliseLanguageCode,
@@ -22,7 +25,82 @@ const MAX_CONCURRENT_SESSIONS_PER_CLIENT = 3;
 
 const STALE_GRACE_MS = 60 * 1000;
 
+const OPTIMIZATION_STATUS = {
+  UNAVAILABLE: 503,
+  INVALID_PDF: 415,
+  FAILED: 422,
+  STILL_TOO_LARGE: 422,
+};
+
+const isPdf = (file) =>
+  file.mimetype === "application/pdf" ||
+  path.extname(file.originalname || "").toLowerCase() === ".pdf";
+
 class AiSmartCaseController {
+  // Shrinks a PDF over 3 MB and holds the result for the next analysis.
+  async optimizeDocument(req, res, next) {
+    const file = req.file;
+    try {
+      const clientId = req.user?._id;
+      if (!file) {
+        return ApiResponse.error(res, "Choose a PDF to optimize.", 400);
+      }
+      if (!isPdf(file)) {
+        await removeUploadedFiles([file]);
+        return ApiResponse.error(
+          res,
+          "Only PDFs are optimized on the server. Images are compressed in the app, and DOCX and text files are never altered.",
+          415
+        );
+      }
+
+      let result;
+      try {
+        result = await pdfOptimizer.optimizePdf(file.path, { targetBytes: AI_MAX_FILE_BYTES });
+      } catch (error) {
+        await removeUploadedFiles([file]);
+        if (error instanceof pdfOptimizer.PdfOptimizationError) {
+          log.warn("optimize:rejected", { code: error.code, size: file.size });
+          return ApiResponse.error(res, error.message, OPTIMIZATION_STATUS[error.code] || 422);
+        }
+        throw error;
+      }
+
+      const prepared = await preparedDocuments.save(clientId, result.path, {
+        originalName: file.originalname,
+        mimeType: "application/pdf",
+      });
+      if (result.path !== file.path) {
+        await removeUploadedFiles([file]);
+      }
+      preparedDocuments.sweep().catch(() => {});
+
+      log.info("optimize:done", {
+        client: clientId,
+        originalSize: result.originalSize,
+        size: prepared.size,
+        passes: result.passes,
+      });
+
+      return ApiResponse.success(
+        res,
+        result.optimized ? "PDF optimized." : "PDF is already within the limit.",
+        {
+          token: prepared.token,
+          name: file.originalname,
+          mimeType: "application/pdf",
+          size: prepared.size,
+          originalSize: result.originalSize,
+          optimized: result.optimized,
+        },
+        201
+      );
+    } catch (error) {
+      if (file) await removeUploadedFiles([file]);
+      return next(error);
+    }
+  }
+
   async analyzeSmartCase(req, res, next) {
     let documentFiles = [];
     let voiceFile = null;
@@ -66,7 +144,23 @@ class AiSmartCaseController {
         }
       }
 
-      if (!documentFiles || documentFiles.length === 0) {
+      const oversized = (documentFiles || []).find((f) => f.size > AI_MAX_FILE_BYTES);
+      if (oversized) {
+        await removeUploadedFiles([...documentFiles, voiceFile]);
+        return ApiResponse.error(
+          res,
+          `${oversized.originalname} is larger than 3 MB. Please add it again so it can be optimized before upload.`,
+          413
+        );
+      }
+
+      const tokens = [].concat(req.body?.preparedDocuments || []).map(String);
+      if (documentFiles.length + tokens.length > AI_MAX_DOCUMENTS) {
+        await removeUploadedFiles([...documentFiles, voiceFile]);
+        return ApiResponse.error(res, `You can attach up to ${AI_MAX_DOCUMENTS} documents.`, 400);
+      }
+
+      if (documentFiles.length + tokens.length === 0) {
         await removeUploadedFiles([voiceFile]);
         return ApiResponse.error(
           res,
@@ -91,6 +185,22 @@ class AiSmartCaseController {
           429
         );
       }
+
+      // Claimed last, so a refusal above leaves optimized PDFs usable for a retry.
+      const claimed = [];
+      for (const token of tokens) {
+        const file = await preparedDocuments.claim(clientId, token);
+        if (!file) {
+          await removeUploadedFiles([...documentFiles, ...claimed, voiceFile]);
+          return ApiResponse.error(
+            res,
+            "An optimized document has expired. Please remove it and add it again.",
+            410
+          );
+        }
+        claimed.push(file);
+      }
+      documentFiles = [...documentFiles, ...claimed];
 
       const typedDescription = ((req.body && req.body.issueDescription) || "")
         .toString()

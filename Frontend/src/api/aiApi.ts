@@ -43,6 +43,15 @@ export interface AnalyzeInput {
   onUploadProgress?: (fraction: number) => void;
 }
 
+export interface OptimizedDocument {
+  token: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  originalSize: number;
+  optimized: boolean;
+}
+
 export interface AiChatInput {
   message: string;
   conversationId?: string;
@@ -176,7 +185,11 @@ export const aiApi = {
     const form = new FormData();
 
     for (const document of input.documents) {
-      appendFile(form, 'documents', document);
+      if (document.preparedToken) {
+        form.append('preparedDocuments', document.preparedToken);
+      } else {
+        appendFile(form, 'documents', document);
+      }
     }
 
     if (input.voice) {
@@ -211,6 +224,31 @@ export const aiApi = {
       },
     );
 
+    return unwrap(response);
+  },
+
+  // Sends a PDF over 3 MB to be shrunk server-side. The result is held on the
+  // server and later included in the analysis by its token.
+  async optimizePdf(
+    file: PickedFile,
+    onUploadProgress?: (fraction: number) => void,
+  ): Promise<OptimizedDocument> {
+    const form = new FormData();
+    appendFile(form, 'document', file);
+
+    const response = await apiClient.post<ApiSuccess<OptimizedDocument>>(
+      '/ai/smart-case/optimize',
+      form,
+      {
+        headers: { 'Content-Type': undefined },
+        timeout: 240000,
+        onUploadProgress: event => {
+          if (onUploadProgress && event.total) {
+            onUploadProgress(Math.min(1, event.loaded / event.total));
+          }
+        },
+      },
+    );
     return unwrap(response);
   },
 
@@ -267,6 +305,10 @@ export const UPLOAD_LIMITS = {
   ],
 } as const;
 
+// AI Smart Case Assistant: the largest document accepted as-is. Anything larger
+// is optimized automatically before upload (see services/aiFileOptimizer).
+export const AI_MAX_FILE_BYTES = 3 * 1024 * 1024;
+
 export const maxAiUploadBytes = (): number | null =>
   env.aiUploadMaxMb === null ? null : Math.floor(env.aiUploadMaxMb * 1024 * 1024);
 
@@ -275,8 +317,10 @@ export const maxAiFileBytes = (): number => {
   return total === null ? UPLOAD_LIMITS.maxFileBytes : Math.min(UPLOAD_LIMITS.maxFileBytes, total);
 };
 
+// Bytes the analysis request itself will carry. PDFs optimized on the server
+// are already there and travel only as a token.
 export const knownTotalBytes = (files: ReadonlyArray<PickedFile | null | undefined>): number =>
-  files.reduce((sum, file) => sum + (file?.size ?? 0), 0);
+  files.reduce((sum, file) => sum + (file && !file.preparedToken ? file.size ?? 0 : 0), 0);
 
 export const uploadTooLargeReason = (
   files: ReadonlyArray<PickedFile | null | undefined>,
@@ -299,6 +343,10 @@ export const rejectionReasonFor = (file: PickedFile): string | null => {
     )} limit. Please reduce or compress it and try again.`;
   }
 
+  return unsupportedTypeReason(file);
+};
+
+export const unsupportedTypeReason = (file: PickedFile): string | null => {
   const name = file.name.toLowerCase();
 
   if (name.endsWith('.doc')) {

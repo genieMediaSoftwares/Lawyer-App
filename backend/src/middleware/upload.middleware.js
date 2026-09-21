@@ -2,6 +2,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const { AI_OPTIMIZE_MAX_INPUT_BYTES } = require("../config/uploadLimits");
 
 const EXTENSION_BY_MIME = {
   "application/pdf": ".pdf",
@@ -83,6 +84,17 @@ const upload = multer({
   fileFilter: fileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024
+  }
+});
+
+// Raw PDFs sent to the AI assistant for optimization may be larger than the
+// normal limit; they are shrunk before anything keeps them.
+upload.optimizeInput = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: AI_OPTIMIZE_MAX_INPUT_BYTES,
+    files: 1
   }
 });
 
