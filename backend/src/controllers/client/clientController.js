@@ -6,19 +6,6 @@ const Document = require("../../models/Document");
 const Payment = require("../../models/Payment");
 const ApiResponse = require("../../config/ApiResponse");
 
-/**
- * True if `lawyerId` actually acts for the client user `clientUserId`.
- *
- * This is the same relationship getClients already uses to build an advocate's
- * client list - a case they are assigned to, or a consultation booked with
- * them - so the detail, notes and activity endpoints below admit exactly the
- * clients that appear in that list, and no others.
- *
- * It is applied because these endpoints previously took a client id from the
- * URL and answered without checking anything: any authenticated user could
- * read any client's profile, contact details and full document list, and write
- * notes onto any client's record, by changing the id.
- */
 const isEngagedWithClient = async (lawyerId, clientUserId) => {
   const [byCase, byAppointment] = await Promise.all([
     Case.exists({ client: clientUserId, assignedLawyer: lawyerId }),
@@ -27,13 +14,6 @@ const isEngagedWithClient = async (lawyerId, clientUserId) => {
   return Boolean(byCase || byAppointment);
 };
 
-/**
- * Resolves the client record an advocate is asking about, or the reason they
- * may not have it.
- *
- * Returns `{ error, status }` for the caller to hand straight to ApiResponse,
- * so the four endpoints below cannot drift apart on who is allowed in.
- */
 const resolveClientForLawyer = async (user, clientUserId) => {
   if (user.role !== "lawyer" && user.role !== "admin") {
     return { error: "Access forbidden.", status: 403 };
@@ -50,8 +30,6 @@ const resolveClientForLawyer = async (user, clientUserId) => {
     user.role === "lawyer" &&
     !(await isEngagedWithClient(user._id, clientUserId))
   ) {
-    // 404 rather than 403: a 403 would confirm that this user exists and is a
-    // client of some other advocate.
     return { error: "Client not found.", status: 404 };
   }
 
@@ -63,7 +41,6 @@ class ClientController {
     try {
       const lawyerId = req.user._id;
 
-      // Find all unique client user IDs from appointments or assigned cases
       const appointments = await Appointment.find({ lawyer: lawyerId }).distinct("client");
       const cases = await Case.find({ assignedLawyer: lawyerId }).distinct("client");
 
@@ -92,24 +69,17 @@ class ClientController {
         return ApiResponse.error(res, error, status);
       }
 
-      // Fetch client metadata details
       let clientProfile = await Client.findOne({ user: id });
       if (!clientProfile) {
         clientProfile = await Client.create({ user: id });
       }
 
-      // Fetch Case history
       const caseHistory = await Case.find({ client: id, assignedLawyer: lawyerId });
 
-      // Fetch Documents
       const documents = await Document.find({ clientId: id });
 
-      // Fetch Appointments
       const appointments = await Appointment.find({ client: id, lawyer: lawyerId });
 
-      // The notes array is dropped from the profile before it is returned: it
-      // holds every advocate's private notes on this client, and getNotes below
-      // is the only endpoint that reads it - filtered to its author.
       const profile = clientProfile.toObject();
       delete profile.notes;
 
@@ -140,9 +110,6 @@ class ClientController {
         return ApiResponse.error(res, error, status);
       }
 
-      // A note may be filed against a case, but only one this advocate is
-      // actually on and that belongs to this client - otherwise the caseId
-      // would be a way to attach a note to someone else's matter.
       if (caseId) {
         const ownsCase = await Case.exists({
           _id: caseId,
@@ -170,8 +137,6 @@ class ClientController {
 
       await clientProfile.save();
 
-      // Only the note just written is returned. Returning the whole profile
-      // handed the caller every other advocate's private notes on this client.
       const created = clientProfile.notes[clientProfile.notes.length - 1];
 
       return ApiResponse.success(
@@ -201,9 +166,6 @@ class ClientController {
         return ApiResponse.success(res, "No client notes found.", []);
       }
 
-      // Filter notes authored by this lawyer. The `n.lawyer &&` guard matters:
-      // a note whose author reference is missing used to throw here and take
-      // the whole request down with it.
       let lawyerNotes = clientProfile.notes.filter(
         (n) =>
           n.lawyer &&
@@ -216,7 +178,6 @@ class ClientController {
         );
       }
 
-      // Newest first, so the list opens on what the advocate wrote last.
       lawyerNotes = lawyerNotes.sort(
         (a, b) => new Date(b.date) - new Date(a.date)
       );
@@ -227,11 +188,6 @@ class ClientController {
     }
   }
 
-  /**
-   * Edits a note. Author-only: an advocate may not touch a note another
-   * advocate wrote about the same client, and the client themselves has no
-   * endpoint that reaches this array at all.
-   */
   async updateNote(req, res, next) {
     try {
       const { id, noteId } = req.params;
@@ -383,7 +339,6 @@ class ClientController {
       const userId = req.user._id;
       const activities = [];
 
-      // 1. Profile updated activity (default fallback)
       activities.push({
         title: "Profile updated",
         description: "Personal details updated",
@@ -391,7 +346,6 @@ class ClientController {
         type: "profile"
       });
 
-      // 2. Documents uploaded
       const documents = await Document.find({ clientId: userId }).sort({ createdAt: -1 }).limit(5);
       documents.forEach(doc => {
         activities.push({
@@ -402,7 +356,6 @@ class ClientController {
         });
       });
 
-      // 3. Appointments booked
       const appointments = await Appointment.find({ client: userId }).populate("lawyer", "fullName").sort({ createdAt: -1 }).limit(5);
       appointments.forEach(app => {
         activities.push({
@@ -413,7 +366,6 @@ class ClientController {
         });
       });
 
-      // 4. Payments completed
       const payments = await Payment.find({ client: userId }).populate("lawyer", "fullName").sort({ createdAt: -1 }).limit(5);
       payments.forEach(pay => {
         activities.push({
@@ -424,7 +376,6 @@ class ClientController {
         });
       });
 
-      // Sort all by date desc
       activities.sort((a, b) => new Date(b.date) - new Date(a.date));
 
       return ApiResponse.success(res, "Client activity fetched successfully.", activities);

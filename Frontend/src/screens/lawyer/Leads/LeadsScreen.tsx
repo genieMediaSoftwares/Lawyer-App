@@ -43,7 +43,6 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyCaseId, setBusyCaseId] = useState<string | null>(null);
 
-  // Real-time polling for leads (3s) with zero stale time
   const leadsQuery = useQuery({
     queryKey: ['lawyer', 'leads'],
     queryFn: lawyerApi.getLeads,
@@ -54,7 +53,6 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
     staleTime: 0,
   });
 
-  // Real-time polling for clients (accepted tab reads clients endpoint)
   const clientsQuery = useQuery({
     queryKey: ['lawyer', 'clients'],
     queryFn: lawyerApi.getClients,
@@ -65,7 +63,6 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
     staleTime: 0,
   });
 
-  // Notifications query for header unread count
   const notificationsQuery = useQuery({
     queryKey: ['notifications', 1],
     queryFn: () => notificationsApi.list(1, 15),
@@ -133,7 +130,6 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
         key={item.caseId}
         className="mb-4 rounded-2xl border border-border/40 bg-surface-alt p-4"
       >
-        {/* Top Header Row */}
         <View className="flex-row items-start justify-between">
           <View className="flex-row items-center gap-3 flex-1 pr-2">
             <View className="items-center">
@@ -169,7 +165,6 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
           </View>
         </View>
 
-        {/* Details Grid (2 Columns) */}
         <View className="mt-4 gap-2.5">
           <View className="flex-row items-center justify-between">
             <View className="flex-1 flex-row items-center gap-2">
@@ -204,12 +199,10 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
           </View>
         </View>
 
-        {/* Posted Date */}
         <GenieText className="mt-3 text-xs text-text-muted">
           Posted on: {formatDate(item.postedTime)}
         </GenieText>
 
-        {/* Action Buttons */}
         <View className="mt-4 flex-row gap-3">
           <Pressable
             onPress={() => (navigation as any).navigate('CaseDetails', { caseId: item.caseId })}
@@ -368,7 +361,6 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background">
-      {/* Header: Menu Icon + Title + Notifications Icon */}
       <GenieHeader
         title="Leads"
         onMenu={openDrawer}
@@ -376,7 +368,6 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
         notificationCount={unreadNotificationsCount}
       />
 
-      {/* Tabs Header with Underline & Count Badges */}
       <View className="flex-row border-b border-border/30 px-4 pt-1">
         <Pressable
           onPress={() => setTab('new')}
@@ -427,7 +418,6 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
         </Pressable>
       </View>
 
-      {/* Search Input Bar */}
       <View className="px-4 pb-2 pt-3">
         <GenieSearchInput
           placeholder="Search new leads..."

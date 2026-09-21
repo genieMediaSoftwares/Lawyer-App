@@ -39,9 +39,6 @@ import { NotesScreen } from '../screens/lawyer/Notes/NotesScreen';
 import { ProfessionalDetailsScreen } from '../screens/lawyer/Profile/ProfessionalDetailsScreen';
 import { SubscriptionScreen } from '../screens/lawyer/Subscription/SubscriptionScreen';
 
-// Reused from the client section rather than rebuilt: these screens are
-// already scoped to the signed-in user by the backend, so a lawyer sees their
-// own documents, conversations and notifications through the same endpoints.
 import { DocumentsScreen } from '../screens/client/Documents/DocumentsScreen';
 import { MessagesScreen } from '../screens/client/Messages/MessagesScreen';
 import { ChatScreen } from '../screens/client/Messages/ChatScreen';
@@ -64,35 +61,6 @@ import type {
   LawyerTabParamList,
 } from '../types/navigation';
 
-/**
- * The lawyer application.
- *
- * Structured exactly like ClientNavigator — tabs nested in a stack, with the
- * drawer and its overlays mounted as siblings of the stack so they float above
- * every screen. Reusing that shape means the drawer, header and tab bar behave
- * identically in both halves of the app.
- *
- * Research runs on `POST /ai/chat` with `mode: "research"`, which the backend
- * routes to its own advocate-facing system instruction, and Notes on the
- * per-client `/clients/:id/notes` CRUD.
- *
- * An earlier draft of this comment said neither had a backend route of any
- * kind. That was wrong on both counts — the routes were there and unused, and
- * the claim kept two working features hidden behind dimmed cards.
- */
-
-/**
- * Registers a screen written against the client stack on the lawyer stack.
- *
- * The five reused screens are typed `ClientStackScreenProps<...>`, and the two
- * param lists are different types even where the route they use is identical.
- * The cast is safe because of what surrounds it, not in spite of it: every
- * route these screens navigate to — Chat, AboutUs, PrivacyPolicy,
- * TermsConditions, ChangePassword — is declared on LawyerStackParamList under
- * the same name with the same params, and registered below. Widening the
- * screens' own prop types instead would mean editing five client files to
- * serve the lawyer tree, which is the worse trade.
- */
 const shared = <P,>(screen: React.ComponentType<P>) =>
   screen as unknown as React.ComponentType<Record<string, never>>;
 
@@ -324,7 +292,6 @@ export const LawyerNavigator: React.FC = () => (
       />
       <Stack.Screen name="Subscription" component={SubscriptionScreen} />
 
-      {/* Shared with the client tree, under the same route names. */}
       <Stack.Screen name="Documents" component={shared(DocumentsScreen)} />
       <Stack.Screen name="Messages" component={shared(MessagesScreen)} />
       <Stack.Screen name="Chat" component={shared(ChatScreen)} />

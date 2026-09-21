@@ -2,11 +2,6 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { GenieText } from './GenieText';
 
-/**
- * The line above a group of content: a title, optionally a subtitle, and
- * optionally an action on the right ("See all").
- */
-
 export interface GenieSectionHeaderProps {
   title: string;
   subtitle?: string;

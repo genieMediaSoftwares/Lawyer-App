@@ -5,17 +5,6 @@ import { base, stroke } from './Icons';
 import type { IconProps } from './Icons';
 import { colors } from '../../theme';
 
-/**
- * Icons for the lawyer section.
- *
- * Same 24-unit grid and 1.6 stroke weight as `Icons.tsx` and
- * `ClientIcons.tsx`, whose `base` and `stroke` helpers are reused so the three
- * sets cannot drift apart. Only glyphs the client section does not already
- * have live here — Briefcase, Scales, File, Chat, Star and the rest are
- * imported from ClientIcons rather than redrawn.
- */
-
-/** Workspace. A panel of tools. */
 export const GridIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Rect x="4" y="4" width="7" height="7" rx="1.5" stroke={color ?? colors.textMuted} {...stroke} />
@@ -25,7 +14,6 @@ export const GridIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/** Dashboard. Bars, because the dashboard is counts and totals. */
 export const ChartIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Line x1="4" y1="20" x2="20" y2="20" stroke={color ?? colors.textMuted} {...stroke} />
@@ -35,7 +23,6 @@ export const ChartIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/** Clients. Two people, to distinguish it from the single-person Profile. */
 export const UsersIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Circle cx="9" cy="8" r="3.2" stroke={color ?? colors.textMuted} {...stroke} />
@@ -52,7 +39,6 @@ export const UsersIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/** Calendar. */
 export const CalendarIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Rect x="3.5" y="5.5" width="17" height="15" rx="2.5" stroke={color ?? colors.textMuted} {...stroke} />
@@ -62,7 +48,6 @@ export const CalendarIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/** A lead: someone new arriving. */
 export const UserPlusIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Circle cx="10" cy="8" r="3.4" stroke={color ?? colors.textMuted} {...stroke} />
@@ -76,7 +61,6 @@ export const UserPlusIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/** Accept. A tick inside a circle, for the lead action. */
 export const CheckCircleIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Circle cx="12" cy="12" r="8.5" stroke={color ?? colors.success} {...stroke} />
@@ -84,7 +68,6 @@ export const CheckCircleIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/** Reject. A cross inside a circle, mirroring CheckCircleIcon. */
 export const XCircleIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Circle cx="12" cy="12" r="8.5" stroke={color ?? colors.error} {...stroke} />
@@ -93,14 +76,12 @@ export const XCircleIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/** Month navigation, pointing back. */
 export const ChevronLeftIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Path d="M14.5 5.5 8 12l6.5 6.5" stroke={color ?? colors.white} {...stroke} />
   </Svg>
 );
 
-/** A subscription plan. */
 export const CrownIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Path

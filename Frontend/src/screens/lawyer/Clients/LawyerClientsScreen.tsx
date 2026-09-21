@@ -46,7 +46,6 @@ export const LawyerClientsScreen: React.FC<
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyCaseId, setBusyCaseId] = useState<string | null>(null);
 
-  // Real-time polling for clients (3s) with zero stale time
   const clientsQuery = useQuery({
     queryKey: ['lawyer', 'clients'],
     queryFn: lawyerApi.getClients,
@@ -57,7 +56,6 @@ export const LawyerClientsScreen: React.FC<
     staleTime: 0,
   });
 
-  // Fetch notifications count for header bell
   const notificationsQuery = useQuery({
     queryKey: ['notifications', 1],
     queryFn: () => notificationsApi.list(1, 15),
@@ -149,7 +147,6 @@ export const LawyerClientsScreen: React.FC<
         key={item.caseId}
         className="mb-4 rounded-2xl border border-border/40 bg-surface-alt p-4"
       >
-        {/* Header Row */}
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-3 flex-1 pr-2">
             <GenieAvatar uri={item.profileImage} name={item.name} size="md" />
@@ -172,7 +169,6 @@ export const LawyerClientsScreen: React.FC<
 
         <View className="my-3 border-t border-border/40" />
 
-        {/* Details List */}
         <View className="gap-2.5">
           <View className="flex-row items-center gap-2.5">
             <GenieText className="text-xs text-text-secondary" numberOfLines={1}>
@@ -208,7 +204,6 @@ export const LawyerClientsScreen: React.FC<
           </View>
         </View>
 
-        {/* Action Buttons */}
         <View className="mt-4 flex-row gap-3">
           <Pressable
             onPress={() => (navigation as any).navigate('CaseDetails', { caseId: item.caseId })}
@@ -246,7 +241,6 @@ export const LawyerClientsScreen: React.FC<
         key={item.caseId}
         className="mb-4 rounded-2xl border border-border/40 bg-surface-alt p-4"
       >
-        {/* Header Row */}
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-3 flex-1 pr-2">
             <GenieAvatar uri={item.profileImage} name={item.name} size="md" />
@@ -269,7 +263,6 @@ export const LawyerClientsScreen: React.FC<
 
         <View className="my-3 border-t border-border/40" />
 
-        {/* Details List */}
         <View className="gap-2.5">
           <View className="flex-row items-center gap-2.5">
             <GenieText className="text-xs text-text-secondary" numberOfLines={1}>
@@ -291,7 +284,6 @@ export const LawyerClientsScreen: React.FC<
           </View>
         </View>
 
-        {/* Action Buttons Top Row */}
         <View className="mt-4 flex-row gap-3">
           <Pressable
             onPress={() => (navigation as any).navigate('CaseDetails', { caseId: item.caseId })}
@@ -312,7 +304,6 @@ export const LawyerClientsScreen: React.FC<
           </Pressable>
         </View>
 
-        {/* Full-width Mark Case Completed Green Button */}
         <Pressable
           disabled={isBusy}
           onPress={() => {
@@ -464,7 +455,6 @@ export const LawyerClientsScreen: React.FC<
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background">
-      {/* Header: Menu Icon + Title + Notifications Icon */}
       <GenieHeader
         title="Clients"
         onMenu={openDrawer}
@@ -472,7 +462,6 @@ export const LawyerClientsScreen: React.FC<
         notificationCount={unreadNotificationsCount}
       />
 
-      {/* Tabs Header with Underline & Count Badges */}
       <View className="flex-row border-b border-border/30 px-4 pt-1">
         {(
           [
@@ -511,7 +500,6 @@ export const LawyerClientsScreen: React.FC<
         })}
       </View>
 
-      {/* Search Bar */}
       <View className="px-4 pb-2 pt-3">
         <GenieSearchInput
           placeholder="Search clients..."

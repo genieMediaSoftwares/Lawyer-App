@@ -31,7 +31,6 @@ import type { ClientStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
 import { Platform } from 'react-native';
 
-/** Appends file to FormData cleanly across React Native and Web. */
 const appendAcknowledgementFile = (form: FormData, file: PickedFile): void => {
   if (Platform.OS === 'web' && file.file) {
     (form.append as (name: string, value: Blob, fileName?: string) => void)(
@@ -58,7 +57,6 @@ export const DocumentsScreen: React.FC<ClientStackScreenProps<'Documents'>> = ({
   const [search, setSearch] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<DocumentFilterType>('All');
 
-  // Modals state
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [actionDocument, setActionDocument] = useState<AppDocument | null>(null);
   const [viewerDocument, setViewerDocument] = useState<AppDocument | null>(null);
@@ -118,13 +116,11 @@ export const DocumentsScreen: React.FC<ClientStackScreenProps<'Documents'>> = ({
     return allDocuments.filter(doc => {
       const badge = getDocumentBadgeInfo(doc);
 
-      // Filter by category
       if (selectedFilter === 'PDF' && badge.category !== 'pdf') return false;
       if (selectedFilter === 'DOCX' && badge.category !== 'docx') return false;
       if (selectedFilter === 'Images' && badge.category !== 'image') return false;
       if (selectedFilter === 'TXT' && badge.category !== 'text') return false;
 
-      // Filter by search query
       if (debouncedSearch.trim()) {
         const query = debouncedSearch.trim().toLowerCase();
         const docName = (doc.name || doc.originalName || '').toLowerCase();
@@ -259,7 +255,6 @@ export const DocumentsScreen: React.FC<ClientStackScreenProps<'Documents'>> = ({
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background">
-      {/* Header matching reference: Back button left, "My Documents" center, Gold + button right */}
       <GenieHeader
         title="My Documents"
         onMenu={openDrawer}
@@ -274,7 +269,6 @@ export const DocumentsScreen: React.FC<ClientStackScreenProps<'Documents'>> = ({
         }
       />
 
-      {/* Search Input */}
       <View className="px-5 pt-2 pb-1">
         <GenieSearchInput
           placeholder="Search documents..."
@@ -284,16 +278,13 @@ export const DocumentsScreen: React.FC<ClientStackScreenProps<'Documents'>> = ({
         />
       </View>
 
-      {/* Filter Chips */}
       <DocumentFilterChips
         selectedFilter={selectedFilter}
         onSelectFilter={setSelectedFilter}
       />
 
-      {/* Body List or State */}
       <View className="flex-1">{renderBody()}</View>
 
-      {/* Upload Document Modal */}
       <UploadDocumentModal
         visible={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
@@ -302,7 +293,6 @@ export const DocumentsScreen: React.FC<ClientStackScreenProps<'Documents'>> = ({
         }}
       />
 
-      {/* Document Action Sheet */}
       <DocumentActionSheet
         visible={Boolean(actionDocument)}
         document={actionDocument}
@@ -315,7 +305,6 @@ export const DocumentsScreen: React.FC<ClientStackScreenProps<'Documents'>> = ({
         onDelete={doc => setDeleteDocument(doc)}
       />
 
-      {/* Document Viewer Modal */}
       <DocumentViewerModal
         visible={Boolean(viewerDocument)}
         document={viewerDocument}
@@ -323,7 +312,6 @@ export const DocumentsScreen: React.FC<ClientStackScreenProps<'Documents'>> = ({
         onDownload={doc => handleDownload(doc)}
       />
 
-      {/* Rename Modal */}
       <RenameDocumentModal
         visible={Boolean(renameDocument)}
         document={renameDocument}
@@ -333,7 +321,6 @@ export const DocumentsScreen: React.FC<ClientStackScreenProps<'Documents'>> = ({
         }}
       />
 
-      {/* Delete Confirmation Modal */}
       <DeleteDocumentModal
         visible={Boolean(deleteDocument)}
         document={deleteDocument}

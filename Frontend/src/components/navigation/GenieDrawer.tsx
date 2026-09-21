@@ -20,38 +20,6 @@ import {
 import { colors } from '../../theme';
 import { USE_NATIVE_DRIVER } from '../../utils/platform';
 
-/**
- * The navigation drawer.
- *
- * LAYERING
- *
- * Three layers inside one Modal, in this order:
- *
- *   App content   — the screen behind, owned by the navigator
- *   Backdrop      — absolutely positioned, fills the Modal, z-10
- *   Drawer panel  — absolutely positioned on the left, z-20, fully opaque
- *
- * The panel is opaque `bg-surface` (#111111) with no opacity anywhere on it.
- * Only the backdrop is translucent; the panel sits above it and covers the
- * screen completely across its own width. Because the whole thing is a
- * `Modal`, it renders above everything the navigator draws — including the tab
- * bar and its raised centre button — and when `visible` is false nothing is
- * mounted at all, so no invisible layer is left behind eating taps.
- *
- * WHY THE PANEL IS NOT AN Animated.View WITH CLASSES
- *
- * It is, now. `Animated.View` is not one of the components NativeWind
- * registers by default, so until `src/nativewind-interop.ts` registered it
- * every `className` here was dropped — which is why this panel previously had
- * no background and the Home screen showed through it.
- *
- * IT OPENS FROM THE LEFT
- *
- * `left-0` plus a slide from `-width` to `0`. Both halves have to agree; flip
- * one and the panel comes in from the wrong edge or starts on-screen.
- */
-
-/** Matches `w-[82%]` below — the two must stay in step. */
 const DRAWER_WIDTH_FRACTION = 0.82;
 
 export interface GenieDrawerItem {
@@ -62,7 +30,6 @@ export interface GenieDrawerItem {
   icon?: React.ReactNode;
   onPress?: () => void;
   badge?: string | number;
-  /** A screen that is not built yet renders dimmed and does not respond. */
   available?: boolean;
 }
 
@@ -88,14 +55,6 @@ export interface GenieDrawerProps {
   onSubscriptionPress?: () => void;
 }
 
-/**
- * One row: [icon] label … [badge] [chevron].
- *
- * A fixed `h-14` rather than padding-driven height is what keeps the rows
- * evenly spaced whatever their contents — a row with a badge is the same
- * height as one without. The icon sits in a fixed-width box so every label
- * starts at the same x.
- */
 const DrawerRow: React.FC<{
   label: string;
   icon: React.ReactNode;
@@ -159,8 +118,6 @@ export const GenieDrawer: React.FC<GenieDrawerProps> = ({
   const handleLogout = onSignOut ?? onLogout;
   const userName = user?.fullName || user?.name;
 
-  // Read live rather than once, so the slide distance stays correct after a
-  // rotation or a browser resize.
   const { width } = useWindowDimensions();
   const drawerWidth = width * DRAWER_WIDTH_FRACTION;
 
@@ -175,8 +132,6 @@ export const GenieDrawer: React.FC<GenieDrawerProps> = ({
     }).start();
   }, [anim, isVisible]);
 
-  // Off the left edge to flush against it. A driven value, so it is the one
-  // thing here that stays in a style prop.
   const translateX = anim.interpolate({
     inputRange: [0, 1],
     outputRange: [-drawerWidth, 0],
@@ -203,8 +158,6 @@ export const GenieDrawer: React.FC<GenieDrawerProps> = ({
       statusBarTranslucent
     >
       <View className="flex-1">
-        {/* Layer 1 — the backdrop. Covers the whole screen and fades with the
-            panel; the panel is drawn on top of it. */}
         <Animated.View
           style={{ opacity: anim }}
           className="absolute bottom-0 left-0 right-0 top-0 z-10 bg-overlay"
@@ -217,7 +170,6 @@ export const GenieDrawer: React.FC<GenieDrawerProps> = ({
           />
         </Animated.View>
 
-        {/* Layer 2 — the panel. Opaque, above the backdrop, pinned left. */}
         <Animated.View
           style={{ transform: [{ translateX }] }}
           className="absolute bottom-0 left-0 top-0 z-20 w-[82%] border-r border-border bg-surface"
@@ -322,9 +274,6 @@ export const GenieDrawer: React.FC<GenieDrawerProps> = ({
               })}
             </ScrollView>
 
-            {/* Pinned footer. Settings and Sign Out are two full-width rows of
-                the same shape as the list above, not a button pair — Sign Out
-                is destructive and must not sit beside an unrelated control. */}
             <View className="shrink-0 px-2 pb-2">
               <GenieDivider className="mb-1" />
 

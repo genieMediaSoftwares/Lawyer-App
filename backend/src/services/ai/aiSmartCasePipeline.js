@@ -9,32 +9,6 @@ const {
   normaliseLanguageCode,
 } = require("../../utils/transcriptLanguage");
 
-/**
- * The AI Smart Case intake pipeline.
- *
- * Runs detached from the HTTP request that started it. The endpoint persists
- * the session and returns an id immediately; everything below happens after
- * the response has been sent, reporting each real transition over Socket.IO
- * and persisting the same state to the session document.
- *
- * Two rules govern this file:
- *
- *  1. Progress is only ever emitted from a point the pipeline has actually
- *     reached. There is no timer, no interpolation and no optimistic
- *     advancement — a client showing "Reading document 3 of 7" means document
- *     3 is genuinely being read right now.
- *
- *  2. The session document is written before the socket event, so a client
- *     that missed the event (backgrounded, reconnected, different device) sees
- *     identical state by fetching the session. The socket is an accelerator,
- *     never the source of truth.
- */
-
-/**
- * Stage weights, in the order they run. `percent` is the cumulative weight of
- * completed stages plus the fraction of the current one that is genuinely
- * done, so the bar tracks real work rather than elapsed time.
- */
 const PIPELINE_STAGES = [
   { id: "queued", label: "Preparing your documents", weight: 2 },
   { id: "ocr", label: "Reading documents", weight: 50 },
@@ -46,58 +20,19 @@ const PIPELINE_STAGES = [
 
 const stageIndex = (id) => PIPELINE_STAGES.findIndex((s) => s.id === id);
 
-/** Cumulative weight of every stage before `id`. */
 const weightBefore = (id) =>
   PIPELINE_STAGES.slice(0, Math.max(0, stageIndex(id))).reduce((sum, s) => sum + s.weight, 0);
 
-/**
- * How many documents are OCR'd at once.
- *
- * Set to 1 (sequential) to keep within Gemini per-second rate limits (2 RPS).
- */
 const OCR_CONCURRENCY = 1;
 
-/**
- * Total wall-clock budget for one intake. Past this the run is failed
- * deliberately with an explanation, instead of being killed anonymously by
- * Node's request timeout or leaving a session stuck in "processing" forever.
- */
 const PIPELINE_BUDGET_MS = 8 * 60 * 1000;
 
-/**
- * Per-step ceilings, enforced with a race rather than trusting the callee.
- *
- * The budget above used to be checked only *between* stages, which meant it
- * could not stop a stage that never returned. `geminiClient` walks up to five
- * models, twice, retrying 429s, at 60 seconds per attempt — arithmetic that
- * reaches twenty minutes for a single call. One such call therefore blew right
- * past the eight-minute budget, and because nothing else advanced the session,
- * it sat on "Extracting case details" until someone restarted the server.
- *
- * A step that exceeds its ceiling is abandoned and treated as having produced
- * nothing, which every caller below already handles.
- */
 const OCR_STEP_TIMEOUT_MS = 150 * 1000;
 const TRANSCRIBE_STEP_TIMEOUT_MS = 120 * 1000;
 const EXTRACT_STEP_TIMEOUT_MS = 180 * 1000;
 
-/** A document with fewer readable characters than this needs vision help. */
 const SPARSE_TEXT_THRESHOLD = 40;
 
-/**
- * What the model is told when it has to transcribe the audio itself — the path
- * taken only by devices with no usable speech recogniser for the client's
- * language.
- *
- * It previously read "transcribe this voice description of a legal issue
- * verbatim into English", and "verbatim into English" is a contradiction: a
- * client speaking Telugu cannot be quoted verbatim in English. The model
- * resolved it the way it was asked to, by translating, so the case was built
- * from an English paraphrase and the client's own words were never stored
- * anywhere. Transcribing in the spoken language and script is the fix; the
- * extraction step downstream reads Telugu and Hindi perfectly well and no
- * longer needs the input flattened for it.
- */
 const TRANSCRIPTION_PROMPT =
   "Transcribe this voice description of a legal issue verbatim.\n" +
   "Write the transcript in the language that is actually spoken — do not translate it.\n" +
@@ -110,15 +45,6 @@ const TRANSCRIPTION_PROMPT =
   "Telugu or Hindi sentence.\n" +
   "Return ONLY the plain transcript, with no commentary.";
 
-/**
- * Names the language when the client picked one in the recorder, so the model
- * is told rather than left to infer.
- *
- * Detection is good but not free of doubt on a short or noisy clip, and a
- * client who explicitly chose తెలుగు has already answered the question. An
- * unrecognised or absent code adds nothing and leaves detection in charge —
- * which is exactly what Auto wants.
- */
 const LANGUAGE_NAMES = { en: "English", hi: "Hindi", te: "Telugu" };
 
 function promptFor(languageCode) {
@@ -130,7 +56,6 @@ function promptFor(languageCode) {
   );
 }
 
-/** Marker distinguishing "the step ran out of time" from "the step threw". */
 class StepTimeoutError extends Error {
   constructor(label, ms) {
     super(`${label} exceeded ${Math.round(ms / 1000)}s`);
@@ -138,48 +63,20 @@ class StepTimeoutError extends Error {
   }
 }
 
-/**
- * Resolves with [work]'s value, or rejects with a [StepTimeoutError] once [ms]
- * has passed.
- *
- * The underlying work is not cancellable — it is an in-flight `fetch` inside
- * geminiClient — so it keeps running to completion in the background and its
- * result is discarded. That is acceptable and deliberate: the alternative is a
- * pipeline that a single hung upstream call can stall indefinitely.
- */
 function withTimeout(work, ms, label) {
   let timer;
   return Promise.race([
     Promise.resolve(work).finally(() => clearTimeout(timer)),
     new Promise((_, reject) => {
       timer = setTimeout(() => reject(new StepTimeoutError(label, ms)), ms);
-      // Never hold the event loop open for a step nobody is waiting on.
       if (timer.unref) timer.unref();
     }),
   ]);
 }
 
-/**
- * Turns a technical extraction error into something a client can act on.
- *
- * `failures[].reason` carries whatever the OCR layer caught — which, when the
- * provider is having a bad day, is a raw HTTP body. One of these reached a
- * client's screen verbatim:
- *
- *   "sample_divorce_case.pdf: gemini-1.5-pro: HTTP 404 { "error": { "code":
- *    404, "message": "models/gemini-1.5-pro is not found for API version
- *    v1beta, or is not supported for generateContent. Call
- *    ModelService.ListModels to see the list of avai"
- *
- * That tells the client nothing they can do anything about, names our
- * infrastructure, and reads like the app is broken. The technical string is
- * still logged in full at the point of failure; this is only what the client
- * is shown.
- */
 function clientSafeFailure(name, reason) {
   const text = String(reason || "");
 
-  // Ours, not theirs: nothing about the document would change the outcome.
   if (/HTTP \d{3}|ListModels|generateContent|API key|quota|rate limit|ECONNRESET|ETIMEDOUT|fetch failed|socket hang up/i.test(text)) {
     return `${name}: our document reader was unavailable, so this file was not used. Your document is saved — you can retry the analysis.`;
   }
@@ -193,7 +90,6 @@ function clientSafeFailure(name, reason) {
   }
 
   if (/unsupported file type/i.test(text)) {
-    // Already written for a client, and names the formats that do work.
     return `${name}: ${text}`;
   }
 
@@ -201,23 +97,10 @@ function clientSafeFailure(name, reason) {
 }
 
 class AiSmartCasePipeline {
-  /**
-   * @param {object} io  The Socket.IO server, from `app.get("io")`. Optional:
-   *   the pipeline still runs and still persists progress without it.
-   */
   constructor(io) {
     this.io = io;
   }
 
-  /**
-   * Persists progress and broadcasts it to the owning client.
-   *
-   * @param {object} session   The session document being advanced.
-   * @param {string} stage     A PIPELINE_STAGES id.
-   * @param {string} message   The line shown in the UI.
-   * @param {object} [detail]  `{ current, total }` for repeated stages, and
-   *   `fraction` (0-1) describing how far through the stage we are.
-   */
   async report(session, stage, message, detail = {}) {
     const { current = null, total = null, fraction = 0 } = detail;
 
@@ -236,13 +119,6 @@ class AiSmartCasePipeline {
       updatedAt: new Date(),
     };
 
-    // Persist first: the session is the source of truth a reconnecting client
-    // reads, so it must never lag behind what was broadcast.
-    //
-    // A failed write is not fatal to the run, but it *is* fatal to the client's
-    // view of it: the poll fallback reads this document, so a session whose
-    // progress stops advancing looks abandoned to the stale-session sweep. Log
-    // it loudly rather than swallowing it into a console.error nobody greps.
     try {
       await AiSmartCaseSession.updateOne({ _id: session._id }, { $set: { progress } });
     } catch (e) {
@@ -255,33 +131,15 @@ class AiSmartCasePipeline {
     });
   }
 
-  /** Emits to the owning client's room on the authenticated /ai namespace. */
   emit(clientId, event, payload) {
     if (!this.io || !clientId) return;
     try {
       this.io.of("/ai").to(clientId.toString()).emit(event, payload);
     } catch (e) {
-      // The socket is an accelerator, never the source of truth — the client's
-      // poll still reconciles against the session document.
       log.error("pipeline:emit-failed", e, { event });
     }
   }
 
-  /**
-   * Runs the whole intake. Never throws — a failure is recorded on the session
-   * and pushed to the client as `analysis_failed`.
-   *
-   * @param {object} session        Freshly created "processing" session.
-   * @param {object[]} documentFiles Multer files, already on disk.
-   * @param {object|null} voiceFile  Multer file for the voice note, if any.
-   * @param {string} typedDescription The client's own written notes.
-   * @param {string} [liveVoiceTranscript] The transcript the client's device
-   *   produced while they spoke, already reviewed and edited by them. When
-   *   present it is used as-is and the transcription stage does no work.
-   * @param {string} [liveVoiceLanguage] ISO 639-1 code for the language that
-   *   transcript is in, as detected on the device. Only ever a label: the
-   *   transcript itself is stored and analysed exactly as the client left it.
-   */
   async run({
     session,
     documentFiles,
@@ -293,11 +151,6 @@ class AiSmartCasePipeline {
     const startedAt = Date.now();
     const overBudget = () => Date.now() - startedAt > PIPELINE_BUDGET_MS;
 
-    // Hard stop. The stage-boundary `overBudget()` checks below cannot rescue a
-    // run whose *current* stage has hung, and every step here calls out to a
-    // network service that can. This watchdog fires regardless of where the run
-    // is, marks the session failed and tells the client — the difference
-    // between an intake that reports a timeout and one that spins forever.
     let watchdogFired = false;
     const watchdog = setTimeout(() => {
       watchdogFired = true;
@@ -321,23 +174,13 @@ class AiSmartCasePipeline {
     try {
       await this.report(session, "queued", "Preparing your documents", { fraction: 1 });
 
-      // ── 1. OCR every document ───────────────────────────────────────────
       const { ocrText, documentMetadata, sparseFiles, failures, fraudFlags, documentSummaries } =
         await this._readDocuments(session, documentFiles, overBudget);
 
-      // ── 2. Voice note ───────────────────────────────────────────────────
-      //
-      // The client's device transcribes as they speak, so in the normal case
-      // the text is already here and this stage is a formality. Only a device
-      // without a speech recogniser reaches the transcription call below, and
-      // only then does the client wait for it.
       let voiceTranscript = (liveVoiceTranscript || "").trim();
       let voiceTranscriptionFailed = false;
       let voiceTranscriptSource = voiceTranscript ? "live" : "none";
 
-      // The device's answer is preferred over our own reading of the script,
-      // because the device knows which language it listened in — but a missing
-      // or unrecognised code still resolves rather than being left blank.
       let voiceTranscriptLanguage = voiceTranscript
         ? normaliseLanguageCode(liveVoiceLanguage) ||
           detectTranscriptLanguage(voiceTranscript)
@@ -352,9 +195,6 @@ class AiSmartCasePipeline {
           await this.report(session, "transcribing", "Transcribing your voice note", {
             fraction: 0,
           });
-          // Auto sends no code and detection decides; an explicit choice is
-          // passed through so the model transcribes in the language the client
-          // actually selected.
           const result = await this._transcribe(
             voiceFile,
             normaliseLanguageCode(liveVoiceLanguage)
@@ -376,24 +216,6 @@ class AiSmartCasePipeline {
         );
       }
 
-      // ── What is actually available to analyse ───────────────────────────
-      //
-      // A run is only unanalysable when EVERY source is missing. It is not
-      // unanalysable because one of them failed.
-      //
-      // This guard used to read `|| allOcrFailed`, which abandoned the whole
-      // intake whenever every document failed OCR — even when the client had
-      // recorded a voice note describing the matter, and even though that note
-      // had already been transcribed two stages above and was sitting right
-      // here in `voiceTranscript`. A client whose scan would not read was told
-      // "we could not read any text from the document(s) you uploaded" and sent
-      // back to the start, with their spoken account discarded unread. That is
-      // the single largest reliability defect in this pipeline.
-      //
-      // Files whose text extraction failed are not written off either: they are
-      // attached to the extraction call inline, where the model reads them with
-      // vision. A failed OCR pass means the text channel could not represent
-      // the document, not that the document is unreadable.
       const hasFilesToProcess = Array.isArray(documentFiles) && documentFiles.length > 0;
       const allOcrFailed = failures.length === documentFiles.length && hasFilesToProcess;
 
@@ -418,9 +240,6 @@ class AiSmartCasePipeline {
         );
       }
 
-      // Every document failed to read AND there is nothing the client said.
-      // Vision is the only remaining channel; it is worth trying, but say so
-      // honestly in the warnings rather than implying the documents were read.
       if (allOcrFailed && !sources.voice && !sources.notes) {
         log.warn("pipeline:all-ocr-failed-vision-only", {
           session: session._id,
@@ -435,7 +254,6 @@ class AiSmartCasePipeline {
         );
       }
 
-      // ── 3. Structured extraction ────────────────────────────────────────
       await this.report(session, "extracting", "Extracting case details", { fraction: 0 });
 
       let extracted;
@@ -454,10 +272,6 @@ class AiSmartCasePipeline {
           "extraction"
         ));
       } catch (e) {
-        // This is the one step with no useful degraded mode: without structured
-        // fields there is nothing to pre-fill the form with. Fail with a
-        // message the client can act on rather than letting the generic
-        // handler below report "something went wrong".
         log.error("pipeline:extraction-failed", e, { session: session._id });
         return this._fail(
           session,
@@ -484,7 +298,6 @@ class AiSmartCasePipeline {
 
       await this.report(session, "extracting", "Case details extracted", { fraction: 1 });
 
-      // ── 4. Classification result ────────────────────────────────────────
       await this.report(
         session,
         "classifying",
@@ -494,20 +307,6 @@ class AiSmartCasePipeline {
         { fraction: 1 }
       );
 
-      // When the model produced no description, the client's own typed notes
-      // stand in — those are already their account of the problem, written by
-      // them, and putting them in the field they were going to write anyway is
-      // not fabrication.
-      //
-      // A VOICE transcript is not used this way. It is speech recognition
-      // output, often mid-sentence, often half in Telugu or Hindi, and often
-      // wrong: one client's Brief Description read "he was beating me so I want
-      // a gift I was to" — a mis-transcription of a domestic violence matter,
-      // filed verbatim as the case they were asking lawyers to take. The
-      // transcript is kept on the session and shown to the client separately;
-      // it does not become the case description. If the model could not write
-      // one, the field stays empty and is flagged, which is honest and takes
-      // the client one edit to fix.
       if (!extracted.description) {
         extracted.description = typedDescription.trim();
 
@@ -523,7 +322,6 @@ class AiSmartCasePipeline {
         }
       }
 
-      // Technical detail goes to the log; the client gets something actionable.
       for (const failure of failures) {
         log.warn("pipeline:document-unreadable", {
           session: session._id,
@@ -536,19 +334,11 @@ class AiSmartCasePipeline {
         ...failures.map((f) => clientSafeFailure(f.name, f.reason)),
         ...fraudFlags,
         ...extractionNotes,
-        // Only mention the voice note when there was one. A client who never
-        // recorded anything used to be told their voice note had failed.
         ...(voiceTranscriptionFailed && voiceFile
           ? ["Your voice note could not be transcribed, so it was not used."]
           : []),
       ];
 
-      // The watchdog may have already failed this session while extraction was
-      // running. Writing "extracted" on top would leave the client holding an
-      // `analysis_failed` it can never reconcile, so the filter refuses to
-      // resurrect a run that has already been given up on. `status` is the
-      // condition rather than a flag in this process, so a second worker or a
-      // restarted server reaches the same conclusion.
       const completed = await AiSmartCaseSession.findOneAndUpdate(
         { _id: session._id, status: "processing" },
         {
@@ -617,10 +407,6 @@ class AiSmartCasePipeline {
     }
   }
 
-  /**
-   * OCRs every uploaded document, in bounded-concurrency batches, reporting
-   * after each one completes.
-   */
   async _readDocuments(session, documentFiles, overBudget) {
     const total = documentFiles.length;
 
@@ -652,16 +438,11 @@ class AiSmartCasePipeline {
             };
           }
 
-          // Bounded per document. Without a ceiling one pathological scan —
-          // a 200-page PDF, or a Gemini call that hangs behind retries — held
-          // the whole intake, and every other document behind it, for as long
-          // as it liked.
           const result = await withTimeout(
             ocrSanitizationService.extractText(file.path, file.mimetype, file.originalname),
             OCR_STEP_TIMEOUT_MS,
             `ocr(${file.originalname})`
           )
-            // One unreadable document must not fail the whole intake.
             .catch((err) => {
               log.warn("pipeline:ocr-failed", {
                 session: session._id,
@@ -692,8 +473,6 @@ class AiSmartCasePipeline {
           ocrText += `\n\n--- DOCUMENT: ${file.originalname} ---\n${result.extractedText}`;
         }
 
-        // Failed OCR, or so little text that the document is effectively
-        // unrepresented — send the bytes to the model directly instead.
         if (result.extractionFailed || result.charCount < SPARSE_TEXT_THRESHOLD) {
           sparseFiles.push(file);
         }
@@ -733,8 +512,6 @@ class AiSmartCasePipeline {
       }
     }
 
-    // Record the per-document OCR verdict on the session so the client sees the
-    // same quality information the pipeline acted on.
     if (documentSummaries.length > 0) {
       try {
         await AiSmartCaseSession.updateOne(
@@ -747,7 +524,6 @@ class AiSmartCasePipeline {
           }
         );
       } catch (e) {
-        // Cosmetic only — the extraction itself is unaffected.
         log.warn("pipeline:ocr-quality-persist-failed", {
           session: session._id,
           error: e.message,
@@ -758,17 +534,6 @@ class AiSmartCasePipeline {
     return { ocrText, documentMetadata, sparseFiles, failures, fraudFlags, documentSummaries };
   }
 
-  /**
-   * Transcribes retained audio *after* the client already has their result, so
-   * the server's own reading can be compared with the one their device
-   * produced. Never substituted for it, and never surfaced — see
-   * `serverVoiceTranscript` on the session.
-   *
-   * The opening `/**` above used to have no closing `*​/`, which commented the
-   * whole method away: the call in `run` then threw `is not a function`, the
-   * run's own catch turned that into `analysis_failed`, and a client whose
-   * analysis had just completed successfully was told it had gone wrong.
-   */
   _verifyVoiceInBackground(session, voiceFile) {
     setImmediate(async () => {
       try {
@@ -785,9 +550,6 @@ class AiSmartCasePipeline {
     });
   }
 
-  /**
-   * Transcribes the voice note. Routed through geminiClient for failover.
-   */
   async _transcribe(voiceFile, languageCode = "") {
     try {
       if (!voiceFile.path || !fs.existsSync(voiceFile.path)) {
@@ -795,8 +557,6 @@ class AiSmartCasePipeline {
         return { transcript: "", failed: true };
       }
 
-      // Async read: the sync form blocked the event loop for the whole file on
-      // a server also serving every other request.
       const audioBase64 = (await fs.promises.readFile(voiceFile.path)).toString("base64");
 
       const { text } = await withTimeout(
@@ -819,9 +579,6 @@ class AiSmartCasePipeline {
       const transcript = text || "";
       return {
         transcript,
-        // The script the model actually produced, not the language it was
-        // asked for. A stated language that the transcript contradicts is
-        // worth knowing about; asserting the request back would hide it.
         language: detectTranscriptLanguage(transcript),
         failed: !text,
       };
@@ -831,17 +588,6 @@ class AiSmartCasePipeline {
     }
   }
 
-  /**
-   * Marks the session failed, tells the client why, and returns it.
-   *
-   * Guarded on `status: "processing"` so it cannot overwrite a run that already
-   * finished — the watchdog and the run body can both reach here, and a late
-   * failure landing on a completed session would have shown the client an error
-   * for an analysis they already had the result of.
-   *
-   * Never throws: it is called from `catch` blocks and from a timer callback,
-   * where a rejection has nowhere to go.
-   */
   async _fail(session, reason) {
     try {
       const failed = await AiSmartCaseSession.findOneAndUpdate(
@@ -864,8 +610,6 @@ class AiSmartCasePipeline {
       );
 
       if (!failed) {
-        // Already terminal. Say nothing to the client: they have the real
-        // outcome already.
         log.warn("pipeline:fail-after-terminal", { session: session._id, reason });
         return AiSmartCaseSession.findById(session._id);
       }
@@ -880,8 +624,6 @@ class AiSmartCasePipeline {
       return failed;
     } catch (e) {
       log.error("pipeline:fail-write-failed", e, { session: session._id });
-      // The client still hears about it; the stale-session sweep will clean the
-      // record up even though this write did not land.
       this.emit(session.client, "analysis_failed", {
         sessionId: session._id.toString(),
         message: reason,

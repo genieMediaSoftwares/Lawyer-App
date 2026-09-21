@@ -31,31 +31,6 @@ const adminRoutes = require("./routes/admin.routes");
 
 const app = express();
 
-// Behind nginx or an ALB — the normal EC2 arrangement — every request arrives
-// from the proxy, so req.ip is the proxy's address unless Express is told to
-// read X-Forwarded-For. Without this the rate limiters below count the entire
-// user base as one client and the global 300/15min ceiling is reached by
-// ordinary traffic, locking everyone out.
-//
-// The hop count is read from TRUST_PROXY rather than inferred from NODE_ENV.
-// It used to be `if (NODE_ENV === "production")`, and a deployment whose .env
-// still said `NODE_ENV=development` therefore ran behind nginx with trust proxy
-// OFF — which is exactly what express-rate-limit reports as
-// ERR_ERL_UNEXPECTED_X_FORWARDED_FOR: the header is present, so a proxy is
-// plainly there, but Express has been told to distrust it. Whether a proxy sits
-// in front is a fact about the deployment's network, not about its log verbosity
-// or its CORS policy, so it gets its own setting.
-//
-// The value is a HOP COUNT, never `true`. `true` trusts a client-supplied
-// X-Forwarded-For, which lets anyone put an arbitrary address at the front of
-// the chain and spoof past the limiter.
-//
-//   1  nginx only           <- the current EC2 setup
-//   2  ALB -> nginx         <- when the load balancer lands
-//   0  no proxy             <- local development
-//
-// Defaults to 0 so a machine with nothing in front never trusts a header a
-// client could have written; the deployment is what declares a proxy exists.
 const trustProxyHops = Number.parseInt(process.env.TRUST_PROXY ?? "", 10);
 
 if (Number.isInteger(trustProxyHops) && trustProxyHops > 0) {
@@ -63,9 +38,6 @@ if (Number.isInteger(trustProxyHops) && trustProxyHops > 0) {
 } else if (!Number.isNaN(trustProxyHops) && trustProxyHops === 0) {
   app.set("trust proxy", false);
 } else {
-  // Unset or unparseable. Fall back to the old NODE_ENV inference so an
-  // existing deployment that has not added TRUST_PROXY yet is no worse off
-  // than before, and warn so the gap is visible rather than silent.
   const inferred = process.env.NODE_ENV === "production";
   app.set("trust proxy", inferred ? 1 : false);
 
@@ -79,15 +51,12 @@ if (Number.isInteger(trustProxyHops) && trustProxyHops > 0) {
   }
 }
 
-// Security
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
   })
 );
 
-// CORS – unrestricted in development, allowlisted in production.
-// ALLOWED_ORIGINS is a comma-separated list, e.g. "https://app.genielaw.in".
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim())
@@ -99,16 +68,12 @@ app.use(
       if (!origin) return callback(null, true);
       if (
         process.env.NODE_ENV !== "production" ||
-        allowedOrigins.length === 0 ||
         allowedOrigins.includes("*") ||
-        allowedOrigins.includes(origin) ||
-        origin.includes("localhost") ||
-        origin.includes("127.0.0.1") ||
-        origin.includes("duckdns.org")
+        allowedOrigins.includes(origin)
       ) {
         return callback(null, true);
       }
-      return callback(null, true);
+      return callback(null, false);
     },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: [
@@ -127,28 +92,6 @@ app.use(
   })
 );
 
-// Rate limiting.
-//
-// These ceilings were low enough that ordinary use hit them, and every one of
-// them answers with the same "Too many attempts" body — which is how a wrong
-// password, a duplicate signup and a second-device login all ended up wearing
-// that message. Two things caused it:
-//
-//   * Login allowed 5 requests per 15 minutes and counted *successful* ones
-//     too, so five sign-ins across a household or an office — everyone behind
-//     one NAT address, one key as far as the limiter is concerned — locked the
-//     endpoint for everybody.
-//   * The catch-all `/api` limiter allowed 300 per 15 minutes for that same
-//     shared key. This app opens sockets, polls chats and loads dashboards;
-//     normal traffic exhausts it, and once it does *every* endpoint answers
-//     429 — including login, which then blames the user for too many login
-//     attempts they never made.
-//
-// The limits below are abuse ceilings, not attempt counters: high enough that
-// no legitimate user reaches them, low enough to stop credential stuffing and
-// brute-forcing a 6-digit reset code. Login additionally stops counting
-// requests that succeed, so a working sign-in never brings a user closer to
-// being blocked.
 const authLimiter = (max, windowMinutes, options = {}) =>
   rateLimit({
     windowMs: windowMinutes * 60 * 1000,
@@ -166,21 +109,13 @@ const authLimiter = (max, windowMinutes, options = {}) =>
 app.use(
   "/api/auth/login",
   authLimiter(60, 15, {
-    // Only failures count. Somebody signing in normally — including retrying
-    // after a genuine typo, or reconnecting from a shared network — is not
-    // spending budget.
     skipSuccessfulRequests: true,
   })
 );
 app.use("/api/auth/signup", authLimiter(20, 60));
 app.use("/api/auth/forgot-password", authLimiter(10, 15));
-// The reset code is six digits, so this window is the thing standing between
-// an attacker and 1-in-a-million guesses. Kept genuinely tight.
 app.use("/api/auth/reset-password", authLimiter(10, 15));
 
-// Catch-all ceiling for everything else. Auth is excluded because it is
-// covered above, and because a user who has been browsing must never be told
-// they cannot sign in.
 app.use(
   "/api",
   authLimiter(3000, 15, {
@@ -188,10 +123,8 @@ app.use(
   })
 );
 
-// Compression
 app.use(compression());
 
-// Body Parser - Capture raw body for HMAC signature verification on webhooks
 app.use(
   express.json({
     verify: (req, res, buf) => {
@@ -201,15 +134,10 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true }));
 
-// Cookies
 app.use(cookieParser());
 
-// Logger. "dev" is colourised and unbuffered — fine at a terminal, wasteful in
-// a journal. Production gets the standard combined format, which is what log
-// shippers expect.
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
-// Health Check
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
@@ -219,7 +147,6 @@ app.get("/", (req, res) => {
   });
 });
 
-// API Root Health Check
 app.get("/api", (req, res) => {
   res.status(200).json({
     success: true,
@@ -228,18 +155,10 @@ app.get("/api", (req, res) => {
 });
 
 const path = require("path");
-// Uploaded files. fileAuthMiddleware lets /uploads/profiles through (public
-// avatars) and authorises every other folder per request — case evidence,
-// voice recordings and acknowledgement documents were previously downloadable
-// by anyone holding the URL.
-//
-// express.static is kept behind the guard rather than replaced by sendFile so
-// that Range requests keep working; audio playback seeking depends on them.
 app.use(
   "/uploads",
   fileAuthMiddleware,
   express.static(path.join(__dirname, "../uploads"), {
-    // Never let an upload be interpreted as active content on our origin.
     setHeaders: (res) => {
       res.setHeader("X-Content-Type-Options", "nosniff");
       res.setHeader("Content-Security-Policy", "default-src 'none'");
@@ -249,7 +168,6 @@ app.use(
   })
 );
 
-// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/cases", caseRoutes);
 app.use("/api/appointments", appointmentRoutes);
@@ -270,13 +188,8 @@ app.use("/api/places", placeRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/admin", adminRoutes);
 
-// Anything that matched no route above. Must sit here — after every route and
-// before the error handler — or Express's finalhandler answers with an HTML
-// "Cannot GET <path>" page, which is what production users saw when a case
-// attachment was missing from disk.
 app.use(notFoundMiddleware);
 
-// Global Error Handler
 app.use(errorMiddleware);
 
 module.exports = app;

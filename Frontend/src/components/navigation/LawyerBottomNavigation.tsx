@@ -14,19 +14,6 @@ import {
 } from '../icons/LawyerIcons';
 import { colors } from '../../theme';
 
-/**
- * The lawyer tab bar: Workspace, Dashboard, Leads, Clients, Calendar, Profile.
- *
- * Six equal-width tabs and no raised centre button — unlike the client, a
- * lawyer has no single "create" action, so there is nothing to promote out of
- * the row. That also means no absolute positioning here at all: the tabs are
- * six flex children of an ordinary row, which is what keeps them evenly
- * spaced at any screen width.
- *
- * The bar consumes the bottom safe-area inset itself, so screens under it pass
- * `edges={['top']}` — taking it in both places leaves a gap above the bar.
- */
-
 const ICONS: Record<string, React.FC<{ size?: number; color?: string }>> = {
   Workspace: GridIcon,
   Dashboard: ChartIcon,
@@ -55,7 +42,6 @@ export const LawyerBottomNavigation: React.FC<BottomTabBarProps> = ({
   return (
     <View
       className="bg-surface"
-      // The inset is a runtime measurement, so it cannot be a class.
       style={{ paddingBottom: insets.bottom }}
     >
       <View className="h-[62px] flex-row items-center border-t border-border">

@@ -38,9 +38,6 @@ const SUGGESTED_QUESTIONS = [
   'How do I contact support or update profile?',
 ];
 
-/**
- * Render structured markdown sections & bullet points nicely.
- */
 const RenderFormattedMessage: React.FC<{ text: string }> = ({ text }) => {
   const lines = text.split('\n');
 
@@ -154,9 +151,6 @@ How can I assist you with using GenieLaw today?`,
 
         const replyText = response.response?.trim();
 
-        // An empty reply is a failure, not an answer. This used to substitute a
-        // canned "I am ready to help…" line, which put words in the assistant's
-        // mouth that the backend never produced.
         if (!replyText) {
           setErrorNotice('The assistant returned an empty reply. Please try again.');
           return;
@@ -210,7 +204,6 @@ How can I assist you with using GenieLaw today?`,
           onContentSizeChange={scrollToBottom}
           showsVerticalScrollIndicator={false}
         >
-          {/* Messages */}
           {messages.map(msg => (
             <View
               key={msg.id}
@@ -258,7 +251,6 @@ How can I assist you with using GenieLaw today?`,
             </View>
           ))}
 
-          {/* Typing Indicator */}
           {isLoading ? (
             <View className="mb-4 flex-row items-center justify-start">
               <View className="mr-2 h-9 w-9 items-center justify-center rounded-full border border-gold/30 bg-gold/15">
@@ -273,7 +265,6 @@ How can I assist you with using GenieLaw today?`,
             </View>
           ) : null}
 
-          {/* Error & Retry Notice */}
           {errorNotice ? (
             <View className="mb-4 flex-row items-center justify-between rounded-card border border-error/40 bg-error-surface p-3.5">
               <View className="flex-1 flex-row items-center gap-2">
@@ -300,7 +291,6 @@ How can I assist you with using GenieLaw today?`,
           ) : null}
         </ScrollView>
 
-        {/* Suggested Questions */}
         <View className="border-t border-border bg-surface px-2 py-2">
           <GenieText variant="caption" tone="secondary" className="px-2 mb-1.5 text-[11px] font-medium uppercase tracking-wider">
             Suggested Questions
@@ -326,7 +316,6 @@ How can I assist you with using GenieLaw today?`,
           </ScrollView>
         </View>
 
-        {/* Input Composer */}
         <View className="border-t border-border bg-surface p-3">
           <View className="flex-row items-center rounded-control border border-border bg-[#181818] px-3 py-1">
             <TextInput

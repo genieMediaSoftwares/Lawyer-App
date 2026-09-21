@@ -3,28 +3,6 @@ const mongoose = require("mongoose");
 const connectDB = require("../config/db");
 const Lawyer = require("../models/Lawyer");
 
-/**
- * One-off migration: clear the fabricated track-record values the Lawyer schema
- * used to insert on every profile.
- *
- * `casesHandled`, `winPercentage` and `workingHours` defaulted to 120, 85 and
- * "9:00 AM - 6:00 PM". Every lawyer who never filled them in therefore
- * presented a complete and flattering record to clients choosing legal
- * representation, and the API's "only report a real value" guards could never
- * fire because the schema had already supplied one.
- *
- * The schema defaults are now 0/0/"" — but that only affects profiles created
- * from here on. This script clears the values already written.
- *
- * It cannot distinguish a default 120 from a lawyer who genuinely handled 120
- * cases, so it only clears documents that still hold the exact default triple
- * AND have never been edited since creation (createdAt === updatedAt). Anything
- * a lawyer has touched is left alone. Run with --force to clear every exact
- * default match regardless of edit history.
- *
- *   node src/scripts/clearFabricatedLawyerStats.js [--force] [--dry-run]
- */
-
 const DEFAULTS = {
   casesHandled: 120,
   winPercentage: 85,
@@ -67,8 +45,6 @@ const run = async () => {
       { timestamps: false }
     );
 
-    // Cleared separately and only where it still matches the default string:
-    // a lawyer may deliberately keep those exact hours.
     await Lawyer.updateMany(
       {
         _id: { $in: targets.map((d) => d._id) },

@@ -99,10 +99,8 @@ export const DocumentActionSheet: React.FC<DocumentActionSheetProps> = ({
         <Pressable className="flex-1" onPress={onClose} />
 
         <View className="rounded-t-2xl border-t border-border bg-[#141414] px-4 pb-6 pt-3">
-          {/* Handle indicator */}
           <View className="mb-4 h-1 w-10 self-center rounded-full bg-border" />
 
-          {/* Header Preview Row */}
           <View className="mb-3 flex-row items-center rounded-card border border-border bg-[#1A1A1A] p-3">
             <View
               className={`h-12 w-12 items-center justify-center rounded-lg border ${badge.bgColor} ${badge.borderColor}`}
@@ -123,7 +121,6 @@ export const DocumentActionSheet: React.FC<DocumentActionSheetProps> = ({
 
           <GenieDivider className="mb-2" />
 
-          {/* Action List */}
           <ScrollView className="max-h-[380px]" showsVerticalScrollIndicator={false}>
             <ActionRow
               label="View"

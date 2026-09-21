@@ -3,18 +3,6 @@ import { ActivityIndicator, Pressable, PressableProps, View } from 'react-native
 import { GenieText } from './GenieText';
 import { colors } from '../../theme';
 
-/**
- * Every button in the app.
- *
- * Four variants, and the rule for choosing is about weight rather than colour:
- * one `primary` per screen — the thing the screen is for — `outline` for the
- * alternative to it, `ghost` for actions that should not compete with the
- * content, `danger` for anything that destroys something.
- *
- * Height comes from `h-control`, which inputs also use, so a button stacked
- * under a field lines up with it.
- */
-
 export type GenieButtonVariant = 'primary' | 'outline' | 'ghost' | 'danger';
 export type GenieButtonSize = 'sm' | 'md';
 
@@ -33,7 +21,6 @@ const LABEL_TONE: Record<GenieButtonVariant, 'on-gold' | 'gold' | 'primary'> = {
 };
 
 const SIZES: Record<GenieButtonSize, string> = {
-  // Never below `min-h-touch` — a button smaller than a fingertip is a bug.
   sm: 'min-h-touch px-4',
   md: 'h-control px-5',
 };
@@ -44,13 +31,10 @@ export interface GenieButtonProps extends Omit<PressableProps, 'children' | 'sty
   variant?: GenieButtonVariant;
   size?: GenieButtonSize;
   loading?: boolean;
-  /** Shown in place of `label` while loading, e.g. "Signing in…". */
   loadingLabel?: string;
   disabled?: boolean;
-  /** Buttons are full width by default; a row of them sets this false. */
   fullWidth?: boolean;
   icon?: React.ReactNode;
-  /** Which side of the label the icon sits on. Left by default. */
   iconPosition?: 'left' | 'right';
   className?: string;
 }
@@ -92,8 +76,6 @@ export const GenieButton: React.FC<GenieButtonProps> = ({
       {loading ? (
         <ActivityIndicator
           size="small"
-          // A spinner takes a colour, not a class — one of the few places the
-          // palette is imported rather than named in a className.
           color={variant === 'primary' ? colors.onGold : colors.gold}
         />
       ) : (

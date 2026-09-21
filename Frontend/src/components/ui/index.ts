@@ -1,12 +1,3 @@
-/**
- * The Genie Law UI kit.
- *
- * These are the pieces every screen is built from. A screen should be able to
- * get through a layout with nothing but these plus `View`, `className` and a
- * list component — if it cannot, the gap belongs here rather than in a
- * one-off StyleSheet on the screen.
- */
-
 export { GenieScreen } from './GenieScreen';
 export type { GenieScreenProps } from './GenieScreen';
 

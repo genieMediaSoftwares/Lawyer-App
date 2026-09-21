@@ -29,37 +29,6 @@ import type { ResearchSession } from '../../../types/lawyer';
 import type { LawyerStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
 
-/**
- * Legal Research — the advocate's research workspace.
- *
- * ── What this is built on ─────────────────────────────────────────────────
- *
- * `POST /ai/chat` with `mode: "research"`, which the backend routes to
- * `RESEARCH_SYSTEM_INSTRUCTION` — a prompt written for a practising advocate,
- * separate from the client-facing assistant. Sessions persist as
- * `AiConversation` rows tagged `mode: "research"`, so the history below is
- * real: `GET /ai/conversations?mode=research` lists them and
- * `DELETE /ai/conversations/:id` removes one.
- *
- * ── On authority ──────────────────────────────────────────────────────────
- *
- * The backend prompt states plainly that it has no case-law database, no
- * judgment index and no reporter subscription, and instructs the model never
- * to invent a case name, citation, section number or judgment, and to mark
- * anything it does recall as requiring verification. This screen surfaces
- * that framing rather than dressing the output up as search results — see the
- * standing notice below and the marker on the Authorities section.
- *
- * ── Case context ──────────────────────────────────────────────────────────
- *
- * A research session can be opened against one of the advocate's own matters.
- * The list comes from `GET /lawyers/clients`, which the controller scopes to
- * cases where they are the assigned or selected lawyer, so no other
- * advocate's matter can be picked. The selected case's title and category are
- * sent as the opening context — nothing about the client beyond what the
- * advocate already holds.
- */
-
 export const ResearchScreen: React.FC<LawyerStackScreenProps<'Research'>> = ({
   navigation,
 }) => {
@@ -96,7 +65,6 @@ export const ResearchScreen: React.FC<LawyerStackScreenProps<'Research'>> = ({
     },
   });
 
-  /** Every matter this advocate is on, flattened out of the grouped payload. */
   const cases = useMemo(() => {
     const groups = clientsQuery.data;
     if (!groups) {
@@ -105,8 +73,6 @@ export const ResearchScreen: React.FC<LawyerStackScreenProps<'Research'>> = ({
     return [...groups.accepted, ...groups.inProgress, ...groups.closed];
   }, [clientsQuery.data]);
 
-  // Memoised for the same reason as elsewhere: `?? []` is a new array every
-  // render, and the filter below depends on it.
   const sessions = useMemo(
     () => sessionsQuery.data ?? [],
     [sessionsQuery.data],
@@ -147,7 +113,6 @@ export const ResearchScreen: React.FC<LawyerStackScreenProps<'Research'>> = ({
           />
         }
       >
-        {/* ── The workspace card ───────────────────────────────────────── */}
         <View className="rounded-card border border-gold-wash bg-card p-5">
           <View className="flex-row items-center gap-3">
             <View className="h-11 w-11 items-center justify-center rounded-full bg-gold-muted">
@@ -188,7 +153,6 @@ export const ResearchScreen: React.FC<LawyerStackScreenProps<'Research'>> = ({
           <GenieNotice tone="error" message={actionError} className="mt-4" />
         ) : null}
 
-        {/* ── History ──────────────────────────────────────────────────── */}
         <View className="mt-6 flex-row items-end justify-between">
           <GenieText variant="heading-sm">Your Research</GenieText>
           {sessions.length > 0 ? (
@@ -298,7 +262,6 @@ export const ResearchScreen: React.FC<LawyerStackScreenProps<'Research'>> = ({
         </View>
       </ScrollView>
 
-      {/* ── Case picker ────────────────────────────────────────────────── */}
       <GenieModal
         visible={isCasePickerOpen}
         onClose={() => setIsCasePickerOpen(false)}
@@ -339,7 +302,6 @@ export const ResearchScreen: React.FC<LawyerStackScreenProps<'Research'>> = ({
         )}
       </GenieModal>
 
-      {/* ── Delete confirmation ────────────────────────────────────────── */}
       <GenieModal
         visible={Boolean(pendingDelete)}
         onClose={() => setPendingDelete(null)}

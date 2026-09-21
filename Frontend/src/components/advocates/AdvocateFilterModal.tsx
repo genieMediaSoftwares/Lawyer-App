@@ -23,17 +23,6 @@ export interface AdvocateFilterModalProps {
 
 const ALL_LOCATIONS = 'All Locations';
 
-/**
- * The location chips are the distinct `user.location` values of the advocates
- * the backend actually has, not a fixed list of cities.
- *
- * No endpoint lists locations: the controller just matches `location` as a
- * case-insensitive regex against `User.location`. A hand-written city list
- * therefore offered cities with no advocates (an empty result every time) and
- * hid cities that do have them. Reading the unfiltered list uses the same
- * query key as AdvocatesScreen's first load, so it is normally a cache hit
- * rather than a second request.
- */
 const useAdvocateLocations = (enabled: boolean): string[] => {
   const query = useQuery({
     queryKey: ['advocates', {}],
@@ -61,15 +50,6 @@ const EXPERIENCE_OPTIONS: Array<{ label: string; value?: ExperienceBucket }> = [
   { label: '10+ Years', value: '10+' },
 ];
 
-/**
- * The rating filter.
- *
- * `value` is what goes to the backend and must stay exactly as it is: the
- * advocates controller strips "★+" from the string and parses the number in
- * front of it, so "4★+" is part of the API contract rather than a label.
- * `label` is what the user reads, and the star beside it is drawn as an icon —
- * which is why the two are separate fields now.
- */
 const RATING_OPTIONS: Array<{ label: string; value?: string }> = [
   { label: 'All Ratings', value: undefined },
   { label: '4 & up', value: '4★+' },
@@ -79,8 +59,6 @@ const RATING_OPTIONS: Array<{ label: string; value?: string }> = [
 ];
 
 const FEE_RANGES: Array<{ label: string; min?: number; max?: number }> = [
-  // No bounds sent, so every fee matches. It used to read "₹0 - ₹5000", which
-  // promised a cap the request never applied.
   { label: 'Any Fee', min: undefined, max: undefined },
   { label: 'Under ₹1000', min: 0, max: 1000 },
   { label: '₹1000 - ₹2500', min: 1000, max: 2500 },
@@ -114,8 +92,6 @@ export const AdvocateFilterModal: React.FC<AdvocateFilterModalProps> = ({
   );
   const [location, setLocation] = useState<string | undefined>(filters.location);
   const knownLocations = useAdvocateLocations(visible);
-  // Keep an already-applied location selectable even if no advocate currently
-  // lists it, so reopening the sheet never silently drops the active filter.
   const locations =
     location && !knownLocations.includes(location)
       ? [location, ...knownLocations]

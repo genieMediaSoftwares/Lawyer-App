@@ -1,41 +1,12 @@
 const ApiError = require("../utils/AppError");
 
-/**
- * Live place lookup for city/locality search.
- *
- * Providers are tried in order of quality and resolved at call time from the
- * environment, so deploying a Google key upgrades the results with no code
- * change:
- *
- *   1. Google Places  — best coverage/ranking, and resolves colloquial aliases
- *                       ("Bangalore" -> Bengaluru). Needs GOOGLE_PLACES_API_KEY.
- *   2. Photon (OSM)   — no key required, so the feature works out of the box.
- *                       Photon rather than Nominatim: Nominatim's /search is
- *                       full-text, so partial input behaves badly ("mumb"
- *                       returned nothing, "hyder" returned unrelated towns).
- *                       Photon is built for type-ahead and prefix-matches.
- *   3. India Post     — used only for a numeric PIN code query, which the other
- *                       two handle poorly. No key required.
- *
- * There is deliberately no offline fallback list. This previously shipped with
- * eight hardcoded cities carrying invented Google place_ids, which meant the
- * whole feature silently served fake data whenever the key was absent — and the
- * key has never been set.
- */
-
 const REQUEST_TIMEOUT_MS = 8000;
 
-/** OSM-hosted services ask for an identifying User-Agent. */
 const OSM_HEADERS = {
   "User-Agent": "GenieLaw/1.0 (legal consultation app; support@genielaw.app)",
   "Accept-Language": "en",
 };
 
-/**
- * Settlement types accepted from Photon. Without this filter the results are
- * polluted with train stations, industrial land and museums, which are not
- * valid answers to "which city are you in?".
- */
 const PHOTON_PLACE_TAGS = [
   "place:city",
   "place:town",
@@ -45,15 +16,10 @@ const PHOTON_PLACE_TAGS = [
   "place:neighbourhood",
 ];
 
-// ── Response cache ──────────────────────────────────────────────────────────
-// Repeated prefixes are extremely common while typing ("hyd", "hyde", "hyder"
-// then backspace), and every provider here is either rate-limited or billed
-// per call.
-
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const CACHE_TTL_MS = 10 * 60 * 1000;
 const CACHE_MAX_ENTRIES = 500;
 
-const cache = new Map(); // key -> { value, expiresAt }
+const cache = new Map();
 
 const cacheGet = (key) => {
   const hit = cache.get(key);
@@ -62,7 +28,6 @@ const cacheGet = (key) => {
     cache.delete(key);
     return undefined;
   }
-  // Refresh recency for the LRU eviction below.
   cache.delete(key);
   cache.set(key, hit);
   return hit.value;
@@ -70,13 +35,11 @@ const cacheGet = (key) => {
 
 const cacheSet = (key, value) => {
   if (cache.size >= CACHE_MAX_ENTRIES) {
-    // Map preserves insertion order, so the first key is the least recently used.
     cache.delete(cache.keys().next().value);
   }
   cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
 };
 
-/** fetch with a hard timeout — an upstream hang must not hold our socket open. */
 const fetchJson = async (url, options = {}) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -109,10 +72,6 @@ class PlacesService {
     return key && key.trim().length > 0 ? key.trim() : null;
   }
 
-  /**
-   * Suggestions for a partial query.
-   * @returns {Promise<Array<{description: string, placeId: string}>>}
-   */
   async autocomplete(input, { country = "in" } = {}) {
     const query = input.trim();
     if (query.length < 2) return [];
@@ -135,21 +94,12 @@ class PlacesService {
     return results;
   }
 
-  /**
-   * Full detail for a suggestion.
-   *
-   * Non-Google providers return coordinates and address parts in their search
-   * response, so those are cached under the synthetic placeId at autocomplete
-   * time and resolved here without a second network call.
-   */
   async details(placeId) {
     const cacheKey = `details:${placeId}`;
     const cached = cacheGet(cacheKey);
     if (cached) return cached;
 
     if (placeId.startsWith("osm:") || placeId.startsWith("pin:")) {
-      // The record expired out of the cache; the client must search again
-      // rather than be handed a guess.
       throw new ApiError(
         "That suggestion has expired. Please search again and reselect.",
         410
@@ -164,8 +114,6 @@ class PlacesService {
     cacheSet(cacheKey, details);
     return details;
   }
-
-  // ── Google Places ────────────────────────────────────────────────────────
 
   async _googleAutocomplete(query, country) {
     const url =
@@ -183,7 +131,6 @@ class PlacesService {
       throw new ApiError("Place search quota exceeded. Please try again later.", 429);
     }
     if (data.status === "REQUEST_DENIED" || data.status === "INVALID_REQUEST") {
-      // Configuration fault on our side — log it loudly, do not leak details.
       console.error(`Google Places autocomplete rejected: ${data.status} ${data.error_message || ""}`);
       throw new ApiError("Place search is misconfigured.", 502);
     }
@@ -235,13 +182,9 @@ class PlacesService {
     };
   }
 
-  // ── Photon / OpenStreetMap (no API key) ──────────────────────────────────
-
   async _photonAutocomplete(query, country) {
     const tags = PHOTON_PLACE_TAGS.map((t) => `&osm_tag=${encodeURIComponent(t)}`).join("");
 
-    // Over-fetch: the country filter below is applied here rather than by the
-    // API (Photon has no countrycodes parameter), so ask for more than we need.
     const url =
       "https://photon.komoot.io/api/" +
       `?q=${encodeURIComponent(query)}` +
@@ -265,8 +208,6 @@ class PlacesService {
       const district = p.county || p.district || "";
       const state = p.state || "";
 
-      // De-duplicate: OSM often holds the same settlement as both a node and
-      // an administrative boundary.
       const description = [city, district, state, p.country]
         .filter((part, index, all) => part && all.indexOf(part) === index)
         .join(", ");
@@ -276,12 +217,10 @@ class PlacesService {
 
       const placeId = `osm:${p.osm_type || "N"}:${p.osm_id}`;
 
-      // Photon returns [lon, lat] GeoJSON order — not [lat, lon].
       const coords = Array.isArray(feature.geometry?.coordinates)
         ? feature.geometry.coordinates
         : null;
 
-      // Cache the resolved record so details() needs no second request.
       cacheSet(`details:${placeId}`, {
         description,
         city,
@@ -299,8 +238,6 @@ class PlacesService {
 
     return results;
   }
-
-  // ── India Post PIN code lookup (no API key) ──────────────────────────────
 
   async _pinCodeLookup(pin) {
     const data = await fetchJson(`https://api.postalpincode.in/pincode/${encodeURIComponent(pin)}`);
@@ -326,8 +263,6 @@ class PlacesService {
 
       const placeId = `pin:${office.Pincode}:${city}`;
 
-      // India Post returns no coordinates. Null is correct here — inventing a
-      // lat/lng would corrupt any distance-based lawyer matching downstream.
       cacheSet(`details:${placeId}`, {
         description,
         city,

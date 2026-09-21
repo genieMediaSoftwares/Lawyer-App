@@ -30,38 +30,8 @@ import type { PickedFile } from '../../../types/ai';
 import type { LawyerStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
 
-/**
- * One research session.
- *
- * ── The two inputs ────────────────────────────────────────────────────────
- *
- * **Questions** go to `POST /ai/chat` with `mode: "research"`. The backend
- * keeps the whole conversation and replays it to the model on every turn, so
- * case context established in the first message holds for the rest of the
- * session without this screen resending it.
- *
- * **Documents** go to `POST /ai/smart-case/analyze` — the same extraction
- * pipeline the client intake uses, which is the only document-reading endpoint
- * the backend has. It answers `202` and runs detached, so the result is polled
- * from `GET /ai/smart-case/session/:id`. What it extracts is then handed to the
- * research assistant as the opening context, which is how a document becomes
- * research rather than just a filed attachment.
- *
- * Nothing about the extraction is invented here: only the fields the pipeline
- * actually returned are passed on, and an empty one is omitted rather than
- * described as absent.
- *
- * ── On fabrication ────────────────────────────────────────────────────────
- *
- * The anti-fabrication rules live in the backend's own system instruction and
- * are not restated in the message this screen sends — restating them would let
- * the two drift, and the server's copy is the one that governs. The UI marks
- * the authorities section rather than trusting the reader to remember.
- */
-
 const POLL_INTERVAL_MS = 2000;
 
-/** Openers offered when a session is empty. Plain questions, not commands. */
 const SUGGESTIONS = [
   'What statutory provisions may apply here?',
   'What arguments should I investigate for my client?',
@@ -102,8 +72,6 @@ export const ResearchSessionScreen: React.FC<
     `rs-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
   );
 
-  // ── Load an existing session ────────────────────────────────────────────
-
   useEffect(() => {
     const existing = route.params?.sessionId;
     if (!existing) {
@@ -140,8 +108,6 @@ export const ResearchSessionScreen: React.FC<
       cancelled = true;
     };
   }, [route.params?.sessionId]);
-
-  // ── Asking ──────────────────────────────────────────────────────────────
 
   const ask = useCallback(
     async (question: string) => {
@@ -180,14 +146,10 @@ export const ResearchSessionScreen: React.FC<
           setConversationId(answer.conversationId);
         }
 
-        // The session list shows titles and timestamps that have just moved.
         await queryClient.invalidateQueries({
           queryKey: ['lawyer', 'research', 'sessions'],
         });
       } catch (askError) {
-        // The question stays on screen so it can be retried or reworded; only
-        // the answer is missing, and saying so is more useful than removing
-        // what they typed.
         setError(toAppError(askError).message);
       } finally {
         setIsAsking(false);
@@ -195,8 +157,6 @@ export const ResearchSessionScreen: React.FC<
     },
     [conversationId, isAsking, queryClient],
   );
-
-  // ── Document analysis ───────────────────────────────────────────────────
 
   const analyseDocument = useCallback(async () => {
     if (isAsking || analysisStage) {
@@ -248,7 +208,6 @@ export const ResearchSessionScreen: React.FC<
         },
       });
 
-      // Poll the detached pipeline. Every line shown is the server's own.
       let detail = await aiApi.getSession(started.sessionId);
       while (detail.status === 'processing') {
         setAnalysisStage(detail.progress?.message || 'Reading documents…');
@@ -276,8 +235,6 @@ export const ResearchSessionScreen: React.FC<
 
       setAnalysisStage('Preparing research…');
 
-      // Only fields the pipeline actually filled. An empty one is left out
-      // rather than described, so nothing is asserted that was not read.
       const facts: string[] = [];
       const add = (label: string, value?: string | null) => {
         if (value && String(value).trim()) {
@@ -325,8 +282,6 @@ export const ResearchSessionScreen: React.FC<
       setAnalysisStage(null);
     }
   }, [analysisStage, ask, isAsking]);
-
-  // ── Opening context from a chosen matter ────────────────────────────────
 
   const hasOpenedWithCase = useRef(false);
   useEffect(() => {
@@ -448,7 +403,6 @@ export const ResearchSessionScreen: React.FC<
           )}
         </ScrollView>
 
-        {/* ── Composer ─────────────────────────────────────────────────── */}
         <View className="border-t border-border bg-surface px-4 py-3">
           <View className="flex-row items-end gap-2">
             <Pressable

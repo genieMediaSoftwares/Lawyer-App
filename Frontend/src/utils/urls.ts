@@ -1,23 +1,7 @@
 import { env } from '../config/env';
 
-/**
- * The API base minus its `/api` suffix — where `/uploads` is served from.
- * E.g., `https://lawyerappvizag.duckdns.org/api` -> `https://lawyerappvizag.duckdns.org`
- */
 const fileOrigin = (): string => env.apiBaseUrl.replace(/\/api\/?$/i, '');
 
-/**
- * Turns whatever the backend stored in a URL field into a valid, loadable URL.
- *
- * Handles:
- *   - `/uploads/profiles/file.jpg`
- *   - `uploads/profiles/file.jpg`
- *   - Full URLs containing outdated/stale hosts (e.g. `http://192.168.0.9:5000/uploads/...`)
- *   - External URLs (e.g. Google profile photos)
- *   - Data URIs
- *
- * Ensures clean single slashes without hardcoding any IP address in components.
- */
 export const resolveFileUrl = (value?: string | null): string | null => {
   const raw = String(value ?? '').trim();
 
@@ -25,17 +9,15 @@ export const resolveFileUrl = (value?: string | null): string | null => {
     return null;
   }
 
-  // Data URIs should be returned directly
   if (raw.startsWith('data:')) {
     return raw;
   }
 
   const origin = fileOrigin();
 
-  // If the path contains `/uploads/` (regardless of old domain/IP or relative path)
   const uploadsIndex = raw.indexOf('/uploads/');
   if (uploadsIndex !== -1) {
-    const uploadPath = raw.slice(uploadsIndex); // e.g. "/uploads/profiles/abc.jpg"
+    const uploadPath = raw.slice(uploadsIndex);
     return `${origin}${uploadPath}`;
   }
 
@@ -43,31 +25,19 @@ export const resolveFileUrl = (value?: string | null): string | null => {
     return `${origin}/${raw}`;
   }
 
-  // If it is an external full URL (starts with http:// or https://) and does NOT point to /uploads/
   if (/^https?:\/\//i.test(raw)) {
     return raw.replace(/([^:])\/{2,}/g, '$1/');
   }
 
-  // Relative paths
   const path = raw.startsWith('/') ? raw : `/${raw}`;
   return `${origin}${path}`;
 };
 
-/**
- * Centralized alias for upload/asset URL resolution.
- * All profile/document/uploaded images use this function.
- */
 export const getUploadUrl = resolveFileUrl;
 
-/**
- * Whether a URL points at the public profiles upload folder served without auth token.
- */
 export const isPublicUpload = (value?: string | null): boolean =>
   /\/uploads\/profiles\//i.test(String(value ?? ''));
 
-/**
- * A human-readable file size helper.
- */
 export const formatFileSize = (size?: string | number | null): string => {
   if (size === null || size === undefined || size === '') {
     return '';

@@ -5,7 +5,6 @@ const socketAuth = require("./socketAuth");
 module.exports = (io) => {
   const notificationNamespace = io.of("/notifications");
 
-  // Initialize service with Socket.IO
   notificationService.init(io);
 
   notificationNamespace.use(socketAuth);

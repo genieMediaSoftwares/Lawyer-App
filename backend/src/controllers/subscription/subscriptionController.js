@@ -4,7 +4,6 @@ const Payment = require("../../models/Payment");
 const ApiResponse = require("../../config/ApiResponse");
 const razorpayService = require("../../services/payment/razorpayService");
 
-// Exact Lawfly Subscription Catalog Pricing (30 days duration)
 const SUBSCRIPTION_CATALOG = {
   Free: 0,
   Starter: 999,
@@ -35,21 +34,16 @@ class SubscriptionController {
     }
   }
 
-  /**
-   * Server-authoritative Order Creation for Lawyer Subscription Purchase
-   */
   async createSubscriptionOrder(req, res, next) {
     try {
       const { plan } = req.body;
       const userId = req.user._id;
 
-      // Authorization Check: Only registered Lawyers can purchase subscription plans
       const isLawyer = req.user.role === "lawyer" || (await Lawyer.exists({ user: userId }));
       if (!isLawyer) {
         return ApiResponse.error(res, "Only registered lawyers can purchase subscription plans.", 403);
       }
 
-      // Catalog Validation: Only exact catalog plans allowed (Free, Starter, Professional, Premium, Elite)
       if (!plan || SUBSCRIPTION_CATALOG[plan] === undefined) {
         return ApiResponse.error(
           res,
@@ -60,7 +54,6 @@ class SubscriptionController {
 
       const authoritativeAmount = SUBSCRIPTION_CATALOG[plan];
 
-      // Handle Free Plan directly without Razorpay order
       if (authoritativeAmount === 0) {
         await Subscription.updateMany({ user: userId, status: "active" }, { status: "expired" });
 
@@ -86,7 +79,6 @@ class SubscriptionController {
         });
       }
 
-      // Create Razorpay Order server-side for paid subscription
       const receipt = `sub_${userId}_${Date.now()}`;
       const order = await razorpayService.createOrder({
         amount: authoritativeAmount,
@@ -99,10 +91,9 @@ class SubscriptionController {
         },
       });
 
-      // Create pending Payment record (Subscription ownership belongs to authenticated Lawyer)
       const payment = await Payment.create({
-        client: userId, // Authenticated Lawyer purchasing subscription
-        lawyer: userId, // Authenticated Lawyer
+        client: userId,
+        lawyer: userId,
         amount: authoritativeAmount,
         currency: "INR",
         purpose: "subscription",
@@ -139,7 +130,6 @@ class SubscriptionController {
         return ApiResponse.error(res, "Invalid or missing plan name.", 400);
       }
 
-      // Live mode protection
       if (process.env.PAYMENT_MODE === "live" && SUBSCRIPTION_CATALOG[plan] > 0) {
         return ApiResponse.error(
           res,

@@ -3,15 +3,6 @@ import { View } from 'react-native';
 import { GenieText } from './GenieText';
 import { GenieButton } from './GenieButton';
 
-/**
- * A request failed.
- *
- * `message` is the real error from the backend, not a generic apology — a user
- * who can see "Session expired" knows to sign in again, and a developer
- * reading a bug report gets something to go on. Nothing here invents content
- * to paper over the failure.
- */
-
 export interface GenieErrorStateProps {
   title?: string;
   message: string;

@@ -140,7 +140,6 @@ export const SubscriptionScreen: React.FC<
                       : 'border border-border active:border-border/80'
                   }`}
                 >
-                  {/* MOST POPULAR BADGE */}
                   {plan.popular ? (
                     <View className="absolute right-0 top-0 bg-gold px-3 py-1 rounded-tr-[18px] rounded-bl-xl shadow-sm">
                       <GenieText variant="caption" tone="on-gold" className="font-bold">
@@ -155,7 +154,6 @@ export const SubscriptionScreen: React.FC<
                     </View>
                   ) : null}
 
-                  {/* TITLE & PRICE */}
                   <View className="flex-row items-center justify-between pr-20">
                     <GenieText variant="heading-md" className="font-bold text-white">
                       {plan.name}
@@ -166,7 +164,6 @@ export const SubscriptionScreen: React.FC<
                     </GenieText>
                   </View>
 
-                  {/* FEATURES LIST */}
                   <View className="mt-4 gap-2.5">
                     {plan.features.map((feature, idx) => (
                       <View key={idx} className="flex-row items-center">
@@ -186,14 +183,12 @@ export const SubscriptionScreen: React.FC<
             })}
           </ScrollView>
 
-          {/* FIXED BOTTOM CONTINUE BUTTON */}
           <View
             className="absolute bottom-0 left-0 right-0 border-t border-border/40 bg-background px-5 pt-3"
             style={{ paddingBottom: Math.max(insets.bottom, 16) }}
           >
             <Pressable
               onPress={() => {
-                // Return to previous screen or show selection confirmation
                 navigation.goBack();
               }}
               accessibilityRole="button"

@@ -139,7 +139,6 @@ describe("Razorpay Payment Gateway Verification & Security Tests", () => {
 
       jest.spyOn(notificationService, "createAndSendNotification").mockResolvedValue({});
 
-      // Execute 4 simultaneous settlement requests (Client verify + payment.captured + order.paid + duplicate verify)
       const results = await Promise.all([
         paymentSettlementService.settlePayment({
           razorpayOrderId,
@@ -167,10 +166,8 @@ describe("Razorpay Payment Gateway Verification & Security Tests", () => {
         }),
       ]);
 
-      // Exactly 1 worker transitions payment to completed
       expect(completedCount).toBe(1);
 
-      // Exactly 2 transactions created for single consultation settlement (1 debit, 1 credit)
       expect(createdTransactions.length).toBe(2);
       expect(createdTransactions.filter((t) => t.type === "debit").length).toBe(1);
       expect(createdTransactions.filter((t) => t.type === "credit").length).toBe(1);

@@ -1,25 +1,9 @@
 import type { PickedFile } from '../types/ai';
 
-/**
- * Voice-note recording in a browser, via MediaRecorder.
- *
- * No dependency: MediaRecorder and getUserMedia are platform APIs. The catch
- * is the container — Chrome and Firefox record **webm/opus**, Safari records
- * **mp4/aac** — so the type is chosen from what the browser reports it can
- * produce, and checked against the backend's allowlist before recording
- * starts. `audio/webm` and `audio/mp4` are both on it
- * (upload.middleware.js maps them to `.webm` and `.m4a`).
- *
- * `isSupported` is false on a browser without MediaRecorder, or on an insecure
- * origin where getUserMedia is unavailable. The UI hides the control rather
- * than offering a button that cannot work.
- */
-
 export interface RecordingState {
   durationMs: number;
 }
 
-/** In preference order, filtered by what this browser can actually encode. */
 const CANDIDATE_TYPES = [
   'audio/webm;codecs=opus',
   'audio/webm',
@@ -28,7 +12,6 @@ const CANDIDATE_TYPES = [
   'audio/ogg',
 ];
 
-/** The MIME the backend is told, stripped of codec parameters. */
 const baseMime = (type: string): string => type.split(';')[0];
 
 const pickMimeType = (): string | null => {
@@ -56,8 +39,6 @@ let stream: MediaStream | null = null;
 let chunks: Blob[] = [];
 let ticker: ReturnType<typeof setInterval> | null = null;
 
-/** Releases the microphone. Leaving the track live keeps the browser's
- *  recording indicator on, which is alarming and rightly so. */
 const releaseStream = () => {
   stream?.getTracks().forEach(track => track.stop());
   stream = null;
@@ -77,11 +58,6 @@ export const voiceRecorder = {
     typeof MediaRecorder !== 'undefined' &&
     pickMimeType() !== null,
 
-  /**
-   * Asking for the stream *is* the permission prompt in a browser, so this
-   * requests it and releases it again rather than holding the microphone open
-   * between the prompt and the first recording.
-   */
   async requestPermission(): Promise<boolean> {
     try {
       const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -108,8 +84,6 @@ export const voiceRecorder = {
       }
     });
 
-    // 250ms slices, so a tab closed mid-recording still leaves usable audio
-    // rather than one buffer that was never flushed.
     recorder.start(250);
 
     const startedAt = Date.now();
@@ -149,7 +123,6 @@ export const voiceRecorder = {
       name,
       type: mimeType,
       size: blob.size,
-      // The browser's FormData needs the Blob itself — see aiApi.appendFile.
       file: new File([blob], name, { type: mimeType }),
     };
   },
@@ -159,7 +132,6 @@ export const voiceRecorder = {
     try {
       recorder?.stop();
     } catch {
-      // Already stopped. Nothing to undo.
     }
     releaseStream();
     recorder = null;

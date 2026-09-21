@@ -1,14 +1,6 @@
 const mongoose = require("mongoose");
 
-/**
- * Executes workFn within a MongoDB ACID transaction.
- * Fails safe on standalone MongoDB deployments that do not support transactions.
- * 
- * @param {Function} workFn - Function receiving (session)
- * @returns {Promise<any>}
- */
 async function runInTransaction(workFn) {
-  // If Mongoose is not connected (unit test mock environment), execute workFn directly without session
   if (mongoose.connection.readyState !== 1) {
     return await workFn(null);
   }
@@ -23,7 +15,6 @@ async function runInTransaction(workFn) {
     if (session.inTransaction()) {
       await session.abortTransaction();
     }
-    // Check if error is due to standalone MongoDB lacking transaction support
     if (
       error.message &&
       (error.message.includes("Transaction numbers are only allowed on a replica set member or mongos") ||

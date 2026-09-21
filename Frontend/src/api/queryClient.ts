@@ -1,11 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
 
-/**
- * Shared QueryClient instance.
- *
- * Exported so that authentication lifecycle actions (such as logout and session expiry)
- * can invoke `queryClient.clear()` to purge user-specific cached server state.
- */
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

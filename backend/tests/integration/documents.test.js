@@ -1,10 +1,3 @@
-/**
- * Document management: list, search, rename, replace, view, download, delete.
- *
- * Routes, middleware and controller are real; only the Mongoose models are
- * in-memory, and the stored files are written to a real temp directory so the
- * streaming and replace paths touch an actual filesystem.
- */
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 process.env.NODE_ENV = "test";
 process.env.BACKEND_URL = "http://localhost:5000";
@@ -93,7 +86,6 @@ const documentRoutes = require("../../src/routes/document.routes");
 const app = express();
 app.use(express.json());
 app.use("/api/documents", documentRoutes);
-// Mirrors the real error handler closely enough for status assertions.
 app.use((err, req, res, _next) => {
   const status = err.status || (err.message?.includes("Unsupported") ? 400 : 500);
   res.status(status).json({ success: false, message: err.message });
@@ -104,7 +96,6 @@ const auth = (id) => ({ Authorization: `Bearer ${tokenFor(id)}` });
 
 const UPLOAD_DIR = path.resolve(__dirname, "../../uploads/acknowledgements");
 
-/** Creates a document row backed by a file that really exists on disk. */
 const seedDocument = (overrides = {}) => {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
   const fileName = `test-${Date.now()}-${Math.random().toString(16).slice(2)}.pdf`;
@@ -151,7 +142,6 @@ describe("Document listing and search", () => {
     const res = await request(app).get("/api/documents").set(auth(OWNER));
 
     expect(res.status).toBe(200);
-    // No custom name yet, so the display name falls back to the upload name.
     expect(res.body.data[0].name).toBe("divorce_case_2026.pdf");
   });
 
@@ -230,7 +220,6 @@ describe("Rename", () => {
 
     const listed = await request(app).get("/api/documents").set(auth(OWNER));
     expect(listed.body.data[0].name).toBe("Renamed.pdf");
-    // The upload name is kept alongside it.
     expect(listed.body.data[0].originalName).toBe("divorce_case_2026.pdf");
   });
 
@@ -284,7 +273,6 @@ describe("Rename", () => {
       "Sample Divorce Case.pdf",
       "Sample Divorce Case.pdf",
     ]);
-    // Distinct identities and distinct files underneath.
     expect(listed.body.data[0]._id).not.toBe(listed.body.data[1]._id);
     expect(listed.body.data[0].filePath).not.toBe(listed.body.data[1].filePath);
   });
@@ -300,8 +288,6 @@ describe("View and download", () => {
     expect(res.headers["content-disposition"]).toMatch(/^inline/);
     expect(res.headers["x-content-type-options"]).toBe("nosniff");
     expect(res.headers["cache-control"]).toMatch(/no-store/);
-    // supertest does not populate `.text` for a binary content-type; the
-    // streamed bytes arrive as a Buffer in `.body`.
     expect(res.body.toString()).toContain("original bytes");
   });
 
@@ -348,9 +334,6 @@ describe("View and download", () => {
   });
 
   it("serves a document stored with a leading-slash path", async () => {
-    // The AI Smart Case intake writes filePath as "/uploads/cases/x.pdf".
-    // path.resolve treats that as absolute, which previously placed it outside
-    // the uploads root and 404'd every document the intake had created.
     const doc = seedDocument();
     doc.filePath = `/${doc.filePath}`;
 
@@ -382,11 +365,11 @@ describe("Replace", () => {
       .attach("acknowledgement", newBytes, "replacement.pdf");
 
     expect(res.status).toBe(200);
-    expect(res.body.data._id).toBe(doc._id);          // identity preserved
-    expect(res.body.data.clientId).toBe(OWNER);        // ownership preserved
+    expect(res.body.data._id).toBe(doc._id);
+    expect(res.body.data.clientId).toBe(OWNER);
     expect(res.body.data.fileSize).toBe(newBytes.length);
     expect(res.body.data.contentUpdatedAt).toBeTruthy();
-    expect(fs.existsSync(oldAbsolute)).toBe(false);    // old file cleaned up
+    expect(fs.existsSync(oldAbsolute)).toBe(false);
 
     const served = await request(app).get(`/api/documents/${doc._id}/view`).set(auth(OWNER));
     const bytes = served.body.toString();
@@ -448,7 +431,6 @@ describe("Replace", () => {
 describe("DOCX preview", () => {
   const zlib = require("zlib");
 
-  /** A real .docx: a ZIP holding a deflated word/document.xml. */
   const makeDocx = (body) => {
     const xml = `<?xml version="1.0"?><w:document xmlns:w="x"><w:body>${body}</w:body></w:document>`;
     const name = Buffer.from("word/document.xml", "utf8");
@@ -488,7 +470,6 @@ describe("DOCX preview", () => {
   const DOCX_MIME =
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-  /** Seeds a document whose stored bytes are a genuine .docx. */
   const seedDocx = (bytes, overrides = {}) => {
     const doc = seedDocument({ mimeType: DOCX_MIME, ...overrides });
     const absolute = path.resolve(__dirname, "../..", doc.filePath);
@@ -523,8 +504,6 @@ describe("DOCX preview", () => {
   });
 
   it("never returns HTML, only typed blocks", async () => {
-    // A .docx carrying markup must not produce anything a renderer would
-    // interpret. The blocks carry text and flags; the angle brackets stay text.
     const doc = seedDocx(
       makeDocx(`<w:p><w:r><w:t>&lt;script&gt;alert(1)&lt;/script&gt;</w:t></w:r></w:p>`)
     );
@@ -607,10 +586,6 @@ describe("Delete", () => {
   });
 
   it("still removes the record when the file is already gone from disk", async () => {
-    // Not hypothetical: `uploads/` is untracked runtime state on a single
-    // instance, so a redeploy onto fresh storage leaves rows pointing at files
-    // that no longer exist. If that made delete fail, the owner could never
-    // clear the dead entry from their list.
     const doc = seedDocument();
     const absolute = path.resolve(__dirname, "../..", doc.filePath);
     fs.unlinkSync(absolute);

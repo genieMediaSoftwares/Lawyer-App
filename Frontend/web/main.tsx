@@ -1,14 +1,3 @@
-/**
- * Browser entry point.
- *
- * The native entry is `index.js`, which hands App to React Native's
- * AppRegistry. This does the DOM equivalent and nothing else — the App
- * component, the navigators and every screen are shared verbatim.
- */
-
-// The compiled Tailwind stylesheet. Native gets this through Metro from
-// index.js; in the browser Vite and PostCSS build it and inject it here. It
-// must load before the first component with a `className` renders.
 import '../global.css';
 
 import React from 'react';

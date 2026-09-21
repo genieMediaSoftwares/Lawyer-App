@@ -116,7 +116,6 @@ export const GenieHeroCarousel: React.FC<{
         ))}
       </ScrollView>
 
-      {/* Pagination Indicator Dots */}
       <View className="mt-2.5 flex-row items-center justify-center gap-1.5">
         {slides.map((slide, idx) => (
           <View

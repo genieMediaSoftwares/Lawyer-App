@@ -7,35 +7,14 @@ import { BackIcon } from '../icons/Icons';
 import { BellIcon, MenuIcon } from '../icons/ClientIcons';
 import { colors } from '../../theme';
 
-/**
- * The bar at the top of every screen.
- *
- * ON CENTRING THE TITLE
- *
- * A header laid out as three flex children centres the title between its
- * neighbours, not on the screen — so the title slides left or right depending
- * on whether there is a bell on the right, and by how much. Nudging it back
- * with a margin only fixes the one case it was measured against.
- *
- * Instead the title is absolutely positioned across the full width and centred
- * there, with the two icon slots drawn over it. Because every icon slot is
- * exactly `min-w-touch` wide, the title is padded clear of them by a fixed
- * amount on both sides and stays centred on the screen no matter which
- * controls are present.
- */
-
 export interface GenieHeaderProps {
   title?: string;
   subtitle?: string;
-  /** Shows a back chevron. Takes precedence over `onMenu`. */
   onBack?: () => void;
-  /** Shows the hamburger, which opens the drawer. */
   onMenu?: () => void;
   onNotifications?: () => void;
   notificationCount?: number;
-  /** An extra control in the right slot, left of the bell. */
   right?: React.ReactNode;
-  /** With no title, the header shows the wordmark instead. */
   showBrand?: boolean;
   className?: string;
 }
@@ -55,8 +34,6 @@ export const GenieHeader: React.FC<GenieHeaderProps> = ({
 
   return (
     <View className={`h-14 w-full flex-row items-center bg-background px-2 ${className}`}>
-      {/* The centred layer. `pointer-events-none` so it cannot swallow a tap
-          meant for the buttons drawn on top of it. */}
       <View
         className="absolute left-0 right-0 items-center px-14"
         pointerEvents="none"

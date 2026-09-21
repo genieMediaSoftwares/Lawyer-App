@@ -2,22 +2,8 @@ import React from 'react';
 import { View } from 'react-native';
 import { GenieText } from './GenieText';
 
-/**
- * A horizontal progress track: the stages of a case, the steps of a form.
- *
- * Each stage is an equal-width column holding a dot with a connector on either
- * side. Building it that way — rather than as one long line with dots placed
- * over it — is what keeps the dots evenly spaced whatever the labels underneath
- * happen to say.
- *
- * The connectors at the two ends are transparent rather than absent, so every
- * column is the same width and the first and last dots stay aligned with their
- * labels.
- */
-
 export interface GenieProgressStepperProps {
   steps: readonly string[];
-  /** Index of the current step. Everything up to and including it reads as done. */
   currentIndex: number;
   className?: string;
 }

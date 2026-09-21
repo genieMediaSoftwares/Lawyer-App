@@ -1,11 +1,3 @@
-/**
- * HTTP Range support on the document view endpoint.
- *
- * A PDF reader opening a large document reads the trailer first and then seeks
- * to individual objects. Without ranges it must pull the whole file before it
- * can show page one, so these are what make a large PDF open promptly rather
- * than a correctness nicety.
- */
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 process.env.NODE_ENV = "test";
 process.env.BACKEND_URL = "http://localhost:5000";
@@ -46,7 +38,6 @@ const auth = () => ({
 
 const UPLOAD_DIR = path.resolve(__dirname, "../../uploads/acknowledgements");
 
-/** 1000 bytes of known, position-identifiable content. */
 const BODY = Buffer.from(
   Array.from({ length: 100 }, (_, i) => String(i % 10).repeat(10)).join("")
 );
@@ -122,9 +113,6 @@ describe("Range requests on /view", () => {
   });
 
   it("serves a suffix range as the LAST n bytes", async () => {
-    // "bytes=-20" means the final 20 bytes. Reading it as "the first 20" is the
-    // classic mis-implementation, and it is exactly the request a PDF reader
-    // makes first, because the trailer is at the end of the file.
     const res = await request(app)
       .get("/api/documents/doc-range/view")
       .set({ ...auth(), Range: "bytes=-20" });
@@ -186,7 +174,6 @@ describe("Range requests on /view", () => {
   });
 
   it("reassembles to the original file across sequential ranges", async () => {
-    // What a reader actually does: many small reads that must join up exactly.
     const chunks = [];
     for (let start = 0; start < BODY.length; start += 250) {
       const end = Math.min(start + 249, BODY.length - 1);

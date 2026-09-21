@@ -34,14 +34,6 @@ export const AllCategoriesScreen: React.FC<
     );
   }, [searchQuery]);
 
-  /**
-   * Picking a category starts a case in it.
-   *
-   * It used to run an advocate search for the category's title. Post Your Case
-   * is the action the tiles are actually for — the client picked "Civil Cases"
-   * to file one, and the step it lands on offers that category's five
-   * sub-types directly beneath it.
-   */
   const handleSelectCategory = (category: LegalCategory) => {
     navigation.navigate('PostCase', {
       start: 'manual',
@@ -51,9 +43,6 @@ export const AllCategoriesScreen: React.FC<
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background">
-      {/* Was a hand-built header whose back control was a literal "‹"
-          character; GenieHeader gives it the same back chevron every other
-          screen uses, and a title that is centred on the screen. */}
       <GenieHeader title="All Categories" onBack={() => navigation.goBack()} />
 
       <View className="px-5 pb-2 pt-1">

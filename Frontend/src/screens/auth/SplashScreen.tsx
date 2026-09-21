@@ -62,8 +62,6 @@ export const SplashScreen: React.FC = () => {
         <Logo size={124} withHalo />
       </Animated.View>
 
-      {/* The opacity values are driven by the entrance animation, so they
-          stay in style props; everything static is a class. */}
       <Animated.View style={{ opacity: textOpacity }} className="mt-8 items-center">
         <GenieText variant="heading-lg" className="tracking-[4px]">
           GENIE LAW

@@ -14,29 +14,15 @@ const {
   normaliseLanguageCode,
 } = require("../../utils/transcriptLanguage");
 
-/** Repo root, used to turn an absolute upload path into a served URL. */
 const PROJECT_ROOT = path.join(__dirname, "../../..");
 
-/**
- * Ceiling on a client-supplied voice transcript.
- */
 const MAX_LIVE_TRANSCRIPT_CHARS = 20000;
 
-/**
- * How many analyses one client may have running at once.
- */
 const MAX_CONCURRENT_SESSIONS_PER_CLIENT = 3;
 
-/**
- * Grace period on top of the pipeline's own budget before a "processing"
- * session is considered abandoned.
- */
 const STALE_GRACE_MS = 60 * 1000;
 
 class AiSmartCaseController {
-  /**
-   * POST /api/ai/smart-case/analyze
-   */
   async analyzeSmartCase(req, res, next) {
     let documentFiles = [];
     let voiceFile = null;
@@ -51,16 +37,6 @@ class AiSmartCaseController {
         req.files?.documents || (Array.isArray(req.files) ? req.files : []);
       voiceFile = req.files?.voice ? req.files.voice[0] : req.file || null;
 
-      // ── Idempotency ──────────────────────────────────────────────────────
-      // Accepted from either the header or a form field. Browsers cannot send
-      // `X-Request-Id` unless the CORS preflight allows it by name, and the
-      // reverse proxy in front of this app answers OPTIONS itself with a fixed
-      // allow-list that does not include it — so web clients send the key as a
-      // multipart field. Native clients still send the header.
-      //
-      // Without the fallback, a web upload would arrive with no key at all and
-      // every retry would start a *new* analysis instead of rejoining the one
-      // already running.
       const requestId = String(
         req.get("X-Request-Id") || req.body?.requestId || ""
       )
@@ -99,7 +75,6 @@ class AiSmartCaseController {
         );
       }
 
-      // ── Concurrency ──────────────────────────────────────────────────────
       await failStaleSessions({ client: clientId });
 
       const running = await AiSmartCaseSession.countDocuments({
@@ -127,10 +102,6 @@ class AiSmartCaseController {
         .trim()
         .slice(0, MAX_LIVE_TRANSCRIPT_CHARS);
 
-      // The language the client actually spoke, as detected on their device.
-      // Falls back to reading the transcript's own script, so a transcript is
-      // never left unlabelled just because an older app build sent no code.
-      // Neither path alters a character of the transcript itself.
       const liveVoiceLanguage = liveVoiceTranscript
         ? normaliseLanguageCode(req.body && req.body.voiceLanguage) ||
           detectTranscriptLanguage(liveVoiceTranscript)
@@ -245,9 +216,6 @@ class AiSmartCaseController {
     }
   }
 
-  /**
-   * GET /api/ai/smart-case/history
-   */
   async getSmartCaseHistory(req, res, next) {
     try {
       const limit = Math.min(Number(req.query.limit) || 20, 50);
@@ -267,9 +235,6 @@ class AiSmartCaseController {
     }
   }
 
-  /**
-   * GET /api/ai/smart-case/session/:id
-   */
   async getSmartCaseSessionById(req, res, next) {
     try {
       if (!mongoose.isValidObjectId(req.params.id)) {
@@ -309,9 +274,6 @@ class AiSmartCaseController {
     }
   }
 
-  /**
-   * POST /api/ai/smart-case/session/:id/link-case
-   */
   async linkSessionToCase(req, res, next) {
     try {
       const { caseId } = req.body || {};

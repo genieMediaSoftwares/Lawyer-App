@@ -85,7 +85,6 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
         <Pressable className="flex-1" onPress={handleClose} />
 
         <View className="rounded-t-2xl border-t border-border bg-[#141414] px-5 pb-8 pt-4">
-          {/* Header */}
           <View className="mb-4 flex-row items-center justify-between">
             <GenieText variant="heading-md" className="font-bold">
               Upload Document
@@ -109,7 +108,6 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
             </View>
           ) : null}
 
-          {/* Dotted Upload Zone */}
           <Pressable
             onPress={handlePickFile}
             disabled={isUploading}
@@ -130,7 +128,6 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
             </GenieText>
           </Pressable>
 
-          {/* Selected File Preview Card */}
           {selectedFile ? (
             <View className="mb-4 rounded-card border border-gold bg-[#1E1C15] p-3.5">
               <View className="flex-row items-center justify-between">
@@ -160,7 +157,6 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
             </View>
           ) : null}
 
-          {/* Divider */}
           <View className="my-3 flex-row items-center gap-3">
             <View className="flex-1 h-px bg-border" />
             <GenieText variant="caption" tone="muted">
@@ -169,7 +165,6 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
             <View className="flex-1 h-px bg-border" />
           </View>
 
-          {/* Action Pickers */}
           <View className="gap-2.5">
             <Pressable
               onPress={handlePickFile}

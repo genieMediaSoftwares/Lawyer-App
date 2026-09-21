@@ -7,18 +7,6 @@ import { ROLE_OPTIONS, roleLabel } from '../constants/roles';
 import { colors } from '../theme';
 import type { SignupRole } from '../types/auth';
 
-/**
- * Role selection, styled as a text field so it lines up with the rest of the
- * form, opening a sheet of the roles the backend accepts.
- *
- * A native picker was not used: it renders with system chrome on both
- * platforms — a white wheel on iOS, a light dialog on Android — which is the
- * one place a black-and-gold form would break character.
- *
- * The sheet is now GenieBottomSheet rather than a hand-rolled Modal, so it
- * matches the filter and sort sheets and inherits their dismissal behaviour.
- */
-
 interface RolePickerProps {
   label?: string;
   value: SignupRole;

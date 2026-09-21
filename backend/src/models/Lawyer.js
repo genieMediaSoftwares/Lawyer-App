@@ -110,14 +110,6 @@ const lawyerSchema = new mongoose.Schema(
     googleTokenExpiry: {
       type: Date,
     },
-    // Every field below describes a lawyer's real track record and is shown to
-    // clients choosing legal representation. Each one therefore defaults to
-    // "not provided", never to a plausible-looking number.
-    //
-    // These previously defaulted to "9:00 AM - 6:00 PM", 120 cases and an 85%
-    // win rate, so a lawyer who had filled in nothing still presented a
-    // complete and flattering record. The API's `winPercentage > 0 ? ... : null`
-    // guard could never fire, because the schema had already supplied 85.
     workingHours: {
       type: String,
       default: "",
@@ -131,22 +123,16 @@ const lawyerSchema = new mongoose.Schema(
       default: 0,
     },
 
-    /// Typical time this lawyer takes to respond, in their own words
-    /// ("Responds within 2 hours"). Empty until they state one.
     responseTime: {
       type: String,
       default: "",
     },
 
-    /// District, kept separate from the free-text `user.location` so
-    /// recommendations can match on it without parsing an address.
     district: {
       type: String,
       default: "",
     },
 
-    /// Areas this lawyer declares they practise, beyond their primary
-    /// `specialization`.
     practiceAreas: {
       type: [String],
       default: [],
@@ -159,7 +145,6 @@ const lawyerSchema = new mongoose.Schema(
 
 const { encrypt, decrypt } = require("../utils/cryptoUtil");
 
-// Encrypt sensitive financial details before saving
 lawyerSchema.pre("save", function (next) {
   if (this.upiId) {
     this.upiId = encrypt(this.upiId);
@@ -170,7 +155,6 @@ lawyerSchema.pre("save", function (next) {
   next();
 });
 
-// Decrypt sensitive financial details after fetching from DB
 function decryptFinancials(doc) {
   if (!doc) return;
   if (doc.upiId) {

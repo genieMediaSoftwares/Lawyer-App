@@ -9,24 +9,6 @@ import { orderedCategories, type LegalCategory } from '../../../../constants/cat
 import type { PostCaseState } from '../types';
 import { colors } from '../../../../theme';
 
-/**
- * Step 1 — the legal category and its sub-type.
- *
- * Tapping a category expands it in place to reveal its five sub-types; picking
- * one selects both and collapses the row back. Both are required to leave this
- * step **by hand** — `Case.category` and `Case.subcategory` are what lawyer
- * matching reads, and a half-made choice here is just an unfinished step.
- *
- * After an AI extraction the sub-type is not required; see `isStepComplete`
- * for why, and for the bug that rule was fixing.
- *
- * The list is the whole taxonomy, not the eight "popular" ones: somebody with
- * an immigration matter has to be able to file it. The popular eight simply
- * lead, which is the order the rest of the app already uses.
- */
-
-// LayoutAnimation needs this opt-in on old-architecture Android, and is a
-// no-op where the flag does not exist.
 if (
   Platform.OS === 'android' &&
   UIManager.setLayoutAnimationEnabledExperimental
@@ -129,27 +111,11 @@ export const CategoryStep: React.FC<CategoryStepProps> = ({
   state,
   onChange,
 }) => {
-  /**
-   * Starts expanded on whatever was already chosen.
-   *
-   * That covers both ways in: coming back to this step shows the selection
-   * rather than a collapsed list to hunt through, and arriving from a category
-   * tile on Home or All Categories opens straight onto that category's
-   * sub-types — which is the whole point of tapping the tile.
-   */
   const [expandedId, setExpandedId] = useState<string>(
     state.categoryId && !state.subcategory ? state.categoryId : '',
   );
 
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
-  /**
-   * Where the preselected row sits, captured from its own layout.
-   *
-   * Needed because the taxonomy is fifteen long: tapping "Immigration & Visa"
-   * expands a row far below the fold, and without this the client would land
-   * on a list that looks untouched. Only ever fired once, for the category
-   * that was preselected on entry.
-   */
   const hasScrolledRef = useRef(false);
   const presetId = useRef(
     state.categoryId && !state.subcategory ? state.categoryId : '',
@@ -160,7 +126,6 @@ export const CategoryStep: React.FC<CategoryStepProps> = ({
       return;
     }
     hasScrolledRef.current = true;
-    // A small offset so the row is not flush against the heading.
     scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: false });
   };
 
@@ -178,9 +143,6 @@ export const CategoryStep: React.FC<CategoryStepProps> = ({
       categoryId: category.id,
       category: category.title,
       subcategory: subType,
-      // Changing the category invalidates a lawyer chosen for the old one —
-      // the recommendation is scored against the category, so keeping the
-      // selection would carry a match made for a different matter.
       ...(category.id !== state.categoryId
         ? { selectedLawyer: null }
         : {}),

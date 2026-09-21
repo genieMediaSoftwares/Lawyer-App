@@ -2,13 +2,6 @@ import React from 'react';
 import { Pressable } from 'react-native';
 import { GenieText } from './GenieText';
 
-/**
- * A selectable pill: category filters, sort options, tag lists.
- *
- * Selection is carried by gold — background wash plus a gold border — rather
- * than by a tick, so a row of chips reads at a glance.
- */
-
 export interface GenieChipProps {
   label: string;
   selected?: boolean;

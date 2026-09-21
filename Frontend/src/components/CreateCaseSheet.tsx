@@ -5,19 +5,6 @@ import { GenieBottomSheet, GenieText } from './ui';
 import { ChevronRightIcon, FileIcon, SparkleIcon } from './icons/ClientIcons';
 import { colors } from '../theme';
 
-/**
- * What the centre "+" opens: how to start a case.
- *
- * Both routes lead into the same five-step Post Your Case flow and both file
- * through `POST /cases`. They differ only in how step 3 is entered — by hand,
- * or by letting the assistant read the documents and fill the form in.
- *
- * Manual posting used to be dimmed here with a "Coming soon" badge, on the
- * stated grounds that the backend had no endpoint for a hand-filled case. That
- * was wrong: `POST /cases` has always existed and `caseController.createCase`
- * reads a full form body. Only the frontend was missing.
- */
-
 interface CreateCaseSheetProps {
   visible: boolean;
   onClose: () => void;

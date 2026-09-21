@@ -30,7 +30,6 @@ export interface GenieAvatarProps {
   uri?: string | null;
   name?: string | null;
   size?: GenieAvatarSize;
-  /** A gold ring, for the signed-in user or a verified advocate. */
   ring?: boolean;
   className?: string;
 }

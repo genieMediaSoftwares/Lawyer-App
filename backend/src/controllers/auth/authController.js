@@ -2,22 +2,8 @@ const authService = require("../../services/auth/authService");
 const storageService = require("../../services/storageService");
 const ApiResponse = require("../../config/ApiResponse");
 
-/**
- * Identifies the installation a request came from, for session tracking.
- *
- * The client sends a value it generated once and keeps in secure storage, so
- * "the same device" survives a restart, an app update and a cleared session.
- * An older build that sends nothing yields an undefined id: sessionService
- * treats that as "no device match", so such a client can still sign in and
- * still gets the active-session check — it just cannot claim an earlier
- * session as its own. The header is accepted as a fallback for requests with
- * no body of their own, such as logout.
- */
 const deviceContext = (req) => ({
   deviceId: req.body?.deviceId || req.get("X-Device-Id") || undefined,
-  // Labels for the account's session list. Optional, and deliberately limited
-  // to what names a handset — no advertising id, no serial, nothing that
-  // identifies the person rather than the installation.
   deviceName: req.body?.deviceName || req.get("X-Device-Name") || undefined,
   platform: req.body?.platform || req.get("X-Device-Platform") || undefined,
   userAgent: req.get("User-Agent") || undefined,
@@ -60,18 +46,8 @@ class AuthController {
     }
   }
 
-  /**
-   * Ends the session this token names.
-   *
-   * `req.sessionId` is set by authMiddleware from the token's `sid` claim, so
-   * a caller can only ever end their own session. Tokens issued before session
-   * tracking existed carry no `sid`; there is nothing to revoke for those, and
-   * reporting success is right — the client clears its local state either way.
-   */
   async logout(req, res, next) {
     try {
-      // The session named by the caller's own token, and only that one. Other
-      // devices belonging to this account stay signed in.
       await authService.logout(req.sessionId);
 
       return ApiResponse.success(res, "Logged out successfully.");
@@ -80,7 +56,6 @@ class AuthController {
     }
   }
 
-  /** Signs the account out everywhere. Separate route, separate intent. */
   async logoutAllDevices(req, res, next) {
     try {
       const revoked = await authService.logoutAllDevices(req.user._id);
@@ -93,13 +68,6 @@ class AuthController {
     }
   }
 
-  /**
-   * Exchanges a refresh token for a new access token.
-   *
-   * Unauthenticated by design: it is reached precisely when the access token
-   * has expired, so requiring one would make it unreachable. The refresh token
-   * itself is the credential.
-   */
   async refreshToken(req, res, next) {
     try {
       const result = await authService.refreshSession(req.body?.refreshToken);
@@ -167,9 +135,6 @@ class AuthController {
       }
       await authService.forgotPassword(email);
 
-      // Deliberately neutral, and carries no payload: the reset code goes out
-      // by email only. Returning it here (or varying the response for unknown
-      // addresses) is what made account takeover trivial.
       return ApiResponse.success(
         res,
         "If that email is registered, a reset code has been sent."

@@ -120,8 +120,6 @@ export const MyProfileDetailScreen: React.FC<
       contentContainerClassName="pb-10"
     >
       <View className="my-3 items-center">
-        {/* The gold ring is on this wrapper rather than on the avatar, so the
-            camera button can sit on the ring's edge. */}
         <View className="rounded-full border-2 border-gold p-1">
           <GenieAvatar uri={user.profileImage} name={user.fullName} size="xl" />
 

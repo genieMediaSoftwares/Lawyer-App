@@ -29,7 +29,6 @@ export const MyCasesScreen: React.FC<ClientTabScreenProps<'Cases'>> = ({
   const openDrawer = useUiStore(state => state.openDrawer);
   const openCreateSheet = useUiStore(state => state.openCreateSheet);
 
-  // Fetch all cases belonging to the authenticated client with 5s real-time polling
   const casesQuery = useQuery({
     queryKey: ['cases', 'list'],
     queryFn: casesApi.list,
@@ -37,7 +36,6 @@ export const MyCasesScreen: React.FC<ClientTabScreenProps<'Cases'>> = ({
     refetchOnWindowFocus: true,
   });
 
-  // Fetch unread notifications count for header bell
   const notificationsQuery = useQuery({
     queryKey: ['notifications', 1],
     queryFn: () => notificationsApi.list(1, 15),
@@ -178,7 +176,6 @@ export const MyCasesScreen: React.FC<ClientTabScreenProps<'Cases'>> = ({
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background">
-      {/* Header: Menu Icon + Title + Notifications Icon */}
       <GenieHeader
         title="My Cases"
         onMenu={openDrawer}
@@ -186,7 +183,6 @@ export const MyCasesScreen: React.FC<ClientTabScreenProps<'Cases'>> = ({
         notificationCount={unreadNotificationsCount}
       />
 
-      {/* Filter Tabs Bar */}
       <View className="flex-row gap-2 px-4 pb-3 pt-2">
         {CASE_TABS.map(item => {
           const isActive = item === tab;

@@ -1,15 +1,3 @@
-/**
- * Native-module stand-ins for the Jest environment.
- *
- * Jest runs in Node, where no TurboModule is registered, so every library that
- * calls `TurboModuleRegistry.getEnforcing()` at import time throws before a
- * test starts. Where a library ships its own Jest mock it is used as-is; the
- * two that do not get the smallest stub that satisfies their import surface.
- *
- * These stub *native bindings* only. They are not app data and are never
- * bundled into the app.
- */
-
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 jest.mock('react-native-worklets', () => require('react-native-worklets/src/mock'));
 jest.mock('react-native-safe-area-context', () =>

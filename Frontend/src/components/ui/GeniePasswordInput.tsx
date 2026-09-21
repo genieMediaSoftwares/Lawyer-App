@@ -4,14 +4,6 @@ import { GenieInput, GenieInputProps, GenieTextInputRef } from './GenieInput';
 import { EyeIcon, EyeOffIcon, LockIcon } from '../icons/Icons';
 import { colors } from '../../theme';
 
-/**
- * A password field: GenieInput with a lock, and an eye that reveals the text.
- *
- * The reveal control is a real button with a label, because a screen reader
- * user needs to know the field can be shown, and it is the one thing in the
- * row that is tappable.
- */
-
 export type GeniePasswordInputProps = Omit<GenieInputProps, 'secureTextEntry'>;
 
 export const GeniePasswordInput = forwardRef<GenieTextInputRef, GeniePasswordInputProps>(

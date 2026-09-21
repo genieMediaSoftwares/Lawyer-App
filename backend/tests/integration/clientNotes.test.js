@@ -1,19 +1,3 @@
-/**
- * Exercises the client-notes endpoints and the engagement check now guarding
- * them.
- *
- * These endpoints previously took a client id from the URL and answered without
- * checking anything: any authenticated user could read a client's profile,
- * contact details and full document list, and could write notes onto any
- * client's record. The client id is attacker-controlled, so these tests are
- * about who is turned away, not only about who gets in.
- *
- * The privacy rule that already existed — a note is only ever returned to the
- * advocate who wrote it — is pinned down here too, so it cannot be lost.
- *
- * Models are faked; the configured MONGO_URI is a shared cluster and no test in
- * this repository may write to a database.
- */
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 process.env.NODE_ENV = "test";
 
@@ -30,9 +14,6 @@ const oid = (value) => ({
 
 const idOf = (value) => (value == null ? "" : String(value));
 
-// ---------------------------------------------------------------------------
-// Fakes
-// ---------------------------------------------------------------------------
 jest.mock("../../src/models/User", () => ({
   findById: (id) => ({
     select: async () =>
@@ -41,11 +22,6 @@ jest.mock("../../src/models/User", () => ({
 }));
 
 jest.mock("../../src/models/Case", () => ({
-  /**
-   * Matches the two shapes the controller queries with: the engagement check
-   * (`client` + `assignedLawyer`) and the case-ownership check used before a
-   * note may be filed against a matter (`_id` + `client` + `$or`).
-   */
   exists: async (query) =>
     mockCaseLinks.some((link) => {
       if (query.client && String(query.client) !== link.client) return false;
@@ -126,8 +102,6 @@ jest.mock("../../src/models/Client", () => {
         (c) => c.user.toString() === String(query.user)
       );
       const result = record ? hydrate(record) : null;
-      // findOne(...) is awaited directly, and .populate() is chained by
-      // getNotes, so the return value serves both.
       return Object.assign(Promise.resolve(result), {
         populate: async () => result,
       });
@@ -142,9 +116,6 @@ jest.mock("../../src/models/Client", () => {
 
 const clientController = require("../../src/controllers/client/clientController");
 
-// ---------------------------------------------------------------------------
-// Harness
-// ---------------------------------------------------------------------------
 const CLIENT = oid("client-user-1");
 const LAWYER_A = oid("lawyer-a");
 const LAWYER_B = oid("lawyer-b");
@@ -173,7 +144,6 @@ const makeReq = (overrides = {}) => ({
 
 const nextError = () => jest.fn();
 
-/** Lawyer A acts for the client; lawyer B does not. */
 const seed = () => {
   mockClients.length = 0;
   mockCaseLinks.length = 0;
@@ -273,8 +243,6 @@ describe("addNote", () => {
   });
 
   test("the response carries only the new note, not the whole profile", async () => {
-    // Returning the profile handed the caller every other advocate's private
-    // notes on the same client.
     const res = await addNote(user(LAWYER_A, "lawyer"), { text: "Note" });
     expect(res.body.data.notes).toBeUndefined();
     expect(res.body.data.text).toBe("Note");
@@ -304,7 +272,6 @@ describe("addNote", () => {
 describe("getNotes privacy", () => {
   beforeEach(async () => {
     await addNote(user(LAWYER_A, "lawyer"), { text: "Lawyer A's note" });
-    // Written directly, because lawyer B is not entitled to the endpoint.
     mockClients[0].notes.push({
       _id: oid("note-b"),
       lawyer: LAWYER_B,
@@ -360,8 +327,6 @@ describe("updateNote and deleteNote are author-only", () => {
     await addNote(user(LAWYER_A, "lawyer"), { text: "Original" });
     noteId = mockClients[0].notes[0]._id.toString();
 
-    // Lawyer B is given a relationship to the client, so the only thing
-    // standing between them and lawyer A's note is the authorship check.
     mockAppointmentLinks.push({
       client: idOf(CLIENT),
       lawyer: idOf(LAWYER_B),

@@ -4,28 +4,10 @@ const zlib = require("zlib");
 const gemini = require("./geminiClient");
 const { extractDocxText } = require("./docxExtractor");
 
-/**
- * Formats we can actually turn into text, and how. Anything absent is rejected
- * with a message naming the file, rather than being read as UTF-8 and fed to
- * the model as if binary noise were the document's contents.
- *
- * `.doc` (the pre-2007 binary Word format) is deliberately absent: it is a
- * compound-file container, Gemini does not accept it, and reading it as text
- * yields garbage. The upload middleware and the picker both refuse it.
- */
 const TEXT_EXTENSIONS = new Set([".txt", ".text", ".md", ".csv", ".rtf"]);
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".heic", ".heif"]);
 
 class OcrSanitizationService {
-  /**
-   * Main entry point to extract text from a file (Image, PDF, DOCX).
-   *
-   * Returns `extractionFailed: true` when the OCR pipeline itself could not
-   * run (no API key, model unavailable, network error). That is deliberately
-   * distinct from "we read the document and it contained little text" — the
-   * two used to be conflated, so an outage produced fraud flags accusing the
-   * client's paperwork of being altered or unreadable.
-   */
   async extractText(filePath, mimeType, originalName) {
     let rawText = "";
     let ocrQuality = "Good";
@@ -59,9 +41,6 @@ class OcrSanitizationService {
           extractionError = "File not found on disk.";
         }
       } else {
-        // Never fall back to reading unknown bytes as UTF-8. That is how a
-        // legacy .doc used to reach the model as several kilobytes of binary
-        // noise dressed up as the client's document.
         extractionFailed = true;
         extractionError = `Unsupported file type "${ext || mimeType || "unknown"}". Upload a PDF, image, DOCX or TXT.`;
       }
@@ -69,10 +48,8 @@ class OcrSanitizationService {
       const cleanLen = rawText.trim().length;
 
       if (extractionFailed) {
-        // Our problem, not the document's. Say so plainly and raise no flag.
         ocrQuality = "Extraction Unavailable";
       } else if (cleanLen < 15) {
-        // We did read it, and there genuinely was almost no text.
         ocrQuality = "Low Confidence";
         fraudFlags.push(
           `Very little readable text found in '${originalName}'. If this document should contain text, it may be blurred, skewed or a low-quality scan.`
@@ -90,9 +67,6 @@ class OcrSanitizationService {
     } catch (err) {
       console.error(`OCR Extraction error for ${originalName}:`, err.message);
       return {
-        // Must NOT be a human-readable placeholder: the old
-        // "[Document Content from x.pdf]" string was fed to the model as if
-        // it were the document, which is what let it invent case details.
         extractedText: "",
         ocrQuality: "Extraction Unavailable",
         fraudFlags: [],
@@ -103,14 +77,6 @@ class OcrSanitizationService {
     }
   }
 
-  /**
-   * Image OCR via Gemini vision.
-   *
-   * The previous implementation called vision.googleapis.com first. That
-   * endpoint rejects API-key auth outright ("API keys are not supported by
-   * this API. Expected OAuth2 access token"), so it could never succeed with
-   * GEMINI_API_KEY and only added a failed round trip per image. Removed.
-   */
   async _extractImageOcr(filePath, mimeType) {
     if (!fs.existsSync(filePath)) {
       return { text: "", extractionFailed: true, error: "File not found on disk." };
@@ -122,7 +88,6 @@ class OcrSanitizationService {
       [
         {
           inlineData: {
-            // Was hardcoded to image/jpeg, which mislabels every PNG and WebP.
             mimeType: this._normalizeImageMime(mimeType, filePath),
             data: base64Content,
           },
@@ -140,9 +105,6 @@ class OcrSanitizationService {
     return { text: text || "", extractionFailed: text === null, error };
   }
 
-  /**
-   * Gemini requires a real image MIME type; derive one rather than assuming.
-   */
   _normalizeImageMime(mimeType, filePath) {
     const supported = ["image/png", "image/jpeg", "image/webp", "image/heic", "image/heif"];
     if (mimeType && supported.includes(mimeType)) return mimeType;
@@ -157,9 +119,6 @@ class OcrSanitizationService {
     }
   }
 
-  /**
-   * Fast offline extraction for digital PDFs using FlateDecode decompression.
-   */
   _extractDigitalPdfText(pdfBuffer) {
     try {
       const rawString = pdfBuffer.toString("latin1");
@@ -211,9 +170,6 @@ class OcrSanitizationService {
     return "";
   }
 
-  /**
-   * PDF Text Extraction (Digital PDF text + Scanned PDF Vision fallback)
-   */
   async _extractPdfText(filePath) {
     if (!fs.existsSync(filePath)) {
       return { text: "", isScanned: false, extractionFailed: true, error: "File not found on disk." };
@@ -221,14 +177,12 @@ class OcrSanitizationService {
 
     const pdfBuffer = fs.readFileSync(filePath);
 
-    // Fast path: Digital PDF stream decompression
     let textContent = this._extractDigitalPdfText(pdfBuffer);
     if (this._looksLikeProse(textContent)) {
       return { text: textContent, isScanned: false, extractionFailed: false, error: null };
     }
     textContent = "";
 
-    // Gemini accepts PDFs directly and handles scanned pages.
     const { text, error } = await gemini.generate(
       [
         { inlineData: { mimeType: "application/pdf", data: pdfBuffer.toString("base64") } },
@@ -245,7 +199,6 @@ class OcrSanitizationService {
       return { text, isScanned: true, extractionFailed: false, error: null };
     }
 
-    // Fallback: If Gemini OCR fails (e.g. rate limits), attempt fallback text extraction
     if (!textContent) {
       try {
         const rawString = pdfBuffer.toString("latin1");
@@ -267,10 +220,6 @@ class OcrSanitizationService {
     };
   }
 
-  /**
-   * DOCX text via a real ZIP + inflate pass — see services/ai/docxExtractor.js
-   * for why regexing the raw file could never work.
-   */
   _extractDocx(filePath) {
     if (!fs.existsSync(filePath)) {
       return { text: "", extractionFailed: true, error: "File not found on disk." };
@@ -280,20 +229,11 @@ class OcrSanitizationService {
       const text = extractDocxText(fs.readFileSync(filePath));
       return { text, extractionFailed: false, error: null };
     } catch (e) {
-      // A corrupt or mislabelled archive is our failure to read it, not
-      // evidence that the client's document is blank.
       console.error("DOCX extraction error:", e.message);
       return { text: "", extractionFailed: true, error: e.message };
     }
   }
 
-  /**
-   * Guards the PDF fast path: is this recovered string plausibly human text?
-   *
-   * Requires enough length, a high proportion of printable characters, and a
-   * realistic letter-to-total ratio. Inflated binary fails all three, so it
-   * falls through to Gemini OCR instead of being reported as the document.
-   */
   _looksLikeProse(candidate) {
     const text = (candidate || "").trim();
     if (text.length < 80) return false;
@@ -304,28 +244,18 @@ class OcrSanitizationService {
     const letters = (text.match(/[A-Za-z]/g) || []).length;
     if (letters / text.length < 0.5) return false;
 
-    // Real prose contains words. Binary that survives the checks above is
-    // typically an unbroken run of symbols.
     const words = text.split(/\s+/).filter((w) => /^[A-Za-z][A-Za-z'.,-]{2,}$/.test(w));
     return words.length >= 12;
   }
 
-  /**
-   * Sanitizes OCR text to prevent Prompt Injection attacks
-   */
   sanitizeText(text) {
     if (!text || typeof text !== "string") return "";
 
     let sanitized = text;
 
-    // Strip known prompt injection directives
     const injectionPatterns = [
       /ignore\s+previous\s+instructions/gi,
       /ignore\s+all\s+instructions/gi,
-      // Anchored to line starts. Unanchored, these matched ordinary legal
-      // prose — "…before the Assistant: Commissioner of Police…" and any
-      // sentence ending in "the user:" — and redacted the client's own
-      // document. A role-prefix injection only works at the start of a line.
       /^[ \t]*system\s*:/gim,
       /^[ \t]*user\s*:/gim,
       /^[ \t]*assistant\s*:/gim,
@@ -340,7 +270,6 @@ class OcrSanitizationService {
       sanitized = sanitized.replace(pattern, "[CLEANED_INJECTION_ATTEMPT]");
     }
 
-    // Limit length to avoid prompt token explosion (e.g., max 15,000 characters)
     if (sanitized.length > 15000) {
       sanitized = sanitized.substring(0, 15000) + "... [Text truncated for processing limit]";
     }

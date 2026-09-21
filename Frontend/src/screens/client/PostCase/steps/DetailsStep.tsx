@@ -15,26 +15,11 @@ import { AiBadge } from '../AiBadge';
 import { shortenDescription, type PostCaseState } from '../types';
 import { colors } from '../../../../theme';
 
-/**
- * Step 2 — the case itself.
- *
- * Title is optional: left blank, `toCreatePayload` falls back to the sub-type,
- * which is what the placeholder promises. Description and location are
- * required — a lawyer cannot assess a matter without the first, and
- * recommendation is scored on the second.
- *
- * The description's dictation button records and sends the audio to
- * `POST /ai/transcribe`, which answers with the text. It **appends** to
- * whatever is already in the field rather than replacing it, so dictating
- * after typing cannot destroy what was typed.
- */
-
 const MAX_DESCRIPTION = 5000;
 
 interface DetailsStepProps {
   state: PostCaseState;
   onChange: (patch: Partial<PostCaseState>) => void;
-  /** Clears a field's "AI extracted" marker once the client edits it. */
   onFieldEdited: (field: string) => void;
 }
 
@@ -95,8 +80,6 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
           return;
         }
 
-        // Appended, not substituted: dictation adds to the account rather
-        // than replacing what the client already wrote.
         const existing = state.description.trim();
         const combined = existing ? `${existing} ${text}` : text;
         edit('description', combined.slice(0, MAX_DESCRIPTION));
@@ -136,7 +119,6 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
         Case Details
       </GenieText>
 
-      {/* ── Title ──────────────────────────────────────────────────────── */}
       <Label text="Case Title" aiFilled={aiFields.has('title')} />
       <TextInput
         value={state.title}
@@ -148,7 +130,6 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
         maxLength={200}
       />
 
-      {/* ── Description ────────────────────────────────────────────────── */}
       <View className="mt-5">
         <Label
           text="Brief Description of Your Case"
@@ -201,9 +182,6 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
           </GenieText>
         </View>
 
-        {/* Only when the extraction was actually shortened. The long version
-            is the text the document supports in full, so it stays one tap
-            away rather than being discarded to keep the field tidy. */}
         {state.aiFullDescription ? (
           <Pressable
             onPress={() => {
@@ -233,7 +211,6 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
         ) : null}
       </View>
 
-      {/* ── Location ───────────────────────────────────────────────────── */}
       <View className="mt-5">
         <Label
           text="City / Location"
@@ -253,7 +230,6 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
         </View>
       </View>
 
-      {/* ── Preferred court ────────────────────────────────────────────── */}
       <View className="mt-5">
         <Label
           text="Preferred Court Location (Optional)"

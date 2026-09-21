@@ -12,7 +12,6 @@ class FavoriteController {
         return ApiResponse.error(res, "lawyerId is required.", 400);
       }
 
-      // Check if already favorite
       const existing = await Favorite.findOne({ client: clientId, lawyer: lawyerId });
 
       if (existing) {
@@ -36,7 +35,6 @@ class FavoriteController {
           select: "fullName email mobile profileImage",
         });
 
-      // Find lawyer profiles for each user reference
       const lawyerIds = favorites.map((f) => f.lawyer?._id).filter(Boolean);
       const profiles = await Lawyer.find({ user: { $in: lawyerIds } });
 

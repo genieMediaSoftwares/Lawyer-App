@@ -25,7 +25,6 @@ import { useUiStore } from '../../../store/uiStore';
 import type { ClientTabScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
 
-/** One numbered step in "How It Works". */
 const Step: React.FC<{ n: number; title: string; description: string }> = ({
   n,
   title,
@@ -66,9 +65,6 @@ export const HomeScreen: React.FC<ClientTabScreenProps<'Home'>> = ({
 
   const unreadCount = notificationsQuery.data?.unreadCount ?? 0;
 
-  // Home keeps its own header rather than using GenieHeader: it is the only
-  // screen that shows the wordmark instead of a title, and its bell is white
-  // rather than gold because there is no title competing for attention.
   const header = (
     <View className="h-14 w-full flex-row items-center justify-between border-b border-border bg-background px-2">
       <GenieIconButton
@@ -246,8 +242,6 @@ export const HomeScreen: React.FC<ClientTabScreenProps<'Home'>> = ({
           title="Select Issue"
           description="Choose your legal issue category."
         />
-        {/* The line joining one step to the next. Indented so it sits under the
-            centre of the numbered badge above it. */}
         <View className="my-2 ml-4 h-5 w-px bg-border" />
 
         <Step

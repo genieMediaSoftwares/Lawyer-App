@@ -81,7 +81,6 @@ const notificationSchema = new mongoose.Schema(
   }
 );
 
-// Optimize query performance with compound index
 notificationSchema.index({ receiverId: 1, softDelete: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Notification", notificationSchema);

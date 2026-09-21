@@ -40,13 +40,6 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
   </View>
 );
 
-/**
- * One extracted field.
- *
- * `flagged` marks a value the model was not confident about. It is shown with
- * a "Check" badge rather than hidden, because a wrong value the user can see
- * is safer than a missing one they cannot.
- */
 const Field: React.FC<{
   label: string;
   value?: string | null;
@@ -112,7 +105,6 @@ const ProcessingView: React.FC<{
       toValue: Math.max(0, Math.min(100, percent)),
       duration: 400,
       easing: Easing.out(Easing.quad),
-      // A width cannot be driven natively, so this one runs on the JS thread.
       useNativeDriver: false,
     }).start();
   }, [percent, width]);
@@ -370,7 +362,6 @@ export const AiSessionScreen: React.FC<ClientStackScreenProps<'AiSession'>> = ({
   const sessionQuery = useQuery({
     queryKey: ['ai', 'session', sessionId],
     queryFn: () => aiApi.getSession(sessionId),
-    // Poll only while the backend is still working, then stop.
     refetchInterval: query => {
       const status = query.state.data?.status;
       return status === 'processing' ? POLL_INTERVAL_MS : false;

@@ -1,10 +1,3 @@
-/**
- * Case creation/update validation, and the shape of the error the client gets.
- *
- * "Case validation failed" in a PM2 log names nothing actionable, because the
- * response carried only a sentence. These pin down which field fails and prove
- * the API answers with a per-field map instead of a Mongoose message.
- */
 const express = require("express");
 const request = require("supertest");
 const mongoose = require("mongoose");
@@ -12,12 +5,6 @@ const mongoose = require("mongoose");
 const errorMiddleware = require("../../src/middleware/errorMiddleware");
 const Case = require("../../src/models/Case");
 
-/**
- * Validates a payload against the real Case schema without a database.
- *
- * `validateSync` runs exactly the validators a save would, so the errors here
- * are the errors production raises — but nothing is written anywhere.
- */
 function buildApp() {
   const app = express();
   app.use(express.json());
@@ -122,8 +109,8 @@ describe("Case creation validation", () => {
     expect(body).not.toMatch(/Cast to ObjectId failed/i);
     expect(body).not.toMatch(/validation failed/i);
     expect(body).not.toMatch(/\bCase\b.*validation/i);
-    expect(body).not.toContain("not-an-object-id"); // the rejected value
-    expect(body).not.toMatch(/at \w+ \(/); // no stack frames
+    expect(body).not.toContain("not-an-object-id");
+    expect(body).not.toMatch(/at \w+ \(/);
   });
 
   it("uses readable field labels rather than raw schema paths", async () => {

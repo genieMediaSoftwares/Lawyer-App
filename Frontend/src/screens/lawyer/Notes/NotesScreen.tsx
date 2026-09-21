@@ -32,38 +32,6 @@ import type {
 import type { LawyerStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
 
-/**
- * The advocate's private notebook.
- *
- * ── Why this composes a list instead of fetching one ──────────────────────
- *
- * Notes are a subdocument array on `Client`, not a collection, and the only
- * endpoints are `GET/POST/PUT/DELETE /clients/:id/notes`. There is no
- * "all my notes" route, so this screen asks each client the advocate has a
- * matter with and merges the answers. Every request is a real one; nothing is
- * cached locally and filtered to fake a search.
- *
- * That shape is also why a note always carries its owning client here — the
- * client id is half the address of the note, and an edit or a delete cannot
- * be issued without it.
- *
- * ── Privacy ───────────────────────────────────────────────────────────────
- *
- * `getNotes` filters the array to notes authored by the signed-in advocate
- * before returning, and `updateNote`/`deleteNote` check authorship again and
- * answer 404 otherwise. So one advocate cannot read or touch another's notes
- * on a shared client, and `getClientProfile` deletes the whole array before it
- * returns a profile. None of that is re-implemented here and none of it can be
- * bypassed from this side.
- *
- * ── What the schema does not have ─────────────────────────────────────────
- *
- * No tags and no category — the subdocument is `{title, text, case, lawyer,
- * date, updatedAt}`. A tag field is not offered, because there is nowhere to
- * put it. A note can be filed against a **case**, and the API verifies that
- * the case belongs to that client and to this advocate before accepting it.
- */
-
 interface DraftState {
   clientId: string;
   noteId?: string;
@@ -96,13 +64,6 @@ export const NotesScreen: React.FC<LawyerStackScreenProps<'Notes'>> = ({
     queryFn: lawyerApi.getClients,
   });
 
-  /**
-   * One row per client, deduplicated.
-   *
-   * The clients endpoint returns a row per *case*, so an advocate with two
-   * matters for the same person would otherwise be asked for their notes
-   * twice and shown each note twice.
-   */
   const clients = useMemo<LawyerClientRow[]>(() => {
     const groups = clientsQuery.data;
     if (!groups) {
@@ -119,7 +80,6 @@ export const NotesScreen: React.FC<LawyerStackScreenProps<'Notes'>> = ({
     });
   }, [clientsQuery.data]);
 
-  /** Every matter, kept whole so a note can be filed against one. */
   const cases = useMemo(() => {
     const groups = clientsQuery.data;
     if (!groups) {
@@ -162,8 +122,6 @@ export const NotesScreen: React.FC<LawyerStackScreenProps<'Notes'>> = ({
         new Date(b.updatedAt || b.date).getTime() -
         new Date(a.updatedAt || a.date).getTime(),
     );
-    // `noteQueries` is a new array identity every render, so the dependency is
-    // the data it carries rather than the wrapper.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clients, noteQueries.map(q => q.dataUpdatedAt).join(',')]);
 
@@ -404,7 +362,6 @@ export const NotesScreen: React.FC<LawyerStackScreenProps<'Notes'>> = ({
         {renderBody()}
       </ScrollView>
 
-      {/* ── Which client is this note about ────────────────────────────── */}
       <GenieModal
         visible={isPickingClient}
         onClose={() => setIsPickingClient(false)}
@@ -434,7 +391,6 @@ export const NotesScreen: React.FC<LawyerStackScreenProps<'Notes'>> = ({
         )}
       </GenieModal>
 
-      {/* ── Compose / edit ─────────────────────────────────────────────── */}
       <GenieModal
         visible={Boolean(draft)}
         onClose={() => {
@@ -575,7 +531,6 @@ export const NotesScreen: React.FC<LawyerStackScreenProps<'Notes'>> = ({
         </View>
       </GenieModal>
 
-      {/* ── Delete confirmation ────────────────────────────────────────── */}
       <GenieModal
         visible={Boolean(pendingDelete)}
         onClose={() => setPendingDelete(null)}

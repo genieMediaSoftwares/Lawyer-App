@@ -5,26 +5,12 @@ const Proposal = require("../../models/Proposal");
 const ApiResponse = require("../../config/ApiResponse");
 const notificationService = require("../../services/notification/notificationService");
 
-/// Ids on a case that may be ObjectIds or populated documents, as one list of
-/// comparable strings.
 const partyIds = (caseItem, keys) =>
   keys
     .map((key) => caseItem[key])
     .filter(Boolean)
     .map((value) => (value._id ? value._id : value).toString());
 
-/**
- * True if `user` may read `caseItem`.
- *
- * This mirrors, exactly, the visibility rule getCases already applies when it
- * builds its query - clients see their own cases; lawyers see open Submitted
- * cases plus the ones they are assigned to or selected for; admins see
- * everything. It is written out here because getCaseById fetched by id and
- * returned the case to whoever asked, so any authenticated user could read any
- * case - including its documents and the client's contact details - by
- * changing the id in the URL. Because the rule is the same one getCases uses,
- * no caller that was reaching a case it was entitled to loses access.
- */
 const canReadCase = (user, caseItem) => {
   if (user.role === "admin") return true;
 
@@ -44,13 +30,6 @@ const canReadCase = (user, caseItem) => {
   return false;
 };
 
-/**
- * True if `user` may add or change hearings on `caseItem`.
- *
- * Stricter than reading: an open Submitted case is readable by every lawyer
- * browsing leads, but only the advocate actually engaged on the matter may
- * list its hearings.
- */
 const canManageHearings = (user, caseItem) => {
   if (user.role === "admin") return true;
   if (user.role !== "lawyer") return false;
@@ -59,15 +38,6 @@ const canManageHearings = (user, caseItem) => {
   );
 };
 
-/**
- * Points `nextHearing` at the earliest still-scheduled hearing on the case, or
- * clears it when none remain.
- *
- * nextHearing predates the hearings array and is read by the client My Cases
- * screen, the lawyer Clients tab and /lawyers/schedule/today. Keeping it in
- * step here means those three readers - and any other consumer of the existing
- * API response - keep working without being touched.
- */
 const syncNextHearing = (caseItem) => {
   const upcoming = (caseItem.hearings || [])
     .filter((h) => h.status === "scheduled" && h.date)
@@ -76,8 +46,6 @@ const syncNextHearing = (caseItem) => {
   caseItem.nextHearing = upcoming.length ? upcoming[0].date : null;
 };
 
-/// Broadcasts a case change to both sides, matching what the existing
-/// mutations on this controller already emit.
 const emitCaseUpdated = (req, caseItem) => {
   const io = req.app.get("io");
   if (!io) return;
@@ -99,8 +67,6 @@ class CaseController {
         urgency, preferredCourt, documents, selectedLawyer, voiceUrl,
         voiceTranscript, city, district, state, country, latitude, longitude,
         placeId,
-        // Structured detail, AI-extracted then client-edited on the Post Case
-        // form. All optional.
         incidentDate, opposingParty, firNumber, policeStation, bailDetails,
         claimAmount,
       } = req.body;
@@ -144,10 +110,8 @@ class CaseController {
         locationCountry: country || "",
         locationLatitude: latitude ? Number(latitude) : 0.0,
         locationLongitude: longitude ? Number(longitude) : 0.0,
-        // Optional: cases filed by older clients carry no placeId.
         locationPlaceId: placeId || "",
 
-        // Reject an unparseable date rather than storing Invalid Date.
         incidentDate: incidentDate && !Number.isNaN(Date.parse(incidentDate))
           ? new Date(incidentDate)
           : null,
@@ -160,7 +124,6 @@ class CaseController {
           : 0,
       });
 
-      // Trigger notifications for new case posted
       if (hasSelectedLawyer) {
         await notificationService.createAndSendNotification({
           senderId: client,
@@ -184,7 +147,6 @@ class CaseController {
         }
       }
 
-      // Emit socket case_updated event to notify lawyers of new lead in real-time
       const io = req.app.get("io");
       if (io) {
         if (hasSelectedLawyer) {
@@ -206,10 +168,6 @@ class CaseController {
       if (req.user.role === "client") {
         query.client = req.user._id;
       } else if (req.user.role === "lawyer") {
-        // Lawyers see:
-        // 1. Submitted cases
-        // 2. Cases they are assigned to
-        // 3. Cases where they are the selectedLawyer (direct requests)
         query = {
           $or: [
             { status: "Submitted" },
@@ -227,7 +185,6 @@ class CaseController {
         .sort({ createdAt: -1 })
         .lean();
 
-      // Retrieve lawyer profile details dynamically
       for (let c of cases) {
         if (c.selectedLawyer) {
           const profile = await Lawyer.findOne({ user: c.selectedLawyer._id }).lean();
@@ -263,8 +220,6 @@ class CaseController {
         return ApiResponse.error(res, "Case not found.", 404);
       }
 
-      // 404 rather than 403, so the response cannot be used to confirm that a
-      // case with this id exists.
       if (!canReadCase(req.user, caseItem)) {
         return ApiResponse.error(res, "Case not found.", 404);
       }
@@ -302,7 +257,6 @@ class CaseController {
       const parsedFee = Number(feeProposal);
       const feeToUse = Number.isFinite(parsedFee) && parsedFee >= 0 ? parsedFee : 1500;
 
-      // 1. Create or update in Proposal collection
       let proposal = await Proposal.findOne({ caseId: id, lawyerId });
       if (proposal) {
         proposal.consultationFee = feeToUse;
@@ -325,7 +279,6 @@ class CaseController {
         });
       }
 
-      // 2. Add to Case proposals subdocument array for compatibility
       const existingProposalIndex = caseItem.proposals.findIndex(
         (p) => p.lawyer.toString() === lawyerId.toString()
       );
@@ -341,10 +294,8 @@ class CaseController {
         });
       }
 
-      // 3. Move status to Interested
       caseItem.status = "Interested";
 
-      // Set Proposals Received milestone to true
       const proposalsMilestone = caseItem.milestones.find((m) => m.title === "Proposals Received");
       if (proposalsMilestone) {
         proposalsMilestone.isCompleted = true;
@@ -352,7 +303,6 @@ class CaseController {
 
       await caseItem.save();
 
-      // 4. Create Notification for Client (Proposal Received)
       await notificationService.createAndSendNotification({
         senderId: lawyerId,
         receiverId: caseItem.client,
@@ -362,7 +312,6 @@ class CaseController {
         referenceId: caseItem._id.toString()
       });
 
-      // 5. Emit real-time case update
       const io = req.app.get("io");
       if (io) {
         io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
@@ -391,7 +340,6 @@ class CaseController {
       caseItem.assignedLawyer = lawyerId;
       caseItem.status = "In Progress";
 
-      // Mark In Progress milestone to true
       const inProgressMilestone = caseItem.milestones.find((m) => m.title === "In Progress");
       if (inProgressMilestone) {
         inProgressMilestone.isCompleted = true;
@@ -399,7 +347,6 @@ class CaseController {
 
       await caseItem.save();
 
-      // Ensure a chat conversation is created automatically
       const Chat = require("../../models/Chat");
       let chat = await Chat.findOne({
         participants: { $all: [caseItem.client, lawyerId] }
@@ -412,7 +359,6 @@ class CaseController {
         });
       }
 
-      // Create Notification for Lawyer (Proposal Accepted)
       await notificationService.createAndSendNotification({
         senderId: caseItem.client,
         receiverId: lawyerId,
@@ -422,7 +368,6 @@ class CaseController {
         referenceId: caseItem._id.toString()
       });
 
-      // Emit real-time case update
       const io = req.app.get("io");
       if (io) {
         io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
@@ -448,7 +393,6 @@ class CaseController {
       caseItem.status = "Rejected";
       await caseItem.save();
 
-      // Create Notification for Lawyer (Proposal Rejected)
       await notificationService.createAndSendNotification({
         senderId: caseItem.client,
         receiverId: lawyerId,
@@ -458,7 +402,6 @@ class CaseController {
         referenceId: caseItem._id.toString()
       });
 
-      // Emit real-time case update
       const io = req.app.get("io");
       if (io) {
         io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
@@ -488,14 +431,12 @@ class CaseController {
 
       milestone.isCompleted = isCompleted;
 
-      // If Closed milestone is completed, set case status to closed
       if (milestoneTitle === "Closed" && isCompleted) {
         caseItem.status = "Closed";
       }
 
       await caseItem.save();
 
-      // Trigger notification for case status/milestone update
       const notifyUser = req.user.role === "client" ? caseItem.assignedLawyer : caseItem.client;
       if (notifyUser) {
         await notificationService.createAndSendNotification({
@@ -508,7 +449,6 @@ class CaseController {
         });
       }
 
-      // Emit real-time case update
       const io = req.app.get("io");
       if (io) {
         io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
@@ -544,7 +484,6 @@ class CaseController {
       caseItem.status = "Accepted";
       caseItem.acceptedAt = new Date();
 
-      // Complete In Progress milestone
       const inProgressMilestone = caseItem.milestones.find((m) => m.title === "In Progress");
       if (inProgressMilestone) {
         inProgressMilestone.isCompleted = true;
@@ -552,7 +491,6 @@ class CaseController {
 
       await caseItem.save();
 
-      // Ensure a chat conversation is created automatically
       const Chat = require("../../models/Chat");
       let chat = await Chat.findOne({
         participants: { $all: [caseItem.client, lawyerId] }
@@ -565,7 +503,6 @@ class CaseController {
         });
       }
 
-      // Create notifications
       await notificationService.createAndSendNotification({
         senderId: caseItem.client,
         receiverId: lawyerId,
@@ -584,7 +521,6 @@ class CaseController {
         referenceId: caseItem._id.toString()
       });
 
-      // Emit real-time case update
       const io = req.app.get("io");
       if (io) {
         io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
@@ -614,7 +550,6 @@ class CaseController {
       caseItem.status = "Rejected";
       await caseItem.save();
 
-      // Notify client that lawyer rejected the request
       await notificationService.createAndSendNotification({
         senderId: lawyerId,
         receiverId: caseItem.client,
@@ -624,7 +559,6 @@ class CaseController {
         referenceId: caseItem._id.toString()
       });
 
-      // Emit real-time case update
       const io = req.app.get("io");
       if (io) {
         io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
@@ -655,7 +589,6 @@ class CaseController {
       caseItem.startedAt = new Date();
       await caseItem.save();
 
-      // Create notifications
       await notificationService.createAndSendNotification({
         senderId: caseItem.client,
         receiverId: lawyerId,
@@ -674,7 +607,6 @@ class CaseController {
         referenceId: caseItem._id.toString()
       });
 
-      // Emit real-time case update
       const io = req.app.get("io");
       if (io) {
         io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
@@ -705,7 +637,6 @@ class CaseController {
       caseItem.completedAt = new Date();
       await caseItem.save();
 
-      // Create notifications
       await notificationService.createAndSendNotification({
         senderId: caseItem.client,
         receiverId: lawyerId,
@@ -724,7 +655,6 @@ class CaseController {
         referenceId: caseItem._id.toString()
       });
 
-      // Emit real-time case update
       const io = req.app.get("io");
       if (io) {
         io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
@@ -870,7 +800,6 @@ class CaseController {
       caseItem.review = review;
       await caseItem.save();
 
-      // Emit real-time case update
       const io = req.app.get("io");
       if (io) {
         io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
@@ -884,13 +813,6 @@ class CaseController {
       next(error);
     }
   }
-
-  // ─── Hearings ──────────────────────────────────────────────────────────
-  // Court hearings on a case. These are NOT appointments: an Appointment is a
-  // lawyer-client consultation and keeps its own model, its own endpoints and
-  // its Google Calendar sync. Hearings deliberately do not touch Google
-  // Calendar - nothing synced them before, and writing them there now would
-  // risk duplicate events against the appointment sync.
 
   async addHearing(req, res, next) {
     try {
@@ -934,9 +856,6 @@ class CaseController {
       syncNextHearing(caseItem);
       await caseItem.save();
 
-      // Best-effort: the hearing is saved either way, and failing the request
-      // because an alert could not be raised would tell the advocate their
-      // hearing did not save, which is untrue.
       try {
         if (caseItem.client) {
           await notificationService.createAndSendNotification({
@@ -999,8 +918,6 @@ class CaseController {
         hearing.date = hearingDate;
       }
 
-      // Each field is applied only when the caller actually sent it, so a
-      // partial update cannot blank out the fields it left out.
       if (timeSlot !== undefined) hearing.timeSlot = timeSlot;
       if (court !== undefined) hearing.court = court;
       if (purpose !== undefined) hearing.purpose = purpose;
@@ -1054,13 +971,6 @@ class CaseController {
     }
   }
 
-  /**
-   * Every hearing across the advocate's own cases, flattened into one list.
-   *
-   * The lawyer Hearings screen needs "my upcoming hearings" across all matters;
-   * deriving that client-side would mean pulling every case, including the open
-   * Submitted leads that carry no hearings at all.
-   */
   async getMyHearings(req, res, next) {
     try {
       if (req.user.role !== "lawyer") {

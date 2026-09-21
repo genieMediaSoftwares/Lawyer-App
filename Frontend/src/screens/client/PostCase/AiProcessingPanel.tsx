@@ -7,27 +7,6 @@ import { CheckIcon } from '../../../components/icons/Icons';
 import { colors } from '../../../theme';
 import { USE_NATIVE_DRIVER } from '../../../utils/platform';
 
-/**
- * What the client watches while the assistant works.
- *
- * Every number here comes from the server. `percent` is the pipeline's own
- * stage-weighted figure and `message` its own line ("Reading document 2 of
- * 5"); nothing is derived from a timer, so the bar cannot claim progress that
- * has not happened. During the upload itself the fraction is the real transfer
- * progress from axios.
- *
- * The only animation is cosmetic: a pulsing mark and an eased tween between
- * two real percentages, so the bar slides rather than jumps.
- */
-
-/**
- * The checklist shown beneath the bar, and which server stages each row covers.
- *
- * The ids on the right are `PIPELINE_STAGES` from
- * `services/ai/aiSmartCasePipeline.js`. A row reads as done only once the
- * server has actually moved past it — nothing here ticks on a timer, and the
- * last row does not tick at all until the analysis really is finished.
- */
 const STAGE_ROWS: { label: string; stages: string[] }[] = [
   { label: 'Uploading documents', stages: ['uploading'] },
   { label: 'Reading documents', stages: ['queued', 'ocr', 'transcribing'] },
@@ -38,9 +17,6 @@ const STAGE_ROWS: { label: string; stages: string[] }[] = [
 
 const rowIndexForStage = (stage: string): number => {
   const index = STAGE_ROWS.findIndex(row => row.stages.includes(stage));
-  // An unknown stage means the server added one this build does not know
-  // about. Treating it as "reading" keeps the list sane, and the server's own
-  // message above it is still shown verbatim.
   return index === -1 ? 1 : index;
 };
 
@@ -49,9 +25,7 @@ interface AiProcessingPanelProps {
   message: string;
   current?: number | null;
   total?: number | null;
-  /** The server's own stage id, or "uploading" while the transfer runs. */
   stage?: string;
-  /** Upload phase rather than analysis — changes only the closing line. */
   uploading?: boolean;
 }
 
@@ -92,7 +66,6 @@ export const AiProcessingPanel: React.FC<AiProcessingPanelProps> = ({
       toValue: Math.max(0, Math.min(100, percent)),
       duration: 400,
       easing: Easing.out(Easing.quad),
-      // A width cannot be driven natively, so this one runs on the JS thread.
       useNativeDriver: false,
     }).start();
   }, [percent, width]);
@@ -137,8 +110,6 @@ export const AiProcessingPanel: React.FC<AiProcessingPanelProps> = ({
         {`${Math.round(percent)}%`}
       </GenieText>
 
-      {/* The checklist. Each row's state comes from the server's stage id, so
-          a tick means that part of the pipeline genuinely finished. */}
       <View className="mt-6 w-full">
         {STAGE_ROWS.map((row, index) => {
           const activeIndex = rowIndexForStage(uploading ? 'uploading' : stage);

@@ -12,5 +12,9 @@
 
 # Environment files (never commit secrets)
 .env
-backend/.env
-frontend/.env
+.env.*
+!.env.example
+
+# Dependencies and build output
+node_modules/
+*.bak

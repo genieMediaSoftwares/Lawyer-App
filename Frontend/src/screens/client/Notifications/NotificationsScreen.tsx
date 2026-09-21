@@ -61,7 +61,6 @@ export const NotificationsScreen: React.FC<
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Real-time infinite query with 3s active polling
   const query = useInfiniteQuery({
     queryKey: ['notifications', 'infinite'],
     queryFn: ({ pageParam }) => notificationsApi.list(pageParam, PAGE_SIZE),
@@ -284,7 +283,6 @@ export const NotificationsScreen: React.FC<
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background">
-      {/* Responsive Header */}
       <View className="max-w-3xl mx-auto w-full flex-row items-center justify-between px-4 py-3">
         <Pressable
           onPress={() => navigation.goBack()}
@@ -326,7 +324,6 @@ export const NotificationsScreen: React.FC<
         </View>
       </View>
 
-      {/* Category Filter Tabs */}
       <View className="max-w-3xl mx-auto w-full">
         <NotificationCategoryTabs
           selectedTab={tab}
@@ -335,7 +332,6 @@ export const NotificationsScreen: React.FC<
         />
       </View>
 
-      {/* Select Mode Top Actions Bar */}
       {isSelectMode ? (
         <View className="max-w-3xl mx-auto w-full flex-row items-center justify-between px-4 py-2 bg-surface-alt/60 border-b border-border/30 mb-2">
           <Pressable
@@ -367,7 +363,6 @@ export const NotificationsScreen: React.FC<
 
       {renderBody()}
 
-      {/* Multi-Select Bottom Floating Action Bar */}
       {isSelectMode && selectedIds.length > 0 ? (
         <View className="absolute bottom-4 left-4 right-4 max-w-3xl mx-auto flex-row gap-3 rounded-2xl border border-gold/40 bg-surface p-3 shadow-lg">
           <Pressable

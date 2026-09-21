@@ -17,22 +17,6 @@ import { useAuthStore } from '../../../store/authStore';
 import { toAppError } from '../../../utils/errors';
 import type { LawyerStackScreenProps } from '../../../types/navigation';
 
-/**
- * The lawyer's own professional record.
- *
- * Only the fields `PUT /lawyers/profile` destructures are editable — anything
- * else sent would be silently dropped by the controller, so offering it would
- * be a form that appears to save and does not.
- *
- * Banking details (`upiId`, `bankDetails`) are accepted by that endpoint and
- * are deliberately NOT here. They are encrypted at rest by the model and have
- * no place on a general profile form; putting them behind their own,
- * explicitly-labelled screen is a separate piece of work.
- *
- * Read-only below: rating, totalReviews, casesHandled, winPercentage,
- * verificationStatus and subscriptionPlan. The update route does not accept
- * them — a lawyer cannot set their own rating — so they are shown, not edited.
- */
 export const ProfessionalDetailsScreen: React.FC<
   LawyerStackScreenProps<'ProfessionalDetails'>
 > = ({ navigation }) => {
@@ -62,8 +46,6 @@ export const ProfessionalDetailsScreen: React.FC<
   useEffect(() => {
     if (profile) {
       setSpecialization(profile.specialization ?? '');
-      // Numbers become strings for the text inputs and are parsed back on
-      // save; the backend expects numbers for these two.
       setExperience(profile.experience ? String(profile.experience) : '');
       setEducation(profile.education ?? '');
       setBarCouncilNumber(profile.barCouncilNumber ?? '');

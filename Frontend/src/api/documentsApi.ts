@@ -30,7 +30,6 @@ export interface DocxPreviewResult {
 }
 
 export const documentsApi = {
-  /** GET /documents → list client documents */
   async getDocuments(params?: { search?: string; type?: string; sort?: string }): Promise<AppDocument[]> {
     const response = await apiClient.get<ApiSuccess<AppDocument[]>>('/documents', {
       params,
@@ -38,7 +37,6 @@ export const documentsApi = {
     return unwrap(response);
   },
 
-  /** GET /documents/:id → document by id */
   async getDocumentById(id: string): Promise<AppDocument> {
     const response = await apiClient.get<ApiSuccess<AppDocument>>(
       `/documents/${encodeURIComponent(id)}`,
@@ -46,14 +44,12 @@ export const documentsApi = {
     return unwrap(response);
   },
 
-  /** DELETE /documents/:id → delete document */
   async deleteDocument(id: string): Promise<void> {
     await apiClient.delete<ApiSuccess<null>>(
       `/documents/${encodeURIComponent(id)}`,
     );
   },
 
-  /** PATCH /documents/:id → rename document */
   async renameDocument(id: string, name: string): Promise<AppDocument> {
     const response = await apiClient.patch<ApiSuccess<AppDocument>>(
       `/documents/${encodeURIComponent(id)}`,
@@ -62,7 +58,6 @@ export const documentsApi = {
     return unwrap(response);
   },
 
-  /** POST /documents/upload → upload single file */
   async uploadDocument(formData: FormData): Promise<AppDocument> {
     const response = await apiClient.post<ApiSuccess<AppDocument>>(
       '/documents/upload',
@@ -76,7 +71,6 @@ export const documentsApi = {
     return unwrap(response);
   },
 
-  /** POST /documents/:id/replace → replace document file */
   async replaceDocument(id: string, formData: FormData): Promise<AppDocument> {
     const response = await apiClient.post<ApiSuccess<AppDocument>>(
       `/documents/${encodeURIComponent(id)}/replace`,
@@ -90,7 +84,6 @@ export const documentsApi = {
     return unwrap(response);
   },
 
-  /** GET /documents/:id/preview → DOCX preview */
   async getPreview(id: string): Promise<DocxPreviewResult> {
     const response = await apiClient.get<ApiSuccess<DocxPreviewResult>>(
       `/documents/${encodeURIComponent(id)}/preview`,
@@ -98,17 +91,14 @@ export const documentsApi = {
     return unwrap(response);
   },
 
-  /** Direct stream URL for inline viewing */
   getViewUrl(id: string): string {
     return `${env.apiBaseUrl}/documents/${encodeURIComponent(id)}/view`;
   },
 
-  /** Direct stream URL for attachment download */
   getDownloadUrl(id: string): string {
     return `${env.apiBaseUrl}/documents/${encodeURIComponent(id)}/download`;
   },
 
-  /** Fetch view file via authenticated apiClient as Blob */
   async fetchViewBlob(id: string): Promise<Blob> {
     const response = await apiClient.get<Blob>(
       `/documents/${encodeURIComponent(id)}/view`,
@@ -117,7 +107,6 @@ export const documentsApi = {
     return response.data;
   },
 
-  /** Fetch download file via authenticated apiClient as Blob */
   async fetchDownloadBlob(id: string): Promise<{ blob: Blob; filename?: string }> {
     const response = await apiClient.get<Blob>(
       `/documents/${encodeURIComponent(id)}/download`,

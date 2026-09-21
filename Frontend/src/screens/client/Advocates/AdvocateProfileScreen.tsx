@@ -116,16 +116,12 @@ export const AdvocateProfileScreen: React.FC<
         avatar: user?.profileImage,
       });
     } catch {
-      // Fallback to chat list
       navigation.navigate('Messages');
     } finally {
       setIsStartingChat(false);
     }
   };
 
-  // The Lawyer model defaults rating and experience to 0 for a profile nobody
-  // has filled in, so a printed "0.0" or "0+ Years" would present an absence as
-  // a bad record. Say what is actually known instead.
   const ratingStr = formatRating(profile?.rating);
   const reviewCount = profile?.totalReviews || 0;
   const expStr = formatExperience(profile?.experience) || 'Experience not listed';
@@ -263,8 +259,6 @@ export const AdvocateProfileScreen: React.FC<
 
               <View className="h-4 w-px bg-border" />
 
-              {/* Was a 💼 emoji drawn as text; now the same briefcase icon the
-                  tab bar and drawer use. */}
               <View className="flex-row items-center gap-1">
                 <BriefcaseIcon size={14} color={colors.gold} />
                 <GenieText variant="body-sm" tone="secondary">

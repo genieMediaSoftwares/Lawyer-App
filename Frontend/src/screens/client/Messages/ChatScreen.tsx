@@ -44,10 +44,6 @@ export const ChatScreen: React.FC<ClientStackScreenProps<'Chat'>> = ({
     },
   });
 
-  // Mark read once per conversation. The mutation object is a new reference on
-  // every render, so it cannot go in the dependency array without firing the
-  // request on each one — this holds it in a ref and keys the effect on the
-  // chat id, which is what the effect actually depends on.
   const markRead = useRef(markReadMutation.mutate);
   markRead.current = markReadMutation.mutate;
 
@@ -119,8 +115,6 @@ export const ChatScreen: React.FC<ClientStackScreenProps<'Chat'>> = ({
             </View>
           ) : null}
 
-          {/* Muted grey is unreadable on gold, so the timestamp in an outgoing
-              bubble takes the on-gold colour at reduced opacity instead. */}
           <GenieText
             variant="caption"
             tone={isMe ? 'on-gold' : 'muted'}

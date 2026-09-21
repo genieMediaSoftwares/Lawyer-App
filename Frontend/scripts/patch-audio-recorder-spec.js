@@ -1,22 +1,3 @@
-/**
- * react-native-audio-recorder-player@5.0.0-rc.1 ships a TurboModule spec whose
- * `AudioSet.AVFormatIDKeyIOS` is typed `number | string`. React Native's codegen
- * refuses heterogeneous unions, so `generateCodegenArtifactsFromSchema` dies with:
- *
- *   HeterogeneousUnionError: Non-homogenous union member types
- *     at parseValidUnionType (@react-native/codegen/lib/generators/Utils.js:65)
- *
- * The field is iOS-only and we pass the string 'aac' (see src/services/voiceRecorder.ts),
- * so narrowing it to `string` costs us nothing and unblocks the Android build.
- *
- * Runs from `postinstall` because the fix lives in node_modules and would otherwise
- * be lost on every `npm install`. patch-package is the usual tool for this, but it
- * cannot diff this package on Windows without long-path support enabled — git fails
- * with "Filename too long" on the AGP dex transform directories.
- *
- * Idempotent: a no-op once the union is already narrowed, and silent if the package
- * is absent.
- */
 const fs = require('fs');
 const path = require('path');
 

@@ -12,7 +12,6 @@ describe('toAppError — oversized uploads', () => {
   });
 
   it('explains a proxy 413 instead of "Something went wrong"', () => {
-    // nginx's own HTML page: no backend envelope, only the status to go on.
     const error = new AxiosError('Request failed', 'ERR_BAD_REQUEST', config, null, {
       status: 413,
       statusText: 'Request Entity Too Large',

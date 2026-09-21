@@ -4,17 +4,10 @@ const Appointment = require("../models/Appointment");
 const User = require("../models/User");
 
 class GoogleCalendarService {
-  /**
-   * Helper to check if credentials exist and we can connect to real Google Calendar.
-   */
   isRealMode() {
     return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   }
 
-  /**
-   * Configure Google OAuth client for a specific lawyer.
-   * If token is expired, it refreshes it and saves the updated credentials.
-   */
   async getOAuthClient(lawyer) {
     if (!this.isRealMode()) {
       return null;
@@ -32,7 +25,6 @@ class GoogleCalendarService {
       expiry_date: lawyer.googleTokenExpiry ? new Date(lawyer.googleTokenExpiry).getTime() : null,
     });
 
-    // Check if token is expired or close to expiry (within 5 minutes)
     const isExpired = lawyer.googleTokenExpiry && new Date(lawyer.googleTokenExpiry).getTime() < Date.now() + 5 * 60 * 1000;
     if (isExpired && lawyer.googleRefreshToken) {
       try {
@@ -52,12 +44,9 @@ class GoogleCalendarService {
     return oauth2Client;
   }
 
-  /**
-   * Parse appointment date and timeSlot (e.g. "11:00 AM" or "11:00 AM - 11:30 AM") into start and end Dates.
-   */
   parseDateTime(dateObj, timeSlot) {
     const startDate = new Date(dateObj);
-    const timePart = timeSlot.split("-")[0].trim(); // Get start time: e.g. "11:00 AM"
+    const timePart = timeSlot.split("-")[0].trim();
     const match = timePart.match(/(\d+):(\d+)\s*(AM|PM)/i);
     
     if (match) {
@@ -68,17 +57,13 @@ class GoogleCalendarService {
       if (ampm === "AM" && hours === 12) hours = 0;
       startDate.setHours(hours, minutes, 0, 0);
     } else {
-      // Fallback: set to default 9 AM if parsing fails
       startDate.setHours(9, 0, 0, 0);
     }
     
-    const endDate = new Date(startDate.getTime() + 30 * 60000); // 30 mins duration
+    const endDate = new Date(startDate.getTime() + 30 * 60000);
     return { startDate, endDate };
   }
 
-  /**
-   * Synchronize (create or update) an appointment event in Google Calendar.
-   */
   async createOrUpdateEvent(appointmentId) {
     try {
       const appointment = await Appointment.findById(appointmentId)
@@ -89,7 +74,7 @@ class GoogleCalendarService {
 
       const lawyer = await Lawyer.findOne({ user: appointment.lawyer });
       if (!lawyer || !lawyer.googleConnected) {
-        return; // Lawyer has not integrated Google Calendar
+        return;
       }
 
       const clientName = appointment.client ? appointment.client.fullName : "Unknown Client";
@@ -97,7 +82,6 @@ class GoogleCalendarService {
       const isChatMode = appointment.mode === "Chat";
       const meetingNotes = appointment.notes || `Genie Law Consultation\nClient: ${clientName}\nMode: ${appointment.mode}\nDate: ${appointment.timeSlot}`;
 
-      // 1. Simulation Mode
       if (!this.isRealMode() || lawyer.googleRefreshToken === "mock_refresh_token") {
         console.log(`[SIMULATED GOOGLE CALENDAR] Syncing event for Appointment: ${appointmentId}`);
         console.log(`- Summary: Genie Law Consultation: ${clientName}`);
@@ -122,7 +106,6 @@ class GoogleCalendarService {
         return;
       }
 
-      // 2. Real Mode API Calls
       const authClient = await this.getOAuthClient(lawyer);
       if (!authClient) return;
 
@@ -148,7 +131,6 @@ class GoogleCalendarService {
         },
       };
 
-      // Auto generate Google Meet link if Chat mode and not already created
       if (isChatMode && !appointment.meetingLink) {
         eventPayload.conferenceData = {
           createRequest: {
@@ -162,7 +144,6 @@ class GoogleCalendarService {
 
       let response;
       if (appointment.googleCalendarEventId) {
-        // Update existing event
         try {
           response = await calendar.events.patch({
             calendarId: "primary",
@@ -172,9 +153,8 @@ class GoogleCalendarService {
           });
           console.log(`[REAL GOOGLE CALENDAR] Updated Event: ${response.data.id}`);
         } catch (patchErr) {
-          // If event was deleted from calendar manually, recreate it
           if (patchErr.code === 410 || patchErr.code === 404) {
-            appointment.googleCalendarEventId = ""; // Clear and let code below create
+            appointment.googleCalendarEventId = "";
           } else {
             throw patchErr;
           }
@@ -182,7 +162,6 @@ class GoogleCalendarService {
       }
 
       if (!appointment.googleCalendarEventId) {
-        // Create new event
         response = await calendar.events.insert({
           calendarId: "primary",
           requestBody: eventPayload,
@@ -197,7 +176,6 @@ class GoogleCalendarService {
           notes: meetingNotes
         };
         
-        // Extract meet link
         if (response.data.hangoutLink) {
           updates.meetingLink = response.data.hangoutLink;
         } else if (isChatMode) {
@@ -211,9 +189,6 @@ class GoogleCalendarService {
     }
   }
 
-  /**
-   * Delete or cancel an event in Google Calendar.
-   */
   async deleteEvent(appointmentId) {
     try {
       const appointment = await Appointment.findById(appointmentId);
@@ -222,7 +197,6 @@ class GoogleCalendarService {
       const lawyer = await Lawyer.findOne({ user: appointment.lawyer });
       if (!lawyer || !lawyer.googleConnected) return;
 
-      // 1. Simulation Mode
       if (!this.isRealMode() || lawyer.googleRefreshToken === "mock_refresh_token") {
         console.log(`[SIMULATED GOOGLE CALENDAR] Deleting event: ${appointment.googleCalendarEventId}`);
         await Appointment.findByIdAndUpdate(appointmentId, {
@@ -233,7 +207,6 @@ class GoogleCalendarService {
         return;
       }
 
-      // 2. Real Mode API Calls
       const authClient = await this.getOAuthClient(lawyer);
       if (!authClient) return;
 
@@ -247,7 +220,7 @@ class GoogleCalendarService {
         console.log(`[REAL GOOGLE CALENDAR] Deleted Event: ${appointment.googleCalendarEventId}`);
       } catch (delErr) {
         if (delErr.code !== 404 && delErr.code !== 410) {
-          throw delErr; // Ignore already deleted events
+          throw delErr;
         }
       }
 
@@ -260,15 +233,11 @@ class GoogleCalendarService {
     }
   }
 
-  /**
-   * Sync all future active/confirmed appointments to Google Calendar when connected for the first time.
-   */
   async syncExistingAppointments(lawyerUserId) {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Fetch active, confirmed future appointments
       const appointments = await Appointment.find({
         lawyer: lawyerUserId,
         status: { $in: ["confirmed", "pending"] },

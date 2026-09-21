@@ -85,7 +85,6 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
   return (
     <View className="mb-3 w-full max-w-3xl mx-auto">
       <View className="flex-row items-center gap-2">
-        {/* Multi-Select Checkbox Circle */}
         {isSelectMode ? (
           <Pressable
             onPress={onToggleSelect}
@@ -105,7 +104,6 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
           </Pressable>
         ) : null}
 
-        {/* Main Notification Card Container */}
         <Pressable
           onPress={() => {
             if (isSelectMode) {
@@ -128,7 +126,6 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
           }`}
         >
           <View className="flex-row items-start gap-3">
-            {/* Left Icon or Sender Avatar */}
             {hasSenderAvatar ? (
               <View className="relative">
                 <GenieAvatar
@@ -146,7 +143,6 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
               </View>
             )}
 
-            {/* Title & Message */}
             <View className="flex-1 pr-1">
               <GenieText
                 className="font-bold text-base text-text-primary"
@@ -167,7 +163,6 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
               </GenieText>
             </View>
 
-            {/* Right Side: Unread Dot + Push Away Dismiss Button + Chevron */}
             <View className="flex-row items-center gap-2 pt-0.5">
               {!item.isRead ? (
                 <View className="h-2.5 w-2.5 rounded-full bg-gold" />
@@ -190,7 +185,6 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
         </Pressable>
       </View>
 
-      {/* Toggle Action Bar for Individual Card (Mark Read / Delete) */}
       {showActions && !isSelectMode ? (
         <View className="mt-2 flex-row gap-2">
           {!item.isRead ? (

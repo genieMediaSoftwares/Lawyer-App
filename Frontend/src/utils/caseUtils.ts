@@ -14,9 +14,6 @@ export const PROGRESS_STEPS: ProgressStep[] = [
   { index: 5, title: 'Resolved', label: 'Resolved' },
 ];
 
-/**
- * Maps backend case status and case fields to the 5-step progress stepper.
- */
 export const getCaseProgressStep = (
   status: CaseStatus,
   caseItem?: LegalCase,
@@ -51,9 +48,6 @@ export const getCaseProgressStep = (
   return { currentStep: 1, isRejected: false, activeLabel: 'Posted / Awaiting Lawyer' };
 };
 
-/**
- * Color theme for case status badges.
- */
 export const getStatusBadgeTheme = (
   status: CaseStatus,
 ): { bg: string; text: string; border: string } => {
@@ -75,9 +69,6 @@ export const getStatusBadgeTheme = (
   }
 };
 
-/**
- * Extracts assigned or selected lawyer information from a LegalCase object.
- */
 export const getAssignedLawyerData = (item: LegalCase) => {
   const userObj =
     typeof item.assignedLawyer === 'object' && item.assignedLawyer

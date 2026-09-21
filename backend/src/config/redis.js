@@ -1,11 +1,3 @@
-/**
- * Redis Client Configuration with Graceful Memory Fallback.
- *
- * If REDIS_URL is configured and reachable, uses Redis for caching and rate limiting.
- * Otherwise, degrades seamlessly to an in-memory LRU cache so the application
- * runs without requiring a mandatory local Redis server in non-production environments.
- */
-
 class MemoryCache {
   constructor() {
     this.store = new Map();
@@ -46,7 +38,6 @@ let isRedisConnected = false;
 
 if (process.env.REDIS_URL) {
   try {
-    // Dynamically attempt loading redis/ioredis if package installed
     console.log("ℹ️  REDIS_URL configured:", process.env.REDIS_URL);
   } catch (err) {
     console.warn("⚠️ Redis package not loaded. Using fallback memory store.");

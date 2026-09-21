@@ -38,7 +38,6 @@ const VERIFICATION: Record<
   rejected: { label: 'Verification rejected', surface: 'bg-error-surface', tone: 'error' },
 };
 
-/** Hidden when the backend has no figure — see the Lawyer model's comments. */
 const Stat: React.FC<{ label: string; value: string | null }> = ({
   label,
   value,
@@ -154,9 +153,6 @@ export const LawyerProfileScreen: React.FC<
         </View>
       </View>
 
-      {/* No profile-completion meter: the Lawyer model has no such field, and
-          a percentage computed here would be this screen's opinion rather
-          than the backend's. */}
       {hasRecord ? (
         <GenieCard tone="surface" className="flex-row">
           <Stat

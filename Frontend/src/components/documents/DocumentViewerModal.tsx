@@ -85,7 +85,6 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
       return;
     }
 
-    // For images, PDFs, text, and other files, fetch authenticated file blob
     documentsApi
       .fetchViewBlob(document._id)
       .then(async blob => {
@@ -343,7 +342,6 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
     if (badge.category === 'pdf' && blobUrl && Platform.OS === 'web') {
       return (
         <View className="flex-1 bg-white">
-          {/* Web iframe PDF viewer using blobUrl */}
           <iframe
             src={blobUrl}
             title={displayName}
@@ -353,7 +351,6 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
       );
     }
 
-    // Default container for PDF or files retrieved
     return (
       <View className="flex-1 bg-white p-6">
         <ScrollView contentContainerClassName="pb-10" showsVerticalScrollIndicator={false}>
@@ -424,7 +421,6 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
             {renderContent()}
           </View>
 
-          {/* Bottom Card & Download Button */}
           <View className="mt-3 gap-3">
             <View className="flex-row items-center rounded-card border border-border bg-[#151515] p-3">
               <View

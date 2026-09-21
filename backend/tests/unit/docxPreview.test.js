@@ -1,15 +1,6 @@
-/**
- * DOCX preview conversion.
- *
- * Builds real .docx archives — a ZIP with a deflated `word/document.xml` — so
- * the converter is exercised through the same path a client upload takes,
- * rather than against a hand-written XML string it would never see in
- * production.
- */
 const zlib = require("zlib");
 const { docxToBlocks } = require("../../src/services/document/docxPreview");
 
-/** Minimal but genuine ZIP containing one deflated entry. */
 function makeDocx(documentXml, entryName = "word/document.xml") {
   const name = Buffer.from(entryName, "utf8");
   const raw = Buffer.from(documentXml, "utf8");
@@ -20,7 +11,7 @@ function makeDocx(documentXml, entryName = "word/document.xml") {
   local.writeUInt32LE(0x04034b50, 0);
   local.writeUInt16LE(20, 4);
   local.writeUInt16LE(0, 6);
-  local.writeUInt16LE(8, 8); // deflate
+  local.writeUInt16LE(8, 8);
   local.writeUInt32LE(crc, 14);
   local.writeUInt32LE(deflated.length, 18);
   local.writeUInt32LE(raw.length, 22);
@@ -39,7 +30,7 @@ function makeDocx(documentXml, entryName = "word/document.xml") {
   central.writeUInt32LE(deflated.length, 20);
   central.writeUInt32LE(raw.length, 24);
   central.writeUInt16LE(name.length, 28);
-  central.writeUInt32LE(0, 42); // local header offset
+  central.writeUInt32LE(0, 42);
 
   const centralBlock = Buffer.concat([central, name]);
 
@@ -103,8 +94,6 @@ describe("docxToBlocks", () => {
   });
 
   it("treats w:val=\"0\" as formatting switched OFF", () => {
-    // Word writes an explicit off-switch when a style is overridden. Reading
-    // the tag's presence alone would render the whole paragraph bold.
     const body =
       `<w:p><w:r><w:rPr><w:b w:val="0"/></w:rPr><w:t>Not bold</w:t></w:r></w:p>`;
 
@@ -141,8 +130,6 @@ describe("docxToBlocks", () => {
   });
 
   it("keeps a table's paragraphs from leaking out as body text", () => {
-    // splitBlocks must consume the whole <w:tbl>, nesting included, or every
-    // cell reappears as a top-level paragraph after the table.
     const cell = (t) => `<w:tc>${para(t)}</w:tc>`;
     const body =
       `<w:tbl><w:tr>${cell("In table")}</w:tr></w:tbl>` + para("After table");

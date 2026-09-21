@@ -1,14 +1,3 @@
-/**
- * Fault-tolerance tests for the AI Smart Case pipeline.
- *
- * The pipeline runs detached from the request that started it, so nothing about
- * its failure modes is visible to a client, to a request log or to a response
- * status code. These tests pin the behaviours the client's processing screen
- * depends on: that the run always reaches a terminal state, that a hung
- * upstream call cannot leave a session in "processing" forever, and that a late
- * failure cannot overwrite a result the client already has.
- */
-
 jest.mock("../../src/models/AiSmartCaseSession");
 jest.mock("../../src/services/ai/ocrSanitizationService");
 jest.mock("../../src/services/ai/aiSmartIntakeService");
@@ -19,12 +8,10 @@ const ocrSanitizationService = require("../../src/services/ai/ocrSanitizationSer
 const aiSmartIntakeService = require("../../src/services/ai/aiSmartIntakeService");
 const { AiSmartCasePipeline } = require("../../src/services/ai/aiSmartCasePipeline");
 
-/** Minimal stand-in for the session document the controller hands the pipeline. */
 function makeSession() {
   return { _id: "sess-1", client: "client-1" };
 }
 
-/** A multer file, as the upload middleware produces it. */
 function makeFile(name = "fir.pdf") {
   return {
     path: `/tmp/${name}`,
@@ -34,7 +21,6 @@ function makeFile(name = "fir.pdf") {
   };
 }
 
-/** Captures every socket emission so assertions can read what the client saw. */
 function makeIo() {
   const emitted = [];
   return {
@@ -65,7 +51,6 @@ beforeEach(() => {
   jest.clearAllMocks();
 
   AiSmartCaseSession.updateOne.mockResolvedValue({ modifiedCount: 1 });
-  // Default: the session is still "processing", so terminal writes are accepted.
   AiSmartCaseSession.findOneAndUpdate.mockImplementation(async (_filter, update) => ({
     _id: "sess-1",
     uploadedDocuments: [],
@@ -113,12 +98,10 @@ describe("AI Smart Case pipeline", () => {
       .filter((e) => e.event === "analysis_progress")
       .map((e) => e.payload.stage);
 
-    // No voice note was supplied, so "transcribing" must never be claimed.
     expect(stages).not.toContain("transcribing");
     expect(stages).toContain("ocr");
     expect(stages).toContain("extracting");
 
-    // Percent is monotonic: the bar can never run backwards.
     const percents = io.emitted
       .filter((e) => e.event === "analysis_progress")
       .map((e) => e.payload.percent);
@@ -126,9 +109,6 @@ describe("AI Smart Case pipeline", () => {
   });
 
   it("fails the session rather than hanging when extraction never returns", async () => {
-    // A Gemini call that never resolves. Before the per-step timeout, this run
-    // sat on "Extracting case details" until the process was restarted, and the
-    // client polled a "processing" session forever.
     aiSmartIntakeService.extractCaseData.mockImplementation(() => new Promise(() => {}));
 
     const io = makeIo();
@@ -142,8 +122,6 @@ describe("AI Smart Case pipeline", () => {
       typedDescription: "",
     });
 
-    // Let the OCR stage's real promises settle, then jump past the extraction
-    // step ceiling.
     await jest.advanceTimersByTimeAsync(1);
     await jest.advanceTimersByTimeAsync(200 * 1000);
     await run;
@@ -171,7 +149,6 @@ describe("AI Smart Case pipeline", () => {
 
     const completions = io.emitted.filter((e) => e.event === "analysis_complete");
     expect(completions).toHaveLength(1);
-    // The unreadable document is named, not silently dropped.
     expect(completions[0].payload.extractionWarnings.join(" ")).toMatch(/broken\.pdf/);
   });
 
@@ -185,10 +162,6 @@ describe("AI Smart Case pipeline", () => {
   };
 
   it("tries vision on a document whose text extraction failed", async () => {
-    // A scan whose text layer will not read is exactly what vision is for, so
-    // the file itself is handed to extraction rather than the run being
-    // abandoned. It must go as bytes, not as a filename: inventing a case from
-    // "fir.pdf" is the failure this guards.
     ocrSanitizationService.extractText.mockResolvedValue(failedOcr);
 
     const io = makeIo();
@@ -229,10 +202,6 @@ describe("AI Smart Case pipeline", () => {
   });
 
   it("analyses the voice note when every document failed to read", async () => {
-    // The regression this exists for: a client recorded a voice note, their
-    // scan would not read, and the run was abandoned with "we could not read
-    // any text from the document(s) you uploaded" — discarding the spoken
-    // account that had already been transcribed one stage earlier.
     ocrSanitizationService.extractText.mockResolvedValue(failedOcr);
 
     const io = makeIo();
@@ -308,8 +277,6 @@ describe("AI Smart Case pipeline", () => {
   });
 
   it("does not overwrite a session that already reached a terminal state", async () => {
-    // Simulates the watchdog having already failed this run: the guarded write
-    // matches nothing, so the late completion must not be broadcast.
     AiSmartCaseSession.findOneAndUpdate.mockResolvedValue(null);
 
     const io = makeIo();

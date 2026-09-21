@@ -19,10 +19,6 @@ export interface ProfileImageModalProps {
   name?: string;
 }
 
-/**
- * A WhatsApp-style full-screen profile photo viewer.
- * Displays a high-resolution dark preview overlay with smooth dismiss.
- */
 export const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
   visible,
   onClose,
@@ -42,7 +38,6 @@ export const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
       statusBarTranslucent
     >
       <View className="flex-1 justify-between bg-black/95">
-        {/* Top Header */}
         <SafeAreaView edges={['top']} className="z-10 flex-row items-center justify-between px-4 py-3">
           <GenieText variant="heading-md" tone="primary" className="flex-1 font-semibold" numberOfLines={1}>
             {name || 'Profile Photo'}
@@ -54,7 +49,6 @@ export const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
           />
         </SafeAreaView>
 
-        {/* Backdrop Tap to close & Center Content */}
         <Pressable
           onPress={onClose}
           className="flex-1 items-center justify-center p-4"
@@ -80,7 +74,6 @@ export const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
           </Pressable>
         </Pressable>
 
-        {/* Bottom space */}
         <SafeAreaView edges={['bottom']} className="py-2" />
       </View>
     </Modal>

@@ -3,14 +3,6 @@ import { View } from 'react-native';
 import { GenieText } from './GenieText';
 import { GenieButton } from './GenieButton';
 
-/**
- * Nothing to show, and that is not an error.
- *
- * Distinct from GenieErrorState on purpose: an empty list is a normal outcome
- * and should not be dressed as a failure. It takes an icon rather than drawing
- * one, so each screen can show the icon for the thing that is missing.
- */
-
 export interface GenieEmptyStateProps {
   title: string;
   description?: string;

@@ -166,8 +166,6 @@ export const SettingsScreen: React.FC<ClientStackScreenProps<'Settings'>> = ({
         visible={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         title="Delete Account"
-        // The dialog must be answered deliberately: a stray tap outside it
-        // should not be the thing that dismisses a permanent deletion.
         dismissOnBackdropPress={false}
         footer={
           <View className="flex-row gap-3">

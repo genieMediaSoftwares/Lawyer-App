@@ -1,44 +1,15 @@
-/**
- * Exercises the case-read authorization rule and the hearings endpoints.
- *
- * The controller is real; only the Mongoose models are replaced with in-memory
- * fakes, following the pattern auth.test.js established. The configured
- * MONGO_URI points at a shared cluster, so no test in this repository may write
- * to a database.
- *
- * Two things are being pinned down here:
- *
- *   1. `GET /cases/:id` used to return any case to any authenticated user.
- *      These tests assert the new rule admits exactly the same people that
- *      `getCases` already shows the case to, and nobody else.
- *
- *   2. `nextHearing` predates the hearings array and is read by three existing
- *      screens. These tests assert it stays mirrored to the earliest still
- *      scheduled hearing through add, edit and delete.
- */
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 process.env.NODE_ENV = "test";
 
 const mockCases = [];
 
-/**
- * Minimal ObjectId stand-in: distinct values that compare by string.
- *
- * `toJSON` matters — the fake's `.lean()` serialises through JSON, and without
- * it these would flatten to `{}` and every id comparison would pass or fail by
- * accident rather than on the rule under test.
- */
 const oid = (value) => ({
   toString: () => value,
   toJSON: () => value,
   _bsontype: "ObjectId",
 });
 
-// ---------------------------------------------------------------------------
-// Fake Case model
-// ---------------------------------------------------------------------------
 jest.mock("../../src/models/Case", () => {
-  /** Gives an embedded array the two subdocument helpers the controller uses. */
   const asSubdocArray = (array) => {
     array.id = (id) =>
       array.find((item) => item._id && item._id.toString() === String(id)) ||
@@ -57,17 +28,12 @@ jest.mock("../../src/models/Case", () => {
   const hydrate = (record) => {
     record.hearings = asSubdocArray(record.hearings || []);
     record.save = async () => {
-      // Re-wrap so a hearing pushed since the last save also gets .deleteOne.
       record.hearings = asSubdocArray(record.hearings);
       return record;
     };
     return record;
   };
 
-  // getCaseById calls .populate() for client, assignedLawyer and selectedLawyer
-  // before .lean(), so those three come back as plain sub-documents carrying an
-  // _id rather than as bare ids. The fake reproduces that shape, because it is
-  // the shape the authorization rule has to read.
   const POPULATED = ["client", "assignedLawyer", "selectedLawyer"];
 
   const chainable = (record) => ({
@@ -92,9 +58,6 @@ jest.mock("../../src/models/Case", () => {
     findById: (id) => {
       const record = mockCases.find((c) => c._id.toString() === String(id));
       const result = record ? hydrate(record) : null;
-      // findById(...) is awaited directly by the hearing endpoints and
-      // .populate().lean() by getCaseById, so the return value has to serve
-      // both shapes.
       return Object.assign(Promise.resolve(result), chainable(result));
     },
     find: () => ({
@@ -121,9 +84,6 @@ jest.mock("../../src/services/notification/notificationService", () => ({
 
 const caseController = require("../../src/controllers/case/caseController");
 
-// ---------------------------------------------------------------------------
-// Harness
-// ---------------------------------------------------------------------------
 const CLIENT = oid("client-1");
 const OTHER_CLIENT = oid("client-2");
 const ASSIGNED_LAWYER = oid("lawyer-1");
@@ -148,8 +108,6 @@ const makeReq = (overrides = {}) => ({
   params: {},
   body: {},
   query: {},
-  // The controller reaches for req.app.get("io") to broadcast; returning null
-  // exercises the "no socket server" branch without a real io instance.
   app: { get: () => null },
   ...overrides,
 });
@@ -212,8 +170,6 @@ describe("getCaseById authorization", () => {
   });
 
   test("any lawyer can still read an open Submitted lead", async () => {
-    // getCases shows every lawyer the Submitted pool, so getCaseById must too
-    // or opening a lead from the Leads tab would break.
     seedCase({ status: "Submitted", assignedLawyer: null });
     const res = await read(user(STRANGER_LAWYER, "lawyer"));
     expect(res.body.success).toBe(true);

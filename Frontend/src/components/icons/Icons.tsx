@@ -3,21 +3,11 @@ import Svg, { Circle, Line, Path } from 'react-native-svg';
 
 import { colors, sizing } from '../../theme';
 
-/**
- * The app's icon set, drawn inline.
- *
- * An icon font would mean a native dependency and a font file for the eight
- * glyphs this app uses. These are stroked paths on a 24-unit grid with a
- * consistent 1.6 weight, so they sit together properly and take their colour
- * from the caller.
- */
-
 export interface IconProps {
   size?: number;
   color?: string;
 }
 
-/** Shared by the client-section icons in ClientIcons.tsx. */
 export const base = (size?: number) => ({
   width: size ?? sizing.iconSize,
   height: size ?? sizing.iconSize,
@@ -144,13 +134,6 @@ export const AlertIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/**
- * Google's mark, drawn monochrome.
- *
- * The brand's four colours would be the only non-palette hues in the app, and
- * this button does not currently start a sign-in — the backend has no Google
- * route — so a white glyph is both honest and in keeping.
- */
 export const GoogleIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Path

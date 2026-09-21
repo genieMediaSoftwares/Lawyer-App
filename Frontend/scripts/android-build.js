@@ -1,27 +1,3 @@
-/**
- * Builds the Android release APK.
- *
- *   npm run android:release          production: every ABI in gradle.properties
- *   npm run android:release:device   testing: arm64-v8a only, ~4x less C++ work
- *   add --clean to wipe build outputs and CMake caches first
- *
- * Why a script rather than a bare `gradlew`:
- *
- * - ccache for *every* native module. React Native's ReactNative-application.cmake
- *   picks ccache up for `:app` on its own, but worklets, reanimated and screens
- *   ship their own CMakeLists with no launcher. CMake >= 3.17 initialises
- *   CMAKE_<LANG>_COMPILER_LAUNCHER from the environment, so setting it here
- *   covers them without editing node_modules. Wrapping twice (`:app` gets both)
- *   is harmless — verified against NDK 27 clang.
- *
- * - Gradle user home on the project's volume. AGP hard-links prefab `.so`
- *   files out of the Gradle cache into each module's build dir; across volumes
- *   (cache on C:, project on D:) NTFS refuses, and every link falls back to a
- *   copy with "Hard link from … failed. Doing a slower copy instead." If
- *   GRADLE_USER_HOME is not already set, the default is used unchanged.
- *
- * Nothing here hides output: Gradle's stdout/stderr are passed straight through.
- */
 const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -62,8 +38,6 @@ console.log(
 const removeDir = dir => fs.rmSync(dir, { recursive: true, force: true });
 
 if (clean) {
-  // `gradlew clean` leaves every module's .cxx (CMake cache) behind, and those
-  // pin the ABI list and compiler launcher from the previous configure.
   const targets = [
     path.join(androidDir, 'app', 'build'),
     path.join(androidDir, 'app', '.cxx'),
@@ -95,9 +69,6 @@ if (clean) {
 const gradleArgs = ['assembleRelease'];
 if (device) gradleArgs.push('-PreactNativeArchitectures=arm64-v8a');
 
-// Absolute path: cmd.exe does not search the working directory when
-// NoDefaultCurrentDirectoryInExePath is set, so a bare `gradlew.bat` can fail
-// with "not recognized" depending on the machine.
 const gradlew = path.join(androidDir, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew');
 console.log(`[android-build] ${gradlew} ${gradleArgs.join(' ')}`);
 

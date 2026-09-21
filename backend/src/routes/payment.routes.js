@@ -4,10 +4,8 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// Webhook endpoint (Public / Razorpay Server-to-Server, signature verified)
 router.post("/webhook", paymentController.handleWebhook);
 
-// Authenticated Routes
 router.use(authMiddleware);
 
 router.post("/create-consultation-order", paymentController.createConsultationOrder);

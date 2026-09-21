@@ -2,20 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, View } from 'react-native';
 import { USE_NATIVE_DRIVER } from '../../utils/platform';
 
-/**
- * The placeholder shown while real data is loading.
- *
- * The pulse is an Animated value rather than a class. NativeWind handles
- * static style; a driven animation is not static, and this is exactly the kind
- * of case where a stylesheet is the right tool — so the opacity is animated
- * and everything else (colour, radius, size) still comes from classes.
- *
- * `useNativeDriver` keeps the loop off the JS thread, so a list of these does
- * not compete with the request they are waiting for.
- */
-
 export interface GenieSkeletonProps {
-  /** Tailwind sizing classes, e.g. "h-5 w-32". */
   className?: string;
 }
 
@@ -53,7 +40,6 @@ export const GenieSkeleton: React.FC<GenieSkeletonProps> = ({
   );
 };
 
-/** The shape of a card, for a list that is still loading. */
 export const GenieSkeletonCard: React.FC<{ className?: string }> = ({
   className = '',
 }) => (

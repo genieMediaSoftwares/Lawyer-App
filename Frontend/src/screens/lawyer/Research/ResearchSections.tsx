@@ -6,44 +6,14 @@ import { ChevronRightIcon } from '../../../components/icons/ClientIcons';
 import { ChevronDownIcon } from '../../../components/icons/Icons';
 import { colors } from '../../../theme';
 
-/**
- * Renders a research answer as collapsible sections.
- *
- * ── Why the headings are not a fixed list ─────────────────────────────────
- *
- * They come from the model, and the model is told which to use by
- * `RESEARCH_SYSTEM_INSTRUCTION` in `controllers/ai/aiController.js`:
- *
- *   ### Issue · ### Analysis · ### Authorities To Verify
- *   ### Practical Considerations · ### Gaps
- *
- * and that instruction tells it to **omit any heading that does not apply**.
- * So this splits on whatever headings arrive rather than looking for a set it
- * expects — a hardcoded list would render empty shells for omitted sections
- * and silently drop any heading the prompt later adds.
- *
- * "Authorities To Verify" is opened by default and marked, because the backend
- * prompt is explicit that remembered authority is a lead to check and never a
- * verified result. That framing is the server's, and it is surfaced rather
- * than softened.
- */
-
 export interface ResearchSection {
   heading: string;
   body: string;
 }
 
-/** True for the section whose contents a court could be misled by. */
 const isAuthorities = (heading: string): boolean =>
   /authorit|citation|precedent|case law/i.test(heading);
 
-/**
- * Splits an answer into `### heading` blocks.
- *
- * Text before the first heading is kept under an empty heading and rendered
- * as a plain lead-in, so a short answer that carries no headings at all still
- * shows in full instead of vanishing.
- */
 export const splitIntoSections = (text: string): ResearchSection[] => {
   const lines = (text || '').split('\n');
   const sections: ResearchSection[] = [];
@@ -68,7 +38,6 @@ export const splitIntoSections = (text: string): ResearchSection[] => {
   return sections.filter(s => s.heading || s.body);
 };
 
-/** Bullets, bold runs and paragraphs. Deliberately small — not a full parser. */
 const Body: React.FC<{ text: string }> = ({ text }) => (
   <View className="gap-2">
     {text.split('\n').map((line, index) => {

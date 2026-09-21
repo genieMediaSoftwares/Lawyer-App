@@ -104,7 +104,6 @@ export const FavoritesScreen: React.FC<ClientStackScreenProps<'Favorites'>> = ({
         renderItem={renderItem}
         keyExtractor={item => item._id}
         contentContainerClassName="px-5 pb-10"
-        // Conditional on there being no rows, so it centres the empty state.
         contentContainerStyle={
           isEmpty ? { flexGrow: 1, justifyContent: 'center' } : undefined
         }

@@ -44,7 +44,6 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
   </View>
 );
 
-/** One label/value pair. Renders nothing when the backend has no value for it. */
 const Detail: React.FC<{
   label: string;
   value?: string | null;

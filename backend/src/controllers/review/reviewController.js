@@ -20,7 +20,6 @@ class ReviewController {
         review,
       });
 
-      // Update lawyer's average rating and total reviews count
       const reviews = await Review.find({ lawyer: lawyerId });
       const totalReviews = reviews.length;
       const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews;
@@ -31,7 +30,6 @@ class ReviewController {
         { new: true }
       );
 
-      // Notify the lawyer
       await notificationService.createAndSendNotification({
         senderId: client,
         receiverId: lawyerId,
@@ -79,7 +77,6 @@ class ReviewController {
         return ApiResponse.error(res, "Review not found.", 404);
       }
 
-      // Check authorization
       if (reviewItem.lawyer.toString() !== lawyerId.toString()) {
         return ApiResponse.error(res, "Unauthorized to reply to this review.", 403);
       }
@@ -88,7 +85,6 @@ class ReviewController {
       reviewItem.replyDate = new Date();
       await reviewItem.save();
 
-      // Notify the client
       await notificationService.createAndSendNotification({
         senderId: lawyerId,
         receiverId: reviewItem.client,
@@ -113,7 +109,6 @@ class ReviewController {
         return ApiResponse.error(res, "Review not found.", 404);
       }
 
-      // Set hidden flag
       reviewItem.isHidden = true;
       await reviewItem.save();
 

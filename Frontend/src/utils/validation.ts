@@ -1,24 +1,9 @@
-/**
- * Client-side form validation.
- *
- * Every rule here mirrors one the backend enforces in
- * backend/src/validations/authValidation.js. It exists to spare the user a
- * round trip, never to replace the server's check — the server remains the
- * authority, and a rule that disagreed with it would reject input the backend
- * would have accepted.
- */
-
-/** Matches the backend's `isEmail`, loosely enough not to reject valid addresses. */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-/** The backend's exact regex: ten digits, first one 6-9. */
 const MOBILE_PATTERN = /^[6-9]\d{9}$/;
 
-/** Backend minimum. Longer is better, but rejecting here what the server
- *  accepts would be this layer overruling it. */
 const PASSWORD_MIN_LENGTH = 6;
 
-/** Backend minimum for fullName. */
 const NAME_MIN_LENGTH = 3;
 
 export const validateFullName = (value: string): string | undefined => {
@@ -64,7 +49,6 @@ export const validatePassword = (value: string): string | undefined => {
   return undefined;
 };
 
-/** Login only checks that a password was typed — length is the server's call. */
 export const validateLoginPassword = (value: string): string | undefined =>
   value ? undefined : 'Password is required';
 
@@ -81,7 +65,6 @@ export const validateConfirmPassword = (
   return undefined;
 };
 
-/** The six-digit code sent by forgot-password. */
 export const validateResetCode = (value: string): string | undefined => {
   const trimmed = value.trim();
   if (!trimmed) {
@@ -93,14 +76,6 @@ export const validateResetCode = (value: string): string | undefined => {
   return undefined;
 };
 
-/**
- * Drops the undefined entries, leaving only real errors.
- *
- * Partial rather than a full Record: a screen that validates a subset of its
- * fields — the first step of the reset flow checks only the address — passes
- * only those, and requiring every key would force it to spell out `undefined`
- * for the rest.
- */
 export const collectErrors = <K extends string>(
   candidates: Partial<Record<K, string | undefined>>,
 ): Partial<Record<K, string>> => {

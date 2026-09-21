@@ -5,19 +5,6 @@ import { base, stroke } from './Icons';
 import type { IconProps } from './Icons';
 import { colors } from '../../theme';
 
-/**
- * Icons for the client section.
- *
- * Same 24-unit grid and 1.6 stroke weight as the auth set in `Icons.tsx`,
- * whose `base` and `stroke` helpers are reused so the two files cannot drift
- * apart. Kept separate only to stop one module growing past readability.
- */
-
-/**
- * The drawer control. Three lines of equal length — the ordinary hamburger
- * everyone already knows how to read. The short third line it used to have
- * was a stylistic flourish that made it look like a "sort" glyph instead.
- */
 export const MenuIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Line x1="4" y1="7" x2="20" y2="7" stroke={color ?? colors.white} {...stroke} />
@@ -71,7 +58,6 @@ export const BriefcaseIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/** Scales of justice — the Advocates tab. */
 export const ScalesIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Line x1="12" y1="5" x2="12" y2="20" stroke={color ?? colors.textMuted} {...stroke} />
@@ -90,7 +76,6 @@ export const ScalesIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/** The centre action. Drawn heavier because it sits on a gold disc. */
 export const PlusIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Line
@@ -232,7 +217,6 @@ export const ChatIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/** The AI accent. */
 export const SparkleIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Path
@@ -337,11 +321,6 @@ export const InfoCircleIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/**
- * Dismiss. Replaces the literal ✕ character that three screens were using
- * as a close button — a glyph whose weight and size depend on the system font
- * rather than on the icon grid.
- */
 export const CloseIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Line x1="6" y1="6" x2="18" y2="18" stroke={color ?? colors.white} {...stroke} />
@@ -349,7 +328,6 @@ export const CloseIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/** An attachment on a message. Replaces the 📎 emoji in the chat thread. */
 export const PaperclipIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Path
@@ -480,10 +458,6 @@ export const CalendarIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/**
- * Dictation. A capsule over a cradle, which is the shape every recorder
- * control uses, so it reads as "speak" rather than "play audio".
- */
 export const MicIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Rect
@@ -511,10 +485,6 @@ export const MicIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/**
- * A courthouse: pediment, columns, plinth. Distinct from `ScalesIcon`, which
- * stands for the law itself rather than the building a matter is heard in.
- */
 export const CourtIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Path d="M3 9.5 12 4l9 5.5" stroke={color ?? colors.textMuted} {...stroke} />
@@ -525,13 +495,6 @@ export const CourtIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/**
- * The document-intake target: a cloud with an arrow rising into it.
- *
- * Distinct from `UploadArrowIcon`, which is the plain tray-and-arrow used on
- * ordinary file pickers. This one reads as "send these to be processed",
- * which is what the AI intake actually does with them.
- */
 export const CloudUploadIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Path
@@ -543,7 +506,6 @@ export const CloudUploadIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
-/** Language selection. A globe with a meridian and two parallels. */
 export const GlobeIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Circle cx="12" cy="12" r="8.5" stroke={color ?? colors.textSecondary} {...stroke} />

@@ -2,20 +2,10 @@ import React from 'react';
 import { Pressable, PressableProps, View } from 'react-native';
 import { GenieText } from './GenieText';
 
-/**
- * A tappable icon.
- *
- * Fixed at `min-h-touch min-w-touch` so every icon control in the app has the
- * same hit area whatever the glyph inside measures. That fixed size is also
- * what lets a header centre its title honestly — see GenieHeader.
- */
-
 export interface GenieIconButtonProps extends Omit<PressableProps, 'children' | 'style'> {
   icon: React.ReactNode;
   onPress: () => void;
-  /** Required: an icon with no label is invisible to a screen reader. */
   accessibilityLabel: string;
-  /** A count drawn over the icon, as on the notifications bell. */
   badgeCount?: number;
   className?: string;
 }

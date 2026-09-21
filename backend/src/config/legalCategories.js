@@ -1,39 +1,15 @@
 const categories = require("./legalCategories.json");
 
-/**
- * The app's legal taxonomy: 15 categories, 5 sub-types each.
- *
- * `legalCategories.json` is a copy of the Dart list in
- * `lib/models/category_item.dart` (which owns the icons and so has to stay
- * Dart). `test/legal_categories_sync_test.dart` fails if the two ever diverge.
- *
- * This module exists because the AI prompt used to hardcode a *different*
- * 12-item list — only "Criminal Law" and "Documentation" overlapped with the
- * app's 15, so roughly 10 in 12 extractions returned a category the Post Case
- * form could not select and silently dropped. Generating the prompt from the
- * real taxonomy, and normalising the model's answer back onto it, is what makes
- * auto-fill reliable.
- */
-
 const titles = categories.map((c) => c.title);
 
-/** Every sub-type, flattened, for validation. */
 const allSubTypes = categories.flatMap((c) => c.subTypes);
 
-/** Reduce to letters+digits so "Property & Land" ≈ "property land". */
 const normaliseKey = (value) =>
   String(value || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
-/**
- * Words too generic to carry meaning in a fuzzy match.
- *
- * Without this, "General Legal" matched "Startup Legal Help" on the single word
- * "legal" and confidently mis-filed the case under Business & Corporate. A
- * catch-all answer must resolve to null so the form leaves the dropdown alone.
- */
 const GENERIC_WORDS = new Set([
   "legal",
   "law",
@@ -53,7 +29,6 @@ const GENERIC_WORDS = new Set([
   "advice",
 ]);
 
-/** Significant words only — used for both fuzzy passes below. */
 const significantWords = (key) =>
   key.split(" ").filter((w) => w.length > 3 && !GENERIC_WORDS.has(w));
 
@@ -63,7 +38,6 @@ const byNormalisedTitle = new Map(
 const bySlug = new Map(categories.map((c) => [c.slug, c]));
 const byId = new Map(categories.map((c) => [c.id, c]));
 
-/** Sub-type -> owning category, so a sub-type alone can imply the category. */
 const bySubType = new Map();
 for (const category of categories) {
   for (const subType of category.subTypes) {
@@ -71,11 +45,6 @@ for (const category of categories) {
   }
 }
 
-/**
- * Categories where an FIR number, police station and bail details are
- * meaningful. The Post Case form reveals that field group only for these, so
- * the extractor should not bother asking for them otherwise.
- */
 const CRIMINAL_LIKE_CATEGORY_IDS = [
   "criminal_law",
   "cyber_crime",
@@ -87,13 +56,6 @@ const isCriminalLike = (categoryTitle) => {
   return match ? CRIMINAL_LIKE_CATEGORY_IDS.includes(match.id) : false;
 };
 
-/**
- * Maps a free-form model answer onto an exact app category + sub-type.
- *
- * Returns `{ category, subType }` using the app's exact strings, or nulls when
- * nothing plausible matched — deliberately null rather than a guess, so the
- * form leaves the dropdown untouched instead of selecting something wrong.
- */
 const resolveCategory = (rawCategory, rawSubType) => {
   let category = null;
 
@@ -105,9 +67,6 @@ const resolveCategory = (rawCategory, rawSubType) => {
       byId.get(String(rawCategory).trim()) ||
       null;
 
-    // Tolerate word-order and wording drift ("Labour & Employment" for
-    // "Employment & Labour", "Property Law" for "Property & Land") by matching
-    // on shared significant words.
     if (!category) {
       const words = significantWords(catKey);
       let best = null;
@@ -124,8 +83,6 @@ const resolveCategory = (rawCategory, rawSubType) => {
     }
   }
 
-  // A recognised sub-type is stronger evidence than a fuzzy category, and can
-  // supply the category on its own.
   let subType = null;
   const subKey = normaliseKey(rawSubType);
   if (subKey && bySubType.has(subKey)) {
@@ -134,10 +91,6 @@ const resolveCategory = (rawCategory, rawSubType) => {
     if (!category) category = hit.category;
   }
 
-  // Some older prompt values were sub-types wearing a category's clothes —
-  // "Rental & Tenancy" is really Documentation/Rental Agreement, and
-  // "Cheque Bounce & Finance" is Banking & Financial/Cheque Bounce. If the
-  // category string failed to resolve, try reading it as a sub-type instead.
   if (!category && catKey) {
     const words = significantWords(catKey);
     let best = null;
@@ -156,7 +109,6 @@ const resolveCategory = (rawCategory, rawSubType) => {
     }
   }
 
-  // Only keep a sub-type that actually belongs to the resolved category.
   if (category && subType && !category.subTypes.includes(subType)) {
     subType = null;
   }
@@ -168,21 +120,11 @@ const resolveCategory = (rawCategory, rawSubType) => {
   };
 };
 
-/** The category/sub-type menu, rendered for the extraction prompt. */
 const promptTaxonomy = () =>
   categories
     .map((c) => `- ${c.title}: ${c.subTypes.join(" | ")}`)
     .join("\n");
 
-/**
- * Keyword signals per category, used ONLY as a last resort by
- * `classifyByKeywords` below.
- *
- * Each entry is [regex, weight]. Weights let a decisive term outrank several
- * incidental ones: a divorce petition that discusses property at length should
- * land in Family & Divorce, and "divorce" carrying more weight than "property"
- * is what makes that happen without any understanding of the text.
- */
 const CATEGORY_SIGNALS = {
   family_divorce: [
     [/\b(divorce|talaq|khula)\b/i, 6],
@@ -251,22 +193,6 @@ const CATEGORY_SIGNALS = {
   ],
 };
 
-/**
- * Best-effort category from raw text, by explicit keyword weight.
- *
- * This is NOT a substitute for the model's judgement and is never used in its
- * place — `resolveCategory` maps what the model actually said. This runs only
- * when the model gave no usable category at all (it failed, or it answered with
- * something that matched nothing), and its answer is always flagged for the
- * client to confirm.
- *
- * It exists because `resolveCategory` is a name normaliser: handed free prose
- * it matches on incidental words, and put "someone hacked my UPI and took
- * money" under Civil Cases / Money Recovery. A wrong category filed silently is
- * worse than none, so this returns null unless a real signal fires.
- *
- * @returns {{category: string, categoryId: string, subType: null, score: number}|null}
- */
 const classifyByKeywords = (text) => {
   const haystack = String(text || "");
   if (haystack.trim().length < 12) return null;
@@ -285,7 +211,6 @@ const classifyByKeywords = (text) => {
     }
   }
 
-  // One incidental keyword is not a classification.
   if (!bestId || bestScore < 4) return null;
 
   const category = byId.get(bestId);

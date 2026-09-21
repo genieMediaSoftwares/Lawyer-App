@@ -1,33 +1,7 @@
 const { readZipEntry } = require("../ai/docxExtractor");
 
-/**
- * Converts a .docx into structured blocks the app can render natively.
- *
- * Deliberately NOT HTML. Two reasons:
- *
- *  1. Rendering HTML produced from a file a stranger uploaded means rendering
- *     attacker-influenced markup. In an app holding privileged legal material
- *     that is a needless class of risk, and the usual answer — a sanitiser plus
- *     a webview — is a lot of surface for a document preview.
- *  2. Typed blocks render with ordinary Flutter widgets, so the preview
- *     inherits the app's own typography and dark theme instead of arriving as
- *     a foreign white page.
- *
- * It also costs no dependency. LibreOffice headless would mean provisioning it
- * on the EC2 box, and mammoth would mean another npm package; `word/document.xml`
- * is right there inside the archive, and `readZipEntry` — written for the AI
- * pipeline and already proven on real client uploads — hands it over.
- *
- * Scope is honest: paragraphs, headings, bold/italic/underline, lists and
- * tables. Images, footnotes, columns and precise layout are not reproduced. A
- * preview is for reading a document, not for re-typesetting it, and the
- * original .docx is always downloadable unchanged.
- */
-
-/** Blocks past this are dropped; the client is told the preview was truncated. */
 const MAX_BLOCKS = 2000;
 
-/** XML entity decoding, for the five predefined entities plus numeric refs. */
 const decodeXml = (value) =>
   String(value)
     .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
@@ -36,16 +10,8 @@ const decodeXml = (value) =>
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'")
-    // Last: an &amp; decoded first would corrupt "&amp;lt;" into "<".
     .replace(/&amp;/g, "&");
 
-/**
- * Splits the body into top-level `<w:p>` and `<w:tbl>` elements, in order.
- *
- * Written as a scan rather than a regex because a table contains paragraphs:
- * a non-greedy `<w:tbl>[\s\S]*?</w:tbl>` closes on the first nested table's
- * end tag and a greedy one swallows the rest of the document.
- */
 const splitBlocks = (xml) => {
   const blocks = [];
   const pattern = /<w:(p|tbl)(?:\s[^>]*)?(\/?)>/g;
@@ -61,7 +27,6 @@ const splitBlocks = (xml) => {
       continue;
     }
 
-    // Walk forward counting opens and closes of this tag so nesting is handled.
     const open = new RegExp(`<w:${tag}(?:\\s[^>]*)?>`, "g");
     const close = new RegExp(`</w:${tag}>`, "g");
     let depth = 1;
@@ -91,12 +56,6 @@ const splitBlocks = (xml) => {
   return blocks;
 };
 
-/**
- * Pulls the styled runs out of one paragraph.
- *
- * A run's formatting lives in its own `<w:rPr>`, so each is read separately
- * rather than inheriting whatever the paragraph started with.
- */
 const parseRuns = (paragraphXml) => {
   const runs = [];
   const runPattern = /<w:r(?:\s[^>]*)?>([\s\S]*?)<\/w:r>/g;
@@ -106,8 +65,6 @@ const parseRuns = (paragraphXml) => {
     const runXml = match[1];
     const properties = /<w:rPr>([\s\S]*?)<\/w:rPr>/.exec(runXml)?.[1] ?? "";
 
-    // `<w:b w:val="0"/>` switches bold OFF; only a bare tag or a truthy val
-    // turns it on.
     const isOn = (tag) => {
       const found = new RegExp(`<w:${tag}(\\s[^>]*)?/?>`).exec(properties);
       if (!found) return false;
@@ -137,7 +94,6 @@ const parseRuns = (paragraphXml) => {
   return runs;
 };
 
-/** Heading level from the paragraph style, or 0 for body text. */
 const headingLevel = (paragraphXml) => {
   const style = /<w:pStyle\s+w:val="([^"]*)"/.exec(paragraphXml)?.[1] ?? "";
   const heading = /^heading\s*([1-6])$/i.exec(style.replace(/[-_]/g, " "));
@@ -150,15 +106,11 @@ const parseParagraph = (paragraphXml) => {
   const runs = parseRuns(paragraphXml);
   const text = runs.map((r) => r.text).join("");
 
-  // An empty paragraph is spacing in the original, and reproducing it keeps
-  // the document's rhythm.
   if (!text.trim()) return { type: "spacer" };
 
   const level = headingLevel(paragraphXml);
   if (level > 0) return { type: "heading", level, text, runs };
 
-  // `<w:numPr>` marks a numbered or bulleted item. The exact glyph and
-  // numbering live in numbering.xml; the indent level is enough for a preview.
   const numbering = /<w:numPr>([\s\S]*?)<\/w:numPr>/.exec(paragraphXml)?.[1];
   if (numbering) {
     const indent = Number(/<w:ilvl\s+w:val="(\d+)"/.exec(numbering)?.[1] ?? 0);
@@ -193,11 +145,6 @@ const parseTable = (tableXml) => {
   return rows.length ? { type: "table", rows } : null;
 };
 
-/**
- * @param {Buffer} buffer  The .docx file.
- * @returns {{blocks: object[], truncated: boolean}}
- * @throws when the archive is not a readable .docx.
- */
 const docxToBlocks = (buffer) => {
   const documentXml = readZipEntry(buffer, "word/document.xml");
   if (!documentXml) {
@@ -218,7 +165,6 @@ const docxToBlocks = (buffer) => {
 
     if (block.tag === "p") {
       const parsed = parseParagraph(block.xml);
-      // Never lead with blank space, and never stack two blanks.
       if (parsed.type === "spacer") {
         if (blocks.length === 0 || blocks[blocks.length - 1].type === "spacer") {
           continue;
@@ -231,7 +177,6 @@ const docxToBlocks = (buffer) => {
     }
   }
 
-  // A trailing spacer renders as dead space at the end of the preview.
   while (blocks.length && blocks[blocks.length - 1].type === "spacer") {
     blocks.pop();
   }

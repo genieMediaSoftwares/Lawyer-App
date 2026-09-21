@@ -2,15 +2,6 @@ const ApiResponse = require("../../config/ApiResponse");
 const placesService = require("../../services/placesService");
 
 class PlaceController {
-  /**
-   * GET /api/places/autocomplete?input=&country=
-   *
-   * Returns live suggestions. The previous implementation kept an array of
-   * eight hardcoded cities with invented Google place_ids and fell back to it
-   * whenever GOOGLE_PLACES_API_KEY was unset — which it always was — so this
-   * endpoint has only ever returned fake data. That array is gone; the service
-   * uses Nominatim when no Google key is configured.
-   */
   async autocomplete(req, res, next) {
     try {
       const { input, country } = req.query;
@@ -29,13 +20,6 @@ class PlaceController {
     }
   }
 
-  /**
-   * GET /api/places/details?placeId=
-   *
-   * Coordinates may legitimately be null (India Post returns none), so callers
-   * must treat lat/lng as optional rather than default to 0,0 — which is a real
-   * location in the Gulf of Guinea and would corrupt distance-based matching.
-   */
   async details(req, res, next) {
     try {
       const { placeId } = req.query;

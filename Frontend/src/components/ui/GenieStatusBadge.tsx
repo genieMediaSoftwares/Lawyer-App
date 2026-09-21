@@ -3,18 +3,6 @@ import { View } from 'react-native';
 import { GenieText } from './GenieText';
 import type { GenieTextTone } from './GenieText';
 
-/**
- * A case or document status.
- *
- * The mapping is the point: a status string from the API goes in, and the
- * colour is decided here and only here. Before, each screen picked its own —
- * which is how #4CAF50 and #FF9800 ended up in the app alongside the palette's
- * own success and warning greens and ambers.
- *
- * Anything unrecognised stays neutral rather than guessing, so a new status
- * from the backend looks deliberate instead of mis-coloured.
- */
-
 type Kind = 'live' | 'done' | 'pending' | 'failed' | 'neutral';
 
 const KINDS: Record<Kind, { surface: string; tone: GenieTextTone }> = {

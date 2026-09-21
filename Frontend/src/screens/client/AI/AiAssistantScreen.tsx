@@ -42,37 +42,8 @@ import type { PickedFile } from '../../../types/ai';
 import type { ClientStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
 
-/**
- * The AI Smart Case Assistant: documents, an optional voice note, optional
- * written notes — submitted together as one intake.
- *
- * ── How the three inputs combine ──────────────────────────────────────────
- *
- * All three travel in the same multipart request to
- * `POST /ai/smart-case/analyze`, which is what lets the extractor reconcile
- * them: the documents carry the facts, the transcript and the notes add the
- * context the documents do not state. Nothing is merged on this side.
- *
- * ── What the voice note actually does ─────────────────────────────────────
- *
- * Record, stop, then transcribe through `POST /ai/transcribe`, which returns
- * the real text and the language it detected. The transcript is shown and is
- * **editable** before submission, and both it and the audio are sent — the
- * controller records the client's text as the transcript of record and keeps
- * its own reading of the audio for audit only.
- *
- * This is record-then-transcribe, not live dictation. There is no on-device
- * speech recogniser in this project — nothing in `package.json` provides one —
- * so a running transcript as the client speaks is not something this screen
- * can honestly offer, and its wording does not claim it.
- *
- * `language` is the backend's enum: "" (detect), "en", "hi", "te". Auto sends
- * nothing and lets the server decide.
- */
-
 const MAX_NOTES = 5000;
 
-/** The backend's `normaliseLanguageCode` enum, plus Auto. */
 const LANGUAGES = [
   { code: '', label: 'Auto' },
   { code: 'en', label: 'English' },
@@ -136,14 +107,9 @@ export const AiAssistantScreen: React.FC<
   const [uploadFraction, setUploadFraction] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  // One key for the whole screen, reused across retries — that is what makes a
-  // resent analyze request rejoin the running analysis instead of starting a
-  // second one and billing it twice.
   const requestId = useRef(makeRequestId());
 
   const remainingSlots = UPLOAD_LIMITS.maxDocuments - documents.length;
-
-  // ── Documents ───────────────────────────────────────────────────────────
 
   const addDocuments = useCallback(async () => {
     setError(null);
@@ -166,9 +132,6 @@ export const AiAssistantScreen: React.FC<
         }
       }
 
-      // Keep each file only while the running total stays within what the
-      // server accepts in one upload; the rest are refused here, by name, rather
-      // than failing the whole upload later.
       const maxTotal = maxAiUploadBytes();
       let runningTotal = knownTotalBytes([...documents, voice]);
       const fitting: PickedFile[] = [];
@@ -200,8 +163,6 @@ export const AiAssistantScreen: React.FC<
   const removeDocument = useCallback((index: number) => {
     setDocuments(current => current.filter((_, i) => i !== index));
   }, []);
-
-  // ── Voice ───────────────────────────────────────────────────────────────
 
   const startRecording = useCallback(async () => {
     setError(null);
@@ -251,8 +212,6 @@ export const AiAssistantScreen: React.FC<
         setDetectedLanguage(result.language || '');
       }
     } catch (transcribeError) {
-      // The recording is kept: a failed transcription does not make the audio
-      // useless, because the server transcribes it again during the analysis.
       setError(
         `${
           toAppError(transcribeError).message
@@ -271,8 +230,6 @@ export const AiAssistantScreen: React.FC<
     setRecordedMs(0);
     setIsRecording(false);
   }, []);
-
-  // ── Submit ──────────────────────────────────────────────────────────────
 
   const submit = useCallback(async () => {
     if (isSubmitting) {
@@ -302,16 +259,11 @@ export const AiAssistantScreen: React.FC<
         voice,
         issueDescription: notes,
         voiceTranscript: transcript,
-        // The chosen language, or what the transcription detected when the
-        // client left it on Auto. Never a guess made here.
         voiceLanguage: language || detectedLanguage || undefined,
         requestId: requestId.current,
         onUploadProgress: setUploadFraction,
       });
 
-      // Straight into the Post Case flow, which watches the same session and
-      // folds the result into the form. `replace` so Back from there returns
-      // to where the client started, not to a spent upload form.
       navigation.replace('PostCase', { sessionId: accepted.sessionId });
     } catch (submitError) {
       setError(toAppError(submitError).message);
@@ -331,9 +283,6 @@ export const AiAssistantScreen: React.FC<
 
   const uploadDisabled = isSubmitting || remainingSlots <= 0;
 
-  // What one upload may weigh on this server (from AI_UPLOAD_MAX_MB), shown up
-  // front so people shrink large files before picking them, not after a
-  // failed upload.
   const maxUploadBytes = maxAiUploadBytes();
   const usedBytes = knownTotalBytes([...documents, voice]);
   const uploadLimitNotice =
@@ -360,7 +309,6 @@ export const AiAssistantScreen: React.FC<
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* ── Intake card ──────────────────────────────────────────────── */}
           <View className="mt-3 flex-row items-center gap-4 rounded-card border border-gold-wash bg-card p-5">
             <SparkleIcon size={30} color={colors.gold} />
             <View className="flex-1">
@@ -376,7 +324,6 @@ export const AiAssistantScreen: React.FC<
             <GenieNotice tone="error" message={error} className="mt-4" />
           ) : null}
 
-          {/* ── Documents ────────────────────────────────────────────────── */}
           <SectionTitle
             title="Upload Supporting Documents"
             required
@@ -460,7 +407,6 @@ export const AiAssistantScreen: React.FC<
             </GenieText>
           ) : null}
 
-          {/* ── Voice ────────────────────────────────────────────────────── */}
           <SectionTitle
             title="Add a Voice Note (Optional)"
             subtitle="Explain anything the documents don't cover. Your recording is transcribed when you stop, and you can edit the text before submitting."
@@ -473,7 +419,6 @@ export const AiAssistantScreen: React.FC<
             </GenieText>
           ) : (
             <View className="rounded-card border border-border bg-card p-4">
-              {/* Language */}
               <View className="flex-row items-center gap-2">
                 <GlobeIcon size={20} color={colors.textSecondary} />
                 <ScrollView
@@ -510,7 +455,6 @@ export const AiAssistantScreen: React.FC<
                 </ScrollView>
               </View>
 
-              {/* Recorder */}
               <View className="mt-4 flex-row items-center gap-3">
                 <Pressable
                   onPress={isRecording ? stopRecording : startRecording}
@@ -564,7 +508,6 @@ export const AiAssistantScreen: React.FC<
                 ) : null}
               </View>
 
-              {/* Transcript — editable, and what actually gets sent. */}
               {transcript || (voice && !isTranscribing) ? (
                 <View className="mt-4">
                   <View className="mb-2 flex-row items-center justify-between">
@@ -597,7 +540,6 @@ export const AiAssistantScreen: React.FC<
             </View>
           )}
 
-          {/* ── Notes ────────────────────────────────────────────────────── */}
           <SectionTitle title="Additional Written Notes (Optional)" />
 
           <View className="rounded-card border border-border bg-card p-3">
@@ -618,12 +560,9 @@ export const AiAssistantScreen: React.FC<
             </GenieText>
           </View>
 
-          {/* ── Upload progress ──────────────────────────────────────────── */}
           {isSubmitting ? (
             <View className="mt-4">
               <View className="h-1.5 w-full overflow-hidden rounded-pill bg-surface-alt">
-                {/* A live percentage, so the fill is a value rather than a
-                    class. */}
                 <View
                   className="h-full rounded-pill bg-gold"
                   style={{ width: `${Math.round(uploadFraction * 100)}%` }}

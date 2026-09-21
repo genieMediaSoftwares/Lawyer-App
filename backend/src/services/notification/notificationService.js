@@ -24,7 +24,6 @@ class NotificationService {
         throw new Error("receiverId is required to create a notification.");
       }
 
-      // Create record in MongoDB
       const notification = await Notification.create({
         senderId,
         receiverId,
@@ -38,7 +37,6 @@ class NotificationService {
         softDelete: false,
       });
 
-      // Emit real-time message via socket if initialized
       if (this.io) {
         console.log(`📡 Emitting real-time notification to user room: ${receiverId}`);
         this.io.of("/notifications").to(receiverId.toString()).emit("new_notification", notification);

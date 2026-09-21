@@ -81,13 +81,11 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
   const [selectedKey, setSelectedKey] = useState(() => dayKey(today));
   const [selectedDateObj, setSelectedDateObj] = useState<Date>(() => today);
 
-  // Modal & Form States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<LawyerClientRow | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('11:00 AM');
   const [consultationMode, setConsultationMode] = useState<'Chat' | 'In-Person'>('Chat');
 
-  // Dropdown open states
   const [isClientPickerOpen, setIsClientPickerOpen] = useState(false);
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const [isModePickerOpen, setIsModePickerOpen] = useState(false);
@@ -106,7 +104,6 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
     queryFn: lawyerApi.getClients,
   });
 
-  // Extract all unique clients for dropdown
   const clientList = useMemo(() => {
     if (!clientsQuery.data) return [];
     const list = [
@@ -256,9 +253,7 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
         ),
       }}
     >
-      {/* MONTHLY CALENDAR CARD */}
       <View className="mt-2 rounded-card border border-border bg-card p-4">
-        {/* Month Navigation Header */}
         <View className="flex-row items-center justify-between px-2 py-1">
           <Pressable
             onPress={() => shiftMonth(-1)}
@@ -283,7 +278,6 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
           </Pressable>
         </View>
 
-        {/* Weekday Labels */}
         <View className="mt-4 flex-row justify-between border-b border-border/40 pb-2">
           {WEEKDAYS.map((d, i) => (
             <View key={`${d}-${i}`} className="w-[14.28%] items-center">
@@ -294,7 +288,6 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
           ))}
         </View>
 
-        {/* Days Grid */}
         <View className="mt-2 flex-row flex-wrap">
           {cells.map((day, index) => {
             if (day === null) {
@@ -339,7 +332,6 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
         </View>
       </View>
 
-      {/* APPOINTMENTS SECTION */}
       <GenieText variant="heading-sm" className="mt-6 mb-3 font-bold text-white">
         Appointments
       </GenieText>
@@ -358,7 +350,6 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
           onRetry={() => appointmentsQuery.refetch()}
         />
       ) : selectedAppointments.length === 0 ? (
-        /* EXACT MATCH REFERENCE EMPTY STATE */
         <View className="rounded-card border border-border bg-card p-6 items-center justify-center">
           <GenieText variant="body-md" tone="secondary" className="text-center font-normal py-3">
             No upcoming appointments scheduled.
@@ -455,7 +446,6 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
         })
       )}
 
-      {/* ADD APPOINTMENT MODAL */}
       <Modal
         visible={isAddModalOpen}
         transparent
@@ -472,7 +462,6 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
               <GenieNotice message={formError} tone="error" className="mb-3" />
             ) : null}
 
-            {/* FIELD 1: SELECT CLIENT */}
             <View className="mb-4">
               <GenieText variant="body-sm" tone="secondary" className="font-medium mb-1.5">
                 Select Client
@@ -527,7 +516,6 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
               ) : null}
             </View>
 
-            {/* FIELD 2: APPOINTMENT DATE */}
             <View className="mb-4">
               <GenieText variant="body-sm" tone="secondary" className="font-medium mb-1.5">
                 Appointment Date
@@ -541,7 +529,6 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
               </View>
             </View>
 
-            {/* FIELD 3: SELECT TIME SLOT */}
             <View className="mb-4">
               <GenieText variant="body-sm" tone="secondary" className="font-medium mb-1.5">
                 Select Time Slot
@@ -583,7 +570,6 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
               ) : null}
             </View>
 
-            {/* FIELD 4: CONSULTATION MODE */}
             <View className="mb-5">
               <GenieText variant="body-sm" tone="secondary" className="font-medium mb-1.5">
                 Consultation Mode
@@ -631,7 +617,6 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
               ) : null}
             </View>
 
-            {/* CANCEL & ADD BUTTONS */}
             <Pressable
               onPress={() => setIsAddModalOpen(false)}
               accessibilityRole="button"

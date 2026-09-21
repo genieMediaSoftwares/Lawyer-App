@@ -31,35 +31,6 @@ import type { HearingInput, LawyerHearing } from '../../../types/lawyer';
 import type { LawyerStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
 
-/**
- * Court hearings across all of this advocate's cases.
- *
- * ── Where the data comes from ─────────────────────────────────────────────
- *
- * `GET /cases/hearings/mine` flattens every hearing out of every case where
- * they are the assigned or selected lawyer, and 403s for any other role — so
- * this list can only ever contain the signed-in advocate's own work. Writes go
- * back through `/cases/:id/hearings`, gated server-side by `canManageHearings`
- * on the same test.
- *
- * ── Freshness ─────────────────────────────────────────────────────────────
- *
- * The backend emits `case_updated` on a `/cases` Socket.IO namespace when a
- * hearing changes, but **this app has no socket client** — `socket.io-client`
- * is not a dependency. Rather than invent a real-time layer, every mutation
- * invalidates the hearings and cases queries, so the list is re-read from the
- * server the moment a write succeeds and can never show a stale row after an
- * action. Pull-to-refresh and refetch-on-focus cover changes made elsewhere.
- * The gap is reported rather than papered over.
- *
- * ── Why cancel and complete are not their own calls ───────────────────────
- *
- * They are a `status` change on the same `PUT`. The schema models the four
- * states as one enum field, so the UI offers four actions over one endpoint
- * rather than pretending to endpoints that do not exist. Delete is the only
- * genuinely separate operation, and it removes the row outright.
- */
-
 type HearingTab = 'today' | 'upcoming' | 'past';
 
 const startOfToday = (): number => {
@@ -173,13 +144,6 @@ export const HearingsScreen: React.FC<LawyerStackScreenProps<'Hearings'>> = ({
     return [...groups.accepted, ...groups.inProgress, ...groups.closed];
   }, [clientsQuery.data]);
 
-  /**
-   * Re-reads the server after every write.
-   *
-   * Nothing is patched locally, so what the list shows after a mutation is
-   * what the server actually holds — including the `nextHearing` the
-   * controller re-derives on the case, which is why the cases query goes too.
-   */
   const settle = async () => {
     await queryClient.invalidateQueries({ queryKey: ['lawyer', 'hearings'] });
     await queryClient.invalidateQueries({ queryKey: ['lawyer', 'clients'] });
@@ -240,8 +204,6 @@ export const HearingsScreen: React.FC<LawyerStackScreenProps<'Hearings'>> = ({
     },
   });
 
-  // Memoised because `?? []` builds a fresh array on every render, which would
-  // make it a changing dependency of the two memos below and defeat both.
   const hearings = useMemo(
     () => hearingsQuery.data ?? [],
     [hearingsQuery.data],
@@ -270,7 +232,6 @@ export const HearingsScreen: React.FC<LawyerStackScreenProps<'Hearings'>> = ({
       .sort((a, b) => {
         const left = new Date(a.date).getTime();
         const right = new Date(b.date).getTime();
-        // Past reads newest-first; the other two read soonest-first.
         return tab === 'past' ? right - left : left - right;
       });
   }, [hearings, search, tab]);
@@ -396,7 +357,6 @@ export const HearingsScreen: React.FC<LawyerStackScreenProps<'Hearings'>> = ({
         {renderBody()}
       </ScrollView>
 
-      {/* ── Add / edit ─────────────────────────────────────────────────── */}
       <HearingFormModal
         visible={isFormOpen}
         onClose={() => {
@@ -412,7 +372,6 @@ export const HearingsScreen: React.FC<LawyerStackScreenProps<'Hearings'>> = ({
         }
       />
 
-      {/* ── Details ────────────────────────────────────────────────────── */}
       <GenieModal
         visible={Boolean(detail)}
         onClose={() => setDetail(null)}
@@ -502,7 +461,6 @@ export const HearingsScreen: React.FC<LawyerStackScreenProps<'Hearings'>> = ({
         ) : null}
       </GenieModal>
 
-      {/* ── Delete confirmation ────────────────────────────────────────── */}
       <GenieModal
         visible={Boolean(pendingDelete)}
         onClose={() => setPendingDelete(null)}

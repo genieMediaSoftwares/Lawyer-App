@@ -13,26 +13,6 @@ import { UserIcon } from '../icons/Icons';
 import { useUiStore } from '../../store/uiStore';
 import { colors } from '../../theme';
 
-/**
- * The client tab bar: Home, My Cases, +, Advocates, Profile.
- *
- * ON THE CENTRE BUTTON
- *
- * Posting a case is the app's primary action, so it is not a tab — it is a
- * raised gold circle that overhangs the bar. Two things make it work and both
- * are easy to lose:
- *
- *   - It is drawn *after* the bar and lifted with a negative offset, so it
- *     overlaps rather than being clipped by it. Any `overflow: hidden` on an
- *     ancestor makes its top half vanish.
- *   - The four tabs are laid out as two groups of two around a fixed spacer,
- *     not as five equal children. Five children would put a tab where the
- *     button is and make the icons sit at uneven intervals.
- *
- * The bar also takes the bottom safe-area inset itself, which is why screens
- * under it pass `edges={['top']}` — taking it in both places leaves a gap.
- */
-
 const ICONS: Record<string, React.FC<{ size?: number; color?: string }>> = {
   Home: HomeIcon,
   Cases: BriefcaseIcon,
@@ -97,7 +77,6 @@ export const GenieBottomNavigation: React.FC<BottomTabBarProps> = ({
           {state.routes.slice(0, 2).map(renderTab)}
         </View>
 
-        {/* Holds the gap the centre button sits in. */}
         <View className="w-16" pointerEvents="none" />
 
         <View className="flex-1 flex-row items-center justify-around">
@@ -118,14 +97,6 @@ export const GenieBottomNavigation: React.FC<BottomTabBarProps> = ({
   );
 };
 
-/**
- * Two genuine StyleSheet cases.
- *
- * `translateX(-50%)` has no React Native equivalent, so centring a fixed-width
- * element on `left: 50%` needs half its width subtracted in points. And
- * Android's `elevation` is a native property with no Tailwind spelling — it is
- * what lifts the button above the bar rather than merely overlapping it.
- */
 const styles = StyleSheet.create({
   centreButton: {
     transform: [{ translateX: -28 }],

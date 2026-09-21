@@ -54,7 +54,6 @@ export const GenieCaseCard: React.FC<GenieCaseCardProps> = ({
       accessibilityLabel={`Case ${item.title}`}
       className="mb-4 overflow-hidden rounded-card border border-border bg-[#151515] p-4 shadow-lg"
     >
-      {/* Top Header: Category & Status Badge */}
       <View className="flex-row items-center justify-between pb-2.5">
         <View className="flex-row items-center gap-1.5 rounded-pill border border-gold/30 bg-gold/10 px-2.5 py-1">
           <CategoryIcon size={14} color={colors.gold} />
@@ -73,7 +72,6 @@ export const GenieCaseCard: React.FC<GenieCaseCardProps> = ({
         </View>
       </View>
 
-      {/* Case ID & Title */}
       <View className="mt-1">
         <GenieText variant="caption" tone="muted" className="font-mono text-[10px] tracking-wider">
           {shortId}
@@ -83,7 +81,6 @@ export const GenieCaseCard: React.FC<GenieCaseCardProps> = ({
         </GenieText>
       </View>
 
-      {/* Metadata Row: Location & Creation Date */}
       <View className="mt-2 flex-row flex-wrap items-center gap-3">
         <View className="flex-row items-center gap-1">
           <LocationIcon size={13} color={colors.textMuted} />
@@ -100,7 +97,6 @@ export const GenieCaseCard: React.FC<GenieCaseCardProps> = ({
         </View>
       </View>
 
-      {/* 5-Step Visual Progress Stepper */}
       <View className="my-4 rounded-lg border border-border/60 bg-[#1a1a1a] p-3">
         <View className="mb-2 flex-row items-center justify-between">
           <GenieText variant="caption" tone="muted" className="text-[10px] font-bold uppercase tracking-wider">
@@ -111,7 +107,6 @@ export const GenieCaseCard: React.FC<GenieCaseCardProps> = ({
           </GenieText>
         </View>
 
-        {/* Horizontal Nodes & Lines */}
         <View className="flex-row items-center justify-between px-1 pt-1">
           {PROGRESS_STEPS.map((step, idx) => {
             const isCompleted = step.index < currentStep && !isRejected;
@@ -120,7 +115,6 @@ export const GenieCaseCard: React.FC<GenieCaseCardProps> = ({
 
             return (
               <React.Fragment key={step.index}>
-                {/* Connecting Line */}
                 {idx > 0 ? (
                   <View
                     className={`h-0.5 flex-1 ${
@@ -129,7 +123,6 @@ export const GenieCaseCard: React.FC<GenieCaseCardProps> = ({
                   />
                 ) : null}
 
-                {/* Step Node */}
                 <View className="items-center">
                   <View
                     className={`h-6 w-6 items-center justify-center rounded-full border ${
@@ -172,7 +165,6 @@ export const GenieCaseCard: React.FC<GenieCaseCardProps> = ({
         </View>
       </View>
 
-      {/* Assigned / Selected Lawyer Info */}
       {lawyer ? (
         <View className="mb-3.5 flex-row items-center justify-between rounded-control border border-border bg-[#1a1a1a] p-3">
           <View className="flex-row items-center gap-2.5">
@@ -201,7 +193,6 @@ export const GenieCaseCard: React.FC<GenieCaseCardProps> = ({
         </View>
       ) : null}
 
-      {/* Next Hearing / Scheduled Info */}
       {item.nextHearing ? (
         <View className="mb-3.5 flex-row items-center gap-2 rounded-control border border-gold/30 bg-gold/10 px-3 py-2">
           <CalendarIcon size={14} color={colors.gold} />
@@ -211,7 +202,6 @@ export const GenieCaseCard: React.FC<GenieCaseCardProps> = ({
         </View>
       ) : null}
 
-      {/* Action Footer */}
       <View className="flex-row items-center gap-2 border-t border-border pt-3">
         <Pressable
           onPress={() => onPress(item._id)}

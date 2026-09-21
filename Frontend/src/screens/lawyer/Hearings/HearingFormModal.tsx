@@ -15,27 +15,6 @@ import type {
 } from '../../../types/lawyer';
 import { colors } from '../../../theme';
 
-/**
- * Add or edit a hearing.
- *
- * ── Why the fields are what they are ──────────────────────────────────────
- *
- * Exactly the six `Case.hearings[]` carries: date, timeSlot, court, purpose,
- * status, notes. There is no reminder field on the schema and no attendee
- * list, so neither is offered — a control that writes nowhere is worse than
- * an absent one.
- *
- * `timeSlot` and `court` are free text on purpose, and the model says why:
- * courts do not publish precise slots, and a hearing must be recordable at a
- * bench the seeded Court directory does not list. A time picker would be a
- * worse fit than the field it is replacing.
- *
- * The **case** is chosen rather than typed, from the advocate's own matters,
- * because the id becomes the route: `POST /cases/:id/hearings`. It is locked
- * when editing — moving a hearing to another case is not something the API
- * supports, and pretending otherwise would send an update to the wrong route.
- */
-
 const STATUSES: { value: HearingStatus; label: string }[] = [
   { value: 'scheduled', label: 'Scheduled' },
   { value: 'completed', label: 'Completed' },
@@ -43,7 +22,6 @@ const STATUSES: { value: HearingStatus; label: string }[] = [
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
-/** `YYYY-MM-DD`, which `new Date()` parses and the controller validates. */
 const isValidDate = (value: string): boolean =>
   /^\d{4}-\d{2}-\d{2}$/.test(value.trim()) &&
   !Number.isNaN(Date.parse(value.trim()));
@@ -51,9 +29,7 @@ const isValidDate = (value: string): boolean =>
 export interface HearingFormModalProps {
   visible: boolean;
   onClose: () => void;
-  /** Present when editing; absent when adding. */
   hearing?: LawyerHearing | null;
-  /** The advocate's matters, for the case picker when adding. */
   cases: LawyerClientRow[];
   isSaving: boolean;
   error: string | null;
@@ -98,8 +74,6 @@ export const HearingFormModal: React.FC<HearingFormModalProps> = ({
   const [notes, setNotes] = useState('');
   const [touched, setTouched] = useState(false);
 
-  // Reset to the hearing being edited each time the sheet opens, so a
-  // cancelled edit never leaks its half-typed values into the next one.
   useEffect(() => {
     if (!visible) {
       return;
@@ -152,7 +126,6 @@ export const HearingFormModal: React.FC<HearingFormModalProps> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Case */}
         {isEditing ? (
           <Field label="Matter">
             <View className="rounded-control border border-border bg-card px-4 py-3">

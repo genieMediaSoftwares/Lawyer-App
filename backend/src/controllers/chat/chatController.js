@@ -7,13 +7,6 @@ const ApiResponse = require("../../config/ApiResponse");
 
 const PARTICIPANT_FIELDS = "fullName email mobile profileImage role isVerified";
 
-/**
- * Attaches `specialization` to every lawyer participant across the given chats.
- *
- * One query for all of them. This used to run a Lawyer.findOne per participant
- * per chat, so a lawyer with twenty conversations paid twenty round trips
- * before the list could render.
- */
 async function attachSpecializations(chats) {
   const lawyerUserIds = [];
   for (const chat of chats) {
@@ -43,13 +36,6 @@ async function attachSpecializations(chats) {
   }
 }
 
-/**
- * Loads a chat and confirms the caller is in it.
- *
- * Returns null when the chat is missing or the caller is not a participant —
- * every message route needs this, and none of them had it: knowing a chat id
- * was enough to read a conversation or post into it as any signed-in user.
- */
 async function loadParticipantChat(chatId, userId) {
   if (!chatId || !chatId.match(/^[0-9a-fA-F]{24}$/)) return null;
   const chat = await Chat.findOne({ _id: chatId, participants: userId });
@@ -66,7 +52,6 @@ class ChatController {
         return ApiResponse.error(res, "otherUserId is required.", 400);
       }
 
-      // Check if conversation already exists
       let chat = await Chat.findOne({
         participants: { $all: [currentUserId, otherUserId] }
       }).populate("participants", PARTICIPANT_FIELDS);
@@ -106,9 +91,6 @@ class ChatController {
         isRead: false
       });
 
-      // Tell the other participant a conversation now exists, so it appears in
-      // their list without them having to pull-to-refresh. A brand-new chat has
-      // no message yet, so nothing else would announce it.
       if (isNew) {
         const io = req.app.get("io");
         if (io) {
@@ -128,7 +110,6 @@ class ChatController {
     try {
       const currentUserId = req.user._id;
 
-      // Ensure a chat conversation exists for every case assigned to this lawyer
       const assignedCases = await Case.find({ assignedLawyer: currentUserId })
         .select("client")
         .lean();
@@ -151,7 +132,6 @@ class ChatController {
         const missing = clientIds.filter(
           (id) => !alreadyChattingWith.has(id.toString())
         );
-        // Deduplicate: several cases can share one client.
         const uniqueMissing = [
           ...new Map(missing.map((id) => [id.toString(), id])).values(),
         ];
@@ -180,7 +160,6 @@ class ChatController {
 
       const chatIds = chats.map(c => c._id);
 
-      // ── Batch 1: unread counts via aggregation (1 DB query instead of N) ──
       const unreadAgg = await Message.aggregate([
         {
           $match: {
@@ -196,9 +175,8 @@ class ChatController {
       const unreadMap = {};
       unreadAgg.forEach(u => { unreadMap[u._id.toString()] = u.count; });
 
-      // ── Batch 2: find linked cases (1 DB query instead of N) ──
       const otherIds = [];
-      const chatToOtherMap = {}; // chatId → otherId
+      const chatToOtherMap = {};
 
       chats.forEach(chat => {
         const other = (chat.participants || []).find(
@@ -225,7 +203,6 @@ class ChatController {
           const lawyerId = c.assignedLawyer?.toString() || c.selectedLawyer?.toString() || "";
           const clientId = c.client?.toString() || "";
           const isCurrentUserLawyer = lawyerId === currentUserId.toString();
-          // "other" relative to currentUser
           const otherId = isCurrentUserLawyer ? clientId : lawyerId;
           if (otherId && !caseByOtherId[otherId]) {
             caseByOtherId[otherId] = { id: c._id, title: c.title };
@@ -233,7 +210,6 @@ class ChatController {
         });
       }
 
-      // ── Assemble response (no further queries) ──
       const chatsWithData = chats.map(chat => {
         const unreadCount = unreadMap[chat._id.toString()] || 0;
         const otherId = chatToOtherMap[chat._id.toString()];
@@ -262,9 +238,6 @@ class ChatController {
         return ApiResponse.error(res, "Chat not found.", 404);
       }
 
-      // A retry after a timeout re-sends the same clientId. Without this, a
-      // message that actually arrived but whose response was lost is stored
-      // twice and the recipient sees it twice.
       if (clientId) {
         const existing = await Message.findOne({ chat: chat._id, clientId })
           .populate("sender", "fullName profileImage role");
@@ -291,13 +264,8 @@ class ChatController {
 
       const io = req.app.get("io");
       if (io) {
-        // ── Full message to the conversation room ──
-        // Drives the message bubbles on both sides.
         io.of("/chat").to(chat._id.toString()).emit("message", populatedMessage);
 
-        // ── Lightweight summary to each participant's personal room ──
-        // Drives last-message preview, ordering and unread badges in the
-        // conversation list, whether or not the conversation is open.
         chat.participants.forEach((p) => {
           io.of("/chat").to(p.toString()).emit("chat_updated", {
             chatId: chat._id.toString(),
@@ -363,9 +331,6 @@ class ChatController {
 
       const io = req.app.get("io");
       if (io) {
-        // To the reader's own room only. This clears the badge on their other
-        // devices; it is deliberately not sent to the sender, who no longer
-        // receives read receipts.
         io.of("/chat").to(currentUserId.toString()).emit("chat_read", {
           chatId: chat._id.toString()
         });

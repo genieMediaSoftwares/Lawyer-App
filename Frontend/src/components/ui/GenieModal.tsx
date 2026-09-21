@@ -5,22 +5,12 @@ import { GenieIconButton } from './GenieIconButton';
 import { CloseIcon } from '../icons/ClientIcons';
 import { colors } from '../../theme';
 
-/**
- * A centred dialog: confirmations, short forms, anything that must be answered
- * before the screen behind it continues.
- *
- * Like GenieBottomSheet it is a real `Modal`, so a dismissed dialog leaves
- * nothing mounted over the screen. Use the sheet for choosing, this for
- * deciding.
- */
-
 export interface GenieModalProps {
   visible: boolean;
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  /** Tapping the backdrop dismisses. Turn off for a decision that must be made. */
   dismissOnBackdropPress?: boolean;
   className?: string;
 }

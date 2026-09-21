@@ -5,19 +5,6 @@ import { LocationIcon, StarIcon, VerifiedIcon } from './icons/ClientIcons';
 import type { LawyerProfile } from '../types/domain';
 import { colors } from '../theme';
 
-/**
- * One advocate in a list.
- *
- * The five stars are drawn as icons rather than as a "4.5" string or a ★
- * character, so the rating reads at a glance and keeps the same weight as
- * every other icon in the app.
- *
- * The shape of the API response is the awkward part and is left as it was:
- * `specialization` is sometimes an array and sometimes a single string, and
- * the location can come from any of three fields depending on how complete
- * the advocate's profile is.
- */
-
 export interface GenieAdvocateCardProps {
   item: LawyerProfile;
   onPress: (userId: string) => void;

@@ -6,28 +6,6 @@ const {
   normaliseLanguageCode,
 } = require("../../utils/transcriptLanguage");
 
-/**
- * The instruction given to the model for a voice note.
- *
- * This asks for a *transcription* and refuses everything adjacent to it. The
- * previous version asked the opposite — it detected the spoken language and
- * then, for Hindi and Telugu specifically, told the model to "translate/
- * transcribe it into a single natural English transcript". That single
- * instruction is why a client who spoke Telugu got English text back: the audio
- * was understood correctly and then thrown away in favour of a translation of
- * it.
- *
- * Three things are stated separately because a model will happily satisfy one
- * and miss the others:
- *
- *  * write in the language that was spoken, whichever it is;
- *  * write it in that language's own script — Telugu in Telugu letters, Hindi
- *    in Devanagari — never romanised, which is the failure that looks like a
- *    transcription and reads like a transliteration; and
- *  * keep code-switching intact, because a client dictating in Telugu still
- *    says "FIR", "High Court" and "Section 138" in English and rendering those
- *    in Telugu script would be its own kind of translation.
- */
 const TRANSCRIPTION_PROMPT =
   "Transcribe this audio recording of a legal case description verbatim.\n" +
   "Rules:\n" +
@@ -44,23 +22,8 @@ const TRANSCRIPTION_PROMPT =
   "correct, explain or add anything.\n" +
   "Return only the transcript text — no preamble, no labels, no metadata.";
 
-/** Named languages, for the case where the client already told us which. */
 const LANGUAGE_NAMES = { en: "English", hi: "Hindi", te: "Telugu" };
 
-/**
- * System instruction for the advocate-facing research assistant.
- *
- * Kept separate from, and never merged with, the client-facing assistant
- * further down: that one closes by telling the reader to "post your case in
- * this app and connect with a verified lawyer", which is nonsense addressed to
- * a practising advocate.
- *
- * The constraints on citations are the important part of this text. Lawfly has
- * no case-law database, no judgment index and no subscription to any reporter,
- * so the model is told plainly that it is working from training data and must
- * never present a citation as verified. A fabricated citation handed to an
- * advocate could reach a court.
- */
 const RESEARCH_SYSTEM_INSTRUCTION = `You are the Lawfly Research Assistant, supporting a qualified practising advocate in India.
 
 You are speaking to a legal professional. Write as you would for a colleague: precise, concise, and without consumer-facing disclaimers or hand-holding. Do not suggest that they consult a lawyer, and do not suggest that they post a case in this application.
@@ -123,11 +86,6 @@ OUT OF SCOPE
 
 If asked something outside legal research, say briefly that you are the research assistant and redirect.`;
 
-/**
- * The prompt for one request, naming the client's language when they picked one
- * in the recorder. Without a language the model detects, which is what the Auto
- * option asks for.
- */
 function transcriptionPromptFor(languageCode) {
   const name = LANGUAGE_NAMES[languageCode];
   if (!name) return TRANSCRIPTION_PROMPT;
@@ -147,19 +105,6 @@ function generateTitle(message) {
   return title || "New Legal Conversation";
 }
 
-/**
- * Normalises the optional `mode` on a request into a filter and a stored value.
- *
- * Two surfaces share this collection: the client-facing AI legal assistant
- * ("chat") and the advocate-facing research assistant ("research"). They must
- * not share a history list.
- *
- * The filter for chat is `$ne: "research"` rather than `eq: "chat"` on purpose:
- * every conversation created before `mode` existed has no such field at all,
- * and in MongoDB `$ne` matches documents where the field is missing. So the
- * client chat keeps listing exactly the conversations it always listed, and a
- * request that omits `mode` behaves precisely as it did before.
- */
 const resolveMode = (value) => {
   const mode = value === "research" ? "research" : "chat";
   return {
@@ -169,10 +114,6 @@ const resolveMode = (value) => {
 };
 
 class AiController {
-  /**
-   * GET /api/ai/conversations
-   * Fetch all active conversations for the logged-in user sorted by most recent
-   */
   async getConversations(req, res, next) {
     try {
       const userId = req.user._id;
@@ -205,10 +146,6 @@ class AiController {
     }
   }
 
-  /**
-   * GET /api/ai/conversations/:id
-   * Fetch a single conversation with full message history
-   */
   async getConversationById(req, res, next) {
     try {
       const { id } = req.params;
@@ -234,10 +171,6 @@ class AiController {
     }
   }
 
-  /**
-   * POST /api/ai/conversations
-   * Start a new conversation explicitly
-   */
   async createConversation(req, res, next) {
     try {
       const userId = req.user._id;
@@ -265,10 +198,6 @@ class AiController {
     }
   }
 
-  /**
-   * DELETE /api/ai/conversations/:id
-   * Delete a single conversation owned by logged-in user
-   */
   async deleteConversation(req, res, next) {
     try {
       const { id } = req.params;
@@ -285,15 +214,9 @@ class AiController {
     }
   }
 
-  /**
-   * DELETE /api/ai/conversations
-   * Delete all conversations for logged-in user
-   */
   async deleteAllConversations(req, res, next) {
     try {
       const userId = req.user._id;
-      // Scoped to the surface that asked, so clearing the client chat history
-      // cannot also wipe an advocate's saved research, or the other way round.
       const { filter } = resolveMode(req.query.mode);
       await AiConversation.deleteMany({ userId, ...filter });
 
@@ -303,10 +226,6 @@ class AiController {
     }
   }
 
-  /**
-   * POST /api/ai/chat
-   * Chat endpoint with persistent conversation history context
-   */
   async chat(req, res, next) {
     try {
       const { message, conversationId, history } = req.body;
@@ -505,24 +424,11 @@ Responses are provided for informational purposes only and should not be conside
         ]
       };
 
-      // The instruction above addresses a member of the public. A research
-      // request replaces it outright rather than appending to it - the two
-      // personas contradict each other, and the client-facing one ends by
-      // telling the reader to go and find a lawyer.
       const activeSystemInstruction =
         mode === "research"
           ? { parts: [{ text: RESEARCH_SYSTEM_INSTRUCTION }] }
           : systemInstruction;
 
-      // The shared, probed list — see DEFAULT_MODELS in geminiClient.js for how
-      // each entry was verified and why the order is what it is.
-      //
-      // This used to be its own hardcoded copy holding "gemini-1.5-pro" and
-      // "gemini-1.5-flash-latest", both retired and answering 404, plus
-      // "gemini-3.6-flash" listed TWICE — so a chat request burned several round
-      // trips on models that could never answer before reaching one that could.
-      // Two lists also meant fixing a retirement in one place left the other
-      // broken, which is exactly what happened.
       const candidateModels = GEMINI_MODELS;
 
       let aiText = null;
@@ -535,11 +441,12 @@ Responses are provided for informational purposes only and should not be conside
           }
           try {
             const response = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
               {
                 method: "POST",
                 headers: {
-                  "Content-Type": "application/json"
+                  "Content-Type": "application/json",
+                  "x-goog-api-key": apiKey
                 },
                 body: JSON.stringify({
                   contents,
@@ -576,7 +483,6 @@ Responses are provided for informational purposes only and should not be conside
       }
 
       if (conversation) {
-        // Add AI model response to DB conversation record if active conversation
         conversation.messages.push({
           role: "model",
           text: aiText,
@@ -612,8 +518,6 @@ Responses are provided for informational purposes only and should not be conside
         );
       }
 
-      // Optional: the language the client picked in the recorder. Absent means
-      // "detect it", which is what the Auto option wants.
       const requestedLanguage = normaliseLanguageCode(
         req.body && req.body.language
       );
@@ -628,15 +532,6 @@ Responses are provided for informational purposes only and should not be conside
         mimeType = "audio/mp4";
       }
 
-      // The shared, probed list — see DEFAULT_MODELS in geminiClient.js for how
-      // each entry was verified and why the order is what it is.
-      //
-      // This used to be its own hardcoded copy holding "gemini-1.5-pro" and
-      // "gemini-1.5-flash-latest", both retired and answering 404, plus
-      // "gemini-3.6-flash" listed TWICE — so a chat request burned several round
-      // trips on models that could never answer before reaching one that could.
-      // Two lists also meant fixing a retirement in one place left the other
-      // broken, which is exactly what happened.
       const candidateModels = GEMINI_MODELS;
 
       let aiText = null;
@@ -649,11 +544,12 @@ Responses are provided for informational purposes only and should not be conside
           }
           try {
             const response = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
               {
                 method: "POST",
                 headers: {
-                  "Content-Type": "application/json"
+                  "Content-Type": "application/json",
+                  "x-goog-api-key": apiKey
                 },
                 body: JSON.stringify({
                   contents: [
@@ -711,10 +607,6 @@ Responses are provided for informational purposes only and should not be conside
 
       const transcript = aiText.trim();
 
-      // Read back from the transcript's own script rather than asking the model
-      // to declare it: the script is the evidence that the transcript really is
-      // in the spoken language, and it costs nothing. `transcript` stays first
-      // in the payload and unchanged, so every existing caller is unaffected.
       return ApiResponse.success(res, "Audio transcribed successfully.", {
         transcript,
         language: detectTranscriptLanguage(transcript),

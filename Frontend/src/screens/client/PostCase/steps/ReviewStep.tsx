@@ -19,27 +19,6 @@ import { CheckBadge } from '../AiBadge';
 import type { PostCaseStepIndex, PostCaseState } from '../types';
 import { colors } from '../../../../theme';
 
-/**
- * Step 5 — everything as it will be filed.
- *
- * ── Where the AI provenance went ──────────────────────────────────────────
- *
- * It used to be a badge beside every extracted field, which put the same six
- * words on screen a dozen times and made the page hard to read. It is now a
- * single banner at the top: the client is told once that these details came
- * from their documents, which is the thing they actually need to know before
- * signing off on them.
- *
- * The per-field **"Check"** marks stay. They are not the same signal — they
- * flag the specific values the server itself read with low confidence, so
- * collapsing them into the banner would lose the only pointer to which field
- * is doubtful.
- *
- * Each section's pencil jumps back to the step that owns it. The flow keeps
- * one state object for all five steps, so jumping back and returning loses
- * nothing.
- */
-
 interface ReviewStepProps {
   state: PostCaseState;
   onEditStep: (step: PostCaseStepIndex) => void;
@@ -110,15 +89,6 @@ const Row: React.FC<{
   );
 };
 
-/**
- * The lawyer the case is about to be sent to.
- *
- * Rendered from the recommendation row captured when they were chosen, so it
- * shows exactly the figures that were on the card at the time rather than a
- * second reading that may have moved. Zero values stay hidden here for the
- * same reason they are hidden on the card — the Lawyer model defaults them to
- * 0 for an unfilled profile.
- */
 const SelectedLawyerCard: React.FC<{
   state: PostCaseState;
   onViewProfile: () => void;
@@ -305,7 +275,6 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
         Check everything below. You can still edit any part before filing.
       </GenieText>
 
-      {/* The AI provenance, stated once rather than on every field. */}
       {state.aiSessionId ? (
         <View className="mt-4 flex-row items-center gap-2 rounded-card border border-gold-wash bg-gold-muted px-3 py-2.5">
           <SparkleIcon size={16} color={colors.gold} />
@@ -498,10 +467,6 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
         />
       </Section>
 
-      {/* ── Agreement ──────────────────────────────────────────────────────
-          Required before the case can be filed. The two documents open as
-          their own screens; this one stays mounted underneath, so coming back
-          returns to the review with everything intact. */}
       <Pressable
         onPress={() => onAgreedChange(!hasAgreed)}
         accessibilityRole="checkbox"

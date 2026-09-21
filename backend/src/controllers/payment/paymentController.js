@@ -8,9 +8,6 @@ const ApiResponse = require("../../config/ApiResponse");
 const razorpayService = require("../../services/payment/razorpayService");
 const paymentSettlementService = require("../../services/payment/paymentSettlementService");
 
-/**
- * A lawyer's balance, derived from the transaction ledger and nothing else.
- */
 const walletSummary = async (userId) => {
   const ledger = await Transaction.aggregate([
     {
@@ -49,9 +46,6 @@ const walletSummary = async (userId) => {
 };
 
 class PaymentController {
-  /**
-   * Server-authoritative order creation for consultation payments with strict authorization.
-   */
   async createConsultationOrder(req, res, next) {
     try {
       const { lawyerId, appointmentId, caseId } = req.body;
@@ -61,7 +55,6 @@ class PaymentController {
         return ApiResponse.error(res, "Lawyer ID is required.", 400);
       }
 
-      // Fetch Lawyer record to derive authoritative consultation fee
       const lawyer = await Lawyer.findOne({
         $or: [{ _id: mongoose.Types.ObjectId.isValid(lawyerId) ? lawyerId : null }, { user: lawyerId }],
       });
@@ -70,7 +63,6 @@ class PaymentController {
         return ApiResponse.error(res, "Selected lawyer record was not found.", 404);
       }
 
-      // Authorization Check 1: Validate Appointment ownership & re-use if appointmentId supplied
       if (appointmentId) {
         const appointment = await Appointment.findById(appointmentId);
         if (!appointment) {
@@ -91,7 +83,6 @@ class PaymentController {
         }
       }
 
-      // Authorization Check 2: Validate Case ownership if caseId supplied
       if (caseId) {
         const caseDoc = await Case.findById(caseId);
         if (!caseDoc) {
@@ -104,8 +95,6 @@ class PaymentController {
 
       const authoritativeAmount = lawyer.consultationFee;
 
-      // STRICT MANDATE: Fee MUST come from server-side Lawyer.consultationFee.
-      // Missing, null, zero, or negative fee rejects with no Payment/order creation.
       if (!authoritativeAmount || typeof authoritativeAmount !== "number" || authoritativeAmount <= 0) {
         console.warn(
           `[PaymentOrder Rejected] Lawyer User:${lawyer.user} has invalid fee (${authoritativeAmount}). Order creation blocked.`
@@ -117,7 +106,6 @@ class PaymentController {
         );
       }
 
-      // Create Razorpay Order server-side
       const receipt = `consult_${clientId}_${Date.now()}`;
       const order = await razorpayService.createOrder({
         amount: authoritativeAmount,
@@ -131,7 +119,6 @@ class PaymentController {
         },
       });
 
-      // Create pending Payment record in database
       const payment = await Payment.create({
         client: clientId,
         lawyer: lawyer.user,
@@ -162,9 +149,6 @@ class PaymentController {
     }
   }
 
-  /**
-   * Verify Razorpay Payment Signature and Trigger Settlement
-   */
   async verifyPayment(req, res, next) {
     try {
       const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
@@ -190,9 +174,6 @@ class PaymentController {
     }
   }
 
-  /**
-   * Razorpay Webhook Handler (Handles payment.captured, order.paid, payment.failed)
-   */
   async handleWebhook(req, res, next) {
     try {
       const signature = req.headers["x-razorpay-signature"];
@@ -205,7 +186,6 @@ class PaymentController {
 
       const rawString = Buffer.isBuffer(rawBody) ? rawBody.toString("utf8") : typeof rawBody === "string" ? rawBody : JSON.stringify(rawBody);
 
-      // Signature verification using raw request body
       const isValid = razorpayService.verifyWebhookSignature(rawString, signature);
       if (!isValid) {
         console.warn("[Webhook] Invalid webhook signature received.");

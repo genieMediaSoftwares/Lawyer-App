@@ -3,14 +3,6 @@ import { Pressable, View } from 'react-native';
 
 import { GenieText } from './ui';
 
-/**
- * The Login / Sign Up pair at the top of both auth screens.
- *
- * It is a navigation control, not a tab view: each side replaces the current
- * screen rather than swapping a panel, so the back stack never accumulates an
- * alternating chain of Login and Signup.
- */
-
 interface AuthTabsProps {
   active: 'login' | 'signup';
   onSelectLogin: () => void;
@@ -24,8 +16,6 @@ const Tab: React.FC<{
 }> = ({ label, isActive, onPress }) => (
   <Pressable
     onPress={onPress}
-    // Not disabled when active: pressing the current tab should do nothing,
-    // but a disabled control reads as unavailable to a screen reader.
     accessibilityRole="tab"
     accessibilityState={{ selected: isActive }}
     className="min-h-touch items-center justify-center px-1 py-2"

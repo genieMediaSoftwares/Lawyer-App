@@ -28,26 +28,6 @@ import type { AppDocument } from '../../../../types/domain';
 import type { PostCaseState } from '../types';
 import { colors } from '../../../../theme';
 
-/**
- * Step 3 — documents, by either of two routes.
- *
- * **Manual.** One acknowledgement, stored through `POST /documents/upload`
- * before the case exists. That ordering is forced by the contract: the upload
- * endpoint takes no case id, and `Case.documents[]` wants a `url` — so the
- * file has to be stored first and its path carried into `POST /cases`.
- *
- * **AI.** One to ten documents sent to `POST /ai/smart-case/analyze`, which
- * answers `202` with a session id and runs the pipeline detached. The result
- * is read back by polling `GET /ai/smart-case/session/:id` — there is no
- * response to wait on, and no timer anywhere in this file invents progress.
- * Every percentage and message shown comes from the server's own `progress`.
- *
- * Both routes are guarded against duplicate submission: the upload button
- * disables while a request is in flight, and the analyze call carries a
- * `requestId` generated once per screen, so a retry rejoins the running
- * analysis instead of starting a second one.
- */
-
 const POLL_INTERVAL_MS = 2000;
 
 const makeRequestId = (): string => {
@@ -61,7 +41,6 @@ const makeRequestId = (): string => {
 interface DocumentsStepProps {
   state: PostCaseState;
   onChange: (patch: Partial<PostCaseState>) => void;
-  /** Called with the finished session so the container can fold it in. */
   onExtracted: (sessionId: string) => void;
 }
 
@@ -147,8 +126,6 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
   const [uploadFraction, setUploadFraction] = useState(0);
   const [isStartingAnalysis, setIsStartingAnalysis] = useState(false);
 
-  // Generated once per mount and reused across retries, which is what makes a
-  // resent analyze request rejoin its session rather than start another.
   const requestId = useRef(makeRequestId());
 
   const sessionId = state.aiSessionId;
@@ -157,7 +134,6 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
     queryKey: ['ai', 'session', sessionId],
     queryFn: () => aiApi.getSession(sessionId as string),
     enabled: Boolean(sessionId),
-    // Polls only while the server is still working, then stops on its own.
     refetchInterval: query =>
       query.state.data?.status === 'processing' ? POLL_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
@@ -165,14 +141,6 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
 
   const session = sessionQuery.data;
 
-  /**
-   * Hands a finished analysis to the container exactly once.
-   *
-   * Guarded by a ref rather than by the query's state because the query keeps
-   * returning the same completed session on every subsequent render, and
-   * folding it in twice would overwrite edits the client had already made to
-   * the extracted values.
-   */
   const deliveredRef = useRef<string | null>(null);
   useEffect(() => {
     if (
@@ -184,8 +152,6 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
       onExtracted(sessionId);
     }
   }, [onExtracted, session?.status, sessionId]);
-
-  // ── Manual upload ───────────────────────────────────────────────────────
 
   const uploadAcknowledgement = useCallback(
     async (replacing: AppDocument | null) => {
@@ -218,7 +184,6 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
       setUploadFraction(0);
       try {
         const form = new FormData();
-        // The field name is the server's: `upload.single("acknowledgement")`.
         if (file.file) {
           (form.append as (n: string, v: Blob, f?: string) => void)(
             'acknowledgement',
@@ -258,14 +223,9 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
     try {
       await documentsApi.deleteDocument(current._id);
     } catch (deleteError) {
-      // The file is already off the form; a failed delete leaves an orphan in
-      // My Documents rather than a broken case, so it is reported and not
-      // rolled back into the form.
       setError(toAppError(deleteError).message);
     }
   }, [onChange, state.document]);
-
-  // ── AI analysis ─────────────────────────────────────────────────────────
 
   const startAnalysis = useCallback(async () => {
     if (isStartingAnalysis) {
@@ -307,8 +267,6 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
     try {
       const accepted202 = await aiApi.analyze({
         documents: accepted,
-        // Whatever the client already typed is real context for extraction,
-        // so it is sent rather than withheld.
         issueDescription: state.description,
         requestId: requestId.current,
         onUploadProgress: setUploadFraction,
@@ -331,21 +289,6 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
     onChange({ aiSessionId: null, aiDocuments: [], entryMode: null });
   }, [onChange]);
 
-  // ── Render ──────────────────────────────────────────────────────────────
-
-  /**
-   * An analysis in flight takes over the step — there is nothing useful to do
-   * alongside it, and the progress is the only thing worth showing.
-   *
-   * The condition is "a session exists and its documents are not on the form
-   * yet" rather than "status is processing", because those are not the same
-   * window. Three moments fall in the gap: the first poll before any status
-   * has arrived, an analysis handed over from the assistant screen, and the
-   * beat between the server reporting `extracted` and the container folding
-   * the result in. Keyed on status alone, each of those rendered the upload
-   * prompt for a frame — inviting the client to upload documents that were
-   * already being read.
-   */
   const isAnalysisPending =
     Boolean(sessionId) &&
     state.aiDocuments.length === 0 &&
@@ -359,8 +302,6 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
         message={session?.progress?.message || 'Preparing your documents…'}
         current={session?.progress?.current}
         total={session?.progress?.total}
-        // A finished analysis is not finished work: the form is still being
-        // filled and lawyers still being fetched, which is the last row.
         stage={
           session?.status === 'extracted'
             ? 'completed'

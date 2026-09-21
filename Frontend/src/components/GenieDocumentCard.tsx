@@ -5,19 +5,10 @@ import { FileIcon, TrashIcon } from './icons/ClientIcons';
 import { formatFileSize } from '../utils/format';
 import { colors } from '../theme';
 
-/**
- * One file: an attachment on a case, or a row in My Documents.
- *
- * `state` is what the row is doing, not what it looks like. An upload that
- * failed shows the real reason next to the name and outlines the card in red;
- * it is never silently dropped from the list.
- */
-
 export type GenieDocumentCardState = 'idle' | 'uploading' | 'error';
 
 export interface GenieDocumentCardProps {
   name: string;
-  /** Bytes, or an already-formatted string from the API. */
   size?: number | string | null;
   state?: GenieDocumentCardState;
   error?: string;

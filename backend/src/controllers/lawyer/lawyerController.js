@@ -37,17 +37,14 @@ class LawyerController {
       const matchingUsers = await User.find(userQuery);
       const userIds = matchingUsers.map((u) => u._id);
 
-      // Find existing lawyer profiles
       const existingLawyers = await Lawyer.find({ user: { $in: userIds } }).populate(
         "user",
         "fullName email mobile profileImage location isVerified isActive"
       );
 
-      // Identify user IDs missing a Lawyer profile
       const existingUserIds = new Set(existingLawyers.map((l) => l.user ? l.user._id.toString() : ''));
       const missingUsers = matchingUsers.filter((u) => !existingUserIds.has(u._id.toString()));
 
-      // Create missing lawyer profiles dynamically
       if (missingUsers.length > 0) {
         const newLawyerPromises = missingUsers.map((user) => 
           Lawyer.create({
@@ -65,14 +62,12 @@ class LawyerController {
         await Promise.all(newLawyerPromises);
       }
 
-      // Query again to return the full populated list
       let lawyerQuery = { user: { $in: userIds } };
       
       if (specialization && specialization !== "All" && specialization !== "All Practice Areas") {
         lawyerQuery.specialization = { $regex: specialization, $options: "i" };
       }
 
-      // Experience filter (ranges: '0-2', '3-5', '5-10', '10+')
       if (experience && experience !== "All" && experience !== "All Experience") {
         if (experience === "0-2") {
           lawyerQuery.experience = { $gte: 0, $lte: 2 };
@@ -85,7 +80,6 @@ class LawyerController {
         }
       }
 
-      // Consultation Fee filter (range)
       if (minFee || maxFee) {
         lawyerQuery.consultationFee = {};
         if (minFee) {
@@ -96,7 +90,6 @@ class LawyerController {
         }
       }
 
-      // Rating filter (e.g. "4★+", "3★+", etc)
       if (rating && rating !== "All" && rating !== "All Ratings") {
         const parsedRating = parseFloat(rating.replace("★+", "").replace("+", ""));
         if (!isNaN(parsedRating)) {
@@ -104,7 +97,6 @@ class LawyerController {
         }
       }
 
-      // Language filter (e.g. list of selected languages or single language)
       if (language) {
         const langs = Array.isArray(language) ? language : [language];
         const cleanLangs = langs.filter(l => l && l.trim() !== "");
@@ -118,7 +110,6 @@ class LawyerController {
         "fullName email mobile profileImage location isVerified isActive"
       );
 
-      // Sorting logic in JavaScript memory
       if (sortBy) {
         if (sortBy === "Highest Rated") {
           lawyers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
@@ -149,7 +140,7 @@ class LawyerController {
 
   async getLawyerById(req, res, next) {
     try {
-      const { id } = req.params; // userId or lawyerId? Let's check both
+      const { id } = req.params;
       let lawyer = await Lawyer.findOne({ user: id }).populate(
         "user",
         "fullName email mobile profileImage location"
@@ -495,10 +486,6 @@ class LawyerController {
 
       const googleCalendarService = require("../../services/googleCalendarService");
 
-      // A real exchange needs both configured credentials and an authorization
-      // code. Requiring the code here is what stops `oauth2Client.getToken()`
-      // being called with undefined on a configured deployment whose client
-      // did not complete the OAuth flow.
       const realMode =
         googleCalendarService.isRealMode() && !isSimulated && Boolean(code);
 
@@ -513,7 +500,6 @@ class LawyerController {
         const { tokens } = await oauth2Client.getToken(code);
         oauth2Client.setCredentials(tokens);
 
-        // Fetch user email from Google OAuth profile
         const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
         const userInfo = await oauth2.userinfo.get();
 
@@ -527,10 +513,6 @@ class LawyerController {
           lawyer.googleTokenExpiry = new Date(tokens.expiry_date);
         }
       } else {
-        // Simulated integration: no Google API call is made and no real
-        // calendar event will exist. The lawyer's own address is recorded —
-        // "mock_advocate@gmail.com" used to be stored when none was supplied,
-        // which then displayed in their settings as a connected account.
         if (!email) {
           return ApiResponse.error(
             res,
@@ -548,7 +530,6 @@ class LawyerController {
 
       await lawyer.save();
 
-      // Trigger sync of existing future appointments in the background
       googleCalendarService.syncExistingAppointments(req.user._id).catch(err => {
         console.error("Failed to sync existing appointments on connect:", err);
       });
@@ -561,8 +542,6 @@ class LawyerController {
         {
           connected: true,
           email: lawyer.googleEmail,
-          // Told plainly, so the UI never presents a simulated link as a live
-          // calendar integration.
           simulated: !realMode,
         }
       );

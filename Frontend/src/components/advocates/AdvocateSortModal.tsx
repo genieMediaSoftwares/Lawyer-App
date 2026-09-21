@@ -10,10 +10,6 @@ export interface AdvocateSortModalProps {
   onApply: (sort: SortOption | 'Most Relevant') => void;
 }
 
-/**
- * These strings go to the backend as the `sortBy` query parameter, so they are
- * the API's spelling rather than display labels and must not be reworded.
- */
 const SORT_OPTIONS: Array<SortOption | 'Most Relevant'> = [
   'Most Relevant',
   'Highest Rated',

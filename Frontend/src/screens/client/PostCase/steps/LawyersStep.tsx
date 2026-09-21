@@ -23,22 +23,6 @@ import type { RecommendedLawyer } from '../../../../types/domain';
 import type { PostCaseState } from '../types';
 import { colors } from '../../../../theme';
 
-/**
- * Step 4 — who should take the case.
- *
- * Backed by `GET /lawyers/recommend`, which scores every lawyer on location,
- * speciality, rating, experience and verification and returns them already
- * sorted. The percentage shown is the server's `matchPercentage`; nothing here
- * computes one.
- *
- * The sort chips send `sortBy` verbatim, because the service compares against
- * those exact strings — "Fees: Low to High" and not a tidier slug.
- *
- * A zero rating, zero cases or zero years is **hidden rather than printed**.
- * The Lawyer model defaults those to 0 for a profile nobody has filled in yet,
- * so a printed "0.0" would present an absence as a bad record.
- */
-
 const SORT_OPTIONS = [
   'Best Match',
   'Experience',
@@ -63,15 +47,6 @@ const LawyerCard: React.FC<{
   const photo = resolveFileUrl(lawyer.profileImage);
 
   return (
-    /**
-     * The whole card is the selection control.
-     *
-     * Hunting for a small radio target is the wrong ask on a phone, so the
-     * card takes the tap and the circle is left as a state indicator. The
-     * "View Profile" button below is its own Pressable: React Native gives the
-     * innermost responder the touch, so pressing it opens the profile without
-     * also selecting — which is exactly the distinction wanted here.
-     */
     <Pressable
       onPress={onSelect}
       accessibilityRole="radio"
@@ -119,7 +94,6 @@ const LawyerCard: React.FC<{
               ) : null}
             </View>
 
-            {/* Indicator only — the card itself takes the tap. */}
             <View
               className={`h-6 w-6 items-center justify-center rounded-full border-2 ${
                 isSelected ? 'border-gold bg-gold' : 'border-border'
@@ -239,7 +213,6 @@ export const LawyersStep: React.FC<LawyersStepProps> = ({
     ],
     queryFn: () =>
       advocatesApi.recommend({
-        // Required — the controller 400s without it.
         category: state.category,
         ...(state.subcategory ? { subcategory: state.subcategory } : {}),
         ...(state.location ? { city: state.location } : {}),
@@ -254,9 +227,6 @@ export const LawyersStep: React.FC<LawyersStepProps> = ({
 
   const select = (lawyer: RecommendedLawyer) => {
     onChange({
-      // Stored whole: the review step shows this lawyer's details, and
-      // `toCreatePayload` takes `userId` from it because `Case.selectedLawyer`
-      // references User, not the Lawyer document.
       selectedLawyer: lawyer,
     });
   };

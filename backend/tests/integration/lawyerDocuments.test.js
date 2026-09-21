@@ -1,11 +1,3 @@
-/**
- * Lawyer access to the document system.
- *
- * A lawyer uses the same endpoints as a client, with a wider scope: their own
- * uploads plus the documents of clients they are engaged with. Those two are
- * deliberately not equivalent — a lawyer may READ a client's document but may
- * not rename, replace or delete it.
- */
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 process.env.NODE_ENV = "test";
 process.env.BACKEND_URL = "http://localhost:5000";
@@ -127,7 +119,6 @@ beforeEach(() => {
     select: async () => (ROLES[id] ? { _id: id, role: ROLES[id] } : null),
   }));
 
-  // LAWYER is engaged with ENGAGED_CLIENT. OTHER_LAWYER is engaged with nobody.
   Case.find.mockImplementation((query) => ({
     distinct: async () => {
       const forLawyer = JSON.stringify(query).includes(LAWYER);
@@ -145,10 +136,6 @@ afterEach(() => {
 
 describe("Lawyer document listing", () => {
   it("lists the lawyer's OWN uploaded documents", async () => {
-    // uploadDocument stores clientId = req.user._id, so a lawyer's own upload
-    // is owned by the lawyer. The lawyer scope used to match only the client
-    // ids on their cases, so their own uploads were invisible to them — they
-    // uploaded a document successfully and then could never see it again.
     seed(LAWYER, { originalName: "my_own_brief.pdf" });
 
     const res = await request(app).get("/api/documents").set(auth(LAWYER));
@@ -264,8 +251,6 @@ describe("Lawyer rename, replace and delete permissions", () => {
   });
 
   it("does NOT let a lawyer rename an engaged client's document", async () => {
-    // Readable is not writable: a lawyer can open a client's evidence, but
-    // retitling the client's own file is not theirs to do.
     const doc = seed(ENGAGED_CLIENT);
 
     const res = await request(app)

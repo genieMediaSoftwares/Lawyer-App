@@ -4,7 +4,6 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// Apply authMiddleware globally to all case routes
 router.use(authMiddleware);
 
 router.post("/", caseController.createCase);
@@ -12,9 +11,6 @@ router.get("/", caseController.getCases);
 router.get("/status/in-progress", caseController.getInProgressCases);
 router.get("/status/closed", caseController.getClosedCases);
 
-// Hearings. Court hearings on a case - distinct from the consultation
-// appointments served by /api/appointments, which keep their own model,
-// endpoints and Google Calendar sync.
 router.get("/hearings/mine", caseController.getMyHearings);
 
 router.get("/:id/timeline", caseController.getCaseTimeline);

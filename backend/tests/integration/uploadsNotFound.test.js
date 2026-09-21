@@ -1,15 +1,3 @@
-/**
- * What a client gets when an upload path matches no file.
- *
- * Production showed users `Cannot GET /uploads/cases/<file>.pdf` — Express's
- * built-in finalhandler, as an HTML page. It is reached because
- * `express.static` calls next() when the file is not on disk, and nothing was
- * mounted after the routes to answer an unmatched path. The app's error
- * middleware does not catch it: a 4-argument handler only runs on next(err).
- *
- * Authorisation is NOT the cause — fileAuthMiddleware answers 401/404 as JSON
- * and never reaches the finalhandler. These pin the distinction.
- */
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 process.env.NODE_ENV = "test";
 
@@ -37,7 +25,6 @@ const OWNER = "507f1f77bcf86cd799439011";
 const UPLOADS = path.resolve(__dirname, "../../uploads");
 const CASES = path.join(UPLOADS, "cases");
 
-/** Mirrors app.js: static behind the file guard, then the 404 handler. */
 function makeApp() {
   const app = express();
   app.use("/uploads", fileAuthMiddleware, express.static(UPLOADS, { index: false }));
@@ -57,7 +44,6 @@ beforeEach(() => {
   User.findById.mockImplementation((id) => ({
     select: async () => (id === OWNER ? { _id: id, role: "client" } : null),
   }));
-  // The case references this filename, so the owner is entitled to read it.
   Case.find.mockReturnValue({ distinct: async () => [] });
   Document.findOne.mockResolvedValue(null);
   Message.findOne.mockReturnValue({ populate: async () => null });
@@ -89,7 +75,6 @@ describe("Missing upload files", () => {
   });
 
   it("answers JSON, not 'Cannot GET', when the file is absent", async () => {
-    // The exact production failure: authorised, but nothing on disk.
     const res = await request(makeApp())
       .get(`/uploads/cases/1789465124833-82df87498e995707.pdf?token=${token()}`);
 
@@ -100,7 +85,6 @@ describe("Missing upload files", () => {
 
     const body = JSON.stringify(res.body);
     expect(body).not.toMatch(/Cannot GET/);
-    // The filesystem layout is ours, not the client's business.
     expect(body).not.toMatch(/uploads[/\\]cases/);
   });
 
@@ -109,14 +93,12 @@ describe("Missing upload files", () => {
       .get(`/uploads/cases/missing.pdf?token=${token()}`);
 
     const body = JSON.stringify(res.body);
-    expect(body).not.toMatch(/[A-Za-z]:\\/);   // windows path
-    expect(body).not.toMatch(/\/home\//);       // ec2 path
+    expect(body).not.toMatch(/[A-Za-z]:\\/);
+    expect(body).not.toMatch(/\/home\//);
     expect(body).not.toMatch(/node_modules/);
   });
 
   it("still refuses an unauthenticated request with 401, not 404", async () => {
-    // Authorisation must be answered before existence, so a missing file and a
-    // forbidden one stay distinguishable to us and opaque to a stranger.
     const res = await request(makeApp()).get("/uploads/cases/whatever.pdf");
 
     expect(res.status).toBe(401);

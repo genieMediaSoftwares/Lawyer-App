@@ -1,7 +1,3 @@
-/**
- * Structured JSON Logger for Production Observability.
- */
-
 function formatMessage(level, message, meta = {}) {
   return JSON.stringify({
     timestamp: new Date().toISOString(),

@@ -1,20 +1,7 @@
 const jwt = require("jsonwebtoken");
+const sessionService = require("../services/auth/sessionService");
 
-/**
- * Socket.IO handshake authentication.
- *
- * Every namespace must install this. Without it the server accepted anonymous
- * connections and let the client name its own rooms, so anyone could join an
- * arbitrary chat conversation or another user's private notification room
- * simply by emitting the corresponding id.
- *
- * The verified id is attached as `socket.userId` and is the *only* identity
- * handlers may trust — never a userId taken from the event payload.
- *
- * Clients authenticate with:
- *   io(url, { auth: { token: "<jwt>" } })
- */
-const socketAuth = (socket, next) => {
+const socketAuth = async (socket, next) => {
   const token =
     socket.handshake.auth?.token ||
     socket.handshake.headers?.authorization?.replace(/^Bearer /, "");
@@ -25,6 +12,9 @@ const socketAuth = (socket, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.sid && !(await sessionService.isSessionActive(decoded.sid))) {
+      return next(new Error("Unauthorized: session has ended"));
+    }
     socket.userId = decoded.id.toString();
     socket.userRole = decoded.role;
     return next();

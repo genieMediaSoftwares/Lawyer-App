@@ -164,7 +164,6 @@ export const LawyerDashboardScreen: React.FC<
         ),
       }}
     >
-      {/* LAWYER PROFILE HEADER ROW */}
       <View className="mt-2 flex-row items-center">
         <View className="rounded-full border-2 border-gold p-0.5">
           <GenieAvatar
@@ -199,7 +198,6 @@ export const LawyerDashboardScreen: React.FC<
         </View>
       </View>
 
-      {/* PREMIUM PLAN PROMOTIONAL CARD */}
       <View className="mt-5 rounded-card border border-gold/40 bg-card p-4">
         <View className="flex-row items-center gap-2">
           <StarIcon size={16} color={colors.gold} />
@@ -226,13 +224,11 @@ export const LawyerDashboardScreen: React.FC<
         </View>
       </View>
 
-      {/* TODAY'S OVERVIEW SECTION */}
       <GenieText variant="heading-sm" className="mt-6 mb-3 font-bold text-white">
         Today's Overview
       </GenieText>
 
       <View className="rounded-card border border-border bg-card p-4">
-        {/* Row 1: New Case Requests */}
         <View className="flex-row items-center justify-between py-2">
           <View className="flex-row items-center flex-1 pr-3">
             <View className="mr-3.5 h-10 w-10 items-center justify-center rounded-full bg-gold-muted border border-gold/20">
@@ -255,7 +251,6 @@ export const LawyerDashboardScreen: React.FC<
 
         <View className="h-px bg-border/50 my-2" />
 
-        {/* Row 2: Unread Messages */}
         <View className="flex-row items-center justify-between py-2">
           <View className="flex-row items-center flex-1 pr-3">
             <View className="mr-3.5 h-10 w-10 items-center justify-center rounded-full bg-gold-muted border border-gold/20">
@@ -278,7 +273,6 @@ export const LawyerDashboardScreen: React.FC<
 
         <View className="h-px bg-border/50 my-2" />
 
-        {/* Row 3: Pending Document Reviews */}
         <View className="flex-row items-center justify-between py-2">
           <View className="flex-row items-center flex-1 pr-3">
             <View className="mr-3.5 h-10 w-10 items-center justify-center rounded-full bg-gold-muted border border-gold/20">
@@ -301,7 +295,6 @@ export const LawyerDashboardScreen: React.FC<
 
         <View className="h-px bg-border/50 my-2" />
 
-        {/* Row 4: Pending Client Responses */}
         <View className="flex-row items-center justify-between py-2">
           <View className="flex-row items-center flex-1 pr-3">
             <View className="mr-3.5 h-10 w-10 items-center justify-center rounded-full bg-gold-muted border border-gold/20">

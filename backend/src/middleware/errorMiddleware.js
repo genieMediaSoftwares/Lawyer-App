@@ -1,9 +1,3 @@
-/**
- * Turns a schema path into something a person can read.
- *
- * Array paths arrive as "documents.0.url"; the index is dropped because the
- * client shows one message per field, not per element.
- */
 function readableFieldName(path) {
   const last = String(path)
     .split(".")
@@ -16,23 +10,7 @@ function readableFieldName(path) {
 
 const AppError = require("../utils/AppError");
 
-/**
- * Rewrites failures that originate below the application layer.
- *
- * Anything thrown by Mongo, Mongoose or jsonwebtoken carries an operator's
- * message, not a user's: index names, collection names, cast failures, and in
- * the duplicate-key case the offending value itself. Those were being copied
- * straight into the response body, so a signup that lost a race told the user
- * about `E11000 duplicate key error collection: law.users index: email_1`.
- *
- * Returns a replacement {message, statusCode, code} for the errors it
- * recognises, or null to leave the error alone — which is deliberate for
- * everything the application raises on purpose, including plain Errors thrown
- * by services whose messages are written for the user.
- */
 const translateInfrastructureError = (err) => {
-  // Duplicate key. Services that expect one map it to the right field before
-  // it reaches here; this is the backstop for every other collection.
   if (err.code === 11000) {
     const field = Object.keys(err.keyPattern || {})[0];
     return {
@@ -44,15 +22,9 @@ const translateInfrastructureError = (err) => {
     };
   }
 
-  // Schema validation. The field names are ours and safe to name; the rest of
-  // the Mongoose message is not.
   if (err.name === "ValidationError" && err.errors) {
     const names = Object.keys(err.errors);
 
-    // A per-field map, so the client can mark the offending input instead of
-    // showing one sentence listing field names. The text is composed HERE from
-    // the KIND of failure — never from err.errors[x].message, which carries
-    // Mongoose's own wording, the model name and sometimes the rejected value.
     const fields = {};
     for (const name of names) {
       const detail = err.errors[name];
@@ -91,8 +63,6 @@ const translateInfrastructureError = (err) => {
     };
   }
 
-  // A malformed ObjectId in a route parameter. Reported as a 500 before, with
-  // the raw cast failure attached.
   if (err.name === "CastError") {
     return {
       statusCode: 400,
@@ -126,10 +96,6 @@ const errorMiddleware = (
   res,
   next
 ) => {
-  // Full detail stays in the server log — this is where an operator looks.
-  // Failures we raise on purpose (a wrong password, a duplicate signup) are
-  // routine and get one line; anything else gets the stack, because it is a
-  // bug somebody has to find.
   if (err instanceof AppError) {
     console.warn(`${req.method} ${req.originalUrl} → ${err.statusCode} ${err.code || ""}`.trim());
   } else {
@@ -139,7 +105,6 @@ const errorMiddleware = (
   let message = err.message || "Internal Server Error";
   let statusCode = err.statusCode || 500;
   let code = err instanceof AppError ? err.code : undefined;
-  // Per-field detail, when the translator produced any.
   let fields;
 
   if (err.code === "LIMIT_FILE_SIZE") {
@@ -150,8 +115,6 @@ const errorMiddleware = (
     const translated = translateInfrastructureError(err);
     if (translated) {
       ({ message, statusCode, code } = translated);
-      // Destructuring the three named keys alone silently dropped `fields`, so
-      // the per-field map never reached the client.
       fields = translated.fields;
     }
   }

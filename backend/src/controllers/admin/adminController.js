@@ -8,7 +8,6 @@ const AiConversation = require("../../models/AiConversation");
 const Notification = require("../../models/Notification");
 const Chat = require("../../models/Chat");
 
-// 1. Dashboard Statistics
 exports.getAdminDashboardStats = async (req, res, next) => {
   try {
     const totalClients = await User.countDocuments({ role: "client" });
@@ -78,7 +77,6 @@ exports.getAdminDashboardStats = async (req, res, next) => {
   }
 };
 
-// 2. Client Management
 exports.getClients = async (req, res, next) => {
   try {
     const { search, status, page = 1, limit = 20 } = req.query;
@@ -126,7 +124,6 @@ exports.getClients = async (req, res, next) => {
   }
 };
 
-// 3. Lawyer Management
 exports.getLawyers = async (req, res, next) => {
   try {
     const { search, verificationStatus, page = 1, limit = 20 } = req.query;
@@ -169,7 +166,6 @@ exports.getLawyers = async (req, res, next) => {
   }
 };
 
-// 4. Lawyer Verification Action
 exports.verifyLawyer = async (req, res, next) => {
   try {
     const { lawyerId } = req.params;
@@ -212,7 +208,6 @@ exports.verifyLawyer = async (req, res, next) => {
   }
 };
 
-// 5. Case Management
 exports.getCases = async (req, res, next) => {
   try {
     const { status, search, page = 1, limit = 20 } = req.query;
@@ -258,7 +253,6 @@ exports.getCases = async (req, res, next) => {
   }
 };
 
-// 6. Update Case Status
 exports.updateCaseStatus = async (req, res, next) => {
   try {
     const { caseId } = req.params;
@@ -284,7 +278,6 @@ exports.updateCaseStatus = async (req, res, next) => {
   }
 };
 
-// 7. Documents Vault Overview
 exports.getDocuments = async (req, res, next) => {
   try {
     const { search, category } = req.query;
@@ -315,7 +308,6 @@ exports.getDocuments = async (req, res, next) => {
   }
 };
 
-// 8. AI Analytics
 exports.getAiAnalytics = async (req, res, next) => {
   try {
     const totalConversations = await AiConversation.countDocuments();
@@ -345,7 +337,6 @@ exports.getAiAnalytics = async (req, res, next) => {
   }
 };
 
-// 9. Support Tickets Management
 exports.getSupportTickets = async (req, res, next) => {
   try {
     const { status, search } = req.query;
@@ -353,9 +344,6 @@ exports.getSupportTickets = async (req, res, next) => {
 
     if (status && status !== "all") query.status = status;
     if (search) {
-      // Against the Issue schema's real fields. This searched `subject` and
-      // `ticketId`, neither of which exists on Issue, so two thirds of the
-      // filter silently matched nothing.
       query.$or = [
         { title: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
@@ -363,8 +351,6 @@ exports.getSupportTickets = async (req, res, next) => {
       ];
     }
 
-    // The raiser is stored as `clientId`; populating "user" produced null on
-    // every ticket, so the admin queue showed no requester at all.
     const tickets = await Issue.find(query)
       .populate("clientId", "fullName email mobile role")
       .sort({ createdAt: -1 });
@@ -402,7 +388,6 @@ exports.updateSupportTicket = async (req, res, next) => {
   }
 };
 
-// 10. Broadcast Push Notification
 exports.broadcastNotification = async (req, res, next) => {
   try {
     const { title, message, targetRole } = req.body;
@@ -444,7 +429,6 @@ exports.broadcastNotification = async (req, res, next) => {
   }
 };
 
-// 11. System Analytics Data
 exports.getAnalyticsData = async (req, res, next) => {
   try {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -489,7 +473,6 @@ exports.getAnalyticsData = async (req, res, next) => {
   }
 };
 
-// 12. Dynamic Reports Export Data
 exports.getReportData = async (req, res, next) => {
   try {
     const { reportType } = req.query;

@@ -213,7 +213,6 @@ export const WorkspaceScreen: React.FC<LawyerTabScreenProps<'Workspace'>> = ({
         ),
       }}
     >
-      {/* WELCOME SECTION */}
       <View className="mt-2 mb-6 rounded-card border border-border bg-surface p-5">
         <GenieText variant="body-md" tone="secondary" className="font-medium">
           Welcome, Advocate
@@ -233,7 +232,6 @@ export const WorkspaceScreen: React.FC<LawyerTabScreenProps<'Workspace'>> = ({
         </GenieText>
       </View>
 
-      {/* ERROR STATE WITH RETRY */}
       {isError ? (
         <GenieErrorState
           title="Workspace Unavailable"
@@ -244,7 +242,6 @@ export const WorkspaceScreen: React.FC<LawyerTabScreenProps<'Workspace'>> = ({
         />
       ) : null}
 
-      {/* WORKSPACE TOOLS SECTION */}
       <GenieSectionHeader title="Workspace Tools" />
 
       {isLoading ? (
@@ -288,7 +285,6 @@ export const WorkspaceScreen: React.FC<LawyerTabScreenProps<'Workspace'>> = ({
         </View>
       )}
 
-      {/* MY PRACTICE SECTION */}
       <View className="mt-6">
         <GenieText variant="heading-sm" className="font-bold text-white">
           My Practice
@@ -323,7 +319,6 @@ export const WorkspaceScreen: React.FC<LawyerTabScreenProps<'Workspace'>> = ({
         />
       </View>
 
-      {/* BOTTOM TIP CARD */}
       <View className="mt-6 mb-4 rounded-card border border-gold/30 bg-card p-4">
         <View className="flex-row items-center gap-2">
           <View className="h-7 w-7 items-center justify-center rounded-full bg-gold-muted border border-gold/20">

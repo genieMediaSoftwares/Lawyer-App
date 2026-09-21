@@ -1,15 +1,6 @@
 const Lawyer = require("../../models/Lawyer");
 
 class LawyerRecommendationService {
-  /**
-   * Generates weighted lawyer recommendations.
-   * Factors:
-   *  - Location Score (City match: 35%, District: 25%, State: 15%)
-   *  - Specialization / Practice Area Match (30%)
-   *  - Rating & Review Volume (15%)
-   *  - Experience Level (10%)
-   *  - Verified Status (10%)
-   */
   async getRecommendations({ category, subcategory, city, district, state, sortBy, limit = 10 }) {
     if (!category) {
       throw new Error("Category is required for recommendation.");
@@ -18,7 +9,6 @@ class LawyerRecommendationService {
     const catPattern = category.trim();
     const subPattern = (subcategory || "").trim();
 
-    // 1. Fetch candidates matching category/specialization or general litigation
     const allLawyers = await Lawyer.find()
       .populate("user", "fullName email mobile profileImage location isVerified isActive")
       .exec();
@@ -32,7 +22,6 @@ class LawyerRecommendationService {
       const cat = catPattern.toLowerCase();
       const sub = subPattern.toLowerCase();
 
-      // Location match scoring
       let locationScore = 0;
       if (city && userLoc.includes(city.toLowerCase())) {
         locationScore = 35;
@@ -42,7 +31,6 @@ class LawyerRecommendationService {
         locationScore = 15;
       }
 
-      // Specialization match scoring
       let specScore = 0;
       if (spec.includes(cat) || cat.includes(spec)) {
         specScore += 20;
@@ -54,16 +42,12 @@ class LawyerRecommendationService {
         specScore += 10;
       }
 
-      // Rating score (0-5 mapped to 0-15)
       const ratingScore = ((lawyer.rating || 4.0) / 5.0) * 15;
 
-      // Experience score (capped at 10 points for 10+ yrs)
       const expScore = Math.min(10, ((lawyer.experience || 1) / 10) * 10);
 
-      // Verified score (10 points)
       const verifiedScore = user.isVerified ? 10 : 0;
 
-      // Total weighted match percentage (capped 65% - 98%)
       const rawTotal = 40 + locationScore * 0.4 + specScore * 0.6 + ratingScore + expScore + verifiedScore * 0.5;
       const matchPercentage = Math.min(98, Math.max(65, Math.round(rawTotal)));
 
@@ -108,7 +92,6 @@ class LawyerRecommendationService {
       };
     });
 
-    // 2. Filter out non-matching candidates
     const filtered = scored.filter((l) => {
       const spec = l.specialization.toLowerCase();
       const cat = catPattern.toLowerCase();
@@ -122,7 +105,6 @@ class LawyerRecommendationService {
       );
     });
 
-    // 3. Sort by requested or default match criteria
     filtered.sort((a, b) => {
       if (sortBy === "Best Match") {
         return b.matchPercentage - a.matchPercentage;
@@ -136,7 +118,6 @@ class LawyerRecommendationService {
       return b.matchPercentage - a.matchPercentage;
     });
 
-    // Return top N recommendations (default 10)
     return filtered.slice(0, limit);
   }
 }

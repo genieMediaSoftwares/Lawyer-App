@@ -11,8 +11,6 @@ import {
 import { env } from '../../../config/env';
 import type { ClientStackScreenProps } from '../../../types/navigation';
 
-/** A bullet drawn as a gold dot rather than a "•" character, so its size and
- *  colour come from the design system instead of the system font. */
 const Bullet: React.FC<{ children: string }> = ({ children }) => (
   <View className="mb-2 flex-row items-start">
     <View className="mr-2 mt-2 h-1.5 w-1.5 rounded-full bg-gold" />
@@ -79,9 +77,6 @@ export const AboutUsScreen: React.FC<ClientStackScreenProps<'AboutUs'>> = ({
         </Bullet>
       </Section>
 
-      {/* Rendered only when a real contact is configured in .env. This used to
-          print a 555-01xx number — the range reserved for fictional use — and an
-          address that disagreed with the backend's own. */}
       {env.supportEmail || env.supportPhone ? (
         <Section title="CONTACT &amp; SUPPORT">
           {env.supportEmail ? (

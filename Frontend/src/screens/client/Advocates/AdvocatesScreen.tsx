@@ -139,8 +139,6 @@ export const AdvocatesScreen: React.FC<ClientTabScreenProps<'Advocates'>> = ({
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         contentContainerClassName="px-3 pb-16"
-        // `flexGrow` is conditional, so it cannot be a class: it only applies
-        // when there are no rows, to centre the empty state.
         contentContainerStyle={
           isEmpty ? { flexGrow: 1, justifyContent: 'center' } : undefined
         }

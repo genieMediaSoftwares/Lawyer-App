@@ -6,23 +6,8 @@ import { CheckIcon } from '../../../components/icons/Icons';
 import { POST_CASE_STEPS } from './types';
 import { colors } from '../../../theme';
 
-/**
- * The five-step header.
- *
- * Distinct from `GenieProgressStepper`, which draws small dots for a case's
- * lifecycle. This one numbers its steps and puts the connectors between the
- * circles rather than through them, because the step number is the thing the
- * client is asked to keep track of.
- *
- * Each column is `flex-1` so the circles stay evenly spaced whatever the
- * labels say, and the connectors are drawn as siblings inside the column
- * rather than as one line behind everything — the same reason the dot stepper
- * is built that way.
- */
-
 interface PostCaseStepperProps {
   currentIndex: number;
-  /** The highest step reached, so completed circles read as done. */
   furthestIndex: number;
 }
 

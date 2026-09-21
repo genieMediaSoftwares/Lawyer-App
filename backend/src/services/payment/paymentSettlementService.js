@@ -10,18 +10,6 @@ const notificationService = require("../notification/notificationService");
 const { runInTransaction } = require("../../utils/dbTransaction");
 
 class PaymentSettlementService {
-  /**
-   * Single idempotent ACID settlement logic for payment verification & webhook events.
-   *
-   * @param {Object} params
-   * @param {String} params.razorpayOrderId
-   * @param {String} params.razorpayPaymentId
-   * @param {String} [params.razorpaySignature]
-   * @param {String} [params.eventId] - x-razorpay-event-id for webhook idempotency
-   * @param {String} [params.eventType]
-   * @param {Boolean} [params.isWebhook]
-   * @returns {Promise<Object>} Settlement result
-   */
   async settlePayment({
     razorpayOrderId,
     razorpayPaymentId,
@@ -34,7 +22,6 @@ class PaymentSettlementService {
       throw new Error("Razorpay Order ID is required for payment settlement.");
     }
 
-    // 1. Webhook Event Idempotency & Deduplication Check
     if (isWebhook && eventId) {
       const existingEvent = await WebhookEvent.findOne({ eventId });
       if (existingEvent) {
@@ -46,7 +33,6 @@ class PaymentSettlementService {
             payment: existingPayment,
           };
         }
-        // If event status is 'processing' or 'failed', allow execution/retry
       } else {
         await WebhookEvent.create({
           eventId,
@@ -57,13 +43,11 @@ class PaymentSettlementService {
     }
 
     try {
-      // 2. Fetch Payment record by razorpayOrderId (server-stored order ID)
       const payment = await Payment.findOne({ razorpayOrderId });
       if (!payment) {
         throw new Error(`Payment record not found for Razorpay order ID: ${razorpayOrderId}`);
       }
 
-      // 3. Early Idempotency Check on Payment status
       if (payment.status === "completed") {
         if (isWebhook && eventId) {
           await WebhookEvent.updateOne({ eventId }, { status: "processed", processedAt: new Date() });
@@ -74,7 +58,6 @@ class PaymentSettlementService {
         };
       }
 
-      // 4. Signature Verification (Uses server-stored razorpayOrderId)
       if (razorpaySignature) {
         const isValid = razorpayService.verifyPaymentSignature({
           razorpayOrderId: payment.razorpayOrderId,
@@ -86,7 +69,6 @@ class PaymentSettlementService {
         }
       }
 
-      // 5. Fetch and Verify directly from Razorpay API when credentials are present
       const razorpayDetails = await razorpayService.fetchPaymentAndOrderDetails(
         razorpayPaymentId,
         payment.razorpayOrderId
@@ -100,7 +82,6 @@ class PaymentSettlementService {
           throw new Error(`Razorpay order status is '${razorpayDetails.orderStatus}', expected 'paid'.`);
         }
 
-        // Amount verification (razorpayDetails amounts are in paise)
         const expectedPaise = Math.round(payment.amount * 100);
         if (razorpayDetails.paymentAmount !== expectedPaise || razorpayDetails.orderAmount !== expectedPaise) {
           throw new Error(
@@ -108,7 +89,6 @@ class PaymentSettlementService {
           );
         }
 
-        // Currency verification
         if (
           razorpayDetails.paymentCurrency !== payment.currency ||
           razorpayDetails.orderCurrency !== payment.currency
@@ -119,13 +99,10 @@ class PaymentSettlementService {
         }
       }
 
-      // 6. Execute Single MongoDB ACID Transaction for status change + ledger + state updates
       let updatedPayment = null;
       let notificationPayloads = [];
 
       const executeSettlement = async (session) => {
-        // ATOMIC DB-LEVEL IDEMPOTENCY: findOneAndUpdate with status: { $ne: "completed" }
-        // Guarantees only one concurrent worker can transition state!
         const currentPayment = await Payment.findOneAndUpdate(
           { _id: payment._id, status: { $ne: "completed" } },
           {
@@ -139,7 +116,6 @@ class PaymentSettlementService {
         );
 
         if (!currentPayment) {
-          // Concurrently settled by another worker
           const existing = session
             ? await Payment.findById(payment._id).session(session)
             : await Payment.findById(payment._id);
@@ -147,7 +123,6 @@ class PaymentSettlementService {
         }
 
         if (currentPayment.purpose === "consultation") {
-          // Double-entry financial ledger: Client debit, Lawyer credit
           await Transaction.create(
             [
               {
@@ -168,7 +143,6 @@ class PaymentSettlementService {
             session ? { session } : {}
           );
 
-          // Update associated Appointment status if present
           if (currentPayment.appointment) {
             await Appointment.updateOne(
               { _id: currentPayment.appointment },
@@ -193,7 +167,6 @@ class PaymentSettlementService {
             referenceId: currentPayment._id.toString(),
           });
         } else if (currentPayment.purpose === "subscription") {
-          // Subscription Payment - Subscription owner is currentPayment.lawyer (authenticated Lawyer)
           const lawyerUser = currentPayment.lawyer;
 
           await Transaction.create(
@@ -209,14 +182,12 @@ class PaymentSettlementService {
             session ? { session } : {}
           );
 
-          // Atomically expire previous active subscriptions for this lawyer
           await Subscription.updateMany(
             { user: lawyerUser, status: "active" },
             { status: "expired" },
             session ? { session } : {}
           );
 
-          // Create new 30-day active Subscription
           const startDate = new Date();
           const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
 
@@ -233,7 +204,6 @@ class PaymentSettlementService {
             session ? { session } : {}
           );
 
-          // Update Lawyer profile subscriptionPlan
           await Lawyer.updateOne(
             { user: lawyerUser },
             { subscriptionPlan: currentPayment.subscriptionPlan },
@@ -255,7 +225,6 @@ class PaymentSettlementService {
       const result = await runInTransaction(executeSettlement);
       updatedPayment = result.payment || payment;
 
-      // 7. Mark Webhook Event as PROCESSED only AFTER successful business settlement
       if (isWebhook && eventId) {
         await WebhookEvent.updateOne(
           { eventId },
@@ -263,7 +232,6 @@ class PaymentSettlementService {
         );
       }
 
-      // 8. Trigger notifications ONLY AFTER successful DB commit
       for (const notif of notificationPayloads) {
         try {
           await notificationService.createAndSendNotification(notif);
@@ -277,7 +245,6 @@ class PaymentSettlementService {
         payment: updatedPayment,
       };
     } catch (error) {
-      // If settlement failed, mark WebhookEvent as 'failed' so Razorpay retries can re-attempt
       if (isWebhook && eventId) {
         await WebhookEvent.updateOne(
           { eventId },
@@ -288,9 +255,6 @@ class PaymentSettlementService {
     }
   }
 
-  /**
-   * Handle Razorpay payment.failed webhook event.
-   */
   async handlePaymentFailure({ razorpayOrderId, razorpayPaymentId, eventId, errorMessage }) {
     if (eventId) {
       await WebhookEvent.create({

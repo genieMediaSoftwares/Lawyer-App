@@ -1,21 +1,6 @@
 import { colors } from '../theme';
 import type { CaseStatus, LegalCase } from '../types/domain';
 
-/**
- * Case presentation rules.
- *
- * Nothing here invents a status. The eight values are the enum on
- * backend/src/models/Case.js; this module only decides how each one is
- * grouped, coloured and worded.
- */
-
-/**
- * The three tabs on My Cases, and which backend statuses each contains.
- *
- * "All": Shows all cases created by the client.
- * "In Progress": Shows ONLY cases accepted by a lawyer (Accepted, In Progress, or assigned lawyer).
- * "Closed": Shows Closed or Rejected cases.
- */
 export const CASE_TABS = ['All', 'In Progress', 'Closed'] as const;
 export type CaseTab = (typeof CASE_TABS)[number];
 
@@ -45,14 +30,6 @@ export const matchesTab = (item: LegalCase | CaseStatus, tab: CaseTab): boolean 
   return CLOSED_STATUSES.includes(item.status);
 };
 
-/**
- * The colour a status badge takes.
- *
- * Semantic, not decorative: green for a live engagement, gold for anything
- * waiting on someone, muted for finished, red for refused. Gold is reserved
- * for "your attention or a lawyer's is required", which is what makes it
- * meaningful when it appears.
- */
 export const statusColor = (status: CaseStatus): string => {
   switch (status) {
     case 'In Progress':
@@ -73,16 +50,6 @@ export const statusColor = (status: CaseStatus): string => {
   }
 };
 
-/**
- * The four-step tracker on Case Details.
- *
- * §13 describes Posted → Selected → Consult → Resolved. Those are not backend
- * statuses, so each step is derived from statuses that genuinely exist rather
- * than from a field the server would have to grow.
- *
- * `Rejected` returns -1: the tracker is hidden entirely for a refused case,
- * because drawing it would imply the case is somewhere on a path it has left.
- */
 export const CASE_STAGES = ['Posted', 'Selected', 'Consult', 'Resolved'] as const;
 export type CaseStage = (typeof CASE_STAGES)[number];
 
@@ -106,11 +73,4 @@ export const stageIndexForStatus = (status: CaseStatus): number => {
   }
 };
 
-/**
- * Urgency, as free text.
- *
- * The Case schema declares `urgency` as a plain String defaulting to
- * "Flexible" — there is no enum, so no fixed list may be asserted here. The
- * default is named so the UI can tell "not set" from a deliberate choice.
- */
 export const DEFAULT_URGENCY = 'Flexible';

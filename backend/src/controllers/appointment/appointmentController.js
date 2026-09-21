@@ -23,16 +23,14 @@ class AppointmentController {
         date,
         timeSlot,
         mode,
-        status: "confirmed" // Automatically confirm for this demo/flow
+        status: "confirmed"
       });
 
-      // Sync to Google Calendar in the background
       const googleCalendarService = require("../../services/googleCalendarService");
       googleCalendarService.createOrUpdateEvent(appointment._id).catch(err => {
         console.error("Failed to sync new appointment to Google Calendar:", err);
       });
 
-      // If linked to a case, update the "Consultation Scheduled" milestone to true
       if (caseId) {
         const caseItem = await Case.findById(caseId);
         if (caseItem) {
@@ -44,7 +42,6 @@ class AppointmentController {
         }
       }
 
-      // Notify both parties
       await notificationService.createAndSendNotification({
         senderId: req.user._id,
         receiverId: client,
@@ -103,7 +100,6 @@ class AppointmentController {
       appointment.status = status;
       await appointment.save();
 
-      // Sync to Google Calendar in the background
       const googleCalendarService = require("../../services/googleCalendarService");
       if (status === "cancelled") {
         googleCalendarService.deleteEvent(appointment._id).catch(err => {
@@ -115,7 +111,6 @@ class AppointmentController {
         });
       }
 
-      // Trigger status update notifications
       const notifyUser = req.user.role === "client" ? appointment.lawyer : appointment.client;
       await notificationService.createAndSendNotification({
         senderId: req.user._id,
@@ -142,7 +137,6 @@ class AppointmentController {
         return ApiResponse.error(res, "Appointment not found.", 404);
       }
 
-      // Sync to Google Calendar in the background
       const googleCalendarService = require("../../services/googleCalendarService");
       googleCalendarService.createOrUpdateEvent(appointment._id).catch(err => {
         console.error("Failed to update Google Calendar event on reschedule:", err);
@@ -165,13 +159,11 @@ class AppointmentController {
       appointment.status = "cancelled";
       await appointment.save();
 
-      // Sync to Google Calendar in the background
       const googleCalendarService = require("../../services/googleCalendarService");
       googleCalendarService.deleteEvent(appointment._id).catch(err => {
         console.error("Failed to delete Google Calendar event on delete:", err);
       });
 
-      // Trigger cancelled notifications
       const notifyUser = req.user._id.toString() === appointment.client.toString() ? appointment.lawyer : appointment.client;
       await notificationService.createAndSendNotification({
         senderId: req.user._id,

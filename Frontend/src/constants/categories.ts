@@ -1,47 +1,7 @@
-/**
- * The Genie Law legal taxonomy.
- *
- * ── Why this is a constant and not a fetch ────────────────────────────────
- *
- * The backend owns this list in `backend/src/config/legalCategories.json`, but
- * **exposes no endpoint for it**. Nothing under `backend/src/routes/` serves
- * categories; the only consumer is `services/ai/aiSmartIntakeService.js`,
- * which uses it server-side to build the extraction prompt and to normalise
- * whatever Gemini answers back onto a real category.
- *
- * So there is no request to make. This is a verbatim mirror of the backend's
- * own file — the same 15 ids, titles, slugs and sub-types, in the same order —
- * which is what §10 asks for when no category endpoint exists: use the
- * categories actually defined in the backend contract.
- *
- * This is **not** mock data. These are the real values the server validates a
- * case's `category` and `subcategory` against; a title invented here would be
- * rejected on submit, and the AI's auto-fill would never match it.
- *
- * ── Keeping it in step ────────────────────────────────────────────────────
- *
- * The backend file is itself a copy of a Dart list, kept honest by
- * `test/legal_categories_sync_test.dart`. This is a third copy, and the right
- * fix is a `GET /api/categories` endpoint that all three read from — reported
- * in the README under "Missing backend support". Until that exists, changing
- * the taxonomy means changing it here too.
- *
- * Verified against backend/src/config/legalCategories.json.
- */
-
 export interface LegalCategory {
-  /** Matches the backend id exactly. */
   id: string;
-  /** The string stored in `Case.category`. */
   title: string;
   slug: string;
-  /**
-   * The string stored in `Case.subcategory`.
-   *
-   * Five per category, and the same five the AI extractor normalises its
-   * `subType` answer onto — so a value picked here is one the server already
-   * recognises.
-   */
   subTypes: readonly string[];
 }
 
@@ -228,13 +188,6 @@ export const LEGAL_CATEGORIES: readonly LegalCategory[] = [
   },
 ] as const;
 
-/**
- * The eight shown on the Home dashboard before "See All", and the order the
- * Post Case category step lists them in.
- *
- * Chosen to match the order in the visual reference (§10); the remaining seven
- * are one tap away rather than hidden.
- */
 export const POPULAR_CATEGORY_IDS: readonly string[] = [
   'civil_cases',
   'criminal_law',
@@ -259,13 +212,6 @@ export const categoryByTitle = (title: string): LegalCategory | undefined =>
 export const categoryById = (id: string): LegalCategory | undefined =>
   LEGAL_CATEGORIES.find(c => c.id === id);
 
-/**
- * Every category, ordered so the eight "popular" ones lead.
- *
- * The Post Case category step shows the whole taxonomy — a client whose matter
- * is an immigration one must be able to file it — but in the same order the
- * rest of the app presents categories, rather than the raw file order.
- */
 export const orderedCategories = (): LegalCategory[] => {
   const popular = popularCategories();
   const rest = LEGAL_CATEGORIES.filter(

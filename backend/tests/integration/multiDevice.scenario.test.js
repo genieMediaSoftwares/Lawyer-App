@@ -1,17 +1,5 @@
-/**
- * The multi-device acceptance sequence, run end to end in one test.
- *
- * Deliberately one test rather than several: the point is the ORDER. Each step
- * depends on the state the previous one left behind, and splitting them would
- * let a regression pass by resetting between assertions.
- *
- * Reuses the harness from auth.test.js so the same real routes, middleware,
- * services and error handler are exercised.
- */
 const path = require("path");
 
-// The harness lives in the sibling suite; requiring it here would register its
-// tests twice, so the fakes are rebuilt locally against the same models.
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 process.env.JWT_EXPIRES_IN = "15m";
 process.env.JWT_REFRESH_EXPIRES_IN = "30d";
@@ -124,7 +112,6 @@ describe("Multi-device acceptance sequence", () => {
       ...CREDENTIALS,
     });
 
-    // ── Three devices sign in with the same credentials ───────────────────
     const a = await login("phone-a");
     const b = await login("phone-b");
     const c = await login("laptop-c");
@@ -137,7 +124,6 @@ describe("Multi-device acceptance sequence", () => {
     const tokenB = b.body.data.token;
     const tokenC = c.body.data.token;
 
-    // ── All three make authenticated requests ─────────────────────────────
     const [pa, pb, pc] = await Promise.all([
       profile(tokenA),
       profile(tokenB),
@@ -147,7 +133,6 @@ describe("Multi-device acceptance sequence", () => {
     expect(step("Device B request", pb.status === 200, `HTTP ${pb.status}`)).toBe(true);
     expect(step("Device C request", pc.status === 200, `HTTP ${pc.status}`)).toBe(true);
 
-    // ── Device A logs out; B and C are untouched ──────────────────────────
     await logout(tokenA);
 
     const afterLogout = await Promise.all([
@@ -162,7 +147,6 @@ describe("Multi-device acceptance sequence", () => {
     expect(step("After A logout: C still works", afterLogout[2].status === 200,
       `HTTP ${afterLogout[2].status}`)).toBe(true);
 
-    // ── Logout-all from B ends every remaining session ────────────────────
     const all = await logoutAll(tokenB);
     expect(step("Logout-all accepted", all.status === 200, `HTTP ${all.status}`)).toBe(true);
 

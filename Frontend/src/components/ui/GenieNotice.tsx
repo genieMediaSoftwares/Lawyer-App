@@ -6,19 +6,6 @@ import { AlertIcon, CheckIcon } from '../icons/Icons';
 import { InfoCircleIcon } from '../icons/ClientIcons';
 import { colors } from '../../theme';
 
-/**
- * A form-level banner: what the request said, as opposed to what one field
- * said.
- *
- * It replaces both the old ErrorMessage component and the hand-rolled success
- * banners that several screens carried — those drew a literal "✓" as text and
- * hard-coded #22C55E, so the same idea looked slightly different on every
- * screen and the tick's weight followed the system font.
- *
- * Renders nothing when there is no message, so a screen can mount it
- * unconditionally without reserving space.
- */
-
 export type GenieNoticeTone = 'error' | 'success' | 'warning' | 'info' | 'gold';
 
 const TONES: Record<
@@ -49,8 +36,6 @@ const TONES: Record<
     text: 'info',
     color: colors.info,
   },
-  // For notices that are neither good nor bad, just worth reading — such as a
-  // sign-in method that is not available yet.
   gold: {
     surface: 'bg-gold-muted',
     border: 'border-gold-wash',

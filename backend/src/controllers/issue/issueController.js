@@ -22,7 +22,6 @@ class IssueController {
         status: "Pending"
       });
 
-      // Link uploaded documents to this issue
       if (documents && documents.length > 0) {
         const fileNames = documents.map(d => {
           const parts = d.url.split('/');
@@ -43,7 +42,6 @@ class IssueController {
   async getIssues(req, res, next) {
     try {
       let query = {};
-      // If client, show only their issues. If lawyer or admin, show all or matching.
       if (req.user.role === "client") {
         query.clientId = req.user._id;
       }

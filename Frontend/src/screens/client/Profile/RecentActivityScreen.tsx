@@ -36,9 +36,6 @@ export const RecentActivityScreen: React.FC<
     queryFn: clientApi.getActivity,
   });
 
-  // The activity feed is assembled from several backend sources and the field
-  // names are not consistent between them, so each row is normalised here
-  // rather than in the markup.
   const rawData = activityQuery.data;
   const activities: ActivityItem[] = Array.isArray(rawData)
     ? rawData.map((item: any, idx: number) => ({

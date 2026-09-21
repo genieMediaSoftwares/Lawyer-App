@@ -29,8 +29,6 @@ const chatSchema = new mongoose.Schema(
   }
 );
 
-// Every conversation-list read, and the participant check on each message
-// send and each socket join, filters on participants.
 chatSchema.index({ participants: 1, lastMessageAt: -1 });
 
 module.exports = mongoose.model("Chat", chatSchema);

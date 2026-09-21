@@ -4,33 +4,11 @@ import { GenieText } from './GenieText';
 import { ChevronRightIcon } from '../icons/ClientIcons';
 import { colors } from '../../theme';
 
-/**
- * One row in a settings or profile list.
- *
- * Three shapes, all the same height and alignment so a group reads as a single
- * list rather than as stacked one-offs:
- *
- *   - navigates  — `onPress` with a chevron
- *   - shows      — a `value` on the right, no chevron, not tappable
- *   - toggles    — caller passes a Switch as `trailing`
- *
- * `tone="danger"` is for destructive rows. It colours the label and the icon,
- * so Delete Account cannot be mistaken for Change Password at a glance.
- *
- * The profile menu's rows are this component with a `subtitle`, rather than a
- * second near-identical component — they differ by one line of text, and two
- * components that close would drift.
- */
-
 export interface GenieSettingsRowProps {
   label: string;
-  /** A second line under the label, as on the profile menu. */
   subtitle?: string;
-  /** A gold-tinted circle is drawn around it, as on the profile menu. */
   icon?: React.ReactNode;
-  /** Read-only right-hand text, e.g. "English (IN)". */
   value?: string;
-  /** A control on the right, e.g. a Switch. Replaces the chevron. */
   trailing?: React.ReactNode;
   onPress?: () => void;
   tone?: 'default' | 'danger' | 'warning';
@@ -104,12 +82,6 @@ export const GenieSettingsRow: React.FC<GenieSettingsRowProps> = ({
   );
 };
 
-/**
- * The heading above a group of rows, and the card the group sits in.
- *
- * Rows are separated by hairlines drawn between them rather than under each
- * one, so the last row does not end in a dangling line.
- */
 export const GenieSettingsGroup: React.FC<{
   title: string;
   children: React.ReactNode;

@@ -2,19 +2,6 @@ const crypto = require("crypto");
 
 const ALGORITHM = "aes-256-gcm";
 
-/**
- * Derives the field-encryption key from configuration.
- *
- * There used to be a literal fallback key here. That meant a deployment with
- * neither secret set still started and still "encrypted" — with a key printed
- * in this repository, so anyone holding the database and this file could read
- * every protected field. Worse, the key is derived once at module load, so
- * setting the secret later produced a different key and made everything written
- * under the fallback permanently undecryptable.
- *
- * Production now refuses to start without a secret. Development falls back with
- * a loud warning so local work does not need one.
- */
 function resolveSecret() {
   const configured = process.env.ENCRYPTION_SECRET || process.env.JWT_SECRET;
   if (configured) return configured;
@@ -37,7 +24,6 @@ const SECRET_KEY = crypto.createHash("sha256").update(resolveSecret()).digest();
 
 function encrypt(text) {
   if (!text || typeof text !== "string") return text;
-  // If already encrypted, skip
   if (text.startsWith("enc:")) return text;
 
   const iv = crypto.randomBytes(12);

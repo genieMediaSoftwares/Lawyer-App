@@ -26,28 +26,6 @@ import {
 } from './types';
 import type { ClientStackScreenProps } from '../../../types/navigation';
 
-/**
- * Post Your Case.
- *
- * ── Why the steps are components and not routes ───────────────────────────
- *
- * All five share one state object held here. Nothing unmounts when the client
- * moves between them, so going back to fix a typo and returning cannot lose
- * an answer — which a stack of five screens would have to work to guarantee.
- *
- * ── Where the AI fits ─────────────────────────────────────────────────────
- *
- * Extraction happens inside step 3, and folding its result in can fill steps 1
- * and 2 retroactively. So a client who came here to use the assistant is
- * dropped straight at step 3 (`start: 'ai'`) rather than being made to fill in
- * by hand the very fields the assistant exists to fill.
- *
- * When the analysis finishes, `advanceAfterExtraction` sends them to step 4 if
- * everything needed is now present, and otherwise to the earliest step that is
- * still incomplete. It never skips a gap: a field the model could not read is
- * left empty for the client to fill, never guessed at.
- */
-
 const LAST_STEP: PostCaseStepIndex = 4;
 
 export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
@@ -57,17 +35,11 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
 
-  // An analysis handed over by the AI Smart Case Assistant, if the client
-  // arrived from there.
   const handoffSessionId = route.params?.sessionId ?? null;
   const startMode = handoffSessionId
     ? 'ai'
     : route.params?.start ?? 'manual';
 
-  // A category tile on Home or All Categories names the area of law. It is
-  // resolved against the real taxonomy rather than trusted, so a stale or
-  // unknown id simply opens the step unselected instead of seeding a category
-  // string the server would reject.
   const presetCategory = route.params?.categoryId
     ? categoryById(route.params.categoryId)
     : undefined;
@@ -76,13 +48,7 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
     ...initialPostCaseState,
     categoryId: presetCategory?.id ?? '',
     category: presetCategory?.title ?? '',
-    // Opening straight into the mode the client picked at the "+" sheet, so
-    // step 3 shows that route's panel rather than asking them the same
-    // question twice. Both routes stay reachable from inside the step.
     entryMode: startMode === 'ai' ? 'ai' : 'manual',
-    // Seeded so the documents step picks the analysis up on its first render
-    // and starts polling it, rather than showing an upload prompt for work
-    // that is already under way.
     aiSessionId: handoffSessionId,
   }));
 
@@ -95,18 +61,8 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isExitPromptOpen, setIsExitPromptOpen] = useState(false);
 
-  /**
-   * Whether the client has accepted the terms.
-   *
-   * Deliberately not part of `PostCaseState`: it is a gate on this screen, not
-   * a property of the case, and `POST /cases` has no field for it. Keeping it
-   * out of the form state stops it ever being sent as one.
-   */
   const [hasAgreed, setHasAgreed] = useState(false);
 
-  // Mirrors `state` so asynchronous work (the extraction hand-off, the
-  // submission) reads the current values rather than the ones its closure
-  // captured several renders ago.
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -114,13 +70,6 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
     setState(current => ({ ...current, ...patch }));
   }, []);
 
-  /**
-   * Drops a field's AI marker once the client edits it.
-   *
-   * The marker means "still the model's wording", so it has to go the moment
-   * that stops being true — otherwise the review step vouches for text the
-   * client themselves wrote.
-   */
   const markEdited = useCallback((field: string) => {
     setState(current =>
       current.aiFields.includes(field)
@@ -138,17 +87,6 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
     setFurthest(current => (next > current ? next : current));
   }, []);
 
-  // ── AI hand-off ─────────────────────────────────────────────────────────
-
-  /**
-   * Session ids already folded in.
-   *
-   * This guard lives here, not in the step, because the step unmounts as soon
-   * as the flow advances to lawyer selection — a ref inside it resets, and
-   * stepping back to Documents would re-apply the extraction over whatever the
-   * client had since corrected. This component stays mounted for the whole
-   * flow, so the record survives.
-   */
   const appliedSessionsRef = useRef<Set<string>>(new Set());
 
   const advanceAfterExtraction = useCallback(
@@ -161,8 +99,6 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
       try {
         session = await aiApi.getSession(sessionId);
       } catch {
-        // The poll in the step already surfaces its own errors; there is
-        // nothing to add here and nothing to advance to.
         return;
       }
 
@@ -172,10 +108,6 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
 
       appliedSessionsRef.current.add(sessionId);
 
-      // Merged against `stateRef`, which always holds the latest state. A
-      // `setState` updater could not be used to compute it: React runs the
-      // updater during the render that follows, so reading the result back
-      // here would read `null` and the step decision below would be wrong.
       const next = applyExtraction(
         stateRef.current,
         session.extracted,
@@ -187,9 +119,6 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
 
       setState(next);
 
-      // Straight on to lawyer selection when the extraction filled everything
-      // the earlier steps need; otherwise back to the first gap, so the
-      // client completes it instead of the flow guessing.
       const firstGap = ([0, 1, 2] as PostCaseStepIndex[]).find(
         candidate => !isStepComplete(next, candidate),
       );
@@ -199,20 +128,14 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
     [goTo],
   );
 
-  // ── Submission ──────────────────────────────────────────────────────────
-
   const submitMutation = useMutation({
     mutationFn: async () => {
       const created = await casesApi.create(toCreatePayload(state));
 
-      // Best-effort: tie the analysis to the case it produced. A failure here
-      // does not undo a filed case, so it is swallowed rather than reported
-      // as a submission failure.
       if (state.aiSessionId && created?._id) {
         try {
           await aiApi.linkCase(state.aiSessionId, created._id);
         } catch {
-          // Intentionally ignored — see above.
         }
       }
 
@@ -232,17 +155,6 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
     },
   });
 
-  // ── Leaving ─────────────────────────────────────────────────────────────
-
-  /**
-   * Whether leaving would actually throw work away.
-   *
-   * Keyed on the **sub-type**, not the category: arriving from a category tile
-   * preselects the category before the client has done anything, and treating
-   * that as progress would put a "Discard this case?" prompt in front of
-   * someone who had only just opened the screen and immediately pressed back.
-   * Choosing a sub-type by hand sets both, so real progress is still caught.
-   */
   const hasProgress =
     Boolean(state.subcategory) ||
     Boolean(state.description.trim()) ||
@@ -269,20 +181,6 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
     setStep(current => (current - 1) as PostCaseStepIndex);
   }, [attemptExit, step]);
 
-  /**
-   * Android's hardware back follows the same rule as the header's chevron:
-   * step by step, and a confirmation before discarding real work.
-   *
-   * **Native only.** `BackHandler` has no browser equivalent — react-native-web
-   * ships a stub that warns "BackHandler is not supported on web and should
-   * not be used" the moment a listener is added, and never fires. Registering
-   * it there would buy nothing and cost a console warning on every visit to
-   * this screen.
-   *
-   * On web the browser's own Back is React Navigation's to handle: it pops the
-   * route through the history integration, exactly as every other screen in
-   * this app behaves. The header chevron above still walks the steps.
-   */
   const backRef = useRef(back);
   backRef.current = back;
 
@@ -302,8 +200,6 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
       return () => subscription.remove();
     }, []),
   );
-
-  // ── Render ──────────────────────────────────────────────────────────────
 
   const canContinue = isStepComplete(state, step);
 
@@ -389,8 +285,6 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
       >
         {renderStep()}
 
-        {/* The action bar sits above the system navigation area: the inset is
-            a runtime value, so it is the one inline style on this screen. */}
         <View
           className="border-t border-border bg-surface px-5 pt-3"
           style={{ paddingBottom: Math.max(insets.bottom, 12) }}

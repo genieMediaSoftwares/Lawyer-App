@@ -1,12 +1,3 @@
-/**
- * Serving a protected upload.
- *
- * These cover the failure the client saw as
- * `{"success":false,"message":"Invalid or expired token."}` in a browser tab:
- * a stored document URL carrying the JWT that was current when the case was
- * filed, plus the fresh one the app appends at open time, which Express parses
- * as a list and jwt.verify rejects outright.
- */
 const jwt = require("jsonwebtoken");
 const express = require("express");
 const request = require("supertest");
@@ -27,7 +18,6 @@ const SECRET = "test-secret-for-file-auth";
 const OWNER_ID = "507f1f77bcf86cd799439011";
 const OTHER_ID = "507f1f77bcf86cd799439022";
 
-/** Mounts the middleware exactly as app.js does, with a stub file handler. */
 function makeApp() {
   const app = express();
   app.use("/uploads", fileAuthMiddleware, (req, res) =>
@@ -47,7 +37,6 @@ beforeEach(() => {
     select: async () => (id === OWNER_ID || id === OTHER_ID ? { _id: id, role: "client" } : null),
   }));
 
-  // The file belongs to OWNER_ID.
   Document.findOne.mockResolvedValue({ clientId: OWNER_ID });
   Case.findOne.mockReturnValue({ select: async () => null });
   Case.exists.mockResolvedValue(false);
@@ -71,10 +60,6 @@ describe("fileAuthMiddleware", () => {
   });
 
   it("accepts a stale token followed by a current one", async () => {
-    // Exactly the URL shape a stored document produced: the token baked into
-    // the database when the case was filed, then today's token appended.
-    // Express hands these to req.query.token as an array; before the fix that
-    // reached jwt.verify and threw "jwt must be a string".
     const stale = tokenFor(OWNER_ID, { expiresIn: "-1h" });
     const res = await request(makeApp()).get(
       `/uploads/documents/a.pdf?token=${stale}&token=${tokenFor(OWNER_ID)}`
@@ -107,7 +92,6 @@ describe("fileAuthMiddleware", () => {
     const res = await request(makeApp()).get(
       `/uploads/documents/a.pdf?token=${tokenFor(OTHER_ID)}`
     );
-    // 404 rather than 403 so the response does not confirm the file exists.
     expect(res.status).toBe(404);
     expect(res.text).not.toContain("FILE-BYTES");
   });
