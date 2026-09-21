@@ -35,6 +35,8 @@ import { LawyerProfileScreen } from '../screens/lawyer/Profile/LawyerProfileScre
 import { HearingsScreen } from '../screens/lawyer/Hearings/HearingsScreen';
 import { ResearchScreen } from '../screens/lawyer/Research/ResearchScreen';
 import { ResearchSessionScreen } from '../screens/lawyer/Research/ResearchSessionScreen';
+import { ResearchCasesScreen } from '../screens/lawyer/Research/ResearchCasesScreen';
+import { ResearchDocumentsScreen } from '../screens/lawyer/Research/ResearchDocumentsScreen';
 import { NotesScreen } from '../screens/lawyer/Notes/NotesScreen';
 import { ProfessionalDetailsScreen } from '../screens/lawyer/Profile/ProfessionalDetailsScreen';
 import { SubscriptionScreen } from '../screens/lawyer/Subscription/SubscriptionScreen';
@@ -284,6 +286,8 @@ export const LawyerNavigator: React.FC = () => (
       <Stack.Screen name="Tabs" component={LawyerTabs} />
       <Stack.Screen name="Hearings" component={HearingsScreen} />
       <Stack.Screen name="Research" component={ResearchScreen} />
+      <Stack.Screen name="ResearchCases" component={ResearchCasesScreen} />
+      <Stack.Screen name="ResearchDocuments" component={ResearchDocumentsScreen} />
       <Stack.Screen name="ResearchSession" component={ResearchSessionScreen} />
       <Stack.Screen name="Notes" component={NotesScreen} />
       <Stack.Screen

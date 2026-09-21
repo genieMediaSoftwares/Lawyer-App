@@ -26,6 +26,8 @@ import { UPLOAD_LIMITS, aiApi, rejectionReasonFor } from '../../../api/aiApi';
 import { filePicker } from '../../../services/filePicker';
 import { toAppError } from '../../../utils/errors';
 import { ResearchAnswer } from './ResearchSections';
+import { RelevantCasesSection } from './RelevantCasesSection';
+import type { ResearchConversation } from '../../../types/lawyer';
 import type { PickedFile } from '../../../types/ai';
 import type { LawyerStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
@@ -66,11 +68,24 @@ export const ResearchSessionScreen: React.FC<
   const [error, setError] = useState<string | null>(null);
 
   const [analysisStage, setAnalysisStage] = useState<string | null>(null);
+  const [research, setResearch] = useState<ResearchConversation | null>(null);
+  const [isStartingSearch, setIsStartingSearch] = useState(false);
 
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const requestId = useRef(
     `rs-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
   );
+
+  const applyConversation = useCallback((conversation: ResearchConversation) => {
+    setResearch(conversation);
+    setTurns(
+      conversation.messages.map((message, index) => ({
+        id: `${conversation.id}-${index}`,
+        role: message.role === 'user' ? 'user' : 'assistant',
+        text: message.text,
+      })),
+    );
+  }, []);
 
   useEffect(() => {
     const existing = route.params?.sessionId;
@@ -82,17 +97,10 @@ export const ResearchSessionScreen: React.FC<
 
     (async () => {
       try {
-        const conversation = await aiApi.getConversation(existing);
-        if (cancelled) {
-          return;
+        const conversation = await aiApi.getResearchConversation(existing);
+        if (!cancelled) {
+          applyConversation(conversation);
         }
-        setTurns(
-          conversation.messages.map((message, index) => ({
-            id: `${existing}-${index}`,
-            role: message.role === 'user' ? 'user' : 'assistant',
-            text: message.text,
-          })),
-        );
       } catch (loadError) {
         if (!cancelled) {
           setError(toAppError(loadError).message);
@@ -107,7 +115,42 @@ export const ResearchSessionScreen: React.FC<
     return () => {
       cancelled = true;
     };
-  }, [route.params?.sessionId]);
+  }, [applyConversation, route.params?.sessionId]);
+
+  const isResearchRunning = research?.researchStatus === 'processing';
+  const isSearchRunning = research?.relevantCases?.status === 'searching';
+
+  useEffect(() => {
+    if (!conversationId || (!isResearchRunning && !isSearchRunning)) {
+      return;
+    }
+    const timer = setInterval(async () => {
+      try {
+        applyConversation(await aiApi.getResearchConversation(conversationId));
+      } catch {
+      }
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [applyConversation, conversationId, isResearchRunning, isSearchRunning]);
+
+  const searchCases = useCallback(
+    async (input: { query?: string; jurisdiction?: string }) => {
+      if (!conversationId || isStartingSearch) {
+        return;
+      }
+      setError(null);
+      setIsStartingSearch(true);
+      try {
+        await aiApi.searchRelevantCases(conversationId, input);
+        applyConversation(await aiApi.getResearchConversation(conversationId));
+      } catch (searchError) {
+        setError(toAppError(searchError).message);
+      } finally {
+        setIsStartingSearch(false);
+      }
+    },
+    [applyConversation, conversationId, isStartingSearch],
+  );
 
   const ask = useCallback(
     async (question: string) => {
@@ -305,7 +348,11 @@ export const ResearchSessionScreen: React.FC<
     void ask(context);
   }, [ask, caseCategory, caseId, caseTitle, route.params?.sessionId, turns.length]);
 
-  const isBusy = isAsking || Boolean(analysisStage);
+  const isBusy = isAsking || Boolean(analysisStage) || isResearchRunning;
+  const busyLabel =
+    analysisStage ??
+    (isResearchRunning ? `${research?.researchStage || 'Researching'}…` : 'Researching…');
+  const hasAnswer = turns.some(turn => turn.role === 'assistant');
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background">
@@ -334,6 +381,48 @@ export const ResearchSessionScreen: React.FC<
             <GenieSkeletonList count={3} />
           ) : (
             <>
+              {research?.caseTitle ? (
+                <View testID="research-case-context" className="mb-4 rounded-card border border-gold-wash bg-card p-4">
+                  <GenieText variant="caption" tone="muted" className="font-bold uppercase tracking-widest">
+                    Case
+                  </GenieText>
+                  <GenieText variant="body-lg" className="mt-1 font-bold">
+                    {research.caseTitle}
+                  </GenieText>
+                  {research.jurisdiction ? (
+                    <GenieText variant="body-sm" tone="gold">
+                      {research.jurisdiction}
+                    </GenieText>
+                  ) : null}
+                  {research.researchDocuments.length === 0 ? (
+                    <GenieText variant="body-sm" tone="secondary" className="mt-2">
+                      No documents selected — research uses your question only.
+                    </GenieText>
+                  ) : (
+                    research.researchDocuments.map(doc => (
+                      <View key={doc.documentId} className="mt-2 flex-row items-start gap-2">
+                        <FileIcon size={14} color={colors.gold} />
+                        <View className="flex-1">
+                          <GenieText variant="body-sm" numberOfLines={1}>
+                            {`[${doc.reference}] ${doc.name}`}
+                          </GenieText>
+                          <GenieText
+                            variant="caption"
+                            tone={doc.status === 'used' ? 'success' : doc.status === 'pending' ? 'muted' : 'warning'}
+                          >
+                            {doc.status === 'used'
+                              ? 'Read in full'
+                              : doc.status === 'pending'
+                              ? 'Waiting to be read'
+                              : doc.note || 'Could not be read'}
+                          </GenieText>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </View>
+              ) : null}
+
               {turns.length === 0 && !isBusy ? (
                 <View>
                   <View className="rounded-card border border-gold-wash bg-card p-4">
@@ -391,9 +480,23 @@ export const ResearchSessionScreen: React.FC<
                 <View className="mb-3 flex-row items-center gap-3 rounded-card border border-border bg-card p-4">
                   <ActivityIndicator size="small" color={colors.gold} />
                   <GenieText variant="body-sm" tone="secondary" className="flex-1">
-                    {analysisStage ?? 'Researching…'}
+                    {busyLabel}
                   </GenieText>
                 </View>
+              ) : null}
+
+              {research?.researchStatus === 'failed' && research.researchError ? (
+                <GenieNotice tone="error" message={research.researchError} className="mb-3" />
+              ) : null}
+
+              {conversationId && (hasAnswer || research?.relevantCases?.status !== 'idle') ? (
+                <RelevantCasesSection
+                  key={conversationId}
+                  state={research?.relevantCases}
+                  canSearch={hasAnswer && !isBusy}
+                  isStarting={isStartingSearch}
+                  onSearch={input => void searchCases(input)}
+                />
               ) : null}
 
               {error ? (

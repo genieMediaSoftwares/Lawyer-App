@@ -4,7 +4,12 @@ import { apiClient, unwrap } from './apiClient';
 import { env } from '../config/env';
 import { formatFileSize } from '../utils/format';
 import type { ApiSuccess } from '../types/api';
-import type { ResearchSession } from '../types/lawyer';
+import type {
+  ResearchCase,
+  ResearchCaseDocuments,
+  ResearchConversation,
+  ResearchSession,
+} from '../types/lawyer';
 import type {
   AiAnalyzeAccepted,
   AiSessionDetail,
@@ -91,6 +96,51 @@ export const aiApi = {
       title: conversation?.title ?? '',
       messages: conversation?.messages ?? [],
     };
+  },
+
+  async getResearchConversation(id: string): Promise<ResearchConversation> {
+    const response = await apiClient.get<
+      ApiSuccess<{ conversation: ResearchConversation }>
+    >(`/ai/conversations/${encodeURIComponent(id)}`);
+    return unwrap(response).conversation;
+  },
+
+  async getResearchCases(search?: string): Promise<ResearchCase[]> {
+    const response = await apiClient.get<ApiSuccess<ResearchCase[]>>(
+      '/ai/research/cases',
+      { params: search ? { search } : undefined },
+    );
+    return unwrap(response) ?? [];
+  },
+
+  async getResearchCaseDocuments(caseId: string): Promise<ResearchCaseDocuments> {
+    const response = await apiClient.get<ApiSuccess<ResearchCaseDocuments>>(
+      `/ai/research/cases/${encodeURIComponent(caseId)}/documents`,
+    );
+    return unwrap(response);
+  },
+
+  async startCaseResearch(input: {
+    caseId: string;
+    documentIds: string[];
+    question?: string;
+    jurisdiction?: string;
+  }): Promise<{ conversationId: string }> {
+    const response = await apiClient.post<ApiSuccess<{ conversationId: string }>>(
+      '/ai/research/sessions',
+      input,
+    );
+    return unwrap(response);
+  },
+
+  async searchRelevantCases(
+    conversationId: string,
+    input: { query?: string; jurisdiction?: string } = {},
+  ): Promise<void> {
+    await apiClient.post(
+      `/ai/research/${encodeURIComponent(conversationId)}/relevant-cases`,
+      input,
+    );
   },
 
   async deleteConversation(id: string): Promise<void> {

@@ -22,7 +22,6 @@ import {
   TrashIcon,
 } from '../../../components/icons/ClientIcons';
 import { aiApi } from '../../../api/aiApi';
-import { lawyerApi } from '../../../api/lawyerApi';
 import { toAppError } from '../../../utils/errors';
 import { formatRelative } from '../../../utils/format';
 import type { ResearchSession } from '../../../types/lawyer';
@@ -35,7 +34,6 @@ export const ResearchScreen: React.FC<LawyerStackScreenProps<'Research'>> = ({
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
-  const [isCasePickerOpen, setIsCasePickerOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<ResearchSession | null>(
     null,
   );
@@ -44,11 +42,6 @@ export const ResearchScreen: React.FC<LawyerStackScreenProps<'Research'>> = ({
   const sessionsQuery = useQuery({
     queryKey: ['lawyer', 'research', 'sessions'],
     queryFn: aiApi.getResearchSessions,
-  });
-
-  const clientsQuery = useQuery({
-    queryKey: ['lawyer', 'clients'],
-    queryFn: lawyerApi.getClients,
   });
 
   const deleteMutation = useMutation({
@@ -64,14 +57,6 @@ export const ResearchScreen: React.FC<LawyerStackScreenProps<'Research'>> = ({
       setActionError(toAppError(error).message);
     },
   });
-
-  const cases = useMemo(() => {
-    const groups = clientsQuery.data;
-    if (!groups) {
-      return [];
-    }
-    return [...groups.accepted, ...groups.inProgress, ...groups.closed];
-  }, [clientsQuery.data]);
 
   const sessions = useMemo(
     () => sessionsQuery.data ?? [],
@@ -137,15 +122,15 @@ export const ResearchScreen: React.FC<LawyerStackScreenProps<'Research'>> = ({
             <GenieButton
               label="Research an Existing Case"
               variant="outline"
-              onPress={() => setIsCasePickerOpen(true)}
+              onPress={() => navigation.navigate('ResearchCases')}
               icon={<FileIcon size={18} color={colors.gold} />}
             />
           </View>
 
           <GenieText variant="caption" tone="muted" className="mt-3 leading-4">
-            Working from the model&apos;s training data, not a case-law
-            database. Every authority it offers is a lead to verify in a
-            reporter before you rely on it.
+            Analysis comes from the AI model and the documents you select.
+            Relevant cases come from web search. Every authority is a lead to
+            verify in a reporter before you rely on it.
           </GenieText>
         </View>
 
@@ -261,46 +246,6 @@ export const ResearchScreen: React.FC<LawyerStackScreenProps<'Research'>> = ({
           )}
         </View>
       </ScrollView>
-
-      <GenieModal
-        visible={isCasePickerOpen}
-        onClose={() => setIsCasePickerOpen(false)}
-        title="Choose a matter"
-      >
-        {cases.length === 0 ? (
-          <GenieText variant="body-md" tone="secondary">
-            You have no matters yet. Research can still be started without
-            one.
-          </GenieText>
-        ) : (
-          <ScrollView className="max-h-80" showsVerticalScrollIndicator={false}>
-            {cases.map(row => (
-              <Pressable
-                key={row.caseId}
-                onPress={() => {
-                  setIsCasePickerOpen(false);
-                  navigation.navigate('ResearchSession', {
-                    sessionId: undefined,
-                    caseId: row.caseId,
-                    caseTitle: row.issue,
-                    caseCategory: row.category,
-                  });
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={row.issue}
-                className="mb-2 min-h-touch justify-center rounded-control border border-border bg-card px-4 py-3 active:opacity-80"
-              >
-                <GenieText variant="body-md" numberOfLines={1}>
-                  {row.issue}
-                </GenieText>
-                <GenieText variant="caption" tone="muted" className="mt-0.5">
-                  {[row.name, row.category].filter(Boolean).join(' · ')}
-                </GenieText>
-              </Pressable>
-            ))}
-          </ScrollView>
-        )}
-      </GenieModal>
 
       <GenieModal
         visible={Boolean(pendingDelete)}

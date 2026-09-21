@@ -24,67 +24,8 @@ const TRANSCRIPTION_PROMPT =
 
 const LANGUAGE_NAMES = { en: "English", hi: "Hindi", te: "Telugu" };
 
-const RESEARCH_SYSTEM_INSTRUCTION = `You are the Lawfly Research Assistant, supporting a qualified practising advocate in India.
-
-You are speaking to a legal professional. Write as you would for a colleague: precise, concise, and without consumer-facing disclaimers or hand-holding. Do not suggest that they consult a lawyer, and do not suggest that they post a case in this application.
-
-==========================================================
-WHAT YOU ARE
-==========================================================
-
-You are a reasoning and drafting aid working from your training data. You are NOT connected to any case-law database, judgment repository, statutory index, court records system or legal reporter. You have no live access to SCC, Manupatra, India Code, eCourts, indiankanoon or any other source, and you cannot look anything up.
-
-==========================================================
-CITATIONS - THE MOST IMPORTANT RULE
-==========================================================
-
-Never fabricate authority. Specifically, never invent or guess:
-- case names, party names, or the court that decided a matter
-- citation references, neutral citations, year, volume or page numbers
-- judgment dates, bench composition or judge names
-- section, rule, article, order or schedule numbers
-- the text of any statutory provision
-
-If you are not confident that an authority exists and says what you are about to attribute to it, say so explicitly instead of producing it. It is always better to answer "I am not able to confirm a specific authority on this point" than to supply a plausible-looking citation.
-
-When you do mention a case or a provision that you are reasonably confident about, mark it as requiring verification, and say what should be checked. Present remembered authority as a lead to verify, never as a verified result.
-
-Flag clearly when a point is one where the law has moved recently, or where High Courts differ, since your training data has a cutoff and may be behind.
-
-==========================================================
-HOW TO ANSWER
-==========================================================
-
-Structure your answer with markdown headings, adapting to what was asked:
-
-### Issue
-The legal question, restated precisely.
-
-### Analysis
-The applicable principles and how they apply. Set out the competing positions where the point is arguable.
-
-### Authorities To Verify
-Provisions and decisions worth checking, each marked as unverified. State plainly if you cannot suggest any.
-
-### Practical Considerations
-Procedure, limitation, forum, pleadings, evidence, or drafting points that matter in practice.
-
-### Gaps
-What you could not determine, and what further facts or checks would settle it.
-
-Omit any heading that does not apply. Keep it tight - an advocate reading this is working.
-
-==========================================================
-JURISDICTION
-==========================================================
-
-Answer according to Indian law unless another jurisdiction is specified. Note the distinction where a point turns on state amendments, and where the IPC/CrPC/Evidence Act position differs from the BNS/BNSS/BSA position, since both remain relevant to live matters.
-
-==========================================================
-OUT OF SCOPE
-==========================================================
-
-If asked something outside legal research, say briefly that you are the research assistant and redirect.`;
+const { RESEARCH_SYSTEM_INSTRUCTION } = require("../../services/ai/researchPrompts");
+const legalResearchService = require("../../services/ai/legalResearchService");
 
 function transcriptionPromptFor(languageCode) {
   const name = LANGUAGE_NAMES[languageCode];
@@ -124,7 +65,7 @@ class AiController {
         ...filter,
       })
         .sort({ updatedAt: -1 })
-        .select("_id title messages createdAt updatedAt");
+        .select("_id title messages createdAt updatedAt caseTitle researchStatus");
 
       const formatted = conversations.map((c) => {
         const lastMsg = c.messages[c.messages.length - 1];
@@ -135,6 +76,8 @@ class AiController {
           createdAt: c.createdAt,
           updatedAt: c.updatedAt,
           messageCount: c.messages.length,
+          caseTitle: c.caseTitle || "",
+          researchStatus: c.researchStatus || "idle",
         };
       });
 
@@ -164,6 +107,15 @@ class AiController {
           messages: conversation.messages,
           createdAt: conversation.createdAt,
           updatedAt: conversation.updatedAt,
+          mode: conversation.mode,
+          caseId: conversation.caseId ? conversation.caseId.toString() : null,
+          caseTitle: conversation.caseTitle || "",
+          jurisdiction: conversation.jurisdiction || "",
+          researchDocuments: conversation.researchDocuments || [],
+          researchStatus: conversation.researchStatus || "idle",
+          researchStage: conversation.researchStage || "",
+          researchError: conversation.researchError || "",
+          relevantCases: conversation.relevantCases || { status: "idle", results: [] },
         },
       });
     } catch (error) {
@@ -248,9 +200,12 @@ class AiController {
       let conversation = null;
 
       if (conversationId) {
-        conversation = await AiConversation.findOne({ _id: conversationId, userId });
+        conversation = await AiConversation.findOne({ _id: conversationId, userId }).select("+documentContext");
         if (!conversation) {
           return ApiResponse.error(res, "Conversation not found.", 404);
+        }
+        if (conversation.researchStatus === "processing") {
+          return ApiResponse.error(res, "The research is still running. Ask your question once it finishes.", 409);
         }
       } else {
         conversation = new AiConversation({
@@ -268,7 +223,10 @@ class AiController {
       });
 
       const contents = [];
-      for (const msg of conversation.messages) {
+      const recentMessages = mode === "research"
+        ? conversation.messages.slice(-legalResearchService.MAX_FOLLOW_UP_MESSAGES)
+        : conversation.messages;
+      for (const msg of recentMessages) {
         contents.push({
           role: msg.role === "model" || msg.role === "assistant" ? "model" : "user",
           parts: [{ text: msg.text }],
@@ -424,9 +382,24 @@ Responses are provided for informational purposes only and should not be conside
         ]
       };
 
+      const researchContext = mode === "research" ? legalResearchService.buildFollowUpContext(conversation) : "";
       const activeSystemInstruction =
         mode === "research"
-          ? { parts: [{ text: RESEARCH_SYSTEM_INSTRUCTION }] }
+          ? {
+              parts: [
+                {
+                  text: researchContext
+                    ? `${legalResearchService.researchInstruction()}
+
+==========================================================
+THIS RESEARCH SESSION
+==========================================================
+
+${researchContext}`
+                    : RESEARCH_SYSTEM_INSTRUCTION,
+                },
+              ],
+            }
           : systemInstruction;
 
       const candidateModels = GEMINI_MODELS;
@@ -479,7 +452,8 @@ Responses are provided for informational purposes only and should not be conside
       }
 
       if (!aiText) {
-        return ApiResponse.error(res, `Failed to communicate with Gemini API: ${lastErrorText}`, 502);
+        console.error("[ai-chat] all models failed:", lastErrorText);
+        return ApiResponse.error(res, "The AI assistant is unavailable right now. Please try again.", 502);
       }
 
       if (conversation) {

@@ -21,6 +21,9 @@ const {
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(() => {
+  require("./services/ai/legalResearchService").recoverAbandonedResearch().catch((e) =>
+    console.error("Abandoned research sweep failed:", e.message)
+  );
   recoverAbandonedSessions().catch((e) =>
     console.error("Abandoned AI session sweep failed:", e.message)
   );

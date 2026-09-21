@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const aiController = require("../controllers/ai/aiController");
 const aiSmartCaseController = require("../controllers/ai/aiSmartCaseController");
+const researchController = require("../controllers/ai/researchController");
 
 const authMiddleware = require("../middleware/authMiddleware");
 const upload = require("../middleware/upload.middleware");
@@ -43,6 +44,11 @@ router.post(
   handleUploadErrors(upload.single("audio")),
   aiController.transcribe
 );
+
+router.get("/research/cases", researchController.listCases);
+router.get("/research/cases/:caseId/documents", researchController.listDocuments);
+router.post("/research/sessions", researchController.startCaseResearch);
+router.post("/research/:id/relevant-cases", researchController.searchRelevantCases);
 
 router.get("/conversations", aiController.getConversations);
 router.get("/conversations/:id", aiController.getConversationById);

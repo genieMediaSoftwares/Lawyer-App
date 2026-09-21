@@ -195,3 +195,87 @@ export interface ResearchSession {
   updatedAt: string;
   messageCount: number;
 }
+
+export interface ResearchCase {
+  caseId: string;
+  title: string;
+  category: string;
+  subcategory: string;
+  clientName: string;
+  court: string;
+  location: string;
+  status: string;
+  updatedAt: string;
+  documentCount: number;
+}
+
+export interface ResearchCaseDocument {
+  id: string;
+  name: string;
+  type: string;
+  size: string;
+  status: 'available' | 'unsupported' | 'missing';
+  selectable: boolean;
+  note: string;
+}
+
+export interface ResearchCaseDocuments {
+  case: {
+    caseId: string;
+    title: string;
+    category: string;
+    clientName: string;
+    court: string;
+    status: string;
+  };
+  documents: ResearchCaseDocument[];
+}
+
+export interface ResearchDocumentUse {
+  documentId: string;
+  name: string;
+  reference: string;
+  status: 'pending' | 'used' | 'truncated' | 'failed' | 'unsupported' | 'missing';
+  charCount: number;
+  note: string;
+}
+
+export type RelevantCaseVerification =
+  | 'Source Retrieved'
+  | 'Search Result — Not Yet Verified';
+
+export interface RelevantCase {
+  caseTitle: string;
+  citation: string;
+  court: string;
+  jurisdiction: string;
+  decisionDate: string;
+  relevanceSummary: string;
+  legalPrinciple: string;
+  sources: { url: string; name: string }[];
+  verificationStatus: RelevantCaseVerification;
+  retrievedAt: string;
+}
+
+export interface RelevantCasesState {
+  status: 'idle' | 'searching' | 'completed' | 'failed' | 'unavailable';
+  query: string;
+  jurisdiction: string;
+  searchedAt: string | null;
+  message: string;
+  results: RelevantCase[];
+}
+
+export interface ResearchConversation {
+  id: string;
+  title: string;
+  messages: { role: 'user' | 'model' | 'assistant'; text: string; timestamp?: string }[];
+  caseId: string | null;
+  caseTitle: string;
+  jurisdiction: string;
+  researchDocuments: ResearchDocumentUse[];
+  researchStatus: 'idle' | 'processing' | 'completed' | 'failed';
+  researchStage: string;
+  researchError: string;
+  relevantCases: RelevantCasesState;
+}

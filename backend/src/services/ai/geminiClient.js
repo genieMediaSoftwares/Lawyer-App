@@ -29,6 +29,7 @@ class GeminiClient {
       passes = 2,
       passDelayMs = 2500,
       generationConfig = null,
+      systemInstruction = null,
     } = options;
 
     if (!this.isConfigured) {
@@ -43,7 +44,7 @@ class GeminiClient {
         await new Promise((resolve) => setTimeout(resolve, passDelayMs));
       }
 
-      const result = await this._attemptPass(parts, models, timeoutMs, label, generationConfig);
+      const result = await this._attemptPass(parts, models, timeoutMs, label, generationConfig, systemInstruction);
       if (result.text !== null) return result;
 
       if (result.fatal) return { text: null, model: null, error: result.error };
@@ -55,7 +56,7 @@ class GeminiClient {
     return { text: null, model: null, error: lastError };
   }
 
-  async _attemptPass(parts, models, timeoutMs, label, generationConfig) {
+  async _attemptPass(parts, models, timeoutMs, label, generationConfig, systemInstruction = null) {
     let lastError = null;
     let retiredModels = 0;
 
@@ -72,12 +73,13 @@ class GeminiClient {
         const timer = setTimeout(() => controller.abort(), timeoutMs);
 
         try {
-          const response = await fetch(`${ENDPOINT(model)}?key=${this.apiKey}`, {
+          const response = await fetch(ENDPOINT(model), {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "x-goog-api-key": this.apiKey },
             body: JSON.stringify({
               contents: [{ role: "user", parts }],
               ...(generationConfig ? { generationConfig } : {}),
+              ...(systemInstruction ? { systemInstruction: { parts: [{ text: systemInstruction }] } } : {}),
             }),
             signal: controller.signal,
           });
@@ -130,6 +132,68 @@ class GeminiClient {
     }
 
     return { text: null, model: null, error: lastError, fatal: false };
+  }
+
+  async generateWithSearch(prompt, options = {}) {
+    const { models = DEFAULT_MODELS, timeoutMs = 90000, systemInstruction = null } = options;
+
+    if (!this.isConfigured) {
+      return { text: null, sources: [], supports: [], error: "GEMINI_API_KEY is not configured." };
+    }
+
+    let lastError = null;
+
+    for (const model of models) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(ENDPOINT(model), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": this.apiKey },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            tools: [{ google_search: {} }],
+            ...(systemInstruction ? { systemInstruction: { parts: [{ text: systemInstruction }] } } : {}),
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          lastError = `${model}: HTTP ${response.status}`;
+          if (isModelLevelFailure(response.status)) continue;
+          return { text: null, sources: [], supports: [], error: lastError };
+        }
+
+        const data = await response.json();
+        const candidate = data.candidates?.[0];
+        const text = (candidate?.content?.parts || [])
+          .map((part) => part.text || "")
+          .join("")
+          .trim();
+        const grounding = candidate?.groundingMetadata || {};
+        const sources = (grounding.groundingChunks || [])
+          .map((chunk) => chunk.web)
+          .filter((web) => web && web.uri)
+          .map((web) => ({ uri: web.uri, title: web.title || "" }));
+        const supports = (grounding.groundingSupports || []).map((support) => ({
+          text: support.segment?.text || "",
+          sourceIndices: support.groundingChunkIndices || [],
+        }));
+
+        if (!text) {
+          lastError = `${model}: empty response`;
+          continue;
+        }
+
+        return { text, sources, supports, model, error: null };
+      } catch (err) {
+        lastError = err.name === "AbortError" ? `${model}: timed out` : `${model}: ${err.message}`;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    return { text: null, sources: [], supports: [], error: lastError };
   }
 }
 

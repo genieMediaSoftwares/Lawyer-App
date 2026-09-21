@@ -54,6 +54,8 @@ export type LawyerStackParamList = {
   Tabs: undefined;
   Hearings: undefined;
   Research: undefined;
+  ResearchCases: undefined;
+  ResearchDocuments: { caseId: string; caseTitle: string };
   ResearchSession: {
     sessionId?: string;
     title?: string;
