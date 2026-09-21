@@ -1,9 +1,12 @@
+const mongoose = require("mongoose");
 const Case = require("../../models/Case");
-const User = require("../../models/User");
 const Lawyer = require("../../models/Lawyer");
 const Proposal = require("../../models/Proposal");
 const ApiResponse = require("../../config/ApiResponse");
 const notificationService = require("../../services/notification/notificationService");
+const caseRequestService = require("../../services/case/caseRequestService");
+
+const idOf = (value) => (value && value._id ? value._id : value);
 
 const partyIds = (caseItem, keys) =>
   keys
@@ -22,6 +25,8 @@ const canReadCase = (user, caseItem) => {
 
   if (user.role === "lawyer") {
     if (caseItem.status === "Submitted") return true;
+    const request = caseRequestService.findRequest(caseItem, userId);
+    if (request && request.status === "Pending") return true;
     return partyIds(caseItem, ["assignedLawyer", "selectedLawyer"]).includes(
       userId
     );
@@ -50,111 +55,128 @@ const emitCaseUpdated = (req, caseItem) => {
   const io = req.app.get("io");
   if (!io) return;
 
-  for (const id of partyIds(caseItem, [
-    "client",
-    "assignedLawyer",
-    "selectedLawyer",
-  ])) {
-    io.of("/cases").to(id).emit("case_updated", caseItem);
+  const [clientId] = partyIds(caseItem, ["client"]);
+  if (clientId) {
+    io.of("/cases").to(clientId).emit("case_updated", caseItem);
+  }
+
+  const lawyerIds = new Set([
+    ...partyIds(caseItem, ["assignedLawyer", "selectedLawyer"]),
+    ...(caseItem.lawyerRequests || []).map((r) => idOf(r.lawyer).toString()),
+  ]);
+  for (const id of lawyerIds) {
+    io.of("/cases").to(id).emit("case_updated", caseRequestService.viewForLawyer(caseItem, id));
   }
 };
+
+const viewForUser = (user, caseItem) =>
+  user.role === "lawyer"
+    ? caseRequestService.viewForLawyer(caseItem, user._id)
+    : caseItem;
 
 class CaseController {
   async createCase(req, res, next) {
     try {
       const {
         title, description, category, subcategory, location, budgetRange,
-        urgency, preferredCourt, documents, selectedLawyer, voiceUrl,
+        urgency, preferredCourt, documents, selectedLawyers, voiceUrl,
         voiceTranscript, city, district, state, country, latitude, longitude,
         placeId,
         incidentDate, opposingParty, firNumber, policeStation, bailDetails,
-        claimAmount,
+        claimAmount, clientRequestId,
       } = req.body;
       const client = req.user._id;
 
-      const hasSelectedLawyer = !!selectedLawyer;
-      const milestones = hasSelectedLawyer
-        ? [
-            { title: "Case Posted", isCompleted: true },
-            { title: "Awaiting Lawyer Acceptance", isCompleted: true },
-            { title: "In Progress", isCompleted: false },
-            { title: "Closed", isCompleted: false }
-          ]
-        : [
-            { title: "Case Posted", isCompleted: true },
-            { title: "Proposals Received", isCompleted: false },
-            { title: "Consultation Scheduled", isCompleted: false },
-            { title: "In Progress", isCompleted: false },
-            { title: "Closed", isCompleted: false }
-          ];
+      if (req.user.role !== "client") {
+        return ApiResponse.error(res, "Only clients can post a case.", 403);
+      }
 
-      const newCase = await Case.create({
-        client,
-        title,
-        description,
-        category,
-        subcategory: subcategory || "",
-        location,
-        budgetRange: budgetRange || "",
-        urgency,
-        preferredCourt: preferredCourt || "",
-        documents: documents || [],
-        selectedLawyer: selectedLawyer || null,
-        status: hasSelectedLawyer ? "Awaiting Lawyer Acceptance" : "Submitted",
-        milestones,
-        voiceUrl: voiceUrl || "",
-        voiceTranscript: voiceTranscript || "",
-        locationCity: city || "",
-        locationDistrict: district || "",
-        locationState: state || "",
-        locationCountry: country || "",
-        locationLatitude: latitude ? Number(latitude) : 0.0,
-        locationLongitude: longitude ? Number(longitude) : 0.0,
-        locationPlaceId: placeId || "",
+      const requestKey =
+        typeof clientRequestId === "string" && /^[A-Za-z0-9_-]{8,100}$/.test(clientRequestId)
+          ? clientRequestId
+          : undefined;
 
-        incidentDate: incidentDate && !Number.isNaN(Date.parse(incidentDate))
-          ? new Date(incidentDate)
-          : null,
-        opposingParty: opposingParty || "",
-        firNumber: firNumber || "",
-        policeStation: policeStation || "",
-        bailDetails: bailDetails || "",
-        claimAmount: claimAmount != null && Number.isFinite(Number(claimAmount))
-          ? Number(claimAmount)
-          : 0,
-      });
+      if (requestKey) {
+        const duplicate = await Case.findOne({ client, clientRequestId: requestKey });
+        if (duplicate) {
+          return ApiResponse.success(res, "Case already submitted.", duplicate);
+        }
+      }
 
-      if (hasSelectedLawyer) {
+      const selection = await caseRequestService.validateSelectedLawyers(client, selectedLawyers);
+      if (selection.error) {
+        return ApiResponse.error(res, selection.error, 400);
+      }
+      const { lawyerIds } = selection;
+
+      const milestones = [
+        { title: "Case Posted", isCompleted: true },
+        { title: "Awaiting Lawyer Acceptance", isCompleted: true },
+        { title: "In Progress", isCompleted: false },
+        { title: "Closed", isCompleted: false }
+      ];
+
+      let newCase;
+      try {
+        newCase = await Case.create({
+          client,
+          title,
+          description,
+          category,
+          subcategory: subcategory || "",
+          location,
+          budgetRange: budgetRange || "",
+          urgency,
+          preferredCourt: preferredCourt || "",
+          documents: documents || [],
+          selectedLawyer: null,
+          lawyerRequests: lawyerIds.map((lawyer) => ({ lawyer, status: "Pending" })),
+          clientRequestId: requestKey,
+          status: "Awaiting Lawyer Acceptance",
+          milestones,
+          voiceUrl: voiceUrl || "",
+          voiceTranscript: voiceTranscript || "",
+          locationCity: city || "",
+          locationDistrict: district || "",
+          locationState: state || "",
+          locationCountry: country || "",
+          locationLatitude: latitude ? Number(latitude) : 0.0,
+          locationLongitude: longitude ? Number(longitude) : 0.0,
+          locationPlaceId: placeId || "",
+
+          incidentDate: incidentDate && !Number.isNaN(Date.parse(incidentDate))
+            ? new Date(incidentDate)
+            : null,
+          opposingParty: opposingParty || "",
+          firNumber: firNumber || "",
+          policeStation: policeStation || "",
+          bailDetails: bailDetails || "",
+          claimAmount: claimAmount != null && Number.isFinite(Number(claimAmount))
+            ? Number(claimAmount)
+            : 0,
+        });
+      } catch (error) {
+        if (error && error.code === 11000 && requestKey) {
+          const duplicate = await Case.findOne({ client, clientRequestId: requestKey });
+          if (duplicate) {
+            return ApiResponse.success(res, "Case already submitted.", duplicate);
+          }
+        }
+        throw error;
+      }
+
+      for (const lawyerId of lawyerIds) {
         await notificationService.createAndSendNotification({
           senderId: client,
-          receiverId: selectedLawyer,
+          receiverId: lawyerId,
           type: "case_posted",
           title: "New Case Request",
-          message: `You received a direct case request: "${title}".`,
+          message: `You received a direct case request: "${newCase.title}".`,
           referenceId: newCase._id.toString()
         });
-      } else {
-        const lawyers = await User.find({ role: "lawyer" });
-        for (const lawyer of lawyers) {
-          await notificationService.createAndSendNotification({
-            senderId: client,
-            receiverId: lawyer._id,
-            type: "case_posted",
-            title: "New Case Posted",
-            message: `A new case matching your specialization was posted: "${title}".`,
-            referenceId: newCase._id.toString()
-          });
-        }
       }
 
-      const io = req.app.get("io");
-      if (io) {
-        if (hasSelectedLawyer) {
-          io.of("/cases").to(selectedLawyer.toString()).emit("case_updated", newCase);
-        } else {
-          io.of("/cases").emit("case_updated", newCase);
-        }
-      }
+      emitCaseUpdated(req, newCase);
 
       return ApiResponse.success(res, "Case created successfully.", newCase, 201);
     } catch (error) {
@@ -172,7 +194,8 @@ class CaseController {
           $or: [
             { status: "Submitted" },
             { assignedLawyer: req.user._id },
-            { selectedLawyer: req.user._id }
+            { selectedLawyer: req.user._id },
+            { lawyerRequests: { $elemMatch: { lawyer: req.user._id, status: "Pending" } } }
           ]
         };
       }
@@ -200,7 +223,7 @@ class CaseController {
         }
       }
 
-      return ApiResponse.success(res, "Cases fetched successfully.", cases);
+      return ApiResponse.success(res, "Cases fetched successfully.", cases.map((c) => viewForUser(req.user, c)));
     } catch (error) {
       next(error);
     }
@@ -214,6 +237,7 @@ class CaseController {
         .populate("assignedLawyer", "fullName email mobile profileImage")
         .populate("selectedLawyer", "fullName email mobile profileImage isVerified")
         .populate("proposals.lawyer", "fullName email mobile profileImage")
+        .populate("lawyerRequests.lawyer", "fullName profileImage")
         .lean();
 
       if (!caseItem) {
@@ -231,7 +255,7 @@ class CaseController {
         }
       }
 
-      return ApiResponse.success(res, "Case details fetched successfully.", caseItem);
+      return ApiResponse.success(res, "Case details fetched successfully.", viewForUser(req.user, caseItem));
     } catch (error) {
       next(error);
     }
@@ -332,20 +356,39 @@ class CaseController {
       const { id } = req.params;
       const { lawyerId } = req.body;
 
-      const caseItem = await Case.findById(id);
-      if (!caseItem) {
+      const existing = await caseRequestService.findCaseForResponse(id);
+      if (!existing || !caseRequestService.sameId(existing.client, req.user._id)) {
         return ApiResponse.error(res, "Case not found.", 404);
       }
 
-      caseItem.assignedLawyer = lawyerId;
-      caseItem.status = "In Progress";
-
-      const inProgressMilestone = caseItem.milestones.find((m) => m.title === "In Progress");
-      if (inProgressMilestone) {
-        inProgressMilestone.isCompleted = true;
+      if (!lawyerId || !mongoose.isValidObjectId(lawyerId)) {
+        return ApiResponse.error(res, "This lawyer has not sent a proposal for this case.", 400);
       }
 
-      await caseItem.save();
+      const caseItem = await Case.findOneAndUpdate(
+        {
+          _id: id,
+          client: req.user._id,
+          assignedLawyer: null,
+          status: { $in: caseRequestService.OPEN_STATUSES },
+          "proposals.lawyer": lawyerId,
+        },
+        {
+          $set: {
+            assignedLawyer: lawyerId,
+            status: "In Progress",
+            "milestones.$[progress].isCompleted": true,
+          },
+        },
+        { new: true, arrayFilters: [{ "progress.title": "In Progress" }] }
+      );
+
+      if (!caseItem) {
+        if (existing.assignedLawyer) {
+          return ApiResponse.error(res, caseRequestService.MESSAGES.takenByOther, 409);
+        }
+        return ApiResponse.error(res, "This lawyer has not sent a proposal for this case.", 400);
+      }
 
       const Chat = require("../../models/Chat");
       let chat = await Chat.findOne({
@@ -386,8 +429,12 @@ class CaseController {
       const { lawyerId } = req.body;
 
       const caseItem = await Case.findById(id);
-      if (!caseItem) {
+      if (!caseItem || !caseRequestService.sameId(caseItem.client, req.user._id)) {
         return ApiResponse.error(res, "Case not found.", 404);
+      }
+
+      if (caseItem.assignedLawyer) {
+        return ApiResponse.error(res, caseRequestService.MESSAGES.noLongerAvailable, 409);
       }
 
       caseItem.status = "Rejected";
@@ -465,31 +512,23 @@ class CaseController {
 
   async acceptCaseRequest(req, res, next) {
     try {
-      const { id } = req.params;
       const lawyerId = req.user._id;
 
-      const caseItem = await Case.findById(id);
-      if (!caseItem) {
-        return ApiResponse.error(res, "Case not found.", 404);
+      if (req.user.role !== "lawyer") {
+        return ApiResponse.error(res, caseRequestService.MESSAGES.forbidden, 403);
       }
 
-      const isSelected = caseItem.selectedLawyer && caseItem.selectedLawyer.toString() === lawyerId.toString();
-      const isGeneral = !caseItem.selectedLawyer && caseItem.status === "Submitted";
+      const outcome = await caseRequestService.acceptRequest(req.params.id, lawyerId);
 
-      if (!isSelected && !isGeneral) {
-        return ApiResponse.error(res, "You are not authorized to accept this case request.", 403);
+      if (outcome.statusCode !== 200) {
+        return ApiResponse.error(res, outcome.message, outcome.statusCode);
       }
 
-      caseItem.assignedLawyer = lawyerId;
-      caseItem.status = "Accepted";
-      caseItem.acceptedAt = new Date();
+      const caseItem = outcome.caseItem;
 
-      const inProgressMilestone = caseItem.milestones.find((m) => m.title === "In Progress");
-      if (inProgressMilestone) {
-        inProgressMilestone.isCompleted = true;
+      if (outcome.repeated) {
+        return ApiResponse.success(res, outcome.message, viewForUser(req.user, caseItem));
       }
-
-      await caseItem.save();
 
       const Chat = require("../../models/Chat");
       let chat = await Chat.findOne({
@@ -521,13 +560,23 @@ class CaseController {
         referenceId: caseItem._id.toString()
       });
 
-      const io = req.app.get("io");
-      if (io) {
-        io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
-        io.of("/cases").to(lawyerId.toString()).emit("case_updated", caseItem);
+      const unavailableFor = (caseItem.lawyerRequests || []).filter(
+        (r) => r.status === "Unavailable" && !caseRequestService.sameId(r.lawyer, lawyerId)
+      );
+      for (const request of unavailableFor) {
+        await notificationService.createAndSendNotification({
+          senderId: caseItem.client,
+          receiverId: request.lawyer,
+          type: "case_status_updated",
+          title: "Case Request Closed",
+          message: caseRequestService.MESSAGES.takenByOther,
+          referenceId: caseItem._id.toString()
+        });
       }
 
-      return ApiResponse.success(res, "Case request accepted and lawyer assigned.", caseItem);
+      emitCaseUpdated(req, caseItem);
+
+      return ApiResponse.success(res, outcome.message, viewForUser(req.user, caseItem));
     } catch (error) {
       next(error);
     }
@@ -538,17 +587,54 @@ class CaseController {
       const { id } = req.params;
       const lawyerId = req.user._id;
 
-      const caseItem = await Case.findById(id);
-      if (!caseItem) {
-        return ApiResponse.error(res, "Case not found.", 404);
+      if (req.user.role !== "lawyer") {
+        return ApiResponse.error(res, caseRequestService.MESSAGES.forbidden, 403);
       }
 
-      if (!caseItem.selectedLawyer || caseItem.selectedLawyer.toString() !== lawyerId.toString()) {
+      const existing = await caseRequestService.findCaseForResponse(id);
+      if (!existing) {
+        return ApiResponse.error(res, caseRequestService.MESSAGES.notFound, 404);
+      }
+
+      if (existing.lawyerRequests && existing.lawyerRequests.length > 0) {
+        const outcome = await caseRequestService.declineRequest(id, lawyerId);
+
+        if (outcome.statusCode !== 200) {
+          return ApiResponse.error(res, outcome.message, outcome.statusCode);
+        }
+
+        if (!outcome.repeated) {
+          await notificationService.createAndSendNotification({
+            senderId: lawyerId,
+            receiverId: outcome.caseItem.client,
+            type: "proposal_rejected",
+            title: outcome.allDeclined ? "Case Request Declined" : "Lawyer Declined",
+            message: outcome.allDeclined
+              ? "All the lawyers you selected have declined your case request."
+              : "One of the lawyers you selected has declined your case request.",
+            referenceId: outcome.caseItem._id.toString()
+          });
+
+          emitCaseUpdated(req, outcome.caseItem);
+        }
+
+        return ApiResponse.success(res, outcome.message, viewForUser(req.user, outcome.caseItem));
+      }
+
+      const caseItem = await Case.findOneAndUpdate(
+        {
+          _id: id,
+          selectedLawyer: lawyerId,
+          assignedLawyer: null,
+          status: { $in: caseRequestService.OPEN_STATUSES },
+        },
+        { $set: { status: "Rejected" } },
+        { new: true }
+      );
+
+      if (!caseItem) {
         return ApiResponse.error(res, "You are not the selected lawyer for this case.", 403);
       }
-
-      caseItem.status = "Rejected";
-      await caseItem.save();
 
       await notificationService.createAndSendNotification({
         senderId: lawyerId,
@@ -559,11 +645,7 @@ class CaseController {
         referenceId: caseItem._id.toString()
       });
 
-      const io = req.app.get("io");
-      if (io) {
-        io.of("/cases").to(caseItem.client.toString()).emit("case_updated", caseItem);
-        io.of("/cases").to(lawyerId.toString()).emit("case_updated", caseItem);
-      }
+      emitCaseUpdated(req, caseItem);
 
       return ApiResponse.success(res, "Case request rejected.", caseItem);
     } catch (error) {

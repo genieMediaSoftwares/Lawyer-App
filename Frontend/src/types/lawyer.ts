@@ -1,4 +1,4 @@
-import type { PopulatedUser } from './domain';
+import type { LawyerRequestStatus, PopulatedUser } from './domain';
 
 export interface LawyerLead {
   caseId: string;
@@ -15,7 +15,12 @@ export interface LawyerLead {
   preferredCourt: string;
   caseStatus: string;
   matchPercentage?: number | null;
+  requestStatus?: LawyerRequestStatus;
+  unavailableReason?: string | null;
 }
+
+export const isActionableLead = (lead: LawyerLead): boolean =>
+  (lead.requestStatus ?? 'Pending') === 'Pending';
 
 export interface LawyerClientRow {
   clientId: string;

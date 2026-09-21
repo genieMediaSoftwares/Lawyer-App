@@ -31,7 +31,11 @@ const canReadFile = async (user, relativePath, fileName) => {
 
     const engaged = await Case.exists({
       client: document.clientId,
-      $or: [{ assignedLawyer: user._id }, { selectedLawyer: user._id }],
+      $or: [
+        { assignedLawyer: user._id },
+        { selectedLawyer: user._id },
+        { lawyerRequests: { $elemMatch: { lawyer: user._id, status: "Pending" } } },
+      ],
     });
     return Boolean(engaged);
   }
@@ -41,13 +45,17 @@ const canReadFile = async (user, relativePath, fileName) => {
       { "documents.url": { $regex: fileName } },
       { voiceUrl: { $regex: fileName } },
     ],
-  }).select("client assignedLawyer selectedLawyer");
+  }).select("client assignedLawyer selectedLawyer lawyerRequests");
 
   if (relatedCase) {
+    const pendingInvitees = (relatedCase.lawyerRequests || [])
+      .filter((r) => r.status === "Pending")
+      .map((r) => r.lawyer);
     return [
       relatedCase.client,
       relatedCase.assignedLawyer,
       relatedCase.selectedLawyer,
+      ...pendingInvitees,
     ]
       .filter(Boolean)
       .some((id) => id.toString() === user._id.toString());

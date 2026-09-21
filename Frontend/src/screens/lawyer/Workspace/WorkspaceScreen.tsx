@@ -21,6 +21,7 @@ import {
 } from '../../../components/icons/ClientIcons';
 import { UserPlusIcon, UsersIcon } from '../../../components/icons/LawyerIcons';
 import { lawyerApi } from '../../../api/lawyerApi';
+import { isActionableLead } from '../../../types/lawyer';
 import { useAuthStore } from '../../../store/authStore';
 import { useUiStore } from '../../../store/uiStore';
 import type { LawyerTabScreenProps } from '../../../types/navigation';
@@ -256,7 +257,7 @@ export const WorkspaceScreen: React.FC<LawyerTabScreenProps<'Workspace'>> = ({
           <WorkspaceCard
             title="New Leads"
             icon={<UserPlusIcon size={20} color={colors.gold} />}
-            count={leadsQuery.data?.length}
+            count={leadsQuery.data?.filter(isActionableLead).length}
             caption="Waiting for your response"
             onPress={() => navigation.navigate('Leads')}
           />

@@ -16,7 +16,9 @@ import { CheckIcon } from '../../../../components/icons/Icons';
 import { formatDate, formatFileSize } from '../../../../utils/format';
 import { resolveFileUrl } from '../../../../utils/urls';
 import { CheckBadge } from '../AiBadge';
+import { REQUIRED_LAWYER_COUNT } from '../types';
 import type { PostCaseStepIndex, PostCaseState } from '../types';
+import type { RecommendedLawyer } from '../../../../types/domain';
 import { colors } from '../../../../theme';
 
 interface ReviewStepProps {
@@ -90,21 +92,9 @@ const Row: React.FC<{
 };
 
 const SelectedLawyerCard: React.FC<{
-  state: PostCaseState;
+  lawyer: RecommendedLawyer;
   onViewProfile: () => void;
-}> = ({ state, onViewProfile }) => {
-  const lawyer = state.selectedLawyer;
-
-  if (!lawyer) {
-    return (
-      <View className="py-3">
-        <GenieText variant="body-md" tone="secondary">
-          No lawyer selected.
-        </GenieText>
-      </View>
-    );
-  }
-
+}> = ({ lawyer, onViewProfile }) => {
   const photo = resolveFileUrl(lawyer.profileImage);
 
   return (
@@ -453,18 +443,32 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
         ))}
       </Section>
 
-      <Section title="Your lawyer" onEdit={() => onEditStep(3)}>
-        <SelectedLawyerCard
-          state={state}
-          onViewProfile={() => {
-            if (state.selectedLawyer) {
-              onViewLawyerProfile(
-                state.selectedLawyer.userId,
-                state.selectedLawyer.fullName,
-              );
-            }
-          }}
-        />
+      <Section
+        title={`Your lawyers (${state.selectedLawyers.length}/${REQUIRED_LAWYER_COUNT})`}
+        onEdit={() => onEditStep(3)}
+      >
+        {state.selectedLawyers.length === 0 ? (
+          <View className="py-3">
+            <GenieText variant="body-md" tone="secondary">
+              No lawyers selected.
+            </GenieText>
+          </View>
+        ) : (
+          <>
+            <GenieText variant="body-sm" tone="secondary" className="pt-3">
+              Your request goes to all three. The first to accept takes the case.
+            </GenieText>
+            {state.selectedLawyers.map(lawyer => (
+              <SelectedLawyerCard
+                key={lawyer.userId}
+                lawyer={lawyer}
+                onViewProfile={() =>
+                  onViewLawyerProfile(lawyer.userId, lawyer.fullName)
+                }
+              />
+            ))}
+          </>
+        )}
       </Section>
 
       <Pressable

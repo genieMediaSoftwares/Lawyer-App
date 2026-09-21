@@ -2,6 +2,8 @@ const Lawyer = require("../../models/Lawyer");
 const User = require("../../models/User");
 const ApiResponse = require("../../config/ApiResponse");
 
+const UNAVAILABLE_LEAD_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
 class LawyerController {
   async getAllLawyers(req, res, next) {
     try {
@@ -288,25 +290,41 @@ class LawyerController {
   async getLeads(req, res, next) {
     try {
       const Case = require("../../models/Case");
+      const caseRequestService = require("../../services/case/caseRequestService");
+      const recentlyClosed = new Date(Date.now() - UNAVAILABLE_LEAD_WINDOW_MS);
       const leads = await Case.find({
         $or: [
-          { selectedLawyer: req.user._id, status: { $in: ["Awaiting Lawyer Acceptance", "Pending Lawyer Response"] } },
-          { status: "Submitted", selectedLawyer: null }
+          { selectedLawyer: req.user._id, assignedLawyer: null, status: { $in: ["Awaiting Lawyer Acceptance", "Pending Lawyer Response"] } },
+          { status: "Submitted", selectedLawyer: null },
+          { lawyerRequests: { $elemMatch: { lawyer: req.user._id, status: "Pending" } } },
+          { lawyerRequests: { $elemMatch: { lawyer: req.user._id, status: "Unavailable", respondedAt: { $gte: recentlyClosed } } } }
         ]
-      }).populate("client", "fullName");
+      })
+        .populate("client", "fullName profileImage")
+        .sort({ createdAt: -1 });
 
-      const formattedLeads = leads.map(c => ({
-        caseId: c._id,
-        clientName: c.client ? c.client.fullName : "Unknown Client",
-        issueCategory: c.category,
-        issueTitle: c.title,
-        location: c.location,
-        postedTime: c.createdAt,
-        urgency: c.urgency,
-        acknowledgementDocument: c.documents && c.documents[0] ? c.documents[0].url : "",
-        preferredCourt: c.preferredCourt,
-        caseStatus: c.status,
-      }));
+      const formattedLeads = leads.map(c => {
+        const request = caseRequestService.findRequest(c, req.user._id);
+        const requestStatus = request ? request.status : "Pending";
+        const isAvailable = requestStatus === "Pending";
+
+        return {
+          caseId: c._id,
+          clientName: isAvailable && c.client ? c.client.fullName : isAvailable ? "Unknown Client" : "Client",
+          clientProfileImage: isAvailable && c.client ? c.client.profileImage : "",
+          issueCategory: c.category,
+          issueTitle: c.title,
+          location: isAvailable ? c.location : "",
+          postedTime: c.createdAt,
+          urgency: c.urgency,
+          documentsCount: isAvailable ? (c.documents || []).length : 0,
+          acknowledgementDocument: isAvailable && c.documents && c.documents[0] ? c.documents[0].url : "",
+          preferredCourt: isAvailable ? c.preferredCourt : "",
+          caseStatus: c.status,
+          requestStatus,
+          unavailableReason: requestStatus === "Unavailable" ? caseRequestService.MESSAGES.takenByOther : null,
+        };
+      });
 
       return ApiResponse.success(res, "Leads retrieved successfully.", formattedLeads);
     } catch (error) {
@@ -331,7 +349,7 @@ class LawyerController {
         profileImage: c.client ? c.client.profileImage : "",
       });
 
-      const accepted = cases.filter(c => c.status === "Awaiting Lawyer Acceptance" || c.status === "Submitted").map(mapClient);
+      const accepted = cases.filter(c => ["Accepted", "Awaiting Lawyer Acceptance", "Submitted"].includes(c.status)).map(mapClient);
       const inProgress = cases.filter(c => c.status === "In Progress").map(mapClient);
       const closed = cases.filter(c => c.status === "Closed").map(mapClient);
 

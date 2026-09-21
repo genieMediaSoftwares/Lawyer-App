@@ -39,10 +39,38 @@ export interface PostCaseState {
   aiParties: AiParty[];
   aiFullDescription: string;
 
-  selectedLawyer: RecommendedLawyer | null;
+  selectedLawyers: RecommendedLawyer[];
 }
 
 export type EntryMode = 'manual' | 'ai';
+
+export const REQUIRED_LAWYER_COUNT = 3;
+
+export type LawyerSelectionResult =
+  | { ok: true; selected: RecommendedLawyer[] }
+  | { ok: false; selected: RecommendedLawyer[]; reason: string };
+
+export const toggleLawyer = (
+  selected: RecommendedLawyer[],
+  lawyer: RecommendedLawyer,
+): LawyerSelectionResult => {
+  if (selected.some(item => item.userId === lawyer.userId)) {
+    return {
+      ok: true,
+      selected: selected.filter(item => item.userId !== lawyer.userId),
+    };
+  }
+
+  if (selected.length >= REQUIRED_LAWYER_COUNT) {
+    return {
+      ok: false,
+      selected,
+      reason: `You can select only ${REQUIRED_LAWYER_COUNT} lawyers. Remove one to choose another.`,
+    };
+  }
+
+  return { ok: true, selected: [...selected, lawyer] };
+};
 
 const SHORT_DESCRIPTION_CHARS = 320;
 
@@ -104,7 +132,7 @@ export const initialPostCaseState: PostCaseState = {
   aiParties: [],
   aiFullDescription: '',
 
-  selectedLawyer: null,
+  selectedLawyers: [],
 };
 
 export const POST_CASE_STEPS = [
@@ -219,7 +247,10 @@ export const applyExtraction = (
   };
 };
 
-export const toCreatePayload = (state: PostCaseState): CreateCasePayload => {
+export const toCreatePayload = (
+  state: PostCaseState,
+  clientRequestId?: string,
+): CreateCasePayload => {
   const title =
     state.title.trim() || state.subcategory.trim() || state.category.trim();
 
@@ -248,7 +279,8 @@ export const toCreatePayload = (state: PostCaseState): CreateCasePayload => {
     urgency: state.urgency || undefined,
     preferredCourt: state.preferredCourt.trim() || undefined,
     documents: documents.length > 0 ? documents : undefined,
-    selectedLawyer: state.selectedLawyer?.userId || undefined,
+    selectedLawyers: state.selectedLawyers.map(lawyer => lawyer.userId),
+    clientRequestId,
     voiceTranscript: state.voiceTranscript || undefined,
     city: state.location.trim() || undefined,
     state: state.state.trim() || undefined,
@@ -275,7 +307,7 @@ export const isStepComplete = (
     case 2:
       return Boolean(state.document || state.aiDocuments.length > 0);
     case 3:
-      return Boolean(state.selectedLawyer);
+      return state.selectedLawyers.length === REQUIRED_LAWYER_COUNT;
     case 4:
       return true;
     default:

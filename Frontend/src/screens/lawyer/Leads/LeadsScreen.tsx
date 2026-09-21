@@ -26,6 +26,7 @@ import { notificationsApi } from '../../../api/clientApi';
 import { useUiStore } from '../../../store/uiStore';
 import { toAppError } from '../../../utils/errors';
 import { formatDate } from '../../../utils/format';
+import { isActionableLead } from '../../../types/lawyer';
 import type { LawyerLead } from '../../../types/lawyer';
 import type { LawyerTabScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
@@ -78,16 +79,42 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
     await queryClient.invalidateQueries({ queryKey: ['chats'] });
   };
 
+  const failAndRefresh = async (error: unknown) => {
+    setBusyCaseId(null);
+    setActionError(toAppError(error).message);
+    await queryClient.invalidateQueries({ queryKey: ['lawyer', 'leads'] });
+  };
+
   const acceptMutation = useMutation({
     mutationFn: (caseId: string) => lawyerApi.acceptLead(caseId),
-    onError: error => {
-      setBusyCaseId(null);
-      setActionError(toAppError(error).message);
-    },
+    onError: failAndRefresh,
     onSuccess: settle,
   });
 
+  const declineMutation = useMutation({
+    mutationFn: (caseId: string) => lawyerApi.rejectLead(caseId),
+    onError: failAndRefresh,
+    onSuccess: settle,
+  });
+
+  const respond = (caseId: string, action: 'accept' | 'decline') => {
+    if (busyCaseId) {
+      return;
+    }
+    setActionError(null);
+    setBusyCaseId(caseId);
+    if (action === 'accept') {
+      acceptMutation.mutate(caseId);
+    } else {
+      declineMutation.mutate(caseId);
+    }
+  };
+
   const newLeads = useMemo(() => leadsQuery.data ?? [], [leadsQuery.data]);
+  const pendingLeadCount = useMemo(
+    () => newLeads.filter(isActionableLead).length,
+    [newLeads],
+  );
   const acceptedRows = useMemo(
     () => clientsQuery.data?.accepted ?? [],
     [clientsQuery.data],
@@ -122,8 +149,36 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
 
   const renderLeadCard = (item: LawyerLead) => {
     const isBusy = busyCaseId === item.caseId;
+    const isAvailable = isActionableLead(item);
     const docCount = item.documentsCount ?? (item.acknowledgementDocument ? 1 : 0);
     const matchPct = item.matchPercentage ?? 90;
+
+    if (!isAvailable) {
+      return (
+        <View
+          key={item.caseId}
+          testID={`lead-unavailable-${item.caseId}`}
+          className="mb-4 rounded-2xl border border-border/40 bg-surface-alt p-4 opacity-80"
+        >
+          <View className="flex-row items-start justify-between">
+            <GenieText className="flex-1 pr-2 font-bold text-base text-text-primary" numberOfLines={1}>
+              {item.issueTitle}
+            </GenieText>
+            <View className="rounded-md border border-border bg-surface px-2 py-0.5">
+              <GenieText className="font-bold text-[10px] text-text-muted">
+                Unavailable
+              </GenieText>
+            </View>
+          </View>
+          <GenieText className="mt-1 text-xs text-text-secondary" numberOfLines={1}>
+            {item.issueCategory || 'General Practice'}
+          </GenieText>
+          <GenieText className="mt-3 text-sm text-text-secondary">
+            {item.unavailableReason || 'This case request is no longer available.'}
+          </GenieText>
+        </View>
+      );
+    }
 
     return (
       <View
@@ -203,24 +258,40 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
           Posted on: {formatDate(item.postedTime)}
         </GenieText>
 
-        <View className="mt-4 flex-row gap-3">
+        <Pressable
+          onPress={() => (navigation as any).navigate('CaseDetails', { caseId: item.caseId })}
+          className="mt-4 items-center justify-center rounded-xl border border-gold py-2.5 active:bg-gold-muted/20"
+        >
+          <GenieText className="font-semibold text-sm text-gold">
+            View Details
+          </GenieText>
+        </Pressable>
+
+        <View className="mt-3 flex-row gap-3">
           <Pressable
-            onPress={() => (navigation as any).navigate('CaseDetails', { caseId: item.caseId })}
-            className="flex-1 items-center justify-center rounded-xl border border-gold py-2.5 active:bg-gold-muted/20"
+            testID={`lead-decline-${item.caseId}`}
+            disabled={Boolean(busyCaseId)}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: Boolean(busyCaseId) }}
+            onPress={() => respond(item.caseId, 'decline')}
+            className={`flex-1 items-center justify-center rounded-xl border border-border py-2.5 active:bg-surface ${
+              busyCaseId ? 'opacity-50' : ''
+            }`}
           >
-            <GenieText className="font-semibold text-sm text-gold">
-              View Details
+            <GenieText className="font-semibold text-sm text-text-secondary">
+              Decline
             </GenieText>
           </Pressable>
 
           <Pressable
-            disabled={isBusy}
-            onPress={() => {
-              setActionError(null);
-              setBusyCaseId(item.caseId);
-              acceptMutation.mutate(item.caseId);
-            }}
-            className="flex-1 items-center justify-center rounded-xl bg-gold py-2.5 active:bg-gold-hover"
+            testID={`lead-accept-${item.caseId}`}
+            disabled={Boolean(busyCaseId)}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: Boolean(busyCaseId), busy: isBusy }}
+            onPress={() => respond(item.caseId, 'accept')}
+            className={`flex-1 items-center justify-center rounded-xl bg-gold py-2.5 active:bg-gold-hover ${
+              busyCaseId ? 'opacity-50' : ''
+            }`}
           >
             <GenieText className="font-bold text-sm text-on-gold">
               {isBusy ? 'Processing...' : 'Accept Case'}
@@ -387,8 +458,8 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
               tab === 'new' ? 'bg-amber-600/80' : 'bg-surface-alt'
             }`}
           >
-            <GenieText className="font-bold text-[11px] text-white">
-              {newLeads.length}
+            <GenieText testID="new-leads-count" className="font-bold text-[11px] text-white">
+              {pendingLeadCount}
             </GenieText>
           </View>
         </Pressable>

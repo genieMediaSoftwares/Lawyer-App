@@ -20,6 +20,7 @@ import {
   applyExtraction,
   initialPostCaseState,
   isStepComplete,
+  REQUIRED_LAWYER_COUNT,
   toCreatePayload,
   type PostCaseState,
   type PostCaseStepIndex,
@@ -128,9 +129,16 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
     [goTo],
   );
 
+  const clientRequestIdRef = useRef(
+    `pc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
+  );
+  const isSubmittingRef = useRef(false);
+
   const submitMutation = useMutation({
     mutationFn: async () => {
-      const created = await casesApi.create(toCreatePayload(state));
+      const created = await casesApi.create(
+        toCreatePayload(state, clientRequestIdRef.current),
+      );
 
       if (state.aiSessionId && created?._id) {
         try {
@@ -151,9 +159,24 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
       });
     },
     onError: error => {
+      isSubmittingRef.current = false;
       setSubmitError(toAppError(error).message);
     },
   });
+
+  const submit = () => {
+    if (isSubmittingRef.current || submitMutation.isPending) {
+      return;
+    }
+    if (!isStepComplete(state, 3)) {
+      setSubmitError(`Select exactly ${REQUIRED_LAWYER_COUNT} lawyers before submitting.`);
+      goTo(3);
+      return;
+    }
+    isSubmittingRef.current = true;
+    setSubmitError(null);
+    submitMutation.mutate();
+  };
 
   const hasProgress =
     Boolean(state.subcategory) ||
@@ -214,7 +237,7 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
       case 2:
         return 'Add a document to continue';
       case 3:
-        return 'Select a lawyer to continue';
+        return `Select exactly ${REQUIRED_LAWYER_COUNT} lawyers to continue (${state.selectedLawyers.length} / ${REQUIRED_LAWYER_COUNT} selected)`;
       default:
         return '';
     }
@@ -303,13 +326,12 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
             {step === LAST_STEP ? (
               <View className="flex-1">
                 <GenieButton
+                  testID="submit-case-button"
                   label="Submit Case"
+                  loadingLabel="Submitting..."
                   loading={submitMutation.isPending}
-                  disabled={!hasAgreed}
-                  onPress={() => {
-                    setSubmitError(null);
-                    submitMutation.mutate();
-                  }}
+                  disabled={!hasAgreed || submitMutation.isPending}
+                  onPress={submit}
                 />
                 {!hasAgreed ? (
                   <GenieText
@@ -324,6 +346,7 @@ export const PostCaseScreen: React.FC<ClientStackScreenProps<'PostCase'>> = ({
             ) : (
               <View className="flex-1">
                 <GenieButton
+                  testID="post-case-next-button"
                   label="Next"
                   disabled={!canContinue}
                   onPress={() => goTo((step + 1) as PostCaseStepIndex)}

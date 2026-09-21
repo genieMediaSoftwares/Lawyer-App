@@ -94,11 +94,34 @@ const AssignedLawyer: React.FC<{
   const profile = item.assignedLawyerProfile ?? item.selectedLawyerProfile;
 
   if (!lawyer) {
+    const requests = item.lawyerRequests ?? [];
     return (
       <Section title="Advocate">
         <GenieText variant="body-sm" tone="muted">
-          No advocate has been assigned to this case yet.
+          {requests.length > 0
+            ? 'Your request was sent to these lawyers. The first to accept takes the case.'
+            : 'No advocate has been assigned to this case yet.'}
         </GenieText>
+        {requests.map((request, index) => {
+          const invited =
+            typeof request.lawyer === 'object' && request.lawyer ? request.lawyer : null;
+          return (
+            <View
+              key={invited?._id ?? `request-${index}`}
+              className="mt-2 flex-row items-center justify-between"
+            >
+              <GenieText variant="body-md" numberOfLines={1} className="flex-1 pr-2">
+                {invited?.fullName ?? 'Lawyer'}
+              </GenieText>
+              <GenieText
+                variant="body-sm"
+                tone={request.status === 'Declined' ? 'muted' : 'gold'}
+              >
+                {request.status === 'Pending' ? 'Awaiting response' : request.status}
+              </GenieText>
+            </View>
+          );
+        })}
       </Section>
     );
   }

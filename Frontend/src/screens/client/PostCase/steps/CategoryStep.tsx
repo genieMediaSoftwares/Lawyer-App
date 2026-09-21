@@ -144,7 +144,7 @@ export const CategoryStep: React.FC<CategoryStepProps> = ({
       category: category.title,
       subcategory: subType,
       ...(category.id !== state.categoryId
-        ? { selectedLawyer: null }
+        ? { selectedLawyers: [] }
         : {}),
     });
   };

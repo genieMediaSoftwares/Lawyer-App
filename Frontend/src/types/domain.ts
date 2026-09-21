@@ -63,6 +63,20 @@ export interface CaseProposal {
   createdAt: string;
 }
 
+export type LawyerRequestStatus =
+  | 'Pending'
+  | 'Accepted'
+  | 'Declined'
+  | 'Unavailable';
+
+export interface CaseLawyerRequest {
+  lawyer: PopulatedUser | string;
+  status: LawyerRequestStatus;
+  createdAt: string;
+  respondedAt: string | null;
+  acceptedAt: string | null;
+}
+
 export interface LegalCase {
   _id: string;
   client: PopulatedUser | string;
@@ -99,6 +113,8 @@ export interface LegalCase {
   assignedLawyer: PopulatedUser | null;
   selectedLawyerProfile?: LawyerProfile | null;
   assignedLawyerProfile?: LawyerProfile | null;
+  lawyerRequests?: CaseLawyerRequest[];
+  myRequestStatus?: LawyerRequestStatus | null;
 
   milestones: CaseMilestone[];
   hearings: CaseHearing[];
@@ -188,7 +204,8 @@ export interface CreateCasePayload {
   urgency?: string;
   preferredCourt?: string;
   documents?: { name: string; url: string; size: string }[];
-  selectedLawyer?: string;
+  selectedLawyers: string[];
+  clientRequestId?: string;
   voiceUrl?: string;
   voiceTranscript?: string;
   city?: string;

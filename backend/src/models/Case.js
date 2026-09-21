@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
 
+const REQUIRED_LAWYER_COUNT = 3;
+const LAWYER_REQUEST_STATUSES = ["Pending", "Accepted", "Declined", "Unavailable"];
+
 const caseSchema = new mongoose.Schema(
   {
     client: {
@@ -153,6 +156,50 @@ const caseSchema = new mongoose.Schema(
       ref: "User",
     },
 
+    lawyerRequests: {
+      type: [
+        {
+          _id: false,
+          lawyer: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+          },
+          status: {
+            type: String,
+            enum: LAWYER_REQUEST_STATUSES,
+            default: "Pending",
+          },
+          createdAt: {
+            type: Date,
+            default: Date.now,
+          },
+          respondedAt: {
+            type: Date,
+            default: null,
+          },
+          acceptedAt: {
+            type: Date,
+            default: null,
+          },
+        },
+      ],
+      default: [],
+      validate: {
+        validator: (requests) => {
+          if (requests.length === 0) return true;
+          const ids = new Set(requests.map((r) => r.lawyer.toString()));
+          return requests.length === REQUIRED_LAWYER_COUNT && ids.size === requests.length;
+        },
+        message: `Exactly ${REQUIRED_LAWYER_COUNT} different lawyers must be selected.`,
+      },
+    },
+
+    clientRequestId: {
+      type: String,
+      default: undefined,
+    },
+
     milestones: [
       {
         title: { type: String, required: true },
@@ -283,5 +330,12 @@ caseSchema.index({ category: 1, locationCity: 1 });
 caseSchema.index({ locationState: 1 });
 caseSchema.index({ createdAt: -1 });
 caseSchema.index({ updatedAt: -1 });
+caseSchema.index({ "lawyerRequests.lawyer": 1, "lawyerRequests.status": 1 });
+caseSchema.index(
+  { client: 1, clientRequestId: 1 },
+  { unique: true, partialFilterExpression: { clientRequestId: { $type: "string" } } }
+);
 
 module.exports = mongoose.model("Case", caseSchema);
+module.exports.REQUIRED_LAWYER_COUNT = REQUIRED_LAWYER_COUNT;
+module.exports.LAWYER_REQUEST_STATUSES = LAWYER_REQUEST_STATUSES;

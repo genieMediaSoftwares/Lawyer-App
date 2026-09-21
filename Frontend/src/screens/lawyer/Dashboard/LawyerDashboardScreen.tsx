@@ -20,6 +20,7 @@ import {
 } from '../../../components/icons/ClientIcons';
 import { UserPlusIcon } from '../../../components/icons/LawyerIcons';
 import { lawyerApi } from '../../../api/lawyerApi';
+import { isActionableLead } from '../../../types/lawyer';
 import { useAuthStore } from '../../../store/authStore';
 import { useUiStore } from '../../../store/uiStore';
 import type { LawyerTabScreenProps } from '../../../types/navigation';
@@ -142,7 +143,7 @@ export const LawyerDashboardScreen: React.FC<
   const reviewsVal = profile?.totalReviews ?? 0;
   const specialization = profile?.specialization || 'General Practice';
 
-  const newLeadsCount = leadsQuery.data?.length ?? 0;
+  const newLeadsCount = (leadsQuery.data ?? []).filter(isActionableLead).length;
   const unreadMessagesCount = messagesQuery.data?.unreadCount ?? 0;
   const pendingDocsCount = clientsQuery.data?.inProgress.length ?? 0;
   const pendingResponsesCount = clientsQuery.data?.accepted.length ?? 0;

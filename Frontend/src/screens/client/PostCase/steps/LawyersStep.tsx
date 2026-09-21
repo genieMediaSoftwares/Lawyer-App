@@ -6,6 +6,7 @@ import {
   GenieButton,
   GenieEmptyState,
   GenieErrorState,
+  GenieNotice,
   GenieSkeletonList,
   GenieText,
 } from '../../../../components';
@@ -20,6 +21,7 @@ import { CheckIcon } from '../../../../components/icons/Icons';
 import { advocatesApi } from '../../../../api/advocatesApi';
 import { resolveFileUrl } from '../../../../utils/urls';
 import type { RecommendedLawyer } from '../../../../types/domain';
+import { REQUIRED_LAWYER_COUNT, toggleLawyer } from '../types';
 import type { PostCaseState } from '../types';
 import { colors } from '../../../../theme';
 
@@ -41,22 +43,24 @@ interface LawyersStepProps {
 const LawyerCard: React.FC<{
   lawyer: RecommendedLawyer;
   isSelected: boolean;
+  isLocked: boolean;
   onSelect: () => void;
   onViewProfile: () => void;
-}> = ({ lawyer, isSelected, onSelect, onViewProfile }) => {
+}> = ({ lawyer, isSelected, isLocked, onSelect, onViewProfile }) => {
   const photo = resolveFileUrl(lawyer.profileImage);
 
   return (
     <Pressable
+      testID={`lawyer-card-${lawyer.userId}`}
       onPress={onSelect}
-      accessibilityRole="radio"
-      accessibilityState={{ selected: isSelected }}
-      accessibilityLabel={`Select ${lawyer.fullName}${
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: isSelected, disabled: isLocked }}
+      accessibilityLabel={`${isSelected ? 'Deselect' : 'Select'} ${lawyer.fullName}${
         lawyer.specialization ? `, ${lawyer.specialization}` : ''
       }`}
       className={`mb-3 rounded-card border p-4 active:opacity-90 ${
-        isSelected ? 'border-gold bg-gold-muted' : 'border-border bg-card'
-      }`}
+        isSelected ? 'border-2 border-gold bg-gold-muted' : 'border-border bg-card'
+      } ${isLocked ? 'opacity-50' : ''}`}
     >
       <View className="flex-row">
         <View className="mr-3">
@@ -184,9 +188,11 @@ const LawyerCard: React.FC<{
           className="flex-1"
         />
         <GenieButton
-          label={isSelected ? 'Selected' : 'Select Lawyer'}
+          label={isSelected ? 'Selected ✓' : isLocked ? 'Limit reached' : 'Select Lawyer'}
+          variant={isSelected ? 'primary' : 'outline'}
           size="sm"
           onPress={onSelect}
+          disabled={isLocked}
           className="flex-1"
         />
       </View>
@@ -223,13 +229,23 @@ export const LawyersStep: React.FC<LawyersStepProps> = ({
     enabled: Boolean(state.category),
   });
 
+  const [selectionMessage, setSelectionMessage] = useState<string | null>(null);
+
   const lawyers = recommendationQuery.data ?? [];
+  const selectedCount = state.selectedLawyers.length;
+  const isFull = selectedCount >= REQUIRED_LAWYER_COUNT;
+  const remaining = REQUIRED_LAWYER_COUNT - selectedCount;
 
   const select = (lawyer: RecommendedLawyer) => {
-    onChange({
-      selectedLawyer: lawyer,
-    });
+    const outcome = toggleLawyer(state.selectedLawyers, lawyer);
+    setSelectionMessage(outcome.ok ? null : outcome.reason);
+    if (outcome.ok) {
+      onChange({ selectedLawyers: outcome.selected });
+    }
   };
+
+  const isSelected = (lawyer: RecommendedLawyer) =>
+    state.selectedLawyers.some(item => item.userId === lawyer.userId);
 
   return (
     <ScrollView
@@ -238,7 +254,24 @@ export const LawyersStep: React.FC<LawyersStepProps> = ({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      <GenieText variant="heading-lg">Recommended Lawyers</GenieText>
+      <View className="flex-row items-center justify-between">
+        <GenieText variant="heading-lg">{`Select ${REQUIRED_LAWYER_COUNT} lawyers`}</GenieText>
+        <View
+          testID="lawyer-selection-counter"
+          accessibilityLiveRegion="polite"
+          className={`rounded-pill border px-3 py-1 ${
+            isFull ? 'border-gold bg-gold' : 'border-gold bg-surface'
+          }`}
+        >
+          <GenieText
+            variant="body-sm"
+            tone={isFull ? 'on-gold' : 'gold'}
+            className="font-bold"
+          >
+            {`${selectedCount} / ${REQUIRED_LAWYER_COUNT} selected`}
+          </GenieText>
+        </View>
+      </View>
       <GenieText variant="body-sm" tone="secondary" className="mt-1">
         {state.location
           ? `Matched for your ${state.subcategory || state.category} matter in ${
@@ -246,6 +279,19 @@ export const LawyersStep: React.FC<LawyersStepProps> = ({
             }.`
           : `Matched for your ${state.subcategory || state.category} matter.`}
       </GenieText>
+      <GenieText variant="body-sm" tone="muted" className="mt-1">
+        Your request goes to all three. The first lawyer to accept takes the case.
+      </GenieText>
+
+      {selectionMessage ? (
+        <View className="mt-3">
+          <GenieNotice tone="warning" message={selectionMessage} />
+        </View>
+      ) : !isFull ? (
+        <GenieText testID="lawyer-selection-hint" variant="body-sm" tone="gold" className="mt-3">
+          {`Select ${remaining} more ${remaining === 1 ? 'lawyer' : 'lawyers'} to continue.`}
+        </GenieText>
+      ) : null}
 
       <ScrollView
         horizontal
@@ -304,17 +350,33 @@ export const LawyersStep: React.FC<LawyersStepProps> = ({
             }${state.location ? ` near ${state.location}` : ''}. Try a broader location, or check back soon.`}
           />
         ) : (
-          lawyers.map(lawyer => (
-            <LawyerCard
-              key={lawyer.lawyerId}
-              lawyer={lawyer}
-              isSelected={state.selectedLawyer?.userId === lawyer.userId}
-              onSelect={() => select(lawyer)}
-              onViewProfile={() =>
-                onViewProfile(lawyer.userId, lawyer.fullName)
-              }
-            />
-          ))
+          <>
+            {lawyers.length < REQUIRED_LAWYER_COUNT ? (
+              <View className="mb-3">
+                <GenieNotice
+                  tone="warning"
+                  message={`Only ${lawyers.length} ${
+                    lawyers.length === 1 ? 'lawyer matches' : 'lawyers match'
+                  } this matter. Try a broader location or category to find ${REQUIRED_LAWYER_COUNT}.`}
+                />
+              </View>
+            ) : null}
+            {lawyers.map(lawyer => {
+              const selected = isSelected(lawyer);
+              return (
+                <LawyerCard
+                  key={lawyer.lawyerId}
+                  lawyer={lawyer}
+                  isSelected={selected}
+                  isLocked={isFull && !selected}
+                  onSelect={() => select(lawyer)}
+                  onViewProfile={() =>
+                    onViewProfile(lawyer.userId, lawyer.fullName)
+                  }
+                />
+              );
+            })}
+          </>
         )}
       </View>
     </ScrollView>
