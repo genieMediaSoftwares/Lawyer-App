@@ -32,11 +32,25 @@ const candidateBinaries = () => {
 
 const run = (binary, args, timeout) =>
   new Promise((resolve, reject) => {
-    execFile(binary, args, { timeout, windowsHide: true }, (error, stdout) => {
-      if (error) reject(error);
-      else resolve(stdout);
-    });
+    execFile(
+      binary,
+      args,
+      { timeout, windowsHide: true, maxBuffer: 16 * 1024 * 1024 },
+      (error, stdout) => {
+        if (error) reject(error);
+        else resolve(String(stdout || ""));
+      }
+    );
   });
+
+// Ghostscript announces "Processing pages 1 through N." and prints "Page n"
+// for each page it writes. A pass that did not write every page is discarded.
+const allPagesWritten = (stdout) => {
+  const declared = /Processing pages \d+ through (\d+)\./.exec(stdout);
+  const written = (stdout.match(/^Page \d+\s*$/gm) || []).length;
+  if (written === 0) return false;
+  return declared ? written === Number(declared[1]) : true;
+};
 
 let cachedBinary;
 
@@ -66,7 +80,6 @@ const ghostscriptArgs = (input, output, resolution) => [
   "-dSAFER",
   "-dBATCH",
   "-dNOPAUSE",
-  "-dQUIET",
   "-dDetectDuplicateImages=true",
   "-dCompressFonts=true",
   "-dDownsampleColorImages=true",
@@ -130,7 +143,12 @@ async function optimizePdf(inputPath, { targetBytes = AI_MAX_FILE_BYTES } = {}) 
     passes += 1;
 
     try {
-      await run(binary, ghostscriptArgs(inputPath, output, pass.resolution), PASS_TIMEOUT_MS);
+      const stdout = await run(
+        binary,
+        ghostscriptArgs(inputPath, output, pass.resolution),
+        PASS_TIMEOUT_MS
+      );
+      if (!allPagesWritten(stdout)) throw new Error("Not every page was written.");
       if (!(await hasPdfHeader(output))) throw new Error("Output is not a PDF.");
       const size = (await fs.promises.stat(output)).size;
       if (size <= 0) throw new Error("Output is empty.");
@@ -160,9 +178,11 @@ async function optimizePdf(inputPath, { targetBytes = AI_MAX_FILE_BYTES } = {}) 
     await removeQuietly(best.path);
     throw new PdfOptimizationError(
       "STILL_TOO_LARGE",
-      `This PDF is ${formatMb(originalSize)} and could only be reduced to ${formatMb(
+      `Unable to reduce this PDF below ${formatMb(
+        targetBytes
+      )} without compromising document quality. The best result was ${formatMb(
         best.size
-      )}, which is still over the ${formatMb(targetBytes)} limit. Please upload fewer pages or split it into smaller PDFs.`,
+      )}. Please upload fewer pages or split it into smaller PDFs.`,
       { bestSize: best.size }
     );
   }
@@ -172,6 +192,7 @@ async function optimizePdf(inputPath, { targetBytes = AI_MAX_FILE_BYTES } = {}) 
 
 module.exports = {
   optimizePdf,
+  allPagesWritten,
   findGhostscript,
   resetGhostscriptCache,
   PdfOptimizationError,

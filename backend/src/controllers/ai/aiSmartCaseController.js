@@ -11,7 +11,11 @@ const {
 const log = require("../../utils/aiLogger");
 const pdfOptimizer = require("../../services/document/pdfOptimizer");
 const preparedDocuments = require("../../services/ai/preparedDocuments");
-const { AI_MAX_FILE_BYTES, AI_MAX_DOCUMENTS } = require("../../config/uploadLimits");
+const {
+  AI_MAX_FILE_BYTES,
+  AI_MAX_FILE_LABEL,
+  AI_MAX_DOCUMENTS,
+} = require("../../config/uploadLimits");
 const {
   detectTranscriptLanguage,
   normaliseLanguageCode,
@@ -149,7 +153,7 @@ class AiSmartCaseController {
         await removeUploadedFiles([...documentFiles, voiceFile]);
         return ApiResponse.error(
           res,
-          `${oversized.originalname} is larger than 3 MB. Please add it again so it can be optimized before upload.`,
+          `${oversized.originalname} is larger than ${AI_MAX_FILE_LABEL}. Please add it again so it can be optimized before upload.`,
           413
         );
       }

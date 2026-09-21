@@ -57,23 +57,34 @@ app.use(
   })
 );
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+const configuredOrigins = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
-  .map((origin) => origin.trim())
+  .map((origin) => origin.trim().replace(/\/+$/, ""))
   .filter(Boolean);
+
+// Credentials are allowed, so a wildcard would let any site call the API as the
+// signed-in user. It is ignored; list each browser origin explicitly.
+if (configuredOrigins.includes("*")) {
+  console.warn(
+    "[startup] ALLOWED_ORIGINS contains '*', which is ignored. List each " +
+      "browser origin explicitly, e.g. http://127.0.0.1:5174,http://localhost:5174"
+  );
+}
+const allowedOrigins = new Set(configuredOrigins.filter((origin) => origin !== "*"));
+
+// Outside production, a browser preview on this machine is always allowed.
+const LOCAL_DEV_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/;
+const allowLocalOrigins = process.env.NODE_ENV !== "production";
+
+const isAllowedOrigin = (origin) =>
+  allowedOrigins.has(origin) || (allowLocalOrigins && LOCAL_DEV_ORIGIN.test(origin));
 
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Native apps and server-to-server calls send no Origin.
       if (!origin) return callback(null, true);
-      if (
-        process.env.NODE_ENV !== "production" ||
-        allowedOrigins.includes("*") ||
-        allowedOrigins.includes(origin)
-      ) {
-        return callback(null, true);
-      }
-      return callback(null, false);
+      return callback(null, isAllowedOrigin(origin));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: [
@@ -144,6 +155,17 @@ app.get("/", (req, res) => {
     message: "🚀 Lawyer Consultation Backend Running Successfully",
     version: "1.0.0",
     environment: process.env.NODE_ENV,
+  });
+});
+
+// nginx sends requests over its client_max_body_size here (error_page 413),
+// so the browser gets a readable JSON 413 with the normal CORS headers instead
+// of an opaque CORS failure. See deploy/nginx/README.md.
+app.all("/api/errors/payload-too-large", (req, res) => {
+  res.status(413).json({
+    success: false,
+    message: "This file is larger than the server accepts for this request.",
+    code: "PAYLOAD_TOO_LARGE",
   });
 });
 

@@ -25,9 +25,13 @@ const writePdf = (bytes, header = "%PDF-1.7\n") => {
 const outputOf = (args) =>
   args.find((a) => a.startsWith("-sOutputFile=")).slice("-sOutputFile=".length);
 
+const pageLog = (declared, written = declared) =>
+  `Processing pages 1 through ${declared}.\n` +
+  Array.from({ length: written }, (_, i) => `Page ${i + 1}\n`).join("");
+
 // Ghostscript stand-in: the version probe succeeds; each pass writes a PDF
-// of the next size in `sizes` (null = the pass fails).
-const fakeGhostscript = (sizes) => {
+// of the next size in `sizes` (null = the pass fails) and reports its pages.
+const fakeGhostscript = (sizes, stdout = pageLog(4)) => {
   const queue = [...sizes];
   execFile.mockImplementation((binary, args, options, callback) => {
     if (args[0] === "--version") return callback(null, "10.03.1");
@@ -36,7 +40,7 @@ const fakeGhostscript = (sizes) => {
     const out = outputOf(args);
     fs.writeFileSync(out, Buffer.concat([Buffer.from("%PDF-1.5\n"), Buffer.alloc(size - 9, 0x20)]));
     created.push(out);
-    return callback(null, "");
+    return callback(null, typeof stdout === "function" ? stdout() : stdout);
   });
 };
 
@@ -95,14 +99,35 @@ describe("pdfOptimizer", () => {
     }
   });
 
+  test("a 7 MB PDF comes back under 3 MB with every page", async () => {
+    const input = writePdf(7 * MB);
+    fakeGhostscript([2.8 * MB], pageLog(12));
+
+    const result = await optimizePdf(input, { targetBytes: 3 * MB });
+
+    expect(result.size).toBeLessThanOrEqual(3 * MB);
+    expect(result.originalSize).toBe(7 * MB);
+  });
+
+  test("a pass that drops a page is discarded, never returned", async () => {
+    const input = writePdf(7 * MB);
+    fakeGhostscript([2 * MB, 2 * MB], pageLog(12, 11));
+
+    await expect(optimizePdf(input, { targetBytes: 3 * MB })).rejects.toMatchObject({
+      code: "FAILED",
+    });
+  });
+
   test("rejects when still over the limit after every pass", async () => {
     const input = writePdf(12 * MB);
     fakeGhostscript([6 * MB, 4 * MB]);
 
-    await expect(optimizePdf(input, { targetBytes: 3 * MB })).rejects.toMatchObject({
-      code: "STILL_TOO_LARGE",
-      bestSize: 4 * MB,
-    });
+    const error = await optimizePdf(input, { targetBytes: 3 * MB }).catch((e) => e);
+
+    expect(error).toMatchObject({ code: "STILL_TOO_LARGE", bestSize: 4 * MB });
+    expect(error.message).toMatch(
+      /^Unable to reduce this PDF below 3\.0 MB without compromising document quality\./
+    );
   });
 
   test("reports unavailable when Ghostscript is not installed", async () => {

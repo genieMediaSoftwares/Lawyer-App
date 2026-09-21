@@ -6,6 +6,7 @@ const researchController = require("../controllers/ai/researchController");
 
 const authMiddleware = require("../middleware/authMiddleware");
 const upload = require("../middleware/upload.middleware");
+const { AI_MAX_FILE_LABEL, AI_OPTIMIZE_MAX_LABEL } = require("../config/uploadLimits");
 
 const router = express.Router();
 
@@ -60,7 +61,7 @@ router.delete("/conversations", aiController.deleteAllConversations);
 router.post(
   "/smart-case/optimize",
   handleUploadErrors(upload.optimizeInput.single("document"), {
-    LIMIT_FILE_SIZE: "This PDF is larger than 20 MB, too large to optimize. Please split it into smaller PDFs.",
+    LIMIT_FILE_SIZE: `This file is too large to optimize. Maximum optimization input is ${AI_OPTIMIZE_MAX_LABEL}.`,
     LIMIT_UNEXPECTED_FILE: "Send one PDF at a time for optimization.",
   }),
   aiSmartCaseController.optimizeDocument
@@ -73,8 +74,7 @@ router.post(
       { name: "voice", maxCount: 1 },
     ]),
     {
-      LIMIT_FILE_SIZE:
-        "Each document must be 3 MB or smaller, and a voice note 10 MB or smaller.",
+      LIMIT_FILE_SIZE: `Each document must be ${AI_MAX_FILE_LABEL} or smaller, and a voice note 10 MB or smaller.`,
     }
   ),
   aiSmartCaseController.analyzeSmartCase
