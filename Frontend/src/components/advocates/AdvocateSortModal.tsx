@@ -1,0 +1,85 @@
+import React, { useState } from 'react';
+import { Pressable, View } from 'react-native';
+import { GenieBottomSheet, GenieButton, GenieText } from '../ui';
+import type { SortOption } from '../../api/advocatesApi';
+
+export interface AdvocateSortModalProps {
+  visible: boolean;
+  selectedSort?: SortOption | 'Most Relevant';
+  onClose: () => void;
+  onApply: (sort: SortOption | 'Most Relevant') => void;
+}
+
+/**
+ * These strings go to the backend as the `sortBy` query parameter, so they are
+ * the API's spelling rather than display labels and must not be reworded.
+ */
+const SORT_OPTIONS: Array<SortOption | 'Most Relevant'> = [
+  'Most Relevant',
+  'Highest Rated',
+  'Most Reviewed',
+  'Name (A - Z)',
+  'Name (Z - A)',
+  'Newest First',
+];
+
+export const AdvocateSortModal: React.FC<AdvocateSortModalProps> = ({
+  visible,
+  selectedSort = 'Most Relevant',
+  onClose,
+  onApply,
+}) => {
+  const [currentSort, setCurrentSort] = useState<SortOption | 'Most Relevant'>(
+    selectedSort,
+  );
+
+  const handleApply = () => {
+    onApply(currentSort);
+    onClose();
+  };
+
+  return (
+    <GenieBottomSheet
+      visible={visible}
+      onClose={onClose}
+      title="Sort By"
+      footer={<GenieButton label="Apply Sort" onPress={handleApply} />}
+    >
+      <View className="py-1">
+        {SORT_OPTIONS.map(option => {
+          const isSelected = currentSort === option;
+
+          return (
+            <Pressable
+              key={option}
+              onPress={() => setCurrentSort(option)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: isSelected }}
+              accessibilityLabel={option}
+              className="min-h-touch flex-row items-center justify-between rounded-control px-1 active:bg-surface-alt"
+            >
+              <GenieText
+                variant="body-lg"
+                tone={isSelected ? 'gold' : 'primary'}
+                className={isSelected ? 'font-semibold' : ''}
+              >
+                {option}
+              </GenieText>
+
+              <View
+                className={[
+                  'h-5 w-5 items-center justify-center rounded-full border-2',
+                  isSelected ? 'border-gold' : 'border-border',
+                ].join(' ')}
+              >
+                {isSelected ? (
+                  <View className="h-2.5 w-2.5 rounded-full bg-gold" />
+                ) : null}
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+    </GenieBottomSheet>
+  );
+};

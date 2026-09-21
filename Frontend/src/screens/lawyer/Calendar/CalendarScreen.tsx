@@ -1,0 +1,666 @@
+import React, { useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  View,
+} from 'react-native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import {
+  GenieCard,
+  GenieErrorState,
+  GenieHeader,
+  GenieNotice,
+  GenieScreen,
+  GenieSkeleton,
+  GenieStatusBadge,
+  GenieText,
+} from '../../../components';
+import { BackIcon, ChevronDownIcon } from '../../../components/icons/Icons';
+import { ChevronRightIcon, ClockIcon, PlusIcon } from '../../../components/icons/ClientIcons';
+import { CalendarIcon, ChevronLeftIcon } from '../../../components/icons/LawyerIcons';
+import { lawyerApi } from '../../../api/lawyerApi';
+import { useUiStore } from '../../../store/uiStore';
+import { toAppError } from '../../../utils/errors';
+import type { Appointment, LawyerClientRow } from '../../../types/lawyer';
+import type { LawyerTabScreenProps } from '../../../types/navigation';
+import { colors } from '../../../theme';
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const;
+
+const TIME_SLOTS = [
+  '09:00 AM',
+  '10:00 AM',
+  '11:00 AM',
+  '12:00 PM',
+  '02:00 PM',
+  '03:00 PM',
+  '04:00 PM',
+  '05:00 PM',
+];
+
+const dayKey = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate(),
+  ).padStart(2, '0')}`;
+
+const formatDateDisplay = (d: Date): string => {
+  const day = d.getDate();
+  const monthStr = MONTHS[d.getMonth()].slice(0, 3);
+  const yr = d.getFullYear();
+  return `${day} ${monthStr} ${yr}`;
+};
+
+export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
+  navigation,
+}) => {
+  const openDrawer = useUiStore(state => state.openDrawer);
+  const queryClient = useQueryClient();
+
+  const today = useMemo(() => new Date(), []);
+  const [viewDate, setViewDate] = useState(
+    () => new Date(today.getFullYear(), today.getMonth(), 1),
+  );
+  const [selectedKey, setSelectedKey] = useState(() => dayKey(today));
+  const [selectedDateObj, setSelectedDateObj] = useState<Date>(() => today);
+
+  // Modal & Form States
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<LawyerClientRow | null>(null);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('11:00 AM');
+  const [consultationMode, setConsultationMode] = useState<'Chat' | 'In-Person'>('Chat');
+
+  // Dropdown open states
+  const [isClientPickerOpen, setIsClientPickerOpen] = useState(false);
+  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
+  const [isModePickerOpen, setIsModePickerOpen] = useState(false);
+
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const appointmentsQuery = useQuery({
+    queryKey: ['lawyer', 'appointments'],
+    queryFn: lawyerApi.getAppointments,
+  });
+
+  const clientsQuery = useQuery({
+    queryKey: ['lawyer', 'clients'],
+    queryFn: lawyerApi.getClients,
+  });
+
+  // Extract all unique clients for dropdown
+  const clientList = useMemo(() => {
+    if (!clientsQuery.data) return [];
+    const list = [
+      ...clientsQuery.data.accepted,
+      ...clientsQuery.data.inProgress,
+      ...clientsQuery.data.closed,
+    ];
+    const seen = new Set<string>();
+    return list.filter(c => {
+      if (seen.has(c.clientId)) return false;
+      seen.add(c.clientId);
+      return true;
+    });
+  }, [clientsQuery.data]);
+
+  const createAppointmentMutation = useMutation({
+    mutationFn: (payload: {
+      client: string;
+      date: string;
+      timeSlot: string;
+      mode: 'Chat' | 'In-Person';
+    }) => lawyerApi.createAppointment(payload),
+    onError: error => {
+      setFormError(toAppError(error).message);
+    },
+    onSuccess: async () => {
+      setIsAddModalOpen(false);
+      setFormError(null);
+      await queryClient.invalidateQueries({
+        queryKey: ['lawyer', 'appointments'],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['lawyer', 'schedule', 'today'],
+      });
+    },
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: ({
+      id,
+      status,
+    }: {
+      id: string;
+      status: Appointment['status'];
+    }) => lawyerApi.updateAppointmentStatus(id, status),
+    onError: error => {
+      setBusyId(null);
+      setActionError(toAppError(error).message);
+    },
+    onSuccess: async () => {
+      setBusyId(null);
+      await queryClient.invalidateQueries({
+        queryKey: ['lawyer', 'appointments'],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['lawyer', 'schedule', 'today'],
+      });
+    },
+  });
+
+  const byDay = useMemo(() => {
+    const map = new Map<string, Appointment[]>();
+    for (const appt of appointmentsQuery.data ?? []) {
+      const key = dayKey(new Date(appt.date));
+      const list = map.get(key);
+      if (list) {
+        list.push(appt);
+      } else {
+        map.set(key, [appt]);
+      }
+    }
+    return map;
+  }, [appointmentsQuery.data]);
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const firstWeekday = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const cells: Array<number | null> = [
+    ...Array<null>(firstWeekday).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+
+  const selectedAppointments = byDay.get(selectedKey) ?? [];
+
+  const shiftMonth = (delta: number) => {
+    setViewDate(new Date(year, month + delta, 1));
+  };
+
+  const handleOpenAddModal = () => {
+    setFormError(null);
+    if (!selectedClient && clientList.length > 0) {
+      setSelectedClient(clientList[0]);
+    }
+    setIsAddModalOpen(true);
+  };
+
+  const handleAddAppointment = () => {
+    if (!selectedClient) {
+      setFormError('Please select a client.');
+      return;
+    }
+
+    createAppointmentMutation.mutate({
+      client: selectedClient.clientId,
+      date: dayKey(selectedDateObj),
+      timeSlot: selectedTimeSlot,
+      mode: consultationMode,
+    });
+  };
+
+  const headerRight = (
+    <Pressable
+      onPress={handleOpenAddModal}
+      accessibilityRole="button"
+      accessibilityLabel="Add Appointment"
+      className="h-10 w-10 items-center justify-center rounded-full bg-gold active:bg-gold-pressed shadow-sm"
+    >
+      <PlusIcon size={20} color={colors.onGold} />
+    </Pressable>
+  );
+
+  return (
+    <GenieScreen
+      scrollable
+      dismissKeyboardOnTap={false}
+      header={
+        <GenieHeader
+          title="Calendar"
+          onMenu={openDrawer}
+          right={headerRight}
+        />
+      }
+      contentContainerClassName="pb-20 px-5"
+      scrollViewProps={{
+        refreshControl: (
+          <RefreshControl
+            refreshing={appointmentsQuery.isRefetching}
+            onRefresh={() => {
+              void appointmentsQuery.refetch();
+              void clientsQuery.refetch();
+            }}
+            tintColor={colors.gold}
+            colors={[colors.gold]}
+          />
+        ),
+      }}
+    >
+      {/* MONTHLY CALENDAR CARD */}
+      <View className="mt-2 rounded-card border border-border bg-card p-4">
+        {/* Month Navigation Header */}
+        <View className="flex-row items-center justify-between px-2 py-1">
+          <Pressable
+            onPress={() => shiftMonth(-1)}
+            accessibilityRole="button"
+            accessibilityLabel="Previous month"
+            className="p-1 active:opacity-70"
+          >
+            <ChevronLeftIcon size={20} color={colors.white} />
+          </Pressable>
+
+          <GenieText variant="heading-sm" className="font-bold text-white">
+            {MONTHS[month]} {year}
+          </GenieText>
+
+          <Pressable
+            onPress={() => shiftMonth(1)}
+            accessibilityRole="button"
+            accessibilityLabel="Next month"
+            className="p-1 active:opacity-70"
+          >
+            <ChevronRightIcon size={20} color={colors.white} />
+          </Pressable>
+        </View>
+
+        {/* Weekday Labels */}
+        <View className="mt-4 flex-row justify-between border-b border-border/40 pb-2">
+          {WEEKDAYS.map((d, i) => (
+            <View key={`${d}-${i}`} className="w-[14.28%] items-center">
+              <GenieText variant="caption" tone="secondary" className="font-medium text-xs">
+                {d}
+              </GenieText>
+            </View>
+          ))}
+        </View>
+
+        {/* Days Grid */}
+        <View className="mt-2 flex-row flex-wrap">
+          {cells.map((day, index) => {
+            if (day === null) {
+              return <View key={`blank-${index}`} className="h-11 w-[14.28%]" />;
+            }
+
+            const cellDate = new Date(year, month, day);
+            const key = dayKey(cellDate);
+            const isSelected = key === selectedKey;
+            const hasEvents = byDay.has(key);
+
+            return (
+              <Pressable
+                key={key}
+                onPress={() => {
+                  setSelectedKey(key);
+                  setSelectedDateObj(cellDate);
+                }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={`${day} ${MONTHS[month]} ${year}${
+                  hasEvents ? ', has appointments' : ''
+                }`}
+                className="h-11 w-[14.28%] items-center justify-center"
+              >
+                <View
+                  className={`h-9 w-9 items-center justify-center rounded-full ${
+                    isSelected ? 'bg-gold' : ''
+                  }`}
+                >
+                  <GenieText
+                    variant="body-sm"
+                    tone={isSelected ? 'on-gold' : 'primary'}
+                    className={isSelected ? 'font-bold text-black' : 'font-normal text-white'}
+                  >
+                    {String(day)}
+                  </GenieText>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* APPOINTMENTS SECTION */}
+      <GenieText variant="heading-sm" className="mt-6 mb-3 font-bold text-white">
+        Appointments
+      </GenieText>
+
+      {actionError ? (
+        <GenieNotice message={actionError} className="mb-4" />
+      ) : null}
+
+      {appointmentsQuery.isLoading ? (
+        <View className="gap-3">
+          <GenieSkeleton className="h-24 w-full rounded-card" />
+        </View>
+      ) : appointmentsQuery.isError ? (
+        <GenieErrorState
+          message={(appointmentsQuery.error as Error).message}
+          onRetry={() => appointmentsQuery.refetch()}
+        />
+      ) : selectedAppointments.length === 0 ? (
+        /* EXACT MATCH REFERENCE EMPTY STATE */
+        <View className="rounded-card border border-border bg-card p-6 items-center justify-center">
+          <GenieText variant="body-md" tone="secondary" className="text-center font-normal py-3">
+            No upcoming appointments scheduled.
+          </GenieText>
+        </View>
+      ) : (
+        selectedAppointments.map(appt => {
+          const isBusy = busyId === appt._id;
+          const canConfirm = appt.status === 'pending';
+          const canCancel =
+            appt.status === 'pending' || appt.status === 'confirmed';
+
+          return (
+            <GenieCard key={appt._id} tone="surface" className="mb-3">
+              <View className="flex-row items-start justify-between">
+                <View className="flex-1 pr-2">
+                  <GenieText variant="heading-sm" numberOfLines={1}>
+                    {appt.client?.fullName ?? 'Client'}
+                  </GenieText>
+                  {appt.case?.title ? (
+                    <GenieText
+                      variant="body-sm"
+                      tone="secondary"
+                      className="mt-0.5"
+                      numberOfLines={1}
+                    >
+                      {appt.case.title}
+                    </GenieText>
+                  ) : null}
+                </View>
+                <GenieStatusBadge status={appt.status} />
+              </View>
+
+              <View className="mt-2 flex-row items-center gap-2">
+                <ClockIcon size={14} color={colors.textMuted} />
+                <GenieText variant="body-sm" tone="secondary">
+                  {appt.timeSlot} · {appt.mode}
+                </GenieText>
+              </View>
+
+              {appt.notes ? (
+                <GenieText variant="caption" tone="muted" className="mt-2">
+                  {appt.notes}
+                </GenieText>
+              ) : null}
+
+              {canConfirm || canCancel ? (
+                <View className="mt-3 flex-row gap-3 border-t border-border pt-3">
+                  {canCancel ? (
+                    <Pressable
+                      disabled={isBusy}
+                      onPress={() => {
+                        setActionError(null);
+                        setBusyId(appt._id);
+                        statusMutation.mutate({
+                          id: appt._id,
+                          status: 'cancelled',
+                        });
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Cancel appointment"
+                      className="min-h-touch flex-1 items-center justify-center rounded-control border border-error active:bg-error-surface"
+                    >
+                      <GenieText variant="label" tone="error">
+                        Cancel
+                      </GenieText>
+                    </Pressable>
+                  ) : null}
+
+                  {canConfirm ? (
+                    <Pressable
+                      disabled={isBusy}
+                      onPress={() => {
+                        setActionError(null);
+                        setBusyId(appt._id);
+                        statusMutation.mutate({
+                          id: appt._id,
+                          status: 'confirmed',
+                        });
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Confirm appointment"
+                      className="min-h-touch flex-1 items-center justify-center rounded-control bg-gold active:bg-gold-pressed"
+                    >
+                      <GenieText variant="label" tone="on-gold">
+                        Confirm
+                      </GenieText>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : null}
+            </GenieCard>
+          );
+        })
+      )}
+
+      {/* ADD APPOINTMENT MODAL */}
+      <Modal
+        visible={isAddModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsAddModalOpen(false)}
+      >
+        <View className="flex-1 bg-black/80 items-center justify-center px-5">
+          <View className="w-full max-w-[400px] rounded-2xl border border-border/80 bg-card p-6 shadow-xl">
+            <GenieText variant="heading-lg" className="font-bold text-white mb-4">
+              Add Appointment
+            </GenieText>
+
+            {formError ? (
+              <GenieNotice message={formError} tone="error" className="mb-3" />
+            ) : null}
+
+            {/* FIELD 1: SELECT CLIENT */}
+            <View className="mb-4">
+              <GenieText variant="body-sm" tone="secondary" className="font-medium mb-1.5">
+                Select Client
+              </GenieText>
+
+              <Pressable
+                onPress={() => {
+                  setIsClientPickerOpen(!isClientPickerOpen);
+                  setIsTimePickerOpen(false);
+                  setIsModePickerOpen(false);
+                }}
+                className="h-14 w-full flex-row items-center justify-between rounded-xl border border-gold bg-input px-4"
+              >
+                <GenieText variant="body-md" className="font-semibold text-white">
+                  {selectedClient ? selectedClient.name : 'Select Client'}
+                </GenieText>
+                <ChevronDownIcon size={18} color={colors.gold} />
+              </Pressable>
+
+              {isClientPickerOpen ? (
+                <View className="mt-1.5 max-h-40 rounded-xl border border-border bg-surface p-2 shadow-lg">
+                  <ScrollView nestedScrollEnabled className="max-h-36">
+                    {clientList.length === 0 ? (
+                      <View className="p-3">
+                        <GenieText variant="body-sm" tone="muted">
+                          No active clients found
+                        </GenieText>
+                      </View>
+                    ) : (
+                      clientList.map(item => (
+                        <Pressable
+                          key={item.clientId}
+                          onPress={() => {
+                            setSelectedClient(item);
+                            setIsClientPickerOpen(false);
+                          }}
+                          className="p-3 rounded-lg active:bg-card flex-row items-center justify-between"
+                        >
+                          <GenieText variant="body-md" className="font-medium text-white">
+                            {item.name}
+                          </GenieText>
+                          {item.issue ? (
+                            <GenieText variant="caption" tone="muted" numberOfLines={1} className="max-w-[120px]">
+                              {item.issue}
+                            </GenieText>
+                          ) : null}
+                        </Pressable>
+                      ))
+                    )}
+                  </ScrollView>
+                </View>
+              ) : null}
+            </View>
+
+            {/* FIELD 2: APPOINTMENT DATE */}
+            <View className="mb-4">
+              <GenieText variant="body-sm" tone="secondary" className="font-medium mb-1.5">
+                Appointment Date
+              </GenieText>
+
+              <View className="h-14 w-full flex-row items-center justify-between rounded-xl border border-border bg-input px-4">
+                <GenieText variant="body-md" className="font-medium text-white">
+                  {formatDateDisplay(selectedDateObj)}
+                </GenieText>
+                <CalendarIcon size={18} color={colors.gold} />
+              </View>
+            </View>
+
+            {/* FIELD 3: SELECT TIME SLOT */}
+            <View className="mb-4">
+              <GenieText variant="body-sm" tone="secondary" className="font-medium mb-1.5">
+                Select Time Slot
+              </GenieText>
+
+              <Pressable
+                onPress={() => {
+                  setIsTimePickerOpen(!isTimePickerOpen);
+                  setIsClientPickerOpen(false);
+                  setIsModePickerOpen(false);
+                }}
+                className="h-14 w-full flex-row items-center justify-between rounded-xl border border-border bg-input px-4"
+              >
+                <GenieText variant="body-md" className="font-medium text-white">
+                  {selectedTimeSlot}
+                </GenieText>
+                <ChevronDownIcon size={18} color={colors.gold} />
+              </Pressable>
+
+              {isTimePickerOpen ? (
+                <View className="mt-1.5 max-h-40 rounded-xl border border-border bg-surface p-2 shadow-lg">
+                  <ScrollView nestedScrollEnabled className="max-h-36">
+                    {TIME_SLOTS.map(slot => (
+                      <Pressable
+                        key={slot}
+                        onPress={() => {
+                          setSelectedTimeSlot(slot);
+                          setIsTimePickerOpen(false);
+                        }}
+                        className="p-3 rounded-lg active:bg-card"
+                      >
+                        <GenieText variant="body-md" className="font-medium text-white">
+                          {slot}
+                        </GenieText>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : null}
+            </View>
+
+            {/* FIELD 4: CONSULTATION MODE */}
+            <View className="mb-5">
+              <GenieText variant="body-sm" tone="secondary" className="font-medium mb-1.5">
+                Consultation Mode
+              </GenieText>
+
+              <Pressable
+                onPress={() => {
+                  setIsModePickerOpen(!isModePickerOpen);
+                  setIsClientPickerOpen(false);
+                  setIsTimePickerOpen(false);
+                }}
+                className="h-14 w-full flex-row items-center justify-between rounded-xl border border-border bg-input px-4"
+              >
+                <GenieText variant="body-md" className="font-medium text-white">
+                  {consultationMode}
+                </GenieText>
+                <ChevronDownIcon size={18} color={colors.gold} />
+              </Pressable>
+
+              {isModePickerOpen ? (
+                <View className="mt-1.5 rounded-xl border border-border bg-surface p-2 shadow-lg">
+                  <Pressable
+                    onPress={() => {
+                      setConsultationMode('Chat');
+                      setIsModePickerOpen(false);
+                    }}
+                    className="p-3 rounded-lg active:bg-card"
+                  >
+                    <GenieText variant="body-md" className="font-medium text-white">
+                      Chat
+                    </GenieText>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      setConsultationMode('In-Person');
+                      setIsModePickerOpen(false);
+                    }}
+                    className="p-3 rounded-lg active:bg-card"
+                  >
+                    <GenieText variant="body-md" className="font-medium text-white">
+                      In-Person
+                    </GenieText>
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
+
+            {/* CANCEL & ADD BUTTONS */}
+            <Pressable
+              onPress={() => setIsAddModalOpen(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
+              className="py-2 self-end mb-3 active:opacity-70"
+            >
+              <GenieText variant="body-md" tone="secondary" className="font-semibold">
+                Cancel
+              </GenieText>
+            </Pressable>
+
+            <Pressable
+              onPress={handleAddAppointment}
+              disabled={createAppointmentMutation.isPending}
+              accessibilityRole="button"
+              accessibilityLabel="Add"
+              className="h-14 w-full items-center justify-center rounded-xl bg-gold active:bg-gold-pressed shadow-md"
+            >
+              {createAppointmentMutation.isPending ? (
+                <ActivityIndicator color={colors.onGold} />
+              ) : (
+                <GenieText variant="body-lg" tone="on-gold" className="font-bold">
+                  Add
+                </GenieText>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    </GenieScreen>
+  );
+};

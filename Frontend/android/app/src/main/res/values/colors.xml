@@ -1,0 +1,7 @@
+<resources>
+    <!-- Genie Law. The window background must be black or the app flashes the
+         platform's default white between the native launch and the first React
+         frame. -->
+    <color name="genie_black">#080808</color>
+    <color name="genie_gold">#DFA928</color>
+</resources>

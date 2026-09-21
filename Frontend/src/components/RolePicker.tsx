@@ -1,0 +1,116 @@
+import React, { useState } from 'react';
+import { Pressable, View } from 'react-native';
+
+import { GenieBottomSheet, GenieText } from './ui';
+import { CheckIcon, ChevronDownIcon, UserIcon } from './icons/Icons';
+import { ROLE_OPTIONS, roleLabel } from '../constants/roles';
+import { colors } from '../theme';
+import type { SignupRole } from '../types/auth';
+
+/**
+ * Role selection, styled as a text field so it lines up with the rest of the
+ * form, opening a sheet of the roles the backend accepts.
+ *
+ * A native picker was not used: it renders with system chrome on both
+ * platforms — a white wheel on iOS, a light dialog on Android — which is the
+ * one place a black-and-gold form would break character.
+ *
+ * The sheet is now GenieBottomSheet rather than a hand-rolled Modal, so it
+ * matches the filter and sort sheets and inherits their dismissal behaviour.
+ */
+
+interface RolePickerProps {
+  label?: string;
+  value: SignupRole;
+  onChange: (role: SignupRole) => void;
+  error?: string;
+}
+
+export const RolePicker: React.FC<RolePickerProps> = ({
+  label,
+  value,
+  onChange,
+  error,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const select = (role: SignupRole) => {
+    onChange(role);
+    setIsOpen(false);
+  };
+
+  return (
+    <View className="mb-4">
+      {label ? (
+        <GenieText variant="label" className="mb-2">
+          {label}
+        </GenieText>
+      ) : null}
+
+      <Pressable
+        onPress={() => setIsOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`Select role. Currently ${roleLabel(value)}`}
+        className={[
+          'h-control flex-row items-center rounded-control border bg-input px-4 active:border-gold',
+          error ? 'border-error' : 'border-border',
+        ].join(' ')}
+      >
+        <UserIcon />
+        <GenieText variant="body-lg" className="ml-3 flex-1">
+          {roleLabel(value)}
+        </GenieText>
+        <ChevronDownIcon />
+      </Pressable>
+
+      {error ? (
+        <GenieText variant="caption" tone="error" className="ml-1 mt-1.5">
+          {error}
+        </GenieText>
+      ) : null}
+
+      <GenieBottomSheet
+        visible={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Select Role"
+      >
+        <View className="pb-6">
+          {ROLE_OPTIONS.map(option => {
+            const isSelected = option.value === value;
+
+            return (
+              <Pressable
+                key={option.value}
+                onPress={() => select(option.value)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={`${option.label}. ${option.description}`}
+                className={[
+                  'mb-3 flex-row items-center rounded-control border px-4 py-4 active:opacity-75',
+                  isSelected
+                    ? 'border-gold bg-gold-muted'
+                    : 'border-border bg-input',
+                ].join(' ')}
+              >
+                <View className="flex-1">
+                  <GenieText
+                    variant="label"
+                    tone={isSelected ? 'gold' : 'primary'}
+                    className="text-base"
+                  >
+                    {option.label}
+                  </GenieText>
+                  <GenieText variant="caption" tone="secondary" className="mt-0.5">
+                    {option.description}
+                  </GenieText>
+                </View>
+
+                {isSelected ? <CheckIcon size={22} color={colors.gold} /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </GenieBottomSheet>
+    </View>
+  );
+};

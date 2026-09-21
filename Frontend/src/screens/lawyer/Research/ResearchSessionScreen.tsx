@@ -1,0 +1,495 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
+
+import {
+  GenieHeader,
+  GenieNotice,
+  GenieSkeletonList,
+  GenieText,
+} from '../../../components';
+import {
+  FileIcon,
+  SendIcon,
+  SparkleIcon,
+} from '../../../components/icons/ClientIcons';
+import { UPLOAD_LIMITS, aiApi, rejectionReasonFor } from '../../../api/aiApi';
+import { filePicker } from '../../../services/filePicker';
+import { toAppError } from '../../../utils/errors';
+import { ResearchAnswer } from './ResearchSections';
+import type { PickedFile } from '../../../types/ai';
+import type { LawyerStackScreenProps } from '../../../types/navigation';
+import { colors } from '../../../theme';
+
+/**
+ * One research session.
+ *
+ * ── The two inputs ────────────────────────────────────────────────────────
+ *
+ * **Questions** go to `POST /ai/chat` with `mode: "research"`. The backend
+ * keeps the whole conversation and replays it to the model on every turn, so
+ * case context established in the first message holds for the rest of the
+ * session without this screen resending it.
+ *
+ * **Documents** go to `POST /ai/smart-case/analyze` — the same extraction
+ * pipeline the client intake uses, which is the only document-reading endpoint
+ * the backend has. It answers `202` and runs detached, so the result is polled
+ * from `GET /ai/smart-case/session/:id`. What it extracts is then handed to the
+ * research assistant as the opening context, which is how a document becomes
+ * research rather than just a filed attachment.
+ *
+ * Nothing about the extraction is invented here: only the fields the pipeline
+ * actually returned are passed on, and an empty one is omitted rather than
+ * described as absent.
+ *
+ * ── On fabrication ────────────────────────────────────────────────────────
+ *
+ * The anti-fabrication rules live in the backend's own system instruction and
+ * are not restated in the message this screen sends — restating them would let
+ * the two drift, and the server's copy is the one that governs. The UI marks
+ * the authorities section rather than trusting the reader to remember.
+ */
+
+const POLL_INTERVAL_MS = 2000;
+
+/** Openers offered when a session is empty. Plain questions, not commands. */
+const SUGGESTIONS = [
+  'What statutory provisions may apply here?',
+  'What arguments should I investigate for my client?',
+  'What evidence would strengthen this position?',
+  'Which documents am I likely to be missing?',
+  'What should I prepare for the next hearing?',
+  'Where is this point likely to be contested?',
+];
+
+interface Turn {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+}
+
+export const ResearchSessionScreen: React.FC<
+  LawyerStackScreenProps<'ResearchSession'>
+> = ({ navigation, route }) => {
+  const queryClient = useQueryClient();
+
+  const { caseId, caseTitle, caseCategory } = route.params ?? {};
+
+  const [conversationId, setConversationId] = useState<string | undefined>(
+    route.params?.sessionId,
+  );
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoadingHistory, setIsLoadingHistory] = useState(
+    Boolean(route.params?.sessionId),
+  );
+  const [isAsking, setIsAsking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [analysisStage, setAnalysisStage] = useState<string | null>(null);
+
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const requestId = useRef(
+    `rs-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
+  );
+
+  // ── Load an existing session ────────────────────────────────────────────
+
+  useEffect(() => {
+    const existing = route.params?.sessionId;
+    if (!existing) {
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const conversation = await aiApi.getConversation(existing);
+        if (cancelled) {
+          return;
+        }
+        setTurns(
+          conversation.messages.map((message, index) => ({
+            id: `${existing}-${index}`,
+            role: message.role === 'user' ? 'user' : 'assistant',
+            text: message.text,
+          })),
+        );
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(toAppError(loadError).message);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingHistory(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [route.params?.sessionId]);
+
+  // ── Asking ──────────────────────────────────────────────────────────────
+
+  const ask = useCallback(
+    async (question: string) => {
+      const trimmed = question.trim();
+      if (!trimmed || isAsking) {
+        return;
+      }
+
+      setError(null);
+      setInput('');
+      setIsAsking(true);
+
+      const localId = `local-${Date.now()}`;
+      setTurns(current => [
+        ...current,
+        { id: localId, role: 'user', text: trimmed },
+      ]);
+
+      try {
+        const answer = await aiApi.chat({
+          message: trimmed,
+          conversationId,
+          mode: 'research',
+        });
+
+        setTurns(current => [
+          ...current,
+          {
+            id: `${localId}-a`,
+            role: 'assistant',
+            text: answer.response,
+          },
+        ]);
+
+        if (answer.conversationId && answer.conversationId !== conversationId) {
+          setConversationId(answer.conversationId);
+        }
+
+        // The session list shows titles and timestamps that have just moved.
+        await queryClient.invalidateQueries({
+          queryKey: ['lawyer', 'research', 'sessions'],
+        });
+      } catch (askError) {
+        // The question stays on screen so it can be retried or reworded; only
+        // the answer is missing, and saying so is more useful than removing
+        // what they typed.
+        setError(toAppError(askError).message);
+      } finally {
+        setIsAsking(false);
+      }
+    },
+    [conversationId, isAsking, queryClient],
+  );
+
+  // ── Document analysis ───────────────────────────────────────────────────
+
+  const analyseDocument = useCallback(async () => {
+    if (isAsking || analysisStage) {
+      return;
+    }
+
+    setError(null);
+
+    let picked: PickedFile[];
+    try {
+      picked = await filePicker.pickDocuments(UPLOAD_LIMITS.maxDocuments);
+    } catch (pickError) {
+      setError(toAppError(pickError).message);
+      return;
+    }
+
+    if (picked.length === 0) {
+      return;
+    }
+
+    const accepted: PickedFile[] = [];
+    const rejections: string[] = [];
+    for (const file of picked) {
+      const reason = rejectionReasonFor(file);
+      if (reason) {
+        rejections.push(reason);
+      } else {
+        accepted.push(file);
+      }
+    }
+
+    if (accepted.length === 0) {
+      setError(rejections.join('\n'));
+      return;
+    }
+
+    setAnalysisStage('Uploading documents…');
+
+    try {
+      const started = await aiApi.analyze({
+        documents: accepted,
+        requestId: requestId.current,
+        onUploadProgress: fraction => {
+          setAnalysisStage(
+            fraction >= 1
+              ? 'Reading documents…'
+              : `Uploading documents… ${Math.round(fraction * 100)}%`,
+          );
+        },
+      });
+
+      // Poll the detached pipeline. Every line shown is the server's own.
+      let detail = await aiApi.getSession(started.sessionId);
+      while (detail.status === 'processing') {
+        setAnalysisStage(detail.progress?.message || 'Reading documents…');
+        await new Promise<void>(resolve => {
+          setTimeout(resolve, POLL_INTERVAL_MS);
+        });
+        detail = await aiApi.getSession(started.sessionId);
+      }
+
+      if (detail.status === 'failed') {
+        setError(
+          detail.failureReason ||
+            'The document could not be analysed. Please try again.',
+        );
+        return;
+      }
+
+      const extracted = detail.extracted;
+      if (!extracted) {
+        setError(
+          'The analysis finished but returned no details. Try a clearer copy of the document.',
+        );
+        return;
+      }
+
+      setAnalysisStage('Preparing research…');
+
+      // Only fields the pipeline actually filled. An empty one is left out
+      // rather than described, so nothing is asserted that was not read.
+      const facts: string[] = [];
+      const add = (label: string, value?: string | null) => {
+        if (value && String(value).trim()) {
+          facts.push(`${label}: ${String(value).trim()}`);
+        }
+      };
+
+      add('Matter', extracted.title);
+      add('Category', extracted.category);
+      add('Sub-type', extracted.subType);
+      add('Court', extracted.court);
+      add('Location', extracted.location || extracted.city);
+      add('Incident date', extracted.incidentDate);
+      add('Opposing party', extracted.opposingParty);
+      add('FIR number', extracted.firNumber);
+      add('Police station', extracted.policeStation);
+      add('Summary', extracted.summary || extracted.description);
+
+      if (extracted.parties?.length) {
+        facts.push(
+          `Parties: ${extracted.parties
+            .map(p => [p.name, p.role].filter(Boolean).join(' (') + (p.role ? ')' : ''))
+            .join('; ')}`,
+        );
+      }
+
+      const documentNames = (detail.uploadedDocuments ?? [])
+        .map(d => d.originalName)
+        .join(', ');
+
+      const prompt = [
+        `I have had these case documents read: ${documentNames}.`,
+        'The extraction gave the following. Treat it as the facts of the matter, and tell me where it is too thin to work from.',
+        '',
+        facts.join('\n'),
+        '',
+        'Research this matter: the issues it raises, the provisions and authorities I should verify, the practical and procedural points, and what is missing.',
+      ].join('\n');
+
+      setAnalysisStage(null);
+      await ask(prompt);
+    } catch (analyseError) {
+      setError(toAppError(analyseError).message);
+    } finally {
+      setAnalysisStage(null);
+    }
+  }, [analysisStage, ask, isAsking]);
+
+  // ── Opening context from a chosen matter ────────────────────────────────
+
+  const hasOpenedWithCase = useRef(false);
+  useEffect(() => {
+    if (
+      hasOpenedWithCase.current ||
+      !caseId ||
+      route.params?.sessionId ||
+      turns.length > 0
+    ) {
+      return;
+    }
+    hasOpenedWithCase.current = true;
+
+    const context = [
+      `I am researching one of my matters: "${caseTitle}"${
+        caseCategory ? ` (${caseCategory})` : ''
+      }.`,
+      'Set out the issues this kind of matter usually turns on, the provisions and authorities I should verify, and what facts you would need from me to take it further.',
+    ].join('\n');
+
+    void ask(context);
+  }, [ask, caseCategory, caseId, caseTitle, route.params?.sessionId, turns.length]);
+
+  const isBusy = isAsking || Boolean(analysisStage);
+
+  return (
+    <SafeAreaView edges={['top']} className="flex-1 bg-background">
+      <GenieHeader
+        title={route.params?.title || 'Legal Research'}
+        subtitle={caseTitle}
+        onBack={() => navigation.goBack()}
+      />
+
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+      >
+        <ScrollView
+          ref={scrollRef}
+          className="flex-1"
+          contentContainerClassName="px-5 pb-6 pt-4"
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() =>
+            scrollRef.current?.scrollToEnd({ animated: true })
+          }
+        >
+          {isLoadingHistory ? (
+            <GenieSkeletonList count={3} />
+          ) : (
+            <>
+              {turns.length === 0 && !isBusy ? (
+                <View>
+                  <View className="rounded-card border border-gold-wash bg-card p-4">
+                    <View className="flex-row items-center gap-2">
+                      <SparkleIcon size={18} color={colors.gold} />
+                      <GenieText variant="body-lg" tone="gold" className="font-bold">
+                        Research Assistant
+                      </GenieText>
+                    </View>
+                    <GenieText variant="body-sm" tone="secondary" className="mt-2 leading-5">
+                      Ask a question, or attach the case documents and have them
+                      read first. Authorities come back marked for verification
+                      — there is no case-law database behind this.
+                    </GenieText>
+                  </View>
+
+                  <GenieText variant="caption" tone="muted" className="mb-2 mt-5 font-bold uppercase tracking-widest">
+                    Start with
+                  </GenieText>
+
+                  {SUGGESTIONS.map(suggestion => (
+                    <Pressable
+                      key={suggestion}
+                      onPress={() => void ask(suggestion)}
+                      accessibilityRole="button"
+                      accessibilityLabel={suggestion}
+                      className="mb-2 min-h-touch justify-center rounded-control border border-border bg-card px-4 py-3 active:opacity-80"
+                    >
+                      <GenieText variant="body-sm" tone="secondary">
+                        {suggestion}
+                      </GenieText>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+
+              {turns.map(turn =>
+                turn.role === 'user' ? (
+                  <View
+                    key={turn.id}
+                    className="mb-3 max-w-[88%] self-end rounded-card rounded-br-sm bg-gold-muted px-4 py-3"
+                  >
+                    <GenieText variant="body-sm" className="leading-5">
+                      {turn.text}
+                    </GenieText>
+                  </View>
+                ) : (
+                  <View key={turn.id} className="mb-2">
+                    <ResearchAnswer text={turn.text} />
+                  </View>
+                ),
+              )}
+
+              {isBusy ? (
+                <View className="mb-3 flex-row items-center gap-3 rounded-card border border-border bg-card p-4">
+                  <ActivityIndicator size="small" color={colors.gold} />
+                  <GenieText variant="body-sm" tone="secondary" className="flex-1">
+                    {analysisStage ?? 'Researching…'}
+                  </GenieText>
+                </View>
+              ) : null}
+
+              {error ? (
+                <GenieNotice tone="error" message={error} className="mb-3" />
+              ) : null}
+            </>
+          )}
+        </ScrollView>
+
+        {/* ── Composer ─────────────────────────────────────────────────── */}
+        <View className="border-t border-border bg-surface px-4 py-3">
+          <View className="flex-row items-end gap-2">
+            <Pressable
+              onPress={() => void analyseDocument()}
+              disabled={isBusy}
+              accessibilityRole="button"
+              accessibilityLabel="Attach case documents for analysis"
+              className={`h-11 w-11 items-center justify-center rounded-full border border-border bg-card ${
+                isBusy ? 'opacity-40' : 'active:opacity-70'
+              }`}
+            >
+              <FileIcon size={20} color={colors.gold} />
+            </Pressable>
+
+            <View className="max-h-28 flex-1 rounded-control border border-border bg-card px-4 py-2">
+              <TextInput
+                value={input}
+                onChangeText={setInput}
+                placeholder="Ask a research question..."
+                placeholderTextColor={colors.textMuted}
+                multiline
+                editable={!isBusy}
+                className="max-h-24 min-h-[28px] text-body-md text-white"
+                accessibilityLabel="Research question"
+              />
+            </View>
+
+            <Pressable
+              onPress={() => void ask(input)}
+              disabled={isBusy || !input.trim()}
+              accessibilityRole="button"
+              accessibilityLabel="Send"
+              className={`h-11 w-11 items-center justify-center rounded-full bg-gold ${
+                isBusy || !input.trim() ? 'opacity-40' : 'active:opacity-80'
+              }`}
+            >
+              <SendIcon size={20} color={colors.background} />
+            </Pressable>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};

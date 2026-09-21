@@ -1,0 +1,18 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+
+        <!-- Black from the first frame. Without this the window is the
+             platform default white until React renders, which shows as a
+             flash on every cold start of an otherwise all-black app. -->
+        <item name="android:windowBackground">@color/genie_black</item>
+
+        <!-- React Native 0.87 draws edge-to-edge, so the system bars sit over
+             the app. Light icons are what stays legible against black. -->
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+
+</resources>
