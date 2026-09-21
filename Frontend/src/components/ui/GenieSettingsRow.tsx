@@ -14,6 +14,7 @@ export interface GenieSettingsRowProps {
   tone?: 'default' | 'danger' | 'warning';
   disabled?: boolean;
   className?: string;
+  testID?: string;
 }
 
 export const GenieSettingsRow: React.FC<GenieSettingsRowProps> = ({
@@ -26,6 +27,7 @@ export const GenieSettingsRow: React.FC<GenieSettingsRowProps> = ({
   tone = 'default',
   disabled = false,
   className = '',
+  testID,
 }) => {
   const labelTone =
     tone === 'danger' ? 'error' : tone === 'warning' ? 'warning' : 'primary';
@@ -40,6 +42,7 @@ export const GenieSettingsRow: React.FC<GenieSettingsRowProps> = ({
 
   return (
     <Container
+      testID={testID}
       onPress={onPress}
       disabled={disabled}
       accessibilityRole={onPress ? 'button' : undefined}

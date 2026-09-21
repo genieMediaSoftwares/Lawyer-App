@@ -35,6 +35,9 @@ export const resolveFileUrl = (value?: string | null): string | null => {
 
 export const getUploadUrl = resolveFileUrl;
 
+export const isOwnUpload = (url: string): boolean =>
+  url.startsWith(`${fileOrigin()}/uploads/`) && !url.includes('/../');
+
 export const isPublicUpload = (value?: string | null): boolean =>
   /\/uploads\/profiles\//i.test(String(value ?? ''));
 

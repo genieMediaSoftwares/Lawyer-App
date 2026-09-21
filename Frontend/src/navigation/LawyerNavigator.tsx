@@ -29,7 +29,9 @@ import {
 import { WorkspaceScreen } from '../screens/lawyer/Workspace/WorkspaceScreen';
 import { LawyerDashboardScreen } from '../screens/lawyer/Dashboard/LawyerDashboardScreen';
 import { LeadsScreen } from '../screens/lawyer/Leads/LeadsScreen';
+import { LeadDetailsScreen } from '../screens/lawyer/Leads/LeadDetailsScreen';
 import { LawyerClientsScreen } from '../screens/lawyer/Clients/LawyerClientsScreen';
+import { LawyerClientDetailsScreen } from '../screens/lawyer/Clients/LawyerClientDetailsScreen';
 import { CalendarScreen } from '../screens/lawyer/Calendar/CalendarScreen';
 import { LawyerProfileScreen } from '../screens/lawyer/Profile/LawyerProfileScreen';
 import { HearingsScreen } from '../screens/lawyer/Hearings/HearingsScreen';
@@ -295,6 +297,11 @@ export const LawyerNavigator: React.FC = () => (
         component={ProfessionalDetailsScreen}
       />
       <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+      <Stack.Screen name="LeadDetails" component={LeadDetailsScreen} />
+      <Stack.Screen
+        name="LawyerClientDetails"
+        component={LawyerClientDetailsScreen}
+      />
 
       <Stack.Screen name="Documents" component={shared(DocumentsScreen)} />
       <Stack.Screen name="Messages" component={shared(MessagesScreen)} />

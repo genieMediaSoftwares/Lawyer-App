@@ -9,6 +9,10 @@ import { version as packageVersion } from '../../package.json';
 
 const DEFAULT_TIMEOUT_MS = 20000;
 
+// Public support contact. Not secrets; SUPPORT_EMAIL / SUPPORT_PHONE override them.
+const DEFAULT_SUPPORT_EMAIL = 'kkdigitalteamwork@gmail.com';
+const DEFAULT_SUPPORT_PHONE = '9966888428';
+
 const stripTrailingSlash = (value: string): string =>
   value.endsWith('/') ? value.slice(0, -1) : value;
 
@@ -41,8 +45,8 @@ const readMegabytes = (value: string | undefined): number | null => {
 export const env = {
   apiBaseUrl: readBaseUrl(),
   apiTimeoutMs: readTimeout(),
-  supportEmail: readOptional(SUPPORT_EMAIL),
-  supportPhone: readOptional(SUPPORT_PHONE),
+  supportEmail: readOptional(SUPPORT_EMAIL) ?? DEFAULT_SUPPORT_EMAIL,
+  supportPhone: readOptional(SUPPORT_PHONE) ?? DEFAULT_SUPPORT_PHONE,
   aiUploadMaxMb: readMegabytes(AI_UPLOAD_MAX_MB),
   appVersion: packageVersion,
 };

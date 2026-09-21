@@ -5,6 +5,7 @@ import type {
   HearingInput,
   LawyerNote,
   LawyerNoteInput,
+  LawyerClientDetail,
   LawyerClientGroups,
   LawyerHearing,
   LawyerLead,
@@ -30,6 +31,13 @@ export const lawyerApi = {
     return (
       unwrap(response) ?? { accepted: [], inProgress: [], closed: [] }
     );
+  },
+
+  async getClientDetails(clientId: string): Promise<LawyerClientDetail> {
+    const response = await apiClient.get<ApiSuccess<LawyerClientDetail>>(
+      `/clients/${encodeURIComponent(clientId)}`,
+    );
+    return unwrap(response);
   },
 
   async getScheduleToday(): Promise<LawyerScheduleEvent[]> {

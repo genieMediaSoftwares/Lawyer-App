@@ -1,4 +1,9 @@
-import type { LawyerRequestStatus, PopulatedUser } from './domain';
+import type {
+  AppDocument,
+  LawyerRequestStatus,
+  LegalCase,
+  PopulatedUser,
+} from './domain';
 
 export interface LawyerLead {
   caseId: string;
@@ -31,10 +36,19 @@ export interface LawyerClientRow {
   category?: string;
   location?: string;
   preferredCourt?: string;
+  urgency?: string;
   currentStatus: string;
-  acceptedAt?: string;
+  acceptedAt?: string | null;
   lastActivity: string;
   tasksRemaining?: number;
+}
+
+// GET /clients/:id — only returned to a lawyer acting for this client.
+export interface LawyerClientDetail {
+  client: Pick<PopulatedUser, '_id' | 'fullName' | 'profileImage'> &
+    Partial<Pick<PopulatedUser, 'email' | 'mobile' | 'location'>>;
+  caseHistory: LegalCase[];
+  documents: AppDocument[];
 }
 
 export interface LawyerClientGroups {

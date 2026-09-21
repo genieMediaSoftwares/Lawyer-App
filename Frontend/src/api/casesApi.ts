@@ -1,4 +1,5 @@
 import { apiClient, unwrap } from './apiClient';
+import { isOwnUpload, resolveFileUrl } from '../utils/urls';
 import type { ApiSuccess } from '../types/api';
 import type { CaseHearing, CreateCasePayload, LegalCase } from '../types/domain';
 
@@ -35,6 +36,19 @@ export const casesApi = {
       `/cases/${encodeURIComponent(id)}`,
     );
     return unwrap(response);
+  },
+
+  // Case attachments live under /uploads, guarded by the same session token.
+  // The token is only ever sent to this backend's own /uploads path.
+  async fetchAttachment(url: string): Promise<Blob> {
+    const resolved = resolveFileUrl(url);
+    if (!resolved || !isOwnUpload(resolved)) {
+      throw new Error('This document cannot be opened in the app.');
+    }
+    const response = await apiClient.get<Blob>(resolved, {
+      responseType: 'blob',
+    });
+    return response.data;
   },
 
   async getTimeline(id: string): Promise<unknown> {

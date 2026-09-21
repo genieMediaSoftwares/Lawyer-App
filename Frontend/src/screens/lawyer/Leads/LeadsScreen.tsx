@@ -151,7 +151,8 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
     const isBusy = busyCaseId === item.caseId;
     const isAvailable = isActionableLead(item);
     const docCount = item.documentsCount ?? (item.acknowledgementDocument ? 1 : 0);
-    const matchPct = item.matchPercentage ?? 90;
+    const matchPct =
+      typeof item.matchPercentage === 'number' ? item.matchPercentage : null;
 
     if (!isAvailable) {
       return (
@@ -211,9 +212,11 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
           </View>
 
           <View className="flex-row items-center gap-2">
-            <GenieText className="font-semibold text-xs text-emerald-400">
-              {matchPct}% Match
-            </GenieText>
+            {matchPct !== null ? (
+              <GenieText className="font-semibold text-xs text-emerald-400">
+                {matchPct}% Match
+              </GenieText>
+            ) : null}
             <Pressable className="p-1">
               <MoreVerticalIcon size={18} color={colors.textMuted} />
             </Pressable>
@@ -259,7 +262,11 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
         </GenieText>
 
         <Pressable
-          onPress={() => (navigation as any).navigate('CaseDetails', { caseId: item.caseId })}
+          testID={`lead-view-details-${item.caseId}`}
+          accessibilityRole="button"
+          onPress={() =>
+            navigation.navigate('LeadDetails', { caseId: String(item.caseId) })
+          }
           className="mt-4 items-center justify-center rounded-xl border border-gold py-2.5 active:bg-gold-muted/20"
         >
           <GenieText className="font-semibold text-sm text-gold">

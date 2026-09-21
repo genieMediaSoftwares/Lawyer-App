@@ -337,14 +337,21 @@ class LawyerController {
       const Case = require("../../models/Case");
       const cases = await Case.find({
         assignedLawyer: req.user._id
-      }).populate("client", "fullName profileImage");
+      })
+        .populate("client", "fullName profileImage")
+        .sort({ updatedAt: -1 });
 
       const mapClient = (c) => ({
         clientId: c.client ? c.client._id : "",
         name: c.client ? c.client.fullName : "Unknown Client",
         caseId: c._id,
         issue: c.title,
+        category: c.category || "",
+        location: c.location || c.locationCity || "",
+        preferredCourt: c.preferredCourt || "",
+        urgency: c.urgency || "",
         currentStatus: c.status,
+        acceptedAt: c.acceptedAt || null,
         lastActivity: c.updatedAt,
         profileImage: c.client ? c.client.profileImage : "",
       });

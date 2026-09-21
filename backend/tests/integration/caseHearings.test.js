@@ -166,7 +166,8 @@ describe("getCaseById authorization", () => {
 
   test("an unrelated lawyer cannot read an engaged case", async () => {
     const res = await read(user(STRANGER_LAWYER, "lawyer"));
-    expect(res.statusCode).toBe(404);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.data).toBeUndefined();
   });
 
   test("any lawyer can still read an open Submitted lead", async () => {

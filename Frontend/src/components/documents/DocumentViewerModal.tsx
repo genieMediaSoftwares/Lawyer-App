@@ -22,6 +22,9 @@ export interface DocumentViewerModalProps {
   document: AppDocument | null;
   onClose: () => void;
   onDownload: (document: AppDocument) => void;
+  // Fetches the file itself, for attachments that are not Document records
+  // (case attachments). Without it the file is read by document id.
+  loadBlob?: () => Promise<Blob>;
 }
 
 export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
@@ -29,6 +32,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
   document,
   onClose,
   onDownload,
+  loadBlob,
 }) => {
   const [previewData, setPreviewData] = useState<DocxPreviewResult | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -55,7 +59,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
     setBlobUrl(null);
     setTextContent(null);
 
-    if (badge.category === 'docx') {
+    if (badge.category === 'docx' && !loadBlob) {
       Promise.allSettled([
         documentsApi.getPreview(document._id),
         documentsApi.fetchViewBlob(document._id),
@@ -85,8 +89,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
       return;
     }
 
-    documentsApi
-      .fetchViewBlob(document._id)
+    (loadBlob ? loadBlob() : documentsApi.fetchViewBlob(document._id))
       .then(async blob => {
         if (badge.category === 'text') {
           try {
@@ -127,7 +130,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
         globalWin.URL.revokeObjectURL(currentBlobUrl);
       }
     };
-  }, [visible, document]);
+  }, [visible, document, loadBlob]);
 
   if (!document) {
     return null;

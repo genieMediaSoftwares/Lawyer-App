@@ -2,6 +2,7 @@ export * from './ui';
 export * from './navigation';
 
 export { AuthTabs } from './AuthTabs';
+export { ContactSupportRows } from './ContactSupportRows';
 export { CreateCaseSheet } from './CreateCaseSheet';
 export { GenieCaseCard } from './GenieCaseCard';
 export { GenieAdvocateCard } from './GenieAdvocateCard';

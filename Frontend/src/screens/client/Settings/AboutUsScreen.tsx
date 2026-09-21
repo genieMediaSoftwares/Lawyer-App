@@ -2,9 +2,11 @@ import React from 'react';
 import { View } from 'react-native';
 
 import {
+  ContactSupportRows,
   GenieCard,
   GenieHeader,
   GenieScreen,
+  GenieSettingsGroup,
   GenieText,
   Logo,
 } from '../../../components';
@@ -77,19 +79,8 @@ export const AboutUsScreen: React.FC<ClientStackScreenProps<'AboutUs'>> = ({
         </Bullet>
       </Section>
 
-      {env.supportEmail || env.supportPhone ? (
-        <Section title="CONTACT &amp; SUPPORT">
-          {env.supportEmail ? (
-            <GenieText variant="body-sm" tone="secondary">
-              Email: {env.supportEmail}
-            </GenieText>
-          ) : null}
-          {env.supportPhone ? (
-            <GenieText variant="body-sm" tone="secondary">
-              Phone: {env.supportPhone}
-            </GenieText>
-          ) : null}
-        </Section>
-      ) : null}
+      <GenieSettingsGroup title="CONTACT SUPPORT">
+        <ContactSupportRows />
+      </GenieSettingsGroup>
   </GenieScreen>
 );

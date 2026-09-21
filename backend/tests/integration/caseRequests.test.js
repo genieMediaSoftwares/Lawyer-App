@@ -228,12 +228,23 @@ describeWithDb("Multi-lawyer case requests", () => {
       expect(res.body.data.lawyerRequests[0].lawyer._id).toBe(lawyers[1]._id.toString());
     });
 
-    it("hides the case from a lawyer who was not invited", async () => {
+    it("refuses the case to a lawyer who was not invited", async () => {
       const caseId = await createCase();
 
       const res = await get(`/cases/${caseId}`, outsider);
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(403);
+      expect(res.body.data).toBeUndefined();
+    });
+
+    it("gives an invited lawyer the client's name but not their contact details", async () => {
+      const caseId = await createCase();
+
+      const res = await get(`/cases/${caseId}`, lawyers[1]);
+
+      expect(res.body.data.client.fullName).toBe(client.fullName);
+      expect(res.body.data.client.email).toBeUndefined();
+      expect(res.body.data.client.mobile).toBeUndefined();
     });
   });
 
@@ -314,7 +325,12 @@ describeWithDb("Multi-lawyer case requests", () => {
       expect(lead.requestStatus).toBe("Unavailable");
       expect(lead.unavailableReason).toBe("This case has already been accepted by another lawyer.");
       expect(lead.location).toBe("");
-      expect((await get(`/cases/${caseId}`, lawyers[1])).status).toBe(404);
+      const detail = await get(`/cases/${caseId}`, lawyers[1]);
+      expect(detail.status).toBe(409);
+      expect(detail.body).toEqual({
+        success: false,
+        message: "This case has already been accepted by another lawyer.",
+      });
     });
 
     it("lets exactly ONE of three simultaneous acceptances succeed", async () => {

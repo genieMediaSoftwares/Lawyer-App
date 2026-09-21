@@ -30,7 +30,7 @@ const resolveClientForLawyer = async (user, clientUserId) => {
     user.role === "lawyer" &&
     !(await isEngagedWithClient(user._id, clientUserId))
   ) {
-    return { error: "Client not found.", status: 404 };
+    return { error: "Client not found.", status: 404, notEngaged: true };
   }
 
   return { clientUser };
@@ -61,10 +61,15 @@ class ClientController {
       const { id } = req.params;
       const lawyerId = req.user._id;
 
-      const { clientUser, error, status } = await resolveClientForLawyer(
-        req.user,
-        id
-      );
+      const { clientUser, error, status, notEngaged } =
+        await resolveClientForLawyer(req.user, id);
+      if (notEngaged) {
+        return ApiResponse.error(
+          res,
+          "You are not authorized to view this client.",
+          403
+        );
+      }
       if (error) {
         return ApiResponse.error(res, error, status);
       }

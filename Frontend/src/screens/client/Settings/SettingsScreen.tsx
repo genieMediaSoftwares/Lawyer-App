@@ -3,6 +3,7 @@ import { Switch, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 
 import {
+  ContactSupportRows,
   GenieNotice,
   GenieButton,
   GenieHeader,
@@ -120,6 +121,7 @@ export const SettingsScreen: React.FC<ClientStackScreenProps<'Settings'>> = ({
       </GenieSettingsGroup>
 
       <GenieSettingsGroup title="SUPPORT & LEGAL" className="mb-5">
+        <ContactSupportRows />
         <GenieSettingsRow
           label="About GenieLaw"
           icon={<InfoCircleIcon size={18} color={colors.gold} />}

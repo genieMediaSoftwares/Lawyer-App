@@ -69,10 +69,45 @@ const emitCaseUpdated = (req, caseItem) => {
   }
 };
 
+const isEngagedLawyer = (user, caseItem) =>
+  user.role === "lawyer" &&
+  partyIds(caseItem, ["assignedLawyer", "selectedLawyer"]).includes(user._id.toString());
+
+// A lawyer who has only been invited sees who the client is, not how to reach them.
+const withoutClientContact = (user, caseItem) => {
+  if (user.role !== "lawyer" || !caseItem || isEngagedLawyer(user, caseItem)) {
+    return caseItem;
+  }
+  const client = caseItem.client;
+  if (!client || !client._id) return caseItem;
+
+  const plain = typeof caseItem.toObject === "function" ? caseItem.toObject() : { ...caseItem };
+  plain.client = {
+    _id: client._id,
+    fullName: client.fullName,
+    profileImage: client.profileImage,
+  };
+  return plain;
+};
+
 const viewForUser = (user, caseItem) =>
   user.role === "lawyer"
-    ? caseRequestService.viewForLawyer(caseItem, user._id)
+    ? withoutClientContact(user, caseRequestService.viewForLawyer(caseItem, user._id))
     : caseItem;
+
+const unreadableCaseReason = (user, caseItem) => {
+  if (user.role === "lawyer") {
+    const request = caseRequestService.findRequest(caseItem, user._id);
+    if (request) {
+      const { MESSAGES } = caseRequestService;
+      if (request.status === "Declined") return { status: 409, message: MESSAGES.alreadyDeclined };
+      if (caseItem.assignedLawyer) return { status: 409, message: MESSAGES.takenByOther };
+      return { status: 409, message: MESSAGES.noLongerAvailable };
+    }
+    return { status: 403, message: "You are not authorized to view this case." };
+  }
+  return { status: 404, message: "Case not found." };
+};
 
 class CaseController {
   async createCase(req, res, next) {
@@ -245,7 +280,8 @@ class CaseController {
       }
 
       if (!canReadCase(req.user, caseItem)) {
-        return ApiResponse.error(res, "Case not found.", 404);
+        const { status, message } = unreadableCaseReason(req.user, caseItem);
+        return ApiResponse.error(res, message, status);
       }
 
       if (caseItem.selectedLawyer) {

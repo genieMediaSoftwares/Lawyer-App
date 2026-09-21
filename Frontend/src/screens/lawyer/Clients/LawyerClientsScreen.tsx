@@ -30,6 +30,7 @@ import { useUiStore } from '../../../store/uiStore';
 import { toAppError } from '../../../utils/errors';
 import { formatDate } from '../../../utils/format';
 import type { LawyerClientRow } from '../../../types/lawyer';
+import { NOT_SPECIFIED } from '../shared/CaseDetailParts';
 import type { LawyerTabScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
 
@@ -138,9 +139,21 @@ export const LawyerClientsScreen: React.FC<
       : groups.closed.length;
   };
 
+  const openClient = (row: LawyerClientRow) => {
+    if (!row.clientId) {
+      setActionError('This client account is no longer available.');
+      return;
+    }
+    setActionError(null);
+    navigation.navigate('LawyerClientDetails', {
+      clientId: String(row.clientId),
+      caseId: String(row.caseId),
+    });
+  };
+
   const renderActiveCard = (item: LawyerClientRow) => {
     const isBusy = busyCaseId === item.caseId;
-    const shortId = item.clientId ? item.clientId.slice(-8) : 'b4b1cc2f';
+    const shortId = item.clientId ? String(item.clientId).slice(-8) : '';
 
     return (
       <View
@@ -154,9 +167,11 @@ export const LawyerClientsScreen: React.FC<
               <GenieText className="font-bold text-base text-text-primary" numberOfLines={1}>
                 {item.name}
               </GenieText>
-              <GenieText className="mt-0.5 text-xs text-text-muted font-medium">
-                ID: {shortId}
-              </GenieText>
+              {shortId ? (
+                <GenieText className="mt-0.5 text-xs text-text-muted font-medium">
+                  ID: {shortId}
+                </GenieText>
+              ) : null}
             </View>
           </View>
 
@@ -172,7 +187,7 @@ export const LawyerClientsScreen: React.FC<
         <View className="gap-2.5">
           <View className="flex-row items-center gap-2.5">
             <GenieText className="text-xs text-text-secondary" numberOfLines={1}>
-              Category: <GenieText className="font-medium text-text-primary">{item.category || 'Family & Divorce'}</GenieText>
+              Category: <GenieText className="font-medium text-text-primary">{item.category || NOT_SPECIFIED}</GenieText>
             </GenieText>
           </View>
 
@@ -184,29 +199,31 @@ export const LawyerClientsScreen: React.FC<
 
           <View className="flex-row items-center gap-2.5">
             <LocationIcon size={14} color={colors.textMuted} />
-            <GenieText className="text-xs text-text-secondary" numberOfLines={1}>
-              Location: <GenieText className="font-medium text-text-primary">{item.location || 'Visakhapatnam'}</GenieText>
+            <GenieText className="flex-1 text-xs text-text-secondary" numberOfLines={1}>
+              Location: <GenieText className="font-medium text-text-primary">{item.location || NOT_SPECIFIED}</GenieText>
             </GenieText>
           </View>
 
           <View className="flex-row items-center gap-2.5">
             <ScalesIcon size={14} color={colors.textMuted} />
-            <GenieText className="text-xs text-text-secondary" numberOfLines={1}>
-              Court: <GenieText className="font-medium text-text-primary">{item.preferredCourt || 'Any Court'}</GenieText>
+            <GenieText className="flex-1 text-xs text-text-secondary" numberOfLines={1}>
+              Court: <GenieText className="font-medium text-text-primary">{item.preferredCourt || NOT_SPECIFIED}</GenieText>
             </GenieText>
           </View>
 
           <View className="flex-row items-center gap-2.5">
             <CalendarIcon size={14} color={colors.textMuted} />
-            <GenieText className="text-xs text-text-secondary" numberOfLines={1}>
-              Accepted: <GenieText className="font-medium text-text-primary">{formatDate(item.acceptedAt || item.lastActivity)}</GenieText>
+            <GenieText className="flex-1 text-xs text-text-secondary" numberOfLines={1}>
+              Accepted: <GenieText className="font-medium text-text-primary">{formatDate(item.acceptedAt) || NOT_SPECIFIED}</GenieText>
             </GenieText>
           </View>
         </View>
 
         <View className="mt-4 flex-row gap-3">
           <Pressable
-            onPress={() => (navigation as any).navigate('CaseDetails', { caseId: item.caseId })}
+            testID={`client-view-${item.caseId}`}
+            accessibilityRole="button"
+            onPress={() => openClient(item)}
             className="flex-1 items-center justify-center rounded-xl border border-gold py-2.5 active:bg-gold-muted/20"
           >
             <GenieText className="font-semibold text-sm text-gold">
@@ -234,7 +251,7 @@ export const LawyerClientsScreen: React.FC<
 
   const renderInProgressCard = (item: LawyerClientRow) => {
     const isBusy = busyCaseId === item.caseId;
-    const tasksCount = item.tasksRemaining ?? 2;
+    const tasksCount = item.tasksRemaining;
 
     return (
       <View
@@ -266,7 +283,7 @@ export const LawyerClientsScreen: React.FC<
         <View className="gap-2.5">
           <View className="flex-row items-center gap-2.5">
             <GenieText className="text-xs text-text-secondary" numberOfLines={1}>
-              Category: <GenieText className="font-medium text-text-primary">{item.category || 'Family & Divorce'}</GenieText>
+              Category: <GenieText className="font-medium text-text-primary">{item.category || NOT_SPECIFIED}</GenieText>
             </GenieText>
           </View>
 
@@ -277,16 +294,20 @@ export const LawyerClientsScreen: React.FC<
             </GenieText>
           </View>
 
-          <View className="flex-row items-center gap-2.5">
-            <GenieText className="text-xs text-text-secondary" numberOfLines={1}>
-              Tasks: <GenieText className="font-medium text-text-primary">{tasksCount} tasks remaining</GenieText>
-            </GenieText>
-          </View>
+          {typeof tasksCount === 'number' ? (
+            <View className="flex-row items-center gap-2.5">
+              <GenieText className="text-xs text-text-secondary" numberOfLines={1}>
+                Tasks: <GenieText className="font-medium text-text-primary">{tasksCount} tasks remaining</GenieText>
+              </GenieText>
+            </View>
+          ) : null}
         </View>
 
         <View className="mt-4 flex-row gap-3">
           <Pressable
-            onPress={() => (navigation as any).navigate('CaseDetails', { caseId: item.caseId })}
+            testID={`client-view-case-${item.caseId}`}
+            accessibilityRole="button"
+            onPress={() => openClient(item)}
             className="flex-1 items-center justify-center rounded-xl border border-gold py-2.5 active:bg-gold-muted/20"
           >
             <GenieText className="font-semibold text-sm text-gold">
@@ -355,7 +376,9 @@ export const LawyerClientsScreen: React.FC<
 
         <View className="mt-3 flex-row gap-3">
           <Pressable
-            onPress={() => (navigation as any).navigate('CaseDetails', { caseId: item.caseId })}
+            testID={`client-view-case-${item.caseId}`}
+            accessibilityRole="button"
+            onPress={() => openClient(item)}
             className="flex-1 items-center justify-center rounded-xl border border-border py-2"
           >
             <GenieText className="font-semibold text-xs text-text-secondary">

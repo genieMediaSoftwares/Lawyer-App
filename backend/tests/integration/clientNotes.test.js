@@ -220,6 +220,35 @@ describe("engagement check", () => {
       res,
       nextError()
     );
+    expect(res.statusCode).toBe(403);
+    expect(res.body.data).toBeUndefined();
+  });
+
+  test("getClientById returns the client to the advocate acting for them", async () => {
+    const res = makeRes();
+    await clientController.getClientById(
+      makeReq({
+        params: { id: "client-user-1" },
+        user: user(LAWYER_A, "lawyer"),
+      }),
+      res,
+      nextError()
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data.client.fullName).toBe("A Client");
+    expect(res.body.data.profile.notes).toBeUndefined();
+  });
+
+  test("getClientById is 404 for a client that does not exist", async () => {
+    const res = makeRes();
+    await clientController.getClientById(
+      makeReq({
+        params: { id: "no-such-client" },
+        user: user(LAWYER_A, "lawyer"),
+      }),
+      res,
+      nextError()
+    );
     expect(res.statusCode).toBe(404);
   });
 });
