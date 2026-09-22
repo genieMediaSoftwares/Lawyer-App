@@ -1,7 +1,14 @@
-import React from 'react';
-import { View } from 'react-native';
-import { GenieAvatar, GenieButton, GenieCard, GenieText } from './ui';
-import { LocationIcon, StarIcon, VerifiedIcon } from './icons/ClientIcons';
+import React, { memo } from 'react';
+import { Pressable, View } from 'react-native';
+import { GenieAvatar, GenieText } from './ui';
+import {
+  BookmarkIcon,
+  BriefcaseIcon,
+  ChevronRightIcon,
+  LocationIcon,
+  StarIcon,
+  VerifiedIcon,
+} from './icons/ClientIcons';
 import type { LawyerProfile } from '../types/domain';
 import { colors } from '../theme';
 
@@ -12,93 +19,161 @@ export interface GenieAdvocateCardProps {
   onToggleFavorite?: (userId: string) => void;
 }
 
-export const GenieAdvocateCard: React.FC<GenieAdvocateCardProps> = ({
+// The backend fills a missing office address with this literal placeholder.
+const PLACEHOLDER_ADDRESS = 'office address';
+
+const firstText = (...values: Array<string | null | undefined>): string =>
+  values.map(value => (value ?? '').trim()).find(Boolean) ?? '';
+
+export const advocateSummary = (item: LawyerProfile) => {
+  const user = item.user;
+  const officeAddress =
+    item.officeAddress?.trim().toLowerCase() === PLACEHOLDER_ADDRESS ? '' : item.officeAddress;
+
+  return {
+    // The profile endpoint accepts either id; saving needs the user id.
+    userId: user?._id ?? '',
+    profileId: user?._id || item._id || '',
+    name: firstText(user?.fullName) || 'Advocate',
+    profileImage: user?.profileImage ?? null,
+    isVerified: Boolean(user?.isVerified),
+    specialization: firstText(item.specialization, item.practiceAreas?.[0]),
+    location: firstText(user?.location, item.district, officeAddress),
+    rating: Number.isFinite(item.rating) ? Math.max(0, Math.min(5, item.rating)) : 0,
+    reviewCount: Number.isFinite(item.totalReviews) ? Math.max(0, item.totalReviews) : 0,
+  };
+};
+
+const Stars: React.FC<{ rating: number }> = ({ rating }) => (
+  <View className="flex-row items-center gap-0.5">
+    {[1, 2, 3, 4, 5].map(star => (
+      <StarIcon
+        key={star}
+        size={13}
+        color={star <= Math.round(rating) ? colors.gold : colors.border}
+      />
+    ))}
+  </View>
+);
+
+const GenieAdvocateCardBase: React.FC<GenieAdvocateCardProps> = ({
   item,
   onPress,
+  isFavorite = false,
+  onToggleFavorite,
 }) => {
-  const user = item.user;
-  const userId = user?._id || (user as any)?.id || (item as any)?.userId || item._id;
-  const name = user?.fullName || (item as any)?.fullName || 'Advocate';
-  const profileImage =
-    user?.profileImage ||
-    (user as any)?.avatar ||
-    (item as any)?.profileImage ||
-    (item as any)?.avatar;
+  const advocate = advocateSummary(item);
+  const { userId, profileId, name, reviewCount, rating } = advocate;
+  if (!profileId) {
+    return null;
+  }
 
-  const specialization = Array.isArray(item.specialization)
-    ? item.specialization[0] || 'General Practice'
-    : item.specialization || 'General Practice';
-
-  const locationText =
-    user?.location || item.officeAddress || item.district || 'Location not specified';
-
-  const rating = item.rating || 0;
-  const reviewCount = item.totalReviews || 0;
+  const open = () => onPress(profileId);
+  const ratingLabel =
+    reviewCount > 0
+      ? `Rated ${rating.toFixed(1)} out of 5 from ${reviewCount} ${
+          reviewCount === 1 ? 'review' : 'reviews'
+        }`
+      : 'No reviews yet';
 
   return (
-    <GenieCard
-      tone="surface"
-      onPress={() => onPress(userId)}
-      accessibilityLabel={`${name}, ${specialization}`}
-      className="mb-2"
+    <Pressable
+      testID={`advocate-card-${profileId}`}
+      onPress={open}
+      accessibilityRole="button"
+      accessibilityLabel={[
+        name,
+        advocate.isVerified ? 'verified' : '',
+        advocate.specialization,
+        advocate.location,
+        ratingLabel,
+      ]
+        .filter(Boolean)
+        .join(', ')}
+      className="mb-3 flex-row rounded-2xl border border-border bg-surface p-4 active:bg-surface-alt"
     >
-      <View className="flex-row items-center">
-        <GenieAvatar
-          uri={profileImage}
-          name={name}
-          size="sm"
-          ring={Boolean(user?.isVerified)}
-        />
+      <GenieAvatar uri={advocate.profileImage} name={name} size="lg" />
 
-        <View className="ml-2 mr-1 flex-1">
-          <View className="flex-row items-center gap-1">
-            <GenieText variant="body-lg" className="font-bold" numberOfLines={1}>
-              {name}
-            </GenieText>
-            {user?.isVerified ? <VerifiedIcon size={16} color={colors.gold} /> : null}
-          </View>
-
-          <GenieText
-            variant="caption"
-            tone="secondary"
-            className="mt-0.5 font-medium"
-            numberOfLines={1}
-          >
-            {specialization}
+      <View className="ml-3 flex-1">
+        <View className="flex-row items-center gap-1 pr-1">
+          <GenieText variant="body-lg" className="flex-shrink font-bold" numberOfLines={1}>
+            {name}
           </GenieText>
-
-          <View className="mt-0.5 flex-row items-center gap-1">
-            <LocationIcon size={13} color={colors.textSecondary} />
-            <GenieText variant="caption" tone="secondary" className="flex-1" numberOfLines={1}>
-              {locationText}
-            </GenieText>
-          </View>
-
-          <View
-            className="mt-1 flex-row items-center gap-0.5"
-            accessibilityLabel={`Rated ${rating} out of 5 from ${reviewCount} reviews`}
-          >
-            {[1, 2, 3, 4, 5].map(star => (
-              <StarIcon
-                key={star}
-                size={14}
-                color={star <= Math.round(rating) ? colors.gold : colors.border}
-              />
-            ))}
-            <GenieText variant="caption" tone="secondary" className="ml-1">
-              ({reviewCount})
-            </GenieText>
-          </View>
+          {advocate.isVerified ? (
+            <View accessibilityLabel="Verified advocate">
+              <VerifiedIcon size={15} color={colors.gold} />
+            </View>
+          ) : null}
         </View>
 
-        <GenieButton
-          label="View Profile"
-          variant="outline"
-          size="sm"
-          fullWidth={false}
-          onPress={() => onPress(userId)}
-        />
+        <View className="mt-1 flex-row items-center gap-1.5">
+          <BriefcaseIcon size={13} color={colors.textMuted} />
+          <GenieText
+            variant="caption"
+            tone={advocate.specialization ? 'secondary' : 'muted'}
+            className="flex-1"
+            numberOfLines={1}
+          >
+            {advocate.specialization || 'Practice area not specified'}
+          </GenieText>
+        </View>
+
+        <View className="mt-1 flex-row items-center gap-1.5">
+          <LocationIcon size={13} color={colors.textMuted} />
+          <GenieText
+            variant="caption"
+            tone={advocate.location ? 'secondary' : 'muted'}
+            className="flex-1"
+            numberOfLines={1}
+          >
+            {advocate.location || 'Location not specified'}
+          </GenieText>
+        </View>
+
+        <View className="mt-1.5 flex-row items-center gap-1.5" accessibilityLabel={ratingLabel}>
+          <Stars rating={reviewCount > 0 ? rating : 0} />
+          <GenieText variant="caption" tone="muted" numberOfLines={1}>
+            {reviewCount > 0 ? `${rating.toFixed(1)} (${reviewCount})` : 'No reviews yet'}
+          </GenieText>
+        </View>
       </View>
-    </GenieCard>
+
+      <View className="ml-2 items-end justify-between">
+        {onToggleFavorite && userId ? (
+          <Pressable
+            testID={`advocate-bookmark-${userId}`}
+            onPress={() => onToggleFavorite(userId)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={isFavorite ? `Remove ${name} from saved` : `Save ${name}`}
+            accessibilityState={{ selected: isFavorite }}
+            className="h-9 w-9 items-center justify-center rounded-full active:bg-surface-alt"
+          >
+            <BookmarkIcon
+              size={20}
+              filled={isFavorite}
+              color={isFavorite ? colors.gold : colors.textSecondary}
+            />
+          </Pressable>
+        ) : (
+          <View className="h-9" />
+        )}
+
+        <Pressable
+          testID={`advocate-view-${profileId}`}
+          onPress={open}
+          accessibilityRole="button"
+          accessibilityLabel={`View ${name}'s profile`}
+          className="min-h-touch flex-row items-center gap-1 rounded-control border border-gold px-3 active:bg-gold-muted"
+        >
+          <GenieText variant="label" tone="gold">
+            View Profile
+          </GenieText>
+          <ChevronRightIcon size={14} color={colors.gold} />
+        </Pressable>
+      </View>
+    </Pressable>
   );
 };
+
+export const GenieAdvocateCard = memo(GenieAdvocateCardBase);

@@ -157,6 +157,22 @@ export const VerifiedIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
+export const BookmarkIcon: React.FC<IconProps & { filled?: boolean }> = ({
+  size,
+  color,
+  filled = false,
+}) => (
+  <Svg {...base(size)}>
+    <Path
+      d="M6.5 4.5A1.5 1.5 0 0 1 8 3h8a1.5 1.5 0 0 1 1.5 1.5V20l-5.5-3.8L6.5 20V4.5Z"
+      stroke={color ?? colors.textMuted}
+      fill={filled ? color ?? colors.gold : 'none'}
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
 export const HeartIcon: React.FC<IconProps & { filled?: boolean }> = ({
   size,
   color,

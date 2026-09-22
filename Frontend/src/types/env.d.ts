@@ -4,4 +4,5 @@ declare module '@env' {
   export const SUPPORT_EMAIL: string | undefined;
   export const SUPPORT_PHONE: string | undefined;
   export const AI_UPLOAD_MAX_MB: string | undefined;
+  export const AI_OPTIMIZE_MAX_MB: string | undefined;
 }

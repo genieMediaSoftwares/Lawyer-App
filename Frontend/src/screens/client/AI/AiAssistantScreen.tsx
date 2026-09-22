@@ -26,19 +26,18 @@ import {
   TrashIcon,
 } from '../../../components/icons/ClientIcons';
 import {
-  AI_MAX_FILE_BYTES,
   UPLOAD_LIMITS,
   aiApi,
-  knownTotalBytes,
-  maxAiUploadBytes,
-  uploadTooLargeReason,
+  aiMaxFileBytes,
+  aiOptimizeMaxBytes,
+  oversizedDocumentReason,
 } from '../../../api/aiApi';
 import {
   describeOptimization,
   prepareAiFiles,
-  stageLabel,
+  progressLabel,
 } from '../../../services/aiFileOptimizer';
-import type { PrepareStage } from '../../../services/aiFileOptimizer';
+import type { PrepareProgress } from '../../../services/aiFileOptimizer';
 import { filePicker } from '../../../services/filePicker';
 import { voiceRecorder } from '../../../services/voiceRecorder';
 import { toAppError } from '../../../utils/errors';
@@ -109,9 +108,9 @@ export const AiAssistantScreen: React.FC<
   const [isTranscribing, setIsTranscribing] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [preparing, setPreparing] = useState<{ name: string; stage: PrepareStage } | null>(
-    null,
-  );
+  const [preparing, setPreparing] = useState<PrepareProgress | null>(null);
+  // Guards against a second pick starting while the first is still optimizing.
+  const preparingRef = useRef(false);
   const [uploadFraction, setUploadFraction] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -120,6 +119,9 @@ export const AiAssistantScreen: React.FC<
   const remainingSlots = UPLOAD_LIMITS.maxDocuments - documents.length;
 
   const addDocuments = useCallback(async () => {
+    if (preparingRef.current) {
+      return;
+    }
     setError(null);
 
     try {
@@ -128,44 +130,29 @@ export const AiAssistantScreen: React.FC<
         return;
       }
 
+      preparingRef.current = true;
       let prepared;
       try {
-        prepared = await prepareAiFiles(picked, (file, stage) =>
-          setPreparing({ name: file.name, stage }),
-        );
+        prepared = await prepareAiFiles(picked, setPreparing);
       } finally {
+        preparingRef.current = false;
         setPreparing(null);
       }
-      const accepted = prepared.ready;
-      const rejections = [...prepared.rejections];
 
-      const maxTotal = maxAiUploadBytes();
-      let runningTotal = knownTotalBytes([...documents, voice]);
-      const fitting: PickedFile[] = [];
-      for (const file of accepted) {
-        const next = runningTotal + (file.size ?? 0);
-        if (maxTotal !== null && next > maxTotal) {
-          rejections.push(
-            `${file.name} was not added: it would take the upload to ${formatFileSize(
-              next,
-            )}, over the ${formatFileSize(maxTotal)} limit for one upload.`,
-          );
-        } else {
-          fitting.push(file);
-          runningTotal = next;
-        }
+      // Only the prepared copies are queued; an oversized original never is.
+      const ready = prepared.ready;
+      if (ready.length > 0) {
+        setDocuments(current =>
+          [...current, ...ready].slice(0, UPLOAD_LIMITS.maxDocuments),
+        );
       }
-
-      if (fitting.length > 0) {
-        setDocuments(current => [...current, ...fitting]);
-      }
-      if (rejections.length > 0) {
-        setError(rejections.join('\n'));
+      if (prepared.rejections.length > 0) {
+        setError(prepared.rejections.join('\n'));
       }
     } catch (pickError) {
       setError(toAppError(pickError).message);
     }
-  }, [documents, remainingSlots, voice]);
+  }, [remainingSlots]);
 
   const removeDocument = useCallback((index: number) => {
     setDocuments(current => current.filter((_, i) => i !== index));
@@ -239,7 +226,7 @@ export const AiAssistantScreen: React.FC<
   }, []);
 
   const submit = useCallback(async () => {
-    if (isSubmitting) {
+    if (isSubmitting || preparingRef.current) {
       return;
     }
 
@@ -250,7 +237,7 @@ export const AiAssistantScreen: React.FC<
       return;
     }
 
-    const tooLarge = uploadTooLargeReason([...documents, voice]);
+    const tooLarge = oversizedDocumentReason(documents);
     if (tooLarge) {
       setError(tooLarge);
       return;
@@ -290,14 +277,6 @@ export const AiAssistantScreen: React.FC<
 
   const uploadDisabled = isSubmitting || preparing !== null || remainingSlots <= 0;
 
-  const maxUploadBytes = maxAiUploadBytes();
-  const usedBytes = knownTotalBytes([...documents, voice]);
-  const uploadLimitNotice =
-    maxUploadBytes === null
-      ? null
-      : `All your files together (documents plus voice note) can be up to ${formatFileSize(
-          maxUploadBytes,
-        )} per upload.`;
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background">
@@ -337,13 +316,11 @@ export const AiAssistantScreen: React.FC<
             subtitle={`Supported formats: PDF, PNG, JPG, WEBP, DOCX, TXT (Multiple allowed) · up to ${
               UPLOAD_LIMITS.maxDocuments
             } files, ${formatFileSize(
-              AI_MAX_FILE_BYTES,
-            )} each. Larger images and PDFs are optimized automatically.`}
+              aiMaxFileBytes(),
+            )} each. Larger images and PDFs (up to ${formatFileSize(
+              aiOptimizeMaxBytes(),
+            )}) are optimized automatically.`}
           />
-
-          {uploadLimitNotice ? (
-            <GenieNotice tone="warning" message={uploadLimitNotice} className="mb-3" />
-          ) : null}
 
           {documents.map((file, index) => (
             <View
@@ -396,10 +373,10 @@ export const AiAssistantScreen: React.FC<
               <ActivityIndicator size="small" color={colors.gold} />
               <View className="ml-3 flex-1">
                 <GenieText variant="body-md" numberOfLines={1}>
-                  {preparing.name}
+                  {preparing.file.name}
                 </GenieText>
                 <GenieText variant="caption" tone="gold" className="mt-0.5">
-                  {stageLabel(preparing.stage)}
+                  {progressLabel(preparing)}
                 </GenieText>
               </View>
             </View>
@@ -427,18 +404,6 @@ export const AiAssistantScreen: React.FC<
               Select FIR, Agreements, Property Docs, Notices
             </GenieText>
           </Pressable>
-
-          {maxUploadBytes !== null && (documents.length > 0 || voice) ? (
-            <GenieText
-              variant="caption"
-              tone={usedBytes > maxUploadBytes ? 'error' : 'muted'}
-              className="mt-2 text-center"
-            >
-              {`Upload size: ${formatFileSize(usedBytes) || '0 B'} of ${formatFileSize(
-                maxUploadBytes,
-              )} allowed`}
-            </GenieText>
-          ) : null}
 
           <SectionTitle
             title="Add a Voice Note (Optional)"

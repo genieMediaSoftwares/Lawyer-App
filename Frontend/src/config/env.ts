@@ -4,6 +4,7 @@ import {
   SUPPORT_EMAIL,
   SUPPORT_PHONE,
   AI_UPLOAD_MAX_MB,
+  AI_OPTIMIZE_MAX_MB,
 } from '@env';
 import { version as packageVersion } from '../../package.json';
 
@@ -12,6 +13,9 @@ const DEFAULT_TIMEOUT_MS = 20000;
 // Public support contact. Not secrets; SUPPORT_EMAIL / SUPPORT_PHONE override them.
 const DEFAULT_SUPPORT_EMAIL = 'kkdigitalteamwork@gmail.com';
 const DEFAULT_SUPPORT_PHONE = '9966888428';
+
+const DEFAULT_AI_UPLOAD_MAX_MB = 3;
+const DEFAULT_AI_OPTIMIZE_MAX_MB = 20;
 
 const stripTrailingSlash = (value: string): string =>
   value.endsWith('/') ? value.slice(0, -1) : value;
@@ -47,6 +51,9 @@ export const env = {
   apiTimeoutMs: readTimeout(),
   supportEmail: readOptional(SUPPORT_EMAIL) ?? DEFAULT_SUPPORT_EMAIL,
   supportPhone: readOptional(SUPPORT_PHONE) ?? DEFAULT_SUPPORT_PHONE,
-  aiUploadMaxMb: readMegabytes(AI_UPLOAD_MAX_MB),
+  // AI Smart Case Assistant: largest document accepted after optimization, and
+  // largest original the server will receive to optimize.
+  aiUploadMaxMb: readMegabytes(AI_UPLOAD_MAX_MB) ?? DEFAULT_AI_UPLOAD_MAX_MB,
+  aiOptimizeMaxMb: readMegabytes(AI_OPTIMIZE_MAX_MB) ?? DEFAULT_AI_OPTIMIZE_MAX_MB,
   appVersion: packageVersion,
 };

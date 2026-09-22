@@ -177,7 +177,7 @@ export const aiApi = {
   },
 
   async analyze(input: AnalyzeInput): Promise<AiAnalyzeAccepted> {
-    const tooLarge = uploadTooLargeReason([...input.documents, input.voice]);
+    const tooLarge = oversizedDocumentReason(input.documents);
     if (tooLarge) {
       throw new Error(tooLarge);
     }
@@ -305,34 +305,39 @@ export const UPLOAD_LIMITS = {
   ],
 } as const;
 
-// AI Smart Case Assistant: the largest document accepted as-is. Anything larger
-// is optimized automatically before upload (see services/aiFileOptimizer).
-export const AI_MAX_FILE_BYTES = 3 * 1024 * 1024;
+const MB = 1024 * 1024;
 
-export const maxAiUploadBytes = (): number | null =>
-  env.aiUploadMaxMb === null ? null : Math.floor(env.aiUploadMaxMb * 1024 * 1024);
+// AI Smart Case Assistant: the largest document accepted, after optimization
+// (AI_UPLOAD_MAX_MB). Larger files are optimized first; see services/aiFileOptimizer.
+export const aiMaxFileBytes = (): number => Math.floor(env.aiUploadMaxMb * MB);
 
-export const maxAiFileBytes = (): number => {
-  const total = maxAiUploadBytes();
-  return total === null ? UPLOAD_LIMITS.maxFileBytes : Math.min(UPLOAD_LIMITS.maxFileBytes, total);
-};
+// The largest original sent to /ai/smart-case/optimize to be shrunk
+// (AI_OPTIMIZE_MAX_MB). It is never uploaded as a document itself.
+export const aiOptimizeMaxBytes = (): number =>
+  Math.max(Math.floor(env.aiOptimizeMaxMb * MB), aiMaxFileBytes());
+
+// Single documents uploaded without optimization (the case acknowledgement).
+export const maxAiFileBytes = (): number =>
+  Math.min(UPLOAD_LIMITS.maxFileBytes, aiMaxFileBytes());
 
 // Bytes the analysis request itself will carry. PDFs optimized on the server
 // are already there and travel only as a token.
 export const knownTotalBytes = (files: ReadonlyArray<PickedFile | null | undefined>): number =>
   files.reduce((sum, file) => sum + (file && !file.preparedToken ? file.size ?? 0 : 0), 0);
 
-export const uploadTooLargeReason = (
-  files: ReadonlyArray<PickedFile | null | undefined>,
+// Last guard before sending: an original over the limit must never be uploaded.
+export const oversizedDocumentReason = (
+  documents: ReadonlyArray<PickedFile>,
 ): string | null => {
-  const max = maxAiUploadBytes();
-  const total = knownTotalBytes(files);
-  if (max === null || total <= max) {
-    return null;
-  }
-  return `Your files add up to ${formatFileSize(total)}, but one upload can be at most ${formatFileSize(
-    max,
-  )}. Please remove a file or reduce the file sizes (for example, compress the PDF or scan at a lower resolution), then try again.`;
+  const max = aiMaxFileBytes();
+  const oversized = documents.find(
+    file => !file.preparedToken && file.size !== null && file.size > max,
+  );
+  return oversized
+    ? `${oversized.name} is ${formatFileSize(oversized.size)}, over the ${formatFileSize(
+        max,
+      )} limit. Remove it and add it again so it can be optimized.`
+    : null;
 };
 
 export const rejectionReasonFor = (file: PickedFile): string | null => {

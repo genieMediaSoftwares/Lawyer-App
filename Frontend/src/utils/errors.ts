@@ -22,10 +22,10 @@ const UNREACHABLE =
   'Could not reach the server. Please try again in a moment.';
 const TOO_LARGE =
   'These files are too large for the server to accept. Try fewer or smaller files.';
+// A browser hides the real cause of a failed upload. Sizes are checked before
+// sending, so treat it as a connection problem first.
 const UPLOAD_BLOCKED =
-  'The upload was rejected before it reached the server. This usually means ' +
-  'the files are larger than the server currently accepts — try fewer or ' +
-  'smaller files.';
+  'The upload could not be completed. Check your connection and try again.';
 
 const looksLikeInternals = (message: string): boolean =>
   /\b(E11000|MongoError|ValidationError|CastError|at\s+\w+\s+\(|node_modules|\/src\/|Error:\s)/i.test(

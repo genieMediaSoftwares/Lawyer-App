@@ -18,13 +18,13 @@ import {
 } from '../../../../components/icons/ClientIcons';
 import { CheckIcon, EyeIcon } from '../../../../components/icons/Icons';
 import {
-  AI_MAX_FILE_BYTES,
   UPLOAD_LIMITS,
   aiApi,
+  aiMaxFileBytes,
   rejectionReasonFor,
 } from '../../../../api/aiApi';
 import { documentsApi } from '../../../../api/documentsApi';
-import { prepareAiFiles, stageLabel } from '../../../../services/aiFileOptimizer';
+import { prepareAiFiles, progressLabel } from '../../../../services/aiFileOptimizer';
 import { filePicker } from '../../../../services/filePicker';
 import { toAppError } from '../../../../utils/errors';
 import { formatFileSize } from '../../../../utils/format';
@@ -259,8 +259,8 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
     let accepted: PickedFile[];
     let rejections: string[];
     try {
-      ({ ready: accepted, rejections } = await prepareAiFiles(picked, (file, stage) =>
-        setPreparingLabel(`${file.name}: ${stageLabel(stage)}`),
+      ({ ready: accepted, rejections } = await prepareAiFiles(picked, progress =>
+        setPreparingLabel(progressLabel(progress)),
       ));
     } finally {
       setPreparingLabel(null);
@@ -454,7 +454,7 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
               {`Up to ${UPLOAD_LIMITS.maxDocuments} files · ${UPLOAD_LIMITS.documentExtensions.join(
                 ' · ',
               )} · ${formatFileSize(
-                AI_MAX_FILE_BYTES,
+                aiMaxFileBytes(),
               )} each (larger images and PDFs are optimized automatically)`}
             </GenieText>
           </Pressable>

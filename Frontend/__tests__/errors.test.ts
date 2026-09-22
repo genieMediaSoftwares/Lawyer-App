@@ -29,7 +29,7 @@ describe('toAppError — oversized uploads', () => {
     Platform.OS = 'web';
     const error = new AxiosError('Network Error', 'ERR_NETWORK', config);
 
-    expect(toAppError(error).message).toMatch(/rejected before it reached the server/i);
+    expect(toAppError(error).message).toMatch(/upload could not be completed/i);
   });
 
   it('on native, ERR_NETWORK still means no connection', () => {

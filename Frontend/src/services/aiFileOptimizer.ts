@@ -1,17 +1,15 @@
 import { Platform } from 'react-native';
 
-import { AI_MAX_FILE_BYTES, aiApi, unsupportedTypeReason } from '../api/aiApi';
+import {
+  aiApi,
+  aiMaxFileBytes,
+  aiOptimizeMaxBytes,
+  unsupportedTypeReason,
+} from '../api/aiApi';
 import { imageCompressor } from './imageCompressor';
 import { toAppError } from '../utils/errors';
 import { formatFileSize } from '../utils/format';
 import type { ImageCompressionStep, PickedFile } from '../types/ai';
-
-const MB = 1024 * 1024;
-
-// Largest originals worth attempting: bigger images exhaust device memory and
-// bigger PDFs are refused by the server's optimizer.
-export const MAX_IMAGE_INPUT_BYTES = 25 * MB;
-export const MAX_PDF_INPUT_BYTES = 20 * MB;
 
 // Each pass is stronger than the last; stop at the first that fits.
 export const IMAGE_STEPS: readonly ImageCompressionStep[] = [
@@ -27,6 +25,13 @@ export type PrepareStage = 'reading' | 'compressing' | 'optimizing';
 export type PrepareOutcome =
   | { ok: true; file: PickedFile }
   | { ok: false; reason: string };
+
+export interface PrepareProgress {
+  file: PickedFile;
+  stage: PrepareStage;
+  index: number; // 1-based position in the batch
+  total: number;
+}
 
 const extensionOf = (name: string): string =>
   (/\.([a-z0-9]+)$/i.exec(name)?.[1] ?? '').toLowerCase();
@@ -66,23 +71,44 @@ export const readActualSize = async (file: PickedFile): Promise<number | null> =
   }
 };
 
-const tooLarge = (name: string, size: number, what: string) =>
-  `${name} is ${formatFileSize(size)}. ${what} Please upload a smaller file (${formatFileSize(
-    AI_MAX_FILE_BYTES,
-  )} or less).`;
+const limitLabel = () => formatFileSize(aiMaxFileBytes());
 
-async function compressImage(
-  file: PickedFile,
-  size: number,
-): Promise<PrepareOutcome> {
-  if (size > MAX_IMAGE_INPUT_BYTES) {
-    return {
-      ok: false,
-      reason: tooLarge(file.name, size, 'This image is too large to compress on this device.'),
-    };
+export const tooLargeToOptimizeReason = (name: string): string =>
+  `${name}: This file is too large to optimize. Maximum optimization input is ${formatFileSize(
+    aiOptimizeMaxBytes(),
+  )}.`;
+
+const cannotReduceReason = (name: string): string =>
+  `${name}: This file could not be safely reduced below ${limitLabel()}.`;
+
+// Explains a failed optimize request without exposing transport details.
+const optimizeFailureReason = (file: PickedFile, error: unknown): string => {
+  const info = toAppError(error);
+  if (info.isNetworkError) {
+    return `${file.name}: The file could not be sent for optimization. ${info.message}`;
   }
+  switch (info.status) {
+    case 413:
+      return tooLargeToOptimizeReason(file.name);
+    case 404:
+      return `${file.name}: File optimization is not available on the server yet.`;
+    case 400:
+    case 409:
+    case 415:
+    case 422:
+    case 503:
+      return `${file.name}: ${info.message}`;
+    default:
+      if (info.status !== undefined && info.status >= 500) {
+        return `${file.name}: The server could not optimize this file. Please try again.`;
+      }
+      return `${file.name}: ${info.message}`;
+  }
+};
 
+async function compressImage(file: PickedFile, size: number): Promise<PrepareOutcome> {
   let smallest: number | null = null;
+
   for (const step of IMAGE_STEPS) {
     let candidate: PickedFile;
     try {
@@ -95,7 +121,7 @@ async function compressImage(
     }
 
     const candidateSize = await readActualSize(candidate);
-    if (candidateSize !== null && candidateSize <= AI_MAX_FILE_BYTES) {
+    if (candidateSize !== null && candidateSize <= aiMaxFileBytes()) {
       return {
         ok: true,
         file: {
@@ -112,50 +138,45 @@ async function compressImage(
 
   return {
     ok: false,
-    reason: `${file.name} is ${formatFileSize(size)} and could only be compressed to ${
-      smallest === null ? 'an unknown size' : formatFileSize(smallest)
-    }, still over the ${formatFileSize(AI_MAX_FILE_BYTES)} limit. Please crop it or photograph the page at a lower resolution.`,
+    reason: `${cannotReduceReason(file.name)}${
+      smallest === null ? '' : ` The best result was ${formatFileSize(smallest)}.`
+    }`,
   };
 }
 
 async function optimizePdf(file: PickedFile, size: number): Promise<PrepareOutcome> {
-  if (size > MAX_PDF_INPUT_BYTES) {
-    return {
-      ok: false,
-      reason: tooLarge(file.name, size, 'PDFs over 20 MB are too large to optimize.'),
-    };
+  let result;
+  try {
+    result = await aiApi.optimizePdf(file);
+  } catch (error) {
+    return { ok: false, reason: optimizeFailureReason(file, error) };
   }
 
-  try {
-    const result = await aiApi.optimizePdf(file);
-    if (result.size > AI_MAX_FILE_BYTES) {
-      return {
-        ok: false,
-        reason: tooLarge(file.name, result.size, 'It is still too large after optimization.'),
-      };
-    }
-    return {
-      ok: true,
-      file: {
-        uri: '',
-        name: result.name || file.name,
-        type: 'application/pdf',
-        size: result.size,
-        preparedToken: result.token,
-        optimization: { method: 'optimized', originalSize: result.originalSize || size },
-      },
-    };
-  } catch (error) {
-    return { ok: false, reason: `${file.name}: ${toAppError(error).message}` };
+  // The server enforces this too; never keep a result over the limit.
+  if (!result?.token || !(result.size > 0) || result.size > aiMaxFileBytes()) {
+    return { ok: false, reason: cannotReduceReason(file.name) };
   }
+
+  return {
+    ok: true,
+    file: {
+      uri: '',
+      name: result.name || file.name,
+      type: 'application/pdf',
+      size: result.size,
+      preparedToken: result.token,
+      optimization: { method: 'optimized', originalSize: result.originalSize || size },
+    },
+  };
 }
 
 /**
  * Makes one picked file ready for the AI assistant:
- * - 3 MB or less: used exactly as picked, never re-encoded.
- * - Images over 3 MB: compressed on the device, in progressively stronger passes.
- * - PDFs over 3 MB: optimized on the server.
- * - DOCX and text over 3 MB: refused. Their content is never altered.
+ * - Up to the limit (AI_UPLOAD_MAX_MB): used exactly as picked, never re-encoded.
+ * - Over the optimization maximum (AI_OPTIMIZE_MAX_MB): refused before any upload.
+ * - Images over the limit: compressed on the device, in progressively stronger passes.
+ * - PDFs over the limit: optimized on the server; only the optimized copy is used.
+ * - DOCX and text over the limit: refused. Their content is never altered.
  */
 export async function prepareAiFile(
   file: PickedFile,
@@ -169,39 +190,44 @@ export async function prepareAiFile(
   onStage?.('reading');
   const size = await readActualSize(file);
 
-  // Unknown size: send as picked; the server enforces the 3 MB limit.
-  if (size === null || size <= AI_MAX_FILE_BYTES) {
+  // Unknown size: send as picked; the server enforces the limit.
+  if (size === null || size <= aiMaxFileBytes()) {
     return { ok: true, file: size === null ? file : { ...file, size } };
   }
 
-  switch (detectKind(file)) {
-    case 'image':
-      onStage?.('compressing');
-      return compressImage(file, size);
-    case 'pdf':
-      onStage?.('optimizing');
-      return optimizePdf(file, size);
-    case 'docx':
-      return {
-        ok: false,
-        reason: tooLarge(
-          file.name,
-          size,
-          'Word documents cannot be reduced without changing them. Save it as a PDF and add that instead (large PDFs are optimized automatically), or remove large pictures from it.',
-        ),
-      };
-    case 'text':
-      return {
-        ok: false,
-        reason: tooLarge(
-          file.name,
-          size,
-          'Text files are never altered, so it cannot be reduced. Split it into smaller files.',
-        ),
-      };
-    default:
-      return { ok: false, reason: `${file.name} is not a supported file type.` };
+  const kind = detectKind(file);
+
+  if (kind === 'docx') {
+    return {
+      ok: false,
+      reason: `${cannotReduceReason(
+        file.name,
+      )} Word documents cannot be reduced without changing them. Save it as a PDF and add that instead.`,
+    };
   }
+  if (kind === 'text') {
+    return {
+      ok: false,
+      reason: `${cannotReduceReason(
+        file.name,
+      )} Text files are never altered. Split it into smaller files.`,
+    };
+  }
+  if (kind === 'other') {
+    return { ok: false, reason: `${file.name} is not a supported file type.` };
+  }
+
+  if (size > aiOptimizeMaxBytes()) {
+    return { ok: false, reason: tooLargeToOptimizeReason(file.name) };
+  }
+
+  if (kind === 'image') {
+    onStage?.('compressing');
+    return compressImage(file, size);
+  }
+
+  onStage?.('optimizing');
+  return optimizePdf(file, size);
 }
 
 export interface PrepareManyResult {
@@ -209,16 +235,19 @@ export interface PrepareManyResult {
   rejections: string[];
 }
 
-// Prepares files one at a time, reporting which file is being worked on.
+// Prepares files strictly one at a time, reporting which one is in progress.
 export async function prepareAiFiles(
   files: PickedFile[],
-  onProgress?: (file: PickedFile, stage: PrepareStage) => void,
+  onProgress?: (progress: PrepareProgress) => void,
 ): Promise<PrepareManyResult> {
   const ready: PickedFile[] = [];
   const rejections: string[] = [];
 
-  for (const file of files) {
-    const outcome = await prepareAiFile(file, stage => onProgress?.(file, stage));
+  for (let i = 0; i < files.length; i += 1) {
+    const file = files[i];
+    const outcome = await prepareAiFile(file, stage =>
+      onProgress?.({ file, stage, index: i + 1, total: files.length }),
+    );
     if (outcome.ok) {
       ready.push(outcome.file);
     } else {
@@ -233,15 +262,13 @@ export const describeOptimization = (file: PickedFile): string | null => {
   if (!file.optimization || file.size === null) {
     return null;
   }
-  const verb = file.optimization.method === 'compressed' ? 'Compressed' : 'Optimized';
-  return `${verb} from ${formatFileSize(file.optimization.originalSize)} to ${formatFileSize(
-    file.size,
-  )}`;
+  return `File optimized successfully · Original: ${formatFileSize(
+    file.optimization.originalSize,
+  )} · Optimized: ${formatFileSize(file.size)}`;
 };
 
-export const stageLabel = (stage: PrepareStage): string =>
-  stage === 'compressing'
-    ? 'Compressing image...'
-    : stage === 'optimizing'
-    ? 'Optimizing PDF...'
-    : 'Checking size...';
+export const progressLabel = ({ file, stage, index, total }: PrepareProgress): string => {
+  const action =
+    stage === 'reading' ? `Checking ${file.name}...` : `Optimizing ${file.name}...`;
+  return total > 1 ? `Optimizing ${index} of ${total} files · ${action}` : action;
+};

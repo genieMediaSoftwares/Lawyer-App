@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => {
             `export const SUPPORT_EMAIL = ${JSON.stringify(fileEnv.SUPPORT_EMAIL)};`,
             `export const SUPPORT_PHONE = ${JSON.stringify(fileEnv.SUPPORT_PHONE)};`,
             `export const AI_UPLOAD_MAX_MB = ${JSON.stringify(fileEnv.AI_UPLOAD_MAX_MB)};`,
+            `export const AI_OPTIMIZE_MAX_MB = ${JSON.stringify(fileEnv.AI_OPTIMIZE_MAX_MB)};`,
           ].join('\n');
         },
       },
