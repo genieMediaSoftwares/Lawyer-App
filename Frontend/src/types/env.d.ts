@@ -6,3 +6,14 @@ declare module '@env' {
   export const AI_UPLOAD_MAX_MB: string | undefined;
   export const AI_OPTIMIZE_MAX_MB: string | undefined;
 }
+
+declare module '*.png' {
+  const content: any;
+  export default content;
+}
+
+declare module '*.jpg' {
+  const content: any;
+  export default content;
+}
+

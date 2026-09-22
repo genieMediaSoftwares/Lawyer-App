@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   GenieButton,
   GenieHeader,
+  GenieMicButton,
   GenieNotice,
   GenieText,
 } from '../../../components';
@@ -21,7 +22,6 @@ import {
   CloudUploadIcon,
   FileIcon,
   GlobeIcon,
-  MicIcon,
   SparkleIcon,
   TrashIcon,
 } from '../../../components/icons/ClientIcons';
@@ -295,7 +295,7 @@ export const AiAssistantScreen: React.FC<
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View className="mt-3 flex-row items-center gap-4 rounded-card border border-gold-wash bg-card p-5">
+          <View className="mt-3 flex-row items-center gap-4 rounded-card border border-border bg-card p-5">
             <SparkleIcon size={30} color={colors.gold} />
             <View className="flex-1">
               <GenieText variant="heading-md">Smart Document Intake</GenieText>
@@ -368,7 +368,7 @@ export const AiAssistantScreen: React.FC<
             <View
               testID="ai-document-preparing"
               accessibilityLiveRegion="polite"
-              className="mb-2 flex-row items-center rounded-card border border-gold-wash bg-card p-3"
+              className="mb-2 flex-row items-center rounded-card border border-border bg-card p-3"
             >
               <ActivityIndicator size="small" color={colors.gold} />
               <View className="ml-3 flex-1">
@@ -388,7 +388,7 @@ export const AiAssistantScreen: React.FC<
             accessibilityRole="button"
             accessibilityLabel="Tap to browse and select documents"
             accessibilityState={{ disabled: uploadDisabled }}
-            className={`items-center rounded-card border border-dashed border-gold bg-card px-5 py-8 ${
+            className={`items-center rounded-card border border-dashed border-border bg-card px-5 py-8 ${
               uploadDisabled ? 'opacity-50' : 'active:opacity-80'
             }`}
           >
@@ -434,15 +434,15 @@ export const AiAssistantScreen: React.FC<
                         accessibilityRole="button"
                         accessibilityState={{ selected: active }}
                         accessibilityLabel={`Transcribe in ${option.label}`}
-                        className={`min-h-touch justify-center rounded-pill border px-4 ${
+                        className={`min-h-touch justify-center rounded-pill px-4 ${
                           active
-                            ? 'border-gold bg-gold-muted'
-                            : 'border-border active:opacity-80'
+                            ? 'bg-gold'
+                            : 'border border-border bg-surface active:bg-surface-secondary'
                         }`}
                       >
                         <GenieText
                           variant="body-md"
-                          tone={active ? 'gold' : 'secondary'}
+                          tone={active ? 'on-gold' : 'secondary'}
                           className={active ? 'font-semibold' : ''}
                         >
                           {option.label}
@@ -454,24 +454,15 @@ export const AiAssistantScreen: React.FC<
               </View>
 
               <View className="mt-4 flex-row items-center gap-3">
-                <Pressable
+                <GenieMicButton
                   onPress={isRecording ? stopRecording : startRecording}
                   disabled={isSubmitting || isTranscribing}
-                  accessibilityRole="button"
+                  isRecording={isRecording}
+                  isBusy={isTranscribing}
                   accessibilityLabel={
                     isRecording ? 'Stop recording' : 'Tap mic and start speaking'
                   }
-                  accessibilityState={{ busy: isTranscribing }}
-                  className={`h-14 w-14 items-center justify-center rounded-full ${
-                    isRecording ? 'bg-error' : 'bg-gold'
-                  } ${isSubmitting || isTranscribing ? 'opacity-50' : 'active:opacity-80'}`}
-                >
-                  {isTranscribing ? (
-                    <ActivityIndicator size="small" color={colors.background} />
-                  ) : (
-                    <MicIcon size={24} color={colors.background} />
-                  )}
-                </Pressable>
+                />
 
                 <View className="flex-1">
                   <GenieText variant="heading-sm">

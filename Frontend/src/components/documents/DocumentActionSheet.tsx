@@ -1,6 +1,5 @@
 import React from 'react';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { GenieDivider, GenieText } from '../ui';
 import {
   DownloadIcon,
@@ -98,10 +97,10 @@ export const DocumentActionSheet: React.FC<DocumentActionSheetProps> = ({
       <View className="flex-1 justify-end bg-overlay">
         <Pressable className="flex-1" onPress={onClose} />
 
-        <View className="rounded-t-2xl border-t border-border bg-[#141414] px-4 pb-6 pt-3">
+        <View className="rounded-t-2xl border-t border-border bg-surface px-4 pb-6 pt-3">
           <View className="mb-4 h-1 w-10 self-center rounded-full bg-border" />
 
-          <View className="mb-3 flex-row items-center rounded-card border border-border bg-[#1A1A1A] p-3">
+          <View className="mb-3 flex-row items-center rounded-card border border-border bg-surface-alt p-3">
             <View
               className={`h-12 w-12 items-center justify-center rounded-lg border ${badge.bgColor} ${badge.borderColor}`}
             >
@@ -180,7 +179,7 @@ export const DocumentActionSheet: React.FC<DocumentActionSheetProps> = ({
 
           <Pressable
             onPress={onClose}
-            className="mt-3 h-12 items-center justify-center rounded-control border border-border bg-[#1A1A1A] active:bg-surface-alt"
+            className="mt-3 h-12 items-center justify-center rounded-control border border-border bg-surface-alt active:bg-surface-alt"
           >
             <GenieText variant="button" tone="secondary">
               Cancel

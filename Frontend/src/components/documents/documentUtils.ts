@@ -20,9 +20,9 @@ export const getDocumentBadgeInfo = (doc: AppDocument): DocumentBadgeInfo => {
     return {
       ext: 'pdf',
       category: 'pdf',
-      bgColor: 'bg-red-950/60',
-      textColor: 'text-red-500',
-      borderColor: 'border-red-900/60',
+      bgColor: 'bg-error-surface',
+      textColor: 'text-error',
+      borderColor: 'border-error',
     };
   }
 
@@ -30,9 +30,9 @@ export const getDocumentBadgeInfo = (doc: AppDocument): DocumentBadgeInfo => {
     return {
       ext: ext || 'doc',
       category: 'docx',
-      bgColor: 'bg-blue-950/60',
-      textColor: 'text-blue-400',
-      borderColor: 'border-blue-900/60',
+      bgColor: 'bg-info-surface',
+      textColor: 'text-info',
+      borderColor: 'border-info',
     };
   }
 
@@ -40,9 +40,9 @@ export const getDocumentBadgeInfo = (doc: AppDocument): DocumentBadgeInfo => {
     return {
       ext: ext || 'img',
       category: 'image',
-      bgColor: 'bg-emerald-950/60',
-      textColor: 'text-emerald-400',
-      borderColor: 'border-emerald-900/60',
+      bgColor: 'bg-success-surface',
+      textColor: 'text-success',
+      borderColor: 'border-success',
     };
   }
 
@@ -50,18 +50,18 @@ export const getDocumentBadgeInfo = (doc: AppDocument): DocumentBadgeInfo => {
     return {
       ext: ext || 'txt',
       category: 'text',
-      bgColor: 'bg-zinc-800',
-      textColor: 'text-zinc-300',
-      borderColor: 'border-zinc-700',
+      bgColor: 'bg-surface-alt',
+      textColor: 'text-secondary',
+      borderColor: 'border-border',
     };
   }
 
   return {
     ext: ext || 'file',
     category: 'other',
-    bgColor: 'bg-zinc-800',
-    textColor: 'text-zinc-300',
-    borderColor: 'border-zinc-700',
+    bgColor: 'bg-surface-alt',
+    textColor: 'text-secondary',
+    borderColor: 'border-border',
   };
 };
 

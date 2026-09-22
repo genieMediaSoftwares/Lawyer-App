@@ -10,19 +10,13 @@ import {
   GenieSkeleton,
   GenieText,
 } from '../../../components';
-import { CheckCircleIcon } from '../../../components/icons/LawyerIcons';
 import { lawyerApi } from '../../../api/lawyerApi';
 import type { LawyerStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
+import { PlanCard } from './PlanCard';
+import type { PlanItem } from './types';
 
-export interface PlanItem {
-  id: string;
-  name: string;
-  price: string;
-  amount: number;
-  popular?: boolean;
-  features: string[];
-}
+export type { PlanItem };
 
 const CATALOG_PLANS: PlanItem[] = [
   {
@@ -45,14 +39,14 @@ const CATALOG_PLANS: PlanItem[] = [
     price: '₹5,999 / month',
     amount: 5999,
     popular: true,
-    features: ['Priority Support', 'Featured Listing', 'Profile Highlight'],
+    features: ['Verified Badge', 'Priority Support', 'Featured Listing', 'Profile Highlight'],
   },
   {
     id: 'Elite',
     name: 'Elite',
     price: '₹12,999 / month',
     amount: 12999,
-    features: ['Top Ranking', 'Featured Profile', 'Dedicated Manager'],
+    features: ['Verified Badge', 'Top Ranking', 'Featured Profile', 'Dedicated Manager'],
   },
 ];
 
@@ -124,67 +118,19 @@ export const SubscriptionScreen: React.FC<
               Choose the plan that's right for your practice
             </GenieText>
 
-            {CATALOG_PLANS.map(plan => {
-              const isSelected = selectedPlanId === plan.id;
-              const isActivePlan = activePlanName === plan.id;
-
-              return (
-                <Pressable
-                  key={plan.id}
-                  onPress={() => setSelectedPlanId(plan.id)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: isSelected }}
-                  className={`relative mb-4 rounded-card bg-card p-5 ${
-                    isSelected
-                      ? 'border-2 border-gold shadow-md'
-                      : 'border border-border active:border-border/80'
-                  }`}
-                >
-                  {plan.popular ? (
-                    <View className="absolute right-0 top-0 bg-gold px-3 py-1 rounded-tr-[18px] rounded-bl-xl shadow-sm">
-                      <GenieText variant="caption" tone="on-gold" className="font-bold">
-                        Most Popular
-                      </GenieText>
-                    </View>
-                  ) : isActivePlan ? (
-                    <View className="absolute right-0 top-0 bg-gold-muted px-3 py-1 rounded-tr-[18px] rounded-bl-xl border-l border-b border-gold/30">
-                      <GenieText variant="caption" tone="gold" className="font-bold">
-                        Active Plan
-                      </GenieText>
-                    </View>
-                  ) : null}
-
-                  <View className="flex-row items-center justify-between pr-20">
-                    <GenieText variant="heading-md" className="font-bold text-white">
-                      {plan.name}
-                    </GenieText>
-
-                    <GenieText variant="heading-md" className="font-bold text-white">
-                      {plan.price}
-                    </GenieText>
-                  </View>
-
-                  <View className="mt-4 gap-2.5">
-                    {plan.features.map((feature, idx) => (
-                      <View key={idx} className="flex-row items-center">
-                        <CheckCircleIcon size={18} color={colors.success} />
-                        <GenieText
-                          variant="body-sm"
-                          tone="secondary"
-                          className="ml-2.5 font-medium"
-                        >
-                          {feature}
-                        </GenieText>
-                      </View>
-                    ))}
-                  </View>
-                </Pressable>
-              );
-            })}
+            {CATALOG_PLANS.map(plan => (
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                isSelected={selectedPlanId === plan.id}
+                isActivePlan={activePlanName === plan.id}
+                onPress={() => setSelectedPlanId(plan.id)}
+              />
+            ))}
           </ScrollView>
 
           <View
-            className="absolute bottom-0 left-0 right-0 border-t border-border/40 bg-background px-5 pt-3"
+            className="absolute bottom-0 left-0 right-0 border-t border-border bg-background px-5 pt-3"
             style={{ paddingBottom: Math.max(insets.bottom, 16) }}
           >
             <Pressable
@@ -193,7 +139,7 @@ export const SubscriptionScreen: React.FC<
               }}
               accessibilityRole="button"
               accessibilityLabel="Continue"
-              className="h-14 w-full items-center justify-center rounded-control bg-gold active:bg-gold-pressed shadow-md"
+              className="h-14 w-full items-center justify-center rounded-control bg-gold active:bg-gold-pressed"
             >
               <GenieText variant="body-lg" tone="on-gold" className="font-bold">
                 Continue

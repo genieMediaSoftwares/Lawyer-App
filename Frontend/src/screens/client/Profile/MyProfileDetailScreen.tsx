@@ -11,8 +11,9 @@ import {
   GenieScreen,
   GenieSkeleton,
   GenieText,
+  VerifiedBadge,
 } from '../../../components';
-import { CameraIcon, VerifiedIcon } from '../../../components/icons/ClientIcons';
+import { CameraIcon } from '../../../components/icons/ClientIcons';
 import { clientApi } from '../../../api/clientApi';
 import { authApi } from '../../../api/authApi';
 import type { ClientStackScreenProps } from '../../../types/navigation';
@@ -120,7 +121,7 @@ export const MyProfileDetailScreen: React.FC<
       contentContainerClassName="pb-10"
     >
       <View className="my-3 items-center">
-        <View className="rounded-full border-2 border-gold p-1">
+        <View className="rounded-full border-2 border-border p-1">
           <GenieAvatar uri={user.profileImage} name={user.fullName} size="xl" />
 
           <Pressable
@@ -133,13 +134,13 @@ export const MyProfileDetailScreen: React.FC<
               isUploading ? 'opacity-50' : ''
             }`}
           >
-            <CameraIcon size={16} color={colors.white} />
+            <CameraIcon size={16} color={colors.onGold} />
           </Pressable>
         </View>
 
         <View className="mt-3 flex-row items-center gap-1">
           <GenieText variant="heading-md">{user.fullName}</GenieText>
-          {user.isVerified ? <VerifiedIcon size={18} color={colors.gold} /> : null}
+          {user.isVerified ? <VerifiedBadge size={18} /> : null}
         </View>
 
         <GenieText

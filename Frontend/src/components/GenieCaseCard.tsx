@@ -1,12 +1,11 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { GenieAvatar, GenieCard, GenieText } from './ui';
+import { GenieAvatar, GenieText } from './ui';
 import { getCategoryIcon } from './icons/CategoryIcons';
 import {
   CalendarIcon,
   ChatIcon,
   ChevronRightIcon,
-  ClockIcon,
   LocationIcon,
   StarIcon,
 } from './icons/ClientIcons';
@@ -28,189 +27,195 @@ export interface GenieCaseCardProps {
   onMessageLawyer?: (lawyerId: string, lawyerName: string) => void;
 }
 
+// Inline tracker: completed steps get a gold check, the current step a gold
+// dot, the rest stay gray. No box of its own inside the card.
+const Tracker: React.FC<{ currentStep: number; isRejected: boolean }> = ({
+  currentStep,
+  isRejected,
+}) => (
+  <View className="flex-row">
+    {PROGRESS_STEPS.map((step, idx) => {
+      const complete = !isRejected && step.index < currentStep;
+      const current = !isRejected && step.index === currentStep;
+      const rejectedHere = isRejected && step.index === currentStep;
+      const reached = !isRejected && step.index <= currentStep;
+
+      return (
+        <View key={step.index} className="flex-1 items-center">
+          <View className="w-full flex-row items-center">
+            <View
+              className={`h-0.5 flex-1 ${
+                idx === 0 ? 'bg-transparent' : reached ? 'bg-gold' : 'bg-border'
+              }`}
+            />
+            {complete ? (
+              <View className="h-5 w-5 items-center justify-center rounded-full bg-gold">
+                <CheckIcon size={12} color={colors.onGold} />
+              </View>
+            ) : current ? (
+              <View className="h-5 w-5 items-center justify-center rounded-full bg-gold">
+                <GenieText variant="caption" tone="on-gold" className="text-small-label font-bold">
+                  {String(step.index)}
+                </GenieText>
+              </View>
+            ) : rejectedHere ? (
+              <View className="h-5 w-5 items-center justify-center rounded-full bg-error-surface">
+                <AlertIcon size={11} color={colors.error} />
+              </View>
+            ) : (
+              <View className="h-5 w-5 items-center justify-center rounded-full bg-surface-secondary">
+                <GenieText variant="caption" tone="muted" className="text-small-label">
+                  {String(step.index)}
+                </GenieText>
+              </View>
+            )}
+            <View
+              className={`h-0.5 flex-1 ${
+                idx === PROGRESS_STEPS.length - 1
+                  ? 'bg-transparent'
+                  : !isRejected && step.index < currentStep
+                  ? 'bg-gold'
+                  : 'bg-border'
+              }`}
+            />
+          </View>
+          <GenieText
+            variant="caption"
+            tone={current ? 'gold' : rejectedHere ? 'error' : complete ? 'primary' : 'muted'}
+            className="mt-1 text-small-label"
+            numberOfLines={1}
+          >
+            {step.title}
+          </GenieText>
+        </View>
+      );
+    })}
+  </View>
+);
+
 export const GenieCaseCard: React.FC<GenieCaseCardProps> = ({
   item,
   onPress,
   onMessageLawyer,
 }) => {
-  const { currentStep, isRejected, activeLabel } = getCaseProgressStep(
-    item.status,
-    item,
-  );
-  const badgeTheme = getStatusBadgeTheme(item.status);
+  const { currentStep, isRejected } = getCaseProgressStep(item.status, item);
+  const badge = getStatusBadgeTheme(item.status);
   const lawyer = getAssignedLawyerData(item);
   const CategoryIcon = getCategoryIcon(item.category);
   const shortId = `#${item._id.slice(-6).toUpperCase()}`;
-  const displayLocation =
-    item.locationCity ||
-    item.locationDistrict ||
-    item.location ||
-    'Location not specified';
+  const location = item.locationCity || item.locationDistrict || item.location || '';
+  const open = () => onPress(item._id);
 
   return (
-    <GenieCard
-      tone="surface"
-      onPress={() => onPress(item._id)}
-      accessibilityLabel={`Case ${item.title}`}
-      className="mb-4 overflow-hidden rounded-card border border-border bg-[#151515] p-4 shadow-lg"
+    <Pressable
+      onPress={open}
+      accessibilityRole="button"
+      accessibilityLabel={`Case ${item.title}, ${item.status}`}
+      className="mb-3 rounded-[12px] border border-border bg-card p-4 active:bg-surface-secondary"
     >
-      <View className="flex-row items-center justify-between pb-2.5">
-        <View className="flex-row items-center gap-1.5 rounded-pill border border-gold/30 bg-gold/10 px-2.5 py-1">
-          <CategoryIcon size={14} color={colors.gold} />
-          <GenieText variant="caption" tone="gold" className="font-semibold text-[11px]">
+      <View className="flex-row items-center justify-between gap-2">
+        <View className="flex-shrink flex-row items-center gap-1.5 rounded-pill bg-surface-secondary px-2.5 py-1">
+          <CategoryIcon size={13} color={colors.gold} />
+          <GenieText variant="caption" tone="secondary" className="font-medium" numberOfLines={1}>
             {item.category || 'Legal Case'}
           </GenieText>
         </View>
 
         <View
-          className={`flex-row items-center gap-1.5 rounded-pill border px-2.5 py-1 ${badgeTheme.bg} ${badgeTheme.border}`}
+          className={`flex-row items-center gap-1.5 rounded-pill border px-2.5 py-1 ${badge.bg} ${badge.border}`}
         >
-          <View className={`h-1.5 w-1.5 rounded-full ${isRejected ? 'bg-red-400' : 'bg-gold'}`} />
-          <GenieText variant="caption" className={`font-bold text-[11px] ${badgeTheme.text}`}>
+          <View className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
+          <GenieText variant="caption" tone={badge.tone} className="font-semibold" numberOfLines={1}>
             {item.status}
           </GenieText>
         </View>
       </View>
 
-      <View className="mt-1">
-        <GenieText variant="caption" tone="muted" className="font-mono text-[10px] tracking-wider">
-          {shortId}
-        </GenieText>
-        <GenieText variant="heading-sm" className="mt-0.5 font-bold text-white" numberOfLines={2}>
+      <View className="mt-3 flex-row items-start gap-2">
+        <GenieText variant="cardTitle" className="flex-1" numberOfLines={2}>
           {item.title}
         </GenieText>
-      </View>
-
-      <View className="mt-2 flex-row flex-wrap items-center gap-3">
-        <View className="flex-row items-center gap-1">
-          <LocationIcon size={13} color={colors.textMuted} />
-          <GenieText variant="caption" tone="secondary" className="text-[12px]">
-            {displayLocation}
-          </GenieText>
-        </View>
-
-        <View className="flex-row items-center gap-1">
-          <ClockIcon size={13} color={colors.textMuted} />
-          <GenieText variant="caption" tone="secondary" className="text-[12px]">
-            Created {formatDate(item.createdAt)}
-          </GenieText>
+        <View className="mt-1">
+          <ChevronRightIcon size={16} color={colors.textMuted} />
         </View>
       </View>
 
-      <View className="my-4 rounded-lg border border-border/60 bg-[#1a1a1a] p-3">
-        <View className="mb-2 flex-row items-center justify-between">
-          <GenieText variant="caption" tone="muted" className="text-[10px] font-bold uppercase tracking-wider">
-            Case Progress Tracker
-          </GenieText>
-          <GenieText variant="caption" tone={isRejected ? 'error' : 'gold'} className="text-[11px] font-semibold">
-            {activeLabel}
-          </GenieText>
-        </View>
-
-        <View className="flex-row items-center justify-between px-1 pt-1">
-          {PROGRESS_STEPS.map((step, idx) => {
-            const isCompleted = step.index < currentStep && !isRejected;
-            const isCurrent = step.index === currentStep && !isRejected;
-            const isStepRejected = isRejected && step.index === 2;
-
-            return (
-              <React.Fragment key={step.index}>
-                {idx > 0 ? (
-                  <View
-                    className={`h-0.5 flex-1 ${
-                      step.index <= currentStep && !isRejected ? 'bg-gold' : 'bg-border'
-                    }`}
-                  />
-                ) : null}
-
-                <View className="items-center">
-                  <View
-                    className={`h-6 w-6 items-center justify-center rounded-full border ${
-                      isCompleted
-                        ? 'border-gold bg-gold'
-                        : isCurrent
-                        ? 'border-gold bg-gold-muted'
-                        : isStepRejected
-                        ? 'border-red-500 bg-red-500/20'
-                        : 'border-border bg-surface'
-                    }`}
-                  >
-                    {isCompleted ? (
-                      <CheckIcon size={12} color={colors.onGold} />
-                    ) : isStepRejected ? (
-                      <AlertIcon size={12} color={colors.error} />
-                    ) : (
-                      <GenieText
-                        variant="caption"
-                        tone={isCurrent ? 'gold' : 'muted'}
-                        className="text-[10px] font-bold"
-                      >
-                        {String(step.index)}
-                      </GenieText>
-                    )}
-                  </View>
-                  <GenieText
-                    variant="caption"
-                    tone={isCurrent ? 'gold' : isCompleted ? 'primary' : 'muted'}
-                    className={`mt-1 text-[9px] ${
-                      isCurrent || isCompleted ? 'font-bold' : 'font-normal'
-                    }`}
-                  >
-                    {step.title}
-                  </GenieText>
-                </View>
-              </React.Fragment>
-            );
-          })}
-        </View>
-      </View>
-
-      {lawyer ? (
-        <View className="mb-3.5 flex-row items-center justify-between rounded-control border border-border bg-[#1a1a1a] p-3">
-          <View className="flex-row items-center gap-2.5">
-            <GenieAvatar
-              uri={getUploadUrl(lawyer.profileImage)}
-              name={lawyer.fullName}
-              size="sm"
-              ring
-            />
-            <View>
-              <GenieText variant="body-sm" className="font-bold text-white">
-                Adv. {lawyer.fullName}
-              </GenieText>
-              <GenieText variant="caption" tone="secondary" className="text-[11px]">
-                {lawyer.specialization}
-              </GenieText>
-            </View>
-          </View>
-
-          <View className="flex-row items-center gap-1 rounded-pill border border-gold/30 bg-gold/10 px-2 py-0.5">
-            <StarIcon size={12} color={colors.gold} />
-            <GenieText variant="caption" tone="gold" className="font-bold text-[11px]">
-              {lawyer.rating.toFixed(1)}
+      <View className="mt-1.5 flex-row flex-wrap items-center gap-x-3 gap-y-1">
+        {location ? (
+          <View className="flex-row items-center gap-1">
+            <LocationIcon size={12} color={colors.textMuted} />
+            <GenieText variant="caption" tone="secondary">
+              {location}
             </GenieText>
           </View>
+        ) : null}
+        <View className="flex-row items-center gap-1">
+          <CalendarIcon size={12} color={colors.textMuted} />
+          <GenieText variant="caption" tone="secondary">
+            {formatDate(item.createdAt)}
+          </GenieText>
         </View>
-      ) : null}
+        <GenieText variant="caption" tone="muted">
+          {shortId}
+        </GenieText>
+      </View>
+
+      <View className="mt-4">
+        <Tracker currentStep={currentStep} isRejected={isRejected} />
+      </View>
 
       {item.nextHearing ? (
-        <View className="mb-3.5 flex-row items-center gap-2 rounded-control border border-gold/30 bg-gold/10 px-3 py-2">
-          <CalendarIcon size={14} color={colors.gold} />
-          <GenieText variant="caption" tone="gold" className="font-medium text-[12px]">
-            Next Hearing: {formatDate(item.nextHearing)}
+        <View className="mt-3 flex-row items-center gap-1.5">
+          <CalendarIcon size={13} color={colors.gold} />
+          <GenieText variant="caption" tone="secondary">
+            Next hearing:{' '}
+            <GenieText variant="caption" className="font-semibold text-white">
+              {formatDate(item.nextHearing)}
+            </GenieText>
           </GenieText>
         </View>
       ) : null}
 
-      <View className="flex-row items-center gap-2 border-t border-border pt-3">
+      {lawyer ? (
+        <View className="mt-4 flex-row items-center gap-3 border-t border-border pt-3">
+          <GenieAvatar
+            uri={getUploadUrl(lawyer.profileImage)}
+            name={lawyer.fullName}
+            size="card"
+          />
+          <View className="flex-1">
+            <GenieText variant="body" className="font-semibold" numberOfLines={1}>
+              Adv. {lawyer.fullName}
+            </GenieText>
+            {lawyer.specialization ? (
+              <GenieText variant="secondary" tone="secondary" numberOfLines={1}>
+                {lawyer.specialization}
+              </GenieText>
+            ) : null}
+          </View>
+          {lawyer.rating !== null && lawyer.totalReviews > 0 ? (
+            <View className="flex-row items-center gap-1">
+              <StarIcon size={12} color={colors.gold} />
+              <GenieText variant="caption" className="font-semibold text-white">
+                {lawyer.rating.toFixed(1)}
+              </GenieText>
+              <GenieText variant="caption" tone="muted">
+                ({lawyer.totalReviews})
+              </GenieText>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      <View className={`flex-row gap-2 ${lawyer ? 'mt-3' : 'mt-4 border-t border-border pt-3'}`}>
         <Pressable
-          onPress={() => onPress(item._id)}
+          onPress={open}
           accessibilityRole="button"
           accessibilityLabel="View case details"
-          className="h-10 flex-1 flex-row items-center justify-center gap-1.5 rounded-control border border-border bg-surface-alt active:bg-surface-highlight"
+          className="h-[44px] flex-1 flex-row items-center justify-center gap-1 rounded-[10px] bg-surface-secondary active:bg-border"
         >
-          <GenieText variant="button" className="text-[13px] text-white">
-            View Case Details
+          <GenieText variant="button" className="text-white">
+            View Case
           </GenieText>
           <ChevronRightIcon size={14} color={colors.white} />
         </Pressable>
@@ -219,16 +224,16 @@ export const GenieCaseCard: React.FC<GenieCaseCardProps> = ({
           <Pressable
             onPress={() => onMessageLawyer(lawyer.id, lawyer.fullName)}
             accessibilityRole="button"
-            accessibilityLabel="Message advocate"
-            className="h-10 flex-row items-center justify-center gap-1.5 rounded-control bg-gold px-3.5 active:bg-gold-bright"
+            accessibilityLabel={`Message Adv. ${lawyer.fullName}`}
+            className="h-[44px] flex-1 flex-row items-center justify-center gap-1.5 rounded-[10px] bg-gold active:bg-gold-pressed"
           >
-            <ChatIcon size={16} color={colors.onGold} />
-            <GenieText variant="button" tone="on-gold" className="text-[13px]">
+            <ChatIcon size={15} color={colors.onGold} />
+            <GenieText variant="button" tone="on-gold">
               Message
             </GenieText>
           </Pressable>
         ) : null}
       </View>
-    </GenieCard>
+    </Pressable>
   );
 };

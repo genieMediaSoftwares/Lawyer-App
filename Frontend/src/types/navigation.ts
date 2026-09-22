@@ -64,6 +64,7 @@ export type LawyerStackParamList = {
     caseCategory?: string;
   } | undefined;
   Notes: undefined;
+  LawyerMyProfile: undefined;
   ProfessionalDetails: undefined;
   Subscription: undefined;
   LeadDetails: { caseId: string };

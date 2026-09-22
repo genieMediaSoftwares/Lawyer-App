@@ -19,9 +19,9 @@ export const GenieSectionHeader: React.FC<GenieSectionHeaderProps> = ({
 }) => (
   <View className={`flex-row items-center justify-between ${className}`}>
     <View className="flex-1 pr-3">
-      <GenieText variant="heading-md">{title}</GenieText>
+      <GenieText variant="sectionTitle">{title}</GenieText>
       {subtitle ? (
-        <GenieText variant="body-sm" tone="secondary" className="mt-0.5">
+        <GenieText variant="secondary" tone="secondary" className="mt-0.5">
           {subtitle}
         </GenieText>
       ) : null}
@@ -31,9 +31,9 @@ export const GenieSectionHeader: React.FC<GenieSectionHeaderProps> = ({
         onPress={onAction}
         accessibilityRole="button"
         accessibilityLabel={actionLabel}
-        className="min-h-touch justify-center active:opacity-70"
+        className="min-h-[36px] justify-center active:opacity-70"
       >
-        <GenieText variant="label" tone="gold">
+        <GenieText variant="button" tone="gold">
           {actionLabel}
         </GenieText>
       </Pressable>

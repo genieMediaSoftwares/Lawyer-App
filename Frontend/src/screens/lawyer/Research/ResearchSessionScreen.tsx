@@ -382,7 +382,7 @@ export const ResearchSessionScreen: React.FC<
           ) : (
             <>
               {research?.caseTitle ? (
-                <View testID="research-case-context" className="mb-4 rounded-card border border-gold-wash bg-card p-4">
+                <View testID="research-case-context" className="mb-4 rounded-card border border-border bg-card p-4">
                   <GenieText variant="caption" tone="muted" className="font-bold uppercase tracking-widest">
                     Case
                   </GenieText>
@@ -425,7 +425,7 @@ export const ResearchSessionScreen: React.FC<
 
               {turns.length === 0 && !isBusy ? (
                 <View>
-                  <View className="rounded-card border border-gold-wash bg-card p-4">
+                  <View className="rounded-card border border-border bg-card p-4">
                     <View className="flex-row items-center gap-2">
                       <SparkleIcon size={18} color={colors.gold} />
                       <GenieText variant="body-lg" tone="gold" className="font-bold">

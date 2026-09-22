@@ -56,11 +56,11 @@ export const GenieInput = forwardRef<GenieTextInputRef, GenieInputProps>(
     const borderClass = hasError
       ? 'border-error'
       : isFocused
-      ? 'border-gold'
+      ? 'border-focus'
       : 'border-border';
 
     const fieldClasses = [
-      'h-control flex-row items-center rounded-control border bg-surface px-3',
+      'h-12 flex-row items-center rounded-[10px] border bg-surface px-[14px]',
       borderClass,
       editable ? '' : 'opacity-50',
     ].join(' ');
@@ -68,7 +68,7 @@ export const GenieInput = forwardRef<GenieTextInputRef, GenieInputProps>(
     const field = (
       <>
         {leftIcon ? (
-          <View className="mr-2" pointerEvents="none">
+          <View className="mr-2.5 items-center justify-center" pointerEvents="none">
             {leftIcon}
           </View>
         ) : null}
@@ -76,7 +76,7 @@ export const GenieInput = forwardRef<GenieTextInputRef, GenieInputProps>(
           ref={innerRef}
           editable={editable}
           placeholderTextColor={colors.textMuted}
-          className={`h-full flex-1 text-body-lg text-white ${className}`}
+          className={`h-full flex-1 text-body text-white ${className}`}
           style={webInputReset}
           accessibilityLabel={label}
           onFocus={e => {

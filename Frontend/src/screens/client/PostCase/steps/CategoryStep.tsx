@@ -45,7 +45,7 @@ const CategoryRow: React.FC<{
     <View
       onLayout={event => onLayoutY(event.nativeEvent.layout.y)}
       className={`mb-3 overflow-hidden rounded-card border ${
-        highlighted ? 'border-gold bg-card' : 'border-border bg-card'
+        highlighted ? 'border-border bg-card' : 'border-border bg-card'
       }`}
     >
       <Pressable
@@ -87,7 +87,7 @@ const CategoryRow: React.FC<{
                 accessibilityState={{ selected: active }}
                 className={`mb-2 min-h-touch justify-center rounded-control border px-4 py-3 active:opacity-80 ${
                   active
-                    ? 'border-gold bg-gold-muted'
+                    ? 'border-border bg-gold-muted'
                     : 'border-border bg-surface'
                 }`}
               >

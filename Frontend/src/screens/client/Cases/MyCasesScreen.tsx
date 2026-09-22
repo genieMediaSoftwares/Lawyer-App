@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, View } from 'react-native';
+import { FlatList, RefreshControl, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 
@@ -7,9 +7,9 @@ import {
   GenieCaseCard,
   GenieEmptyState,
   GenieErrorState,
+  GenieFilterTabs,
   GenieHeader,
   GenieSkeletonCard,
-  GenieText,
 } from '../../../components';
 import { BriefcaseIcon } from '../../../components/icons/ClientIcons';
 import { casesApi } from '../../../api/casesApi';
@@ -103,7 +103,7 @@ export const MyCasesScreen: React.FC<ClientTabScreenProps<'Cases'>> = ({
   const renderBody = () => {
     if (casesQuery.isPending) {
       return (
-        <View className="gap-3 px-5 pt-2">
+        <View className="gap-3 px-4 pt-2">
           <GenieSkeletonCard className="h-44 w-full rounded-card" />
           <GenieSkeletonCard className="h-44 w-full rounded-card" />
           <GenieSkeletonCard className="h-44 w-full rounded-card" />
@@ -113,7 +113,7 @@ export const MyCasesScreen: React.FC<ClientTabScreenProps<'Cases'>> = ({
 
     if (casesQuery.isError) {
       return (
-        <View className="px-5 pt-4">
+        <View className="px-4 pt-4">
           <GenieErrorState
             message={casesQuery.error.message}
             onRetry={() => casesQuery.refetch()}
@@ -129,7 +129,7 @@ export const MyCasesScreen: React.FC<ClientTabScreenProps<'Cases'>> = ({
         data={visibleCases}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        contentContainerClassName="px-4 pb-12 pt-1"
+        contentContainerClassName="px-4 pb-20 pt-1"
         contentContainerStyle={
           isEmpty ? { flexGrow: 1, justifyContent: 'center' } : undefined
         }
@@ -183,51 +183,16 @@ export const MyCasesScreen: React.FC<ClientTabScreenProps<'Cases'>> = ({
         notificationCount={unreadNotificationsCount}
       />
 
-      <View className="flex-row gap-2 px-4 pb-3 pt-2">
-        {CASE_TABS.map(item => {
-          const isActive = item === tab;
-
-          return (
-            <Pressable
-              key={item}
-              onPress={() => setTab(item)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: isActive }}
-              accessibilityLabel={`${item}, ${counts[item]} cases`}
-              className={[
-                'min-h-touch flex-1 flex-row items-center justify-center gap-1.5 rounded-control border px-2',
-                isActive
-                  ? 'border-gold bg-gold-muted'
-                  : 'border-border bg-surface active:bg-surface-alt',
-              ].join(' ')}
-            >
-              <GenieText
-                variant="body-sm"
-                tone={isActive ? 'gold' : 'secondary'}
-                className="font-semibold text-[13px]"
-              >
-                {item}
-              </GenieText>
-
-              {!casesQuery.isPending ? (
-                <View
-                  className={`rounded-pill px-1.5 py-0.5 ${
-                    isActive ? 'bg-gold' : 'bg-surface-alt'
-                  }`}
-                >
-                  <GenieText
-                    variant="caption"
-                    tone={isActive ? 'on-gold' : 'muted'}
-                    className="font-bold text-[10px]"
-                  >
-                    {String(counts[item])}
-                  </GenieText>
-                </View>
-              ) : null}
-            </Pressable>
-          );
-        })}
-      </View>
+      <GenieFilterTabs
+        className="px-4 pb-3 pt-2"
+        tabs={CASE_TABS.map(item => ({
+          key: item,
+          label: item,
+          count: casesQuery.isPending ? undefined : counts[item],
+        }))}
+        value={tab}
+        onChange={setTab}
+      />
 
       {renderBody()}
     </SafeAreaView>

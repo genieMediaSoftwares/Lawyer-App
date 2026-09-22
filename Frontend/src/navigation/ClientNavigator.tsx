@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { GenieBottomNavigation, GenieDrawer } from '../components/navigation';
 import { CreateCaseSheet } from '../components/CreateCaseSheet';
-import { ProfileImageModal } from '../components/ui/ProfileImageModal';
+import { ProfileImageViewer } from '../components/ui/ProfileImageViewer';
 import {
   BellIcon,
   BriefcaseIcon,
@@ -222,11 +222,15 @@ const ClientOverlays: React.FC = () => {
         onAvatarPress={() => setIsProfileModalOpen(true)}
       />
 
-      <ProfileImageModal
+      <ProfileImageViewer
         visible={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         imageUri={user?.profileImage}
         name={user?.fullName}
+        onEdit={() => {
+          setIsProfileModalOpen(false);
+          go('MyProfileDetail');
+        }}
       />
 
       <CreateCaseSheet

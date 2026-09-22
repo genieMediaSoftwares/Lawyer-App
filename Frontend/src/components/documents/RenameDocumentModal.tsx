@@ -63,7 +63,7 @@ export const RenameDocumentModal: React.FC<RenameDocumentModalProps> = ({
       statusBarTranslucent
     >
       <View className="flex-1 items-center justify-center bg-overlay px-5">
-        <View className="w-full max-w-md rounded-2xl border border-border bg-[#141414] p-5">
+        <View className="w-full max-w-md rounded-card border border-border bg-surface p-5">
           <View className="mb-4 flex-row items-center justify-between">
             <GenieText variant="heading-sm" className="font-bold">
               Rename Document
@@ -80,7 +80,7 @@ export const RenameDocumentModal: React.FC<RenameDocumentModalProps> = ({
           </View>
 
           {errorText ? (
-            <View className="mb-3 rounded-control border border-error/50 bg-error-surface p-2.5">
+            <View className="mb-3 rounded-control border border-error bg-error-surface p-2.5">
               <GenieText variant="caption" tone="error">
                 {errorText}
               </GenieText>
@@ -98,14 +98,14 @@ export const RenameDocumentModal: React.FC<RenameDocumentModalProps> = ({
             placeholderTextColor={colors.textMuted}
             editable={!isSaving}
             autoFocus
-            className="mb-5 h-12 rounded-control border border-border bg-surface px-4 text-body-md text-white focus:border-gold"
+            className="mb-5 h-12 rounded-control border border-border bg-surface px-4 text-body-md text-white focus:border-border"
           />
 
           <View className="flex-row items-center gap-3">
             <Pressable
               onPress={onClose}
               disabled={isSaving}
-              className="h-12 flex-1 items-center justify-center rounded-control border border-border bg-[#1A1A1A] active:bg-surface-alt"
+              className="h-12 flex-1 items-center justify-center rounded-control border border-border bg-surface-alt active:bg-surface-alt"
             >
               <GenieText variant="button" tone="secondary">
                 Cancel

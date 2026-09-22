@@ -97,25 +97,25 @@ export const SettingsScreen: React.FC<ClientStackScreenProps<'Settings'>> = ({
       <GenieSettingsGroup title="PREFERENCES" className="mb-5">
         <GenieSettingsRow
           label="Push Notifications"
-          icon={<BellIcon size={18} color={colors.gold} />}
+          icon={<BellIcon size={18} color={colors.white} />}
           trailing={
             <Switch
               value={pushNotifications}
               onValueChange={setPushNotifications}
               accessibilityLabel="Push notifications"
-              trackColor={{ false: colors.disabled, true: colors.goldWash }}
-              thumbColor={pushNotifications ? colors.gold : colors.textMuted}
+              trackColor={{ false: colors.disabled, true: colors.gold }}
+              thumbColor={pushNotifications ? colors.white : colors.textMuted}
             />
           }
         />
         <GenieSettingsRow
           label="App Theme"
-          icon={<SettingsIcon size={18} color={colors.gold} />}
-          value="Dark Gold (Default)"
+          icon={<SettingsIcon size={18} color={colors.white} />}
+          value="Black (Default)"
         />
         <GenieSettingsRow
           label="Language"
-          icon={<InfoCircleIcon size={18} color={colors.gold} />}
+          icon={<InfoCircleIcon size={18} color={colors.white} />}
           value="English (IN)"
         />
       </GenieSettingsGroup>
@@ -124,17 +124,17 @@ export const SettingsScreen: React.FC<ClientStackScreenProps<'Settings'>> = ({
         <ContactSupportRows />
         <GenieSettingsRow
           label="About GenieLaw"
-          icon={<InfoCircleIcon size={18} color={colors.gold} />}
+          icon={<InfoCircleIcon size={18} color={colors.white} />}
           onPress={() => navigation.navigate('AboutUs')}
         />
         <GenieSettingsRow
           label="Privacy Policy"
-          icon={<ShieldIcon size={18} color={colors.gold} />}
+          icon={<ShieldIcon size={18} color={colors.white} />}
           onPress={() => navigation.navigate('PrivacyPolicy')}
         />
         <GenieSettingsRow
           label="Terms & Conditions"
-          icon={<ShieldIcon size={18} color={colors.gold} />}
+          icon={<ShieldIcon size={18} color={colors.white} />}
           onPress={() => navigation.navigate('TermsConditions')}
         />
       </GenieSettingsGroup>
@@ -142,7 +142,7 @@ export const SettingsScreen: React.FC<ClientStackScreenProps<'Settings'>> = ({
       <GenieSettingsGroup title="ACCOUNT">
         <GenieSettingsRow
           label="Change Password"
-          icon={<LockIcon size={18} color={colors.gold} />}
+          icon={<LockIcon size={18} color={colors.white} />}
           onPress={() => navigation.navigate('ChangePassword')}
         />
         <GenieSettingsRow

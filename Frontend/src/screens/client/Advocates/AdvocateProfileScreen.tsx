@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -12,13 +12,14 @@ import {
   GenieIconButton,
   GenieSkeleton,
   GenieText,
+  ProfileImageViewer,
+  VerifiedBadge,
 } from '../../../components';
 import {
   BriefcaseIcon,
   HeartIcon,
   LocationIcon,
   StarIcon,
-  VerifiedIcon,
 } from '../../../components/icons/ClientIcons';
 import { advocatesApi, favoritesApi } from '../../../api/advocatesApi';
 import { chatApi } from '../../../api/chatApi';
@@ -45,6 +46,7 @@ export const AdvocateProfileScreen: React.FC<
   const { userId } = route.params;
   const queryClient = useQueryClient();
   const [isStartingChat, setIsStartingChat] = useState(false);
+  const [isPhotoOpen, setIsPhotoOpen] = useState(false);
 
   const profileQuery = useQuery({
     queryKey: ['advocate', userId],
@@ -218,17 +220,23 @@ export const AdvocateProfileScreen: React.FC<
           }
         >
           <View className="items-center pt-2">
-            <GenieAvatar
-              uri={user.profileImage}
-              name={user.fullName}
-              size="xl"
-              ring={Boolean(user.isVerified)}
-            />
+            <Pressable
+              onPress={() => setIsPhotoOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${user.fullName}'s profile photo`}
+            >
+              <GenieAvatar
+                uri={user.profileImage}
+                name={user.fullName}
+                size="xl"
+                ring={Boolean(user.isVerified)}
+              />
+            </Pressable>
 
             <View className="mt-3 flex-row items-center gap-1">
               <GenieText variant="heading-md">{user.fullName}</GenieText>
               {user.isVerified ? (
-                <VerifiedIcon size={20} color={colors.gold} />
+                <VerifiedBadge size={20} />
               ) : null}
             </View>
 
@@ -307,6 +315,13 @@ export const AdvocateProfileScreen: React.FC<
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       {header}
       {renderBody()}
+
+      <ProfileImageViewer
+        visible={isPhotoOpen}
+        onClose={() => setIsPhotoOpen(false)}
+        imageUri={user?.profileImage}
+        name={user?.fullName}
+      />
     </SafeAreaView>
   );
 };

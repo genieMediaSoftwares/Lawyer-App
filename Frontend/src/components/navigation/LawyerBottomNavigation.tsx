@@ -44,7 +44,7 @@ export const LawyerBottomNavigation: React.FC<BottomTabBarProps> = ({
       className="bg-surface"
       style={{ paddingBottom: insets.bottom }}
     >
-      <View className="h-[62px] flex-row items-center border-t border-border">
+      <View className="h-[64px] flex-row items-center border-t border-border">
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
@@ -71,11 +71,11 @@ export const LawyerBottomNavigation: React.FC<BottomTabBarProps> = ({
               accessibilityLabel={options.tabBarAccessibilityLabel ?? label}
               className="min-h-touch flex-1 items-center justify-center px-0.5 py-1"
             >
-              <Icon size={20} color={isFocused ? colors.gold : colors.textMuted} />
+              <Icon size={22} color={isFocused ? colors.gold : colors.textMuted} />
               <GenieText
-                variant="caption"
+                variant="smallLabel"
                 tone={isFocused ? 'gold' : 'muted'}
-                className={`mt-0.5 text-[10px] ${
+                className={`mt-0.5 ${
                   isFocused ? 'font-bold' : 'font-medium'
                 }`}
                 numberOfLines={1}

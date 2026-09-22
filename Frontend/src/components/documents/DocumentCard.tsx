@@ -44,7 +44,7 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
       onPress={() => onPress(document)}
       accessibilityRole="button"
       accessibilityLabel={`${displayName}, ${metaText}`}
-      className="mb-2.5 flex-row items-center rounded-card border border-border bg-[#151515] p-3.5 active:bg-[#1C1C1C]"
+      className="mb-2.5 flex-row items-center rounded-card border border-border bg-surface p-3.5 active:bg-surface-alt"
     >
       <View
         className={`h-11 w-11 items-center justify-center rounded-lg border ${badge.bgColor} ${badge.borderColor}`}

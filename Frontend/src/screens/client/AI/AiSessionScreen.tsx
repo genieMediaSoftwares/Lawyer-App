@@ -57,7 +57,7 @@ const Field: React.FC<{
         </GenieText>
         {flagged ? (
           <View className="rounded-pill bg-warning-surface px-1.5 py-0.5">
-            <GenieText variant="caption" tone="warning" className="text-[10px] font-bold">
+            <GenieText variant="caption" tone="warning" className="text-small-label font-bold">
               Check
             </GenieText>
           </View>

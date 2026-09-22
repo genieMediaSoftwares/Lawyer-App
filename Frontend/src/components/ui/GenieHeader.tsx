@@ -33,14 +33,14 @@ export const GenieHeader: React.FC<GenieHeaderProps> = ({
   const centreBrand = !title && showBrand;
 
   return (
-    <View className={`h-14 w-full flex-row items-center bg-background px-2 ${className}`}>
+    <View className={`h-[56px] w-full flex-row items-center bg-background px-4 ${className}`}>
       <View
-        className="absolute left-0 right-0 items-center px-14"
+        className="absolute left-0 right-0 items-center px-16"
         pointerEvents="none"
       >
         {title ? (
           <>
-            <GenieText variant="heading-sm" numberOfLines={1}>
+            <GenieText variant="screenTitle" numberOfLines={1}>
               {title}
             </GenieText>
             {subtitle ? (
@@ -50,7 +50,7 @@ export const GenieHeader: React.FC<GenieHeaderProps> = ({
             ) : null}
           </>
         ) : centreBrand ? (
-          <GenieWordmark size={28} />
+          <GenieWordmark size={24} />
         ) : null}
       </View>
 
@@ -76,7 +76,7 @@ export const GenieHeader: React.FC<GenieHeaderProps> = ({
         {right}
         {onNotifications ? (
           <GenieIconButton
-            icon={<BellIcon size={22} color={colors.gold} />}
+            icon={<BellIcon size={20} color={colors.gold} />}
             onPress={onNotifications}
             accessibilityLabel="Notifications"
             badgeCount={notificationCount}

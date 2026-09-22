@@ -8,9 +8,7 @@ import {
 } from '@tanstack/react-query';
 
 import {
-  GenieEmptyState,
   GenieErrorState,
-  GenieHeader,
   GenieSkeleton,
   GenieText,
 } from '../../../components';
@@ -197,9 +195,9 @@ export const NotificationsScreen: React.FC<
     if (query.isPending) {
       return (
         <View className="mt-1 gap-3 px-4 max-w-3xl mx-auto w-full">
-          <GenieSkeleton className="h-24 w-full rounded-2xl" />
-          <GenieSkeleton className="h-24 w-full rounded-2xl" />
-          <GenieSkeleton className="h-24 w-full rounded-2xl" />
+          <GenieSkeleton className="h-24 w-full rounded-card" />
+          <GenieSkeleton className="h-24 w-full rounded-card" />
+          <GenieSkeleton className="h-24 w-full rounded-card" />
         </View>
       );
     }
@@ -265,8 +263,8 @@ export const NotificationsScreen: React.FC<
           />
         }
         ListEmptyComponent={
-          <View className="items-center rounded-2xl border-2 border-dashed border-border/40 bg-surface-alt/40 p-8 my-6">
-            <View className="mb-3 h-14 w-14 items-center justify-center rounded-full border border-amber-600/30 bg-amber-950/40">
+          <View className="items-center rounded-card border-2 border-dashed border-border bg-surface-alt p-8 my-6">
+            <View className="mb-3 h-14 w-14 items-center justify-center rounded-full border border-border bg-surface-alt">
               <BellIcon size={24} color={colors.gold} />
             </View>
             <GenieText className="font-bold text-base text-text-primary">
@@ -305,7 +303,7 @@ export const NotificationsScreen: React.FC<
             }}
             className="active:opacity-70"
           >
-            <GenieText className="font-bold text-xs text-gold">
+            <GenieText tone="gold" className="font-bold text-xs">
               {isSelectMode ? 'Done' : 'Select'}
             </GenieText>
           </Pressable>
@@ -316,7 +314,7 @@ export const NotificationsScreen: React.FC<
               disabled={markAllRead.isPending || counts.All === 0}
               className="active:opacity-70"
             >
-              <GenieText className="font-bold text-xs text-gold">
+              <GenieText tone="gold" className="font-bold text-xs">
                 {markAllRead.isPending ? 'Marking…' : 'Mark all read'}
               </GenieText>
             </Pressable>
@@ -333,12 +331,12 @@ export const NotificationsScreen: React.FC<
       </View>
 
       {isSelectMode ? (
-        <View className="max-w-3xl mx-auto w-full flex-row items-center justify-between px-4 py-2 bg-surface-alt/60 border-b border-border/30 mb-2">
+        <View className="max-w-3xl mx-auto w-full flex-row items-center justify-between px-4 py-2 bg-surface-alt border-b border-border mb-2">
           <Pressable
             onPress={handleSelectAllToggle}
             className="px-2 py-1"
           >
-            <GenieText className="font-semibold text-xs text-gold">
+            <GenieText tone="gold" className="font-semibold text-xs">
               {selectedIds.length === filteredItems.length
                 ? 'Deselect All'
                 : 'Select All'}
@@ -354,7 +352,7 @@ export const NotificationsScreen: React.FC<
             disabled={clearAllNotifications.isPending || allItems.length === 0}
             className="px-2 py-1"
           >
-            <GenieText className="font-semibold text-xs text-red-400">
+            <GenieText tone="error" className="font-semibold text-xs">
               Clear All
             </GenieText>
           </Pressable>
@@ -364,20 +362,20 @@ export const NotificationsScreen: React.FC<
       {renderBody()}
 
       {isSelectMode && selectedIds.length > 0 ? (
-        <View className="absolute bottom-4 left-4 right-4 max-w-3xl mx-auto flex-row gap-3 rounded-2xl border border-gold/40 bg-surface p-3 shadow-lg">
+        <View className="absolute bottom-4 left-4 right-4 max-w-3xl mx-auto flex-row gap-3 rounded-card border border-border bg-surface p-3">
           <Pressable
             onPress={handleMarkSelectedRead}
-            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-gold py-2.5 active:bg-gold-muted/20"
+            className="flex-1 flex-row items-center justify-center gap-2 rounded-control border border-border py-2.5 active:bg-gold-muted"
           >
             <MailIcon size={16} color={colors.gold} />
-            <GenieText className="font-semibold text-xs text-gold">
+            <GenieText tone="gold" className="font-semibold text-xs">
               Mark Read ({selectedIds.length})
             </GenieText>
           </Pressable>
 
           <Pressable
             onPress={handleDeleteSelected}
-            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-red-600 py-2.5 active:bg-red-700"
+            className="flex-1 flex-row items-center justify-center gap-2 rounded-control bg-error py-2.5 active:opacity-80"
           >
             <TrashIcon size={16} color={colors.white} />
             <GenieText className="font-bold text-xs text-white">

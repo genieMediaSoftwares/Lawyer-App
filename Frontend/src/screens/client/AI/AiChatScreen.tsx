@@ -212,16 +212,16 @@ How can I assist you with using GenieLaw today?`,
               }`}
             >
               {msg.role === 'assistant' ? (
-                <View className="mr-2 h-9 w-9 items-center justify-center rounded-full border border-gold/30 bg-gold/15">
+                <View className="mr-2 h-9 w-9 items-center justify-center rounded-full border border-border bg-gold-muted">
                   <SparkleIcon size={18} color={colors.gold} />
                 </View>
               ) : null}
 
               <View
-                className={`max-w-[82%] rounded-[18px] p-4 shadow-sm ${
+                className={`max-w-[82%] rounded-[18px] p-4  ${
                   msg.role === 'user'
-                    ? 'rounded-tr-none border border-gold/40 bg-[#261f10]'
-                    : 'rounded-tl-none border border-border bg-[#151515]'
+                    ? 'rounded-tr-none border border-border bg-surface-alt'
+                    : 'rounded-tl-none border border-border bg-surface'
                 }`}
               >
                 {msg.role === 'assistant' ? (
@@ -235,7 +235,7 @@ How can I assist you with using GenieLaw today?`,
                 <GenieText
                   variant="caption"
                   tone="muted"
-                  className={`mt-2 text-[10px] ${
+                  className={`mt-2 text-small-label ${
                     msg.role === 'user' ? 'text-right tone-gold' : 'text-left'
                   }`}
                 >
@@ -244,7 +244,7 @@ How can I assist you with using GenieLaw today?`,
               </View>
 
               {msg.role === 'user' ? (
-                <View className="ml-2 h-9 w-9 items-center justify-center rounded-full border border-gold/40 bg-gold">
+                <View className="ml-2 h-9 w-9 items-center justify-center rounded-full border border-border bg-gold">
                   <UserIcon size={18} color={colors.onGold} />
                 </View>
               ) : null}
@@ -253,10 +253,10 @@ How can I assist you with using GenieLaw today?`,
 
           {isLoading ? (
             <View className="mb-4 flex-row items-center justify-start">
-              <View className="mr-2 h-9 w-9 items-center justify-center rounded-full border border-gold/30 bg-gold/15">
+              <View className="mr-2 h-9 w-9 items-center justify-center rounded-full border border-border bg-gold-muted">
                 <SparkleIcon size={18} color={colors.gold} />
               </View>
-              <View className="flex-row items-center gap-2 rounded-[18px] rounded-tl-none border border-border bg-[#151515] px-4 py-3">
+              <View className="flex-row items-center gap-2 rounded-[18px] rounded-tl-none border border-border bg-surface px-4 py-3">
                 <ActivityIndicator size="small" color={colors.gold} />
                 <GenieText variant="body-sm" tone="secondary">
                   Thinking...
@@ -266,7 +266,7 @@ How can I assist you with using GenieLaw today?`,
           ) : null}
 
           {errorNotice ? (
-            <View className="mb-4 flex-row items-center justify-between rounded-card border border-error/40 bg-error-surface p-3.5">
+            <View className="mb-4 flex-row items-center justify-between rounded-card border border-error bg-error-surface p-3.5">
               <View className="flex-1 flex-row items-center gap-2">
                 <AlertIcon size={20} color={colors.error} />
                 <GenieText variant="body-sm" tone="error" className="flex-1">
@@ -280,7 +280,7 @@ How can I assist you with using GenieLaw today?`,
                     handleSend(lastUserMsg.text);
                   }
                 }}
-                className="ml-2 flex-row items-center gap-1 rounded-control bg-error/20 px-3 py-1.5 border border-error/40 active:opacity-70"
+                className="ml-2 flex-row items-center gap-1 rounded-control bg-error-surface px-3 py-1.5 border border-error active:opacity-70"
               >
                 <RefreshIcon size={14} color={colors.error} />
                 <GenieText variant="caption" tone="error" className="font-bold">
@@ -292,7 +292,7 @@ How can I assist you with using GenieLaw today?`,
         </ScrollView>
 
         <View className="border-t border-border bg-surface px-2 py-2">
-          <GenieText variant="caption" tone="secondary" className="px-2 mb-1.5 text-[11px] font-medium uppercase tracking-wider">
+          <GenieText variant="caption" tone="secondary" className="px-2 mb-1.5 text-small-label font-medium uppercase tracking-wider">
             Suggested Questions
           </GenieText>
           <ScrollView
@@ -305,9 +305,9 @@ How can I assist you with using GenieLaw today?`,
                 key={idx}
                 onPress={() => handleSend(q)}
                 disabled={isLoading}
-                className="flex-row items-center gap-1.5 rounded-pill border border-border bg-surface-alt px-3 py-1.5 active:bg-gold/15 active:border-gold/40"
+                className="flex-row items-center gap-1.5 rounded-pill border border-border bg-surface-alt px-3 py-1.5 active:bg-gold-muted active:border-border"
               >
-                <GenieText variant="caption" tone="primary" className="text-[12px]">
+                <GenieText variant="caption" tone="primary" className="text-caption">
                   {q}
                 </GenieText>
                 <ChevronRightIcon size={12} color={colors.gold} />
@@ -317,7 +317,7 @@ How can I assist you with using GenieLaw today?`,
         </View>
 
         <View className="border-t border-border bg-surface p-3">
-          <View className="flex-row items-center rounded-control border border-border bg-[#181818] px-3 py-1">
+          <View className="flex-row items-center rounded-control border border-border bg-surface px-3 py-1">
             <TextInput
               value={inputText}
               onChangeText={setInputText}

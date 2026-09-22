@@ -12,6 +12,7 @@ import {
   GenieInput,
   GenieSkeletonList,
   GenieText,
+  ProfileImageViewer,
 } from '../../../components';
 import { PaperclipIcon, SendIcon } from '../../../components/icons/ClientIcons';
 import { useAuthStore } from '../../../store/authStore';
@@ -29,6 +30,7 @@ export const ChatScreen: React.FC<ClientStackScreenProps<'Chat'>> = ({
   const queryClient = useQueryClient();
 
   const [messageText, setMessageText] = useState('');
+  const [isPhotoOpen, setIsPhotoOpen] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   const messagesQuery = useQuery({
@@ -93,7 +95,7 @@ export const ChatScreen: React.FC<ClientStackScreenProps<'Chat'>> = ({
           {item.attachments && item.attachments.length > 0 ? (
             <View
               className={`mt-1 border-t pt-1 ${
-                isMe ? 'border-on-gold/20' : 'border-border'
+                isMe ? 'border-border' : 'border-border'
               }`}
             >
               {item.attachments.map((att, idx) => (
@@ -118,7 +120,7 @@ export const ChatScreen: React.FC<ClientStackScreenProps<'Chat'>> = ({
           <GenieText
             variant="caption"
             tone={isMe ? 'on-gold' : 'muted'}
-            className={`mt-1 self-end text-[10px] ${isMe ? 'opacity-60' : ''}`}
+            className="mt-1 self-end text-small-label"
           >
             {formatDateTime(item.createdAt)}
           </GenieText>
@@ -179,9 +181,22 @@ export const ChatScreen: React.FC<ClientStackScreenProps<'Chat'>> = ({
         onBack={() => navigation.goBack()}
         right={
           avatar ? (
-            <GenieAvatar uri={avatar} name={name || 'Advocate'} size="xs" />
+            <Pressable
+              onPress={() => setIsPhotoOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${name || 'contact'}'s profile photo`}
+            >
+              <GenieAvatar uri={avatar} name={name || 'Advocate'} size="xs" />
+            </Pressable>
           ) : null
         }
+      />
+
+      <ProfileImageViewer
+        visible={isPhotoOpen}
+        onClose={() => setIsPhotoOpen(false)}
+        imageUri={avatar}
+        name={name}
       />
 
       <KeyboardAvoidingView

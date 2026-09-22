@@ -7,6 +7,7 @@ import {
   GenieAdvocateCard,
   GenieEmptyState,
   GenieErrorState,
+  GenieFilterTabs,
   GenieHeader,
   GenieIconButton,
   GenieSearchInput,
@@ -35,47 +36,8 @@ type Segment = 'all' | 'verified';
 
 const DEFAULT_SORT = 'Most Relevant';
 
-const Chip: React.FC<{
-  label: string;
-  count?: number;
-  active: boolean;
-  onPress: () => void;
-  icon?: React.ReactNode;
-  testID?: string;
-}> = ({ label, count, active, onPress, icon, testID }) => (
-  <Pressable
-    testID={testID}
-    onPress={onPress}
-    accessibilityRole="button"
-    accessibilityState={{ selected: active }}
-    accessibilityLabel={count === undefined ? label : `${label}, ${count}`}
-    className={`min-h-touch flex-row items-center gap-1.5 rounded-pill border px-3.5 ${
-      active ? 'border-gold bg-gold-muted' : 'border-border bg-surface active:bg-surface-alt'
-    }`}
-  >
-    {icon}
-    <GenieText variant="label" tone={active ? 'gold' : 'secondary'}>
-      {label}
-    </GenieText>
-    {count !== undefined ? (
-      <View
-        className={`min-w-[22px] items-center rounded-pill px-1.5 py-0.5 ${
-          active ? 'bg-gold' : 'bg-surface-alt'
-        }`}
-      >
-        <GenieText
-          variant="caption"
-          className={`font-bold ${active ? 'text-on-gold' : 'text-secondary'}`}
-        >
-          {count}
-        </GenieText>
-      </View>
-    ) : null}
-  </Pressable>
-);
-
 const CardSkeleton: React.FC = () => (
-  <View className="mb-3 flex-row rounded-2xl border border-border bg-surface p-4">
+  <View className="mb-3 flex-row rounded-card border border-border bg-surface p-4">
     <GenieSkeleton className="h-16 w-16 rounded-full" />
     <View className="ml-3 flex-1 gap-2 pt-1">
       <GenieSkeleton className="h-4 w-3/5" />
@@ -328,27 +290,32 @@ export const AdvocatesScreen: React.FC<ClientTabScreenProps<'Advocates'>> = ({
           icon={<FilterIcon size={20} color={colors.gold} />}
           onPress={() => setIsFilterOpen(true)}
           accessibilityLabel={hasFacetFilters ? 'Filters, active' : 'Filter advocates'}
-          className={`h-control w-control rounded-control border ${
-            hasFacetFilters ? 'border-gold bg-gold-muted' : 'border-border bg-surface'
+          className={`h-[48px] w-[48px] rounded-[10px] border ${
+            hasFacetFilters ? 'border-border bg-surface-secondary' : 'border-border bg-surface'
           }`}
         />
       </View>
 
       <View className="flex-row items-center gap-2 px-4 pb-3">
-        <Chip
-          testID="advocates-segment-all"
-          label="All"
-          count={loaded ? advocates.length : undefined}
-          active={segment === 'all'}
-          onPress={() => setSegment('all')}
-        />
-        <Chip
-          testID="advocates-segment-verified"
-          label="Verified"
-          count={loaded ? verifiedCount : undefined}
-          active={segment === 'verified'}
-          onPress={() => setSegment('verified')}
-          icon={<VerifiedIcon size={14} color={colors.gold} />}
+        <GenieFilterTabs
+          layout="inline"
+          testIDPrefix="advocates-segment"
+          tabs={[
+            { key: 'all', label: 'All', count: loaded ? advocates.length : undefined },
+            {
+              key: 'verified',
+              label: 'Verified',
+              count: loaded ? verifiedCount : undefined,
+              icon: (
+                <VerifiedIcon
+                  size={14}
+                  color={segment === 'verified' ? colors.onGold : colors.gold}
+                />
+              ),
+            },
+          ]}
+          value={segment}
+          onChange={setSegment}
         />
         <View className="flex-1" />
         <Pressable
@@ -356,12 +323,12 @@ export const AdvocatesScreen: React.FC<ClientTabScreenProps<'Advocates'>> = ({
           onPress={() => setIsSortOpen(true)}
           accessibilityRole="button"
           accessibilityLabel={`Sort, ${sortBy}`}
-          className={`min-h-touch flex-row items-center gap-1 rounded-pill border px-3.5 ${
-            sortBy !== DEFAULT_SORT ? 'border-gold bg-gold-muted' : 'border-border bg-surface'
+          className={`h-[44px] flex-row items-center gap-1 rounded-[10px] border px-3.5 ${
+            sortBy !== DEFAULT_SORT ? 'border-border bg-surface-secondary' : 'border-border bg-surface'
           }`}
         >
           <GenieText
-            variant="label"
+            variant="button"
             tone={sortBy !== DEFAULT_SORT ? 'gold' : 'secondary'}
             numberOfLines={1}
           >

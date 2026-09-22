@@ -105,7 +105,7 @@ const SectionCard: React.FC<{ section: ResearchSection }> = ({ section }) => {
       {isOpen ? (
         <View className="px-4 pb-4">
           {authorities ? (
-            <View className="mb-3 rounded-control border border-warning/40 bg-warning-surface px-3 py-2">
+            <View className="mb-3 rounded-control border border-warning bg-warning-surface px-3 py-2">
               <GenieText variant="caption" tone="warning" className="leading-4">
                 Leads to verify, not verified results. Lawfly has no case-law
                 database — check every authority in a reporter before relying

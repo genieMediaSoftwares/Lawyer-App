@@ -1,4 +1,5 @@
 import type { CaseStatus, LegalCase } from '../types/domain';
+import type { GenieTextTone } from '../components/ui/GenieText';
 
 export interface ProgressStep {
   index: number;
@@ -50,22 +51,22 @@ export const getCaseProgressStep = (
 
 export const getStatusBadgeTheme = (
   status: CaseStatus,
-): { bg: string; text: string; border: string } => {
+): { bg: string; tone: GenieTextTone; border: string; dot: string } => {
   switch (status) {
     case 'Accepted':
+      return { bg: 'bg-success-surface', tone: 'success', border: 'border-success', dot: 'bg-success' };
     case 'In Progress':
-      return { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' };
+      return { bg: 'bg-info-surface', tone: 'info', border: 'border-info', dot: 'bg-info' };
     case 'Closed':
-      return { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30' };
+      return { bg: 'bg-surface-secondary', tone: 'secondary', border: 'border-border', dot: 'bg-muted' };
     case 'Rejected':
-      return { bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/30' };
+      return { bg: 'bg-error-surface', tone: 'error', border: 'border-error', dot: 'bg-error' };
     case 'Awaiting Lawyer Acceptance':
     case 'Pending Lawyer Response':
     case 'Interested':
-      return { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' };
     case 'Submitted':
     default:
-      return { bg: 'bg-gold/15', text: 'text-gold', border: 'border-gold/30' };
+      return { bg: 'bg-warning-surface', tone: 'warning', border: 'border-warning', dot: 'bg-warning' };
   }
 };
 
@@ -89,9 +90,10 @@ export const getAssignedLawyerData = (item: LegalCase) => {
     email: userObj.email,
     mobile: userObj.mobile,
     profileImage: userObj.profileImage,
-    specialization:
-      profileObj?.specialization || profileObj?.practiceAreas?.[0] || 'Advocate',
+    specialization: profileObj?.specialization || profileObj?.practiceAreas?.[0] || '',
     experienceYears: profileObj?.experience,
-    rating: profileObj?.rating ?? 4.8,
+    // Only a real rating from the lawyer's profile; never a placeholder.
+    rating: typeof profileObj?.rating === 'number' ? profileObj.rating : null,
+    totalReviews: typeof profileObj?.totalReviews === 'number' ? profileObj.totalReviews : 0,
   };
 };

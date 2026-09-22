@@ -3,14 +3,16 @@ import { Image, View } from 'react-native';
 import { GenieText } from './GenieText';
 import { getUploadUrl, resolveFileUrl } from '../../utils/urls';
 
-export type GenieAvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+export type GenieAvatarSize = 'xs' | 'sm' | 'md' | 'card' | 'profile' | 'lg' | 'xl';
 
 const SIZES: Record<GenieAvatarSize, { box: string; text: string }> = {
-  xs: { box: 'h-8 w-8', text: 'text-caption' },
-  sm: { box: 'h-11 w-11', text: 'text-body-sm' },
-  md: { box: 'h-12 w-12', text: 'text-body-lg' },
-  lg: { box: 'h-16 w-16', text: 'text-head-md' },
-  xl: { box: 'h-24 w-24', text: 'text-head-xl' },
+  xs: { box: 'h-[32px] w-[32px]', text: 'text-[11px]' },
+  sm: { box: 'h-[32px] w-[32px]', text: 'text-[11px]' },
+  md: { box: 'h-[40px] w-[40px]', text: 'text-[13px]' },
+  card: { box: 'h-[48px] w-[48px]', text: 'text-[14px]' },
+  profile: { box: 'h-[64px] w-[64px]', text: 'text-[18px]' },
+  lg: { box: 'h-[80px] w-[80px]', text: 'text-[24px]' },
+  xl: { box: 'h-[80px] w-[80px]', text: 'text-[24px]' },
 };
 
 function initialsOf(name?: string | null): string {
@@ -55,7 +57,7 @@ export const GenieAvatar: React.FC<GenieAvatarProps> = ({
       className={[
         box,
         'items-center justify-center overflow-hidden rounded-full bg-surface',
-        ring ? 'border-2 border-gold' : '',
+        ring ? 'border-2 border-border' : '',
         className,
       ].join(' ')}
     >

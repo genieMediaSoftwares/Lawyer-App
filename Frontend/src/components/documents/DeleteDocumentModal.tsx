@@ -50,7 +50,7 @@ export const DeleteDocumentModal: React.FC<DeleteDocumentModalProps> = ({
       statusBarTranslucent
     >
       <View className="flex-1 items-center justify-center bg-overlay px-5">
-        <View className="w-full max-w-md rounded-2xl border border-border bg-[#141414] p-5">
+        <View className="w-full max-w-md rounded-card border border-border bg-surface p-5">
           <View className="mb-3 h-12 w-12 items-center justify-center rounded-full bg-error-surface self-center">
             <TrashIcon size={24} color={colors.error} />
           </View>
@@ -64,7 +64,7 @@ export const DeleteDocumentModal: React.FC<DeleteDocumentModalProps> = ({
           </GenieText>
 
           {errorText ? (
-            <View className="mt-3 rounded-control border border-error/50 bg-error-surface p-2.5">
+            <View className="mt-3 rounded-control border border-error bg-error-surface p-2.5">
               <GenieText variant="caption" tone="error" className="text-center">
                 {errorText}
               </GenieText>
@@ -75,7 +75,7 @@ export const DeleteDocumentModal: React.FC<DeleteDocumentModalProps> = ({
             <Pressable
               onPress={onClose}
               disabled={isDeleting}
-              className="h-12 flex-1 items-center justify-center rounded-control border border-border bg-[#1A1A1A] active:bg-surface-alt"
+              className="h-12 flex-1 items-center justify-center rounded-control border border-border bg-surface-alt active:bg-surface-alt"
             >
               <GenieText variant="button" tone="secondary">
                 Cancel

@@ -60,9 +60,9 @@ export const GenieBottomNavigation: React.FC<BottomTabBarProps> = ({
       >
         <Icon size={22} color={isFocused ? colors.gold : colors.textMuted} />
         <GenieText
-          variant="caption"
+          variant="smallLabel"
           tone={isFocused ? 'gold' : 'muted'}
-          className={`mt-0.5 text-[11px] ${isFocused ? 'font-bold' : 'font-medium'}`}
+          className={`mt-0.5 ${isFocused ? 'font-bold' : 'font-medium'}`}
         >
           {label}
         </GenieText>
@@ -72,7 +72,7 @@ export const GenieBottomNavigation: React.FC<BottomTabBarProps> = ({
 
   return (
     <View className="relative z-10 bg-surface" style={{ paddingBottom: insets.bottom }}>
-      <View className="h-[60px] flex-row items-center border-t border-border">
+      <View className="h-[64px] flex-row items-center border-t border-border">
         <View className="flex-1 flex-row items-center justify-around">
           {state.routes.slice(0, 2).map(renderTab)}
         </View>
@@ -88,10 +88,10 @@ export const GenieBottomNavigation: React.FC<BottomTabBarProps> = ({
         onPress={openCreateSheet}
         accessibilityRole="button"
         accessibilityLabel="Post your case"
-        className="absolute left-1/2 h-14 w-14 items-center justify-center rounded-full bg-gold active:bg-gold-pressed"
-        style={[styles.centreButton, { bottom: insets.bottom + 32 }]}
+        className="absolute left-1/2 h-[56px] w-[56px] items-center justify-center rounded-full bg-gold active:bg-gold-pressed"
+        style={[styles.centreButton, { bottom: insets.bottom + 20 }]}
       >
-        <PlusIcon size={26} color={colors.onGold} />
+        <PlusIcon size={24} color={colors.onGold} />
       </Pressable>
     </View>
   );

@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GenieButton, GenieHeader, GenieText } from '../ui';
+import { GenieHeader, GenieText } from '../ui';
 import { DownloadIcon, EyeIcon, FileIcon, ImageIcon, ShieldIcon } from '../icons/ClientIcons';
 import { formatDocumentMeta, getDocumentBadgeInfo } from './documentUtils';
 import { documentsApi } from '../../api/documentsApi';
@@ -154,7 +154,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
 
     if (errorText) {
       return (
-        <View className="flex-1 items-center justify-center p-6 text-center gap-3 bg-[#151515]">
+        <View className="flex-1 items-center justify-center p-6 text-center gap-3 bg-surface">
           <View className="h-16 w-16 items-center justify-center rounded-full bg-error-surface mb-2">
             <ShieldIcon size={32} color={colors.error} />
           </View>
@@ -284,8 +284,8 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
       }
 
       return (
-        <View className="flex-1 items-center justify-center p-6 bg-[#151515] text-center gap-4">
-          <View className="h-16 w-16 items-center justify-center rounded-full bg-gold/15 border border-gold/30">
+        <View className="flex-1 items-center justify-center p-6 bg-surface text-center gap-4">
+          <View className="h-16 w-16 items-center justify-center rounded-full bg-gold-muted border border-border">
             <FileIcon size={32} color={colors.gold} />
           </View>
           <GenieText variant="heading-sm" className="font-bold text-center text-white">
@@ -328,7 +328,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
     if (badge.category === 'text' && textContent !== null) {
       return (
         <ScrollView
-          className="flex-1 bg-[#111111] p-5"
+          className="flex-1 bg-surface p-5"
           contentContainerClassName="pb-10"
           showsVerticalScrollIndicator={false}
         >
@@ -361,7 +361,11 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
             <View className="h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-3">
               <FileIcon size={32} color="#EF4444" />
             </View>
-            <GenieText variant="heading-sm" className="text-black font-bold text-center">
+            <GenieText
+              variant="heading-sm"
+              style={{ color: colors.black }}
+              className="font-bold text-center"
+            >
               {displayName}
             </GenieText>
             <GenieText variant="caption" className="text-gray-500 mt-1">
@@ -370,7 +374,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
           </View>
 
           <View className="gap-3 rounded-lg bg-gray-50 p-4 border border-gray-200">
-            <GenieText variant="body-md" className="font-bold text-black">
+            <GenieText variant="body-md" style={{ color: colors.black }} className="font-bold">
               Document Summary
             </GenieText>
             <GenieText variant="body-sm" className="text-gray-700">
@@ -420,12 +424,12 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
         />
 
         <View className="flex-1 p-3">
-          <View className="flex-1 overflow-hidden rounded-card border border-border bg-[#151515]">
+          <View className="flex-1 overflow-hidden rounded-card border border-border bg-surface">
             {renderContent()}
           </View>
 
           <View className="mt-3 gap-3">
-            <View className="flex-row items-center rounded-card border border-border bg-[#151515] p-3">
+            <View className="flex-row items-center rounded-card border border-border bg-surface p-3">
               <View
                 className={`h-11 w-11 items-center justify-center rounded-lg border ${badge.bgColor} ${badge.borderColor}`}
               >

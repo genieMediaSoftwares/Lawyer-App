@@ -140,6 +140,11 @@ export const StarIcon: React.FC<IconProps> = ({ size, color }) => (
   </Svg>
 );
 
+// Generic badge-shaped icon: used both as the lawyer verification mark (via
+// the dedicated `VerifiedBadge` component, which always passes the fixed
+// blue) and as a plain icon elsewhere (e.g. the "Verified" filter tab, which
+// colours it to match its own active/inactive tab state). The colour is
+// intentionally caller-controlled here — do not hardcode it.
 export const VerifiedIcon: React.FC<IconProps> = ({ size, color }) => (
   <Svg {...base(size)}>
     <Path

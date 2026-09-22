@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   GenieAvatar,
+  GenieFilterTabs,
   GenieEmptyState,
   GenieErrorState,
   GenieHeader,
@@ -20,7 +21,6 @@ import {
 } from '../../../components/icons/ClientIcons';
 import {
   CalendarIcon,
-  CheckCircleIcon,
   UsersIcon,
 } from '../../../components/icons/LawyerIcons';
 import { lawyerApi } from '../../../api/lawyerApi';
@@ -158,7 +158,7 @@ export const LawyerClientsScreen: React.FC<
     return (
       <View
         key={item.caseId}
-        className="mb-4 rounded-2xl border border-border/40 bg-surface-alt p-4"
+        className="mb-4 rounded-card border border-border bg-surface p-4"
       >
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-3 flex-1 pr-2">
@@ -175,14 +175,14 @@ export const LawyerClientsScreen: React.FC<
             </View>
           </View>
 
-          <View className="rounded-lg border border-blue-500/40 bg-blue-500/15 px-3 py-1">
-            <GenieText className="font-semibold text-xs text-blue-400">
+          <View className="rounded-lg border border-info bg-info-surface px-3 py-1">
+            <GenieText tone="info" className="font-semibold text-xs">
               Accepted
             </GenieText>
           </View>
         </View>
 
-        <View className="my-3 border-t border-border/40" />
+        <View className="my-3 border-t border-border" />
 
         <View className="gap-2.5">
           <View className="flex-row items-center gap-2.5">
@@ -224,9 +224,9 @@ export const LawyerClientsScreen: React.FC<
             testID={`client-view-${item.caseId}`}
             accessibilityRole="button"
             onPress={() => openClient(item)}
-            className="flex-1 items-center justify-center rounded-xl border border-gold py-2.5 active:bg-gold-muted/20"
+            className="flex-1 items-center justify-center rounded-control border border-border py-2.5 active:bg-gold-muted"
           >
-            <GenieText className="font-semibold text-sm text-gold">
+            <GenieText tone="gold" className="font-semibold text-sm">
               View Client
             </GenieText>
           </Pressable>
@@ -238,9 +238,9 @@ export const LawyerClientsScreen: React.FC<
               setBusyCaseId(item.caseId);
               startCaseMutation.mutate(item.caseId);
             }}
-            className="flex-1 items-center justify-center rounded-xl bg-gold py-2.5 active:bg-gold-hover"
+            className="flex-1 items-center justify-center rounded-control bg-gold py-2.5 active:bg-gold-hover"
           >
-            <GenieText className="font-bold text-sm text-on-gold">
+            <GenieText tone="on-gold" className="font-bold text-sm">
               {isBusy ? 'Starting...' : 'Start Case'}
             </GenieText>
           </Pressable>
@@ -256,7 +256,7 @@ export const LawyerClientsScreen: React.FC<
     return (
       <View
         key={item.caseId}
-        className="mb-4 rounded-2xl border border-border/40 bg-surface-alt p-4"
+        className="mb-4 rounded-card border border-border bg-surface p-4"
       >
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-3 flex-1 pr-2">
@@ -271,14 +271,14 @@ export const LawyerClientsScreen: React.FC<
             </View>
           </View>
 
-          <View className="rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-1">
-            <GenieText className="font-semibold text-xs text-amber-400">
+          <View className="rounded-lg border border-border bg-warning-surface px-3 py-1">
+            <GenieText tone="gold" className="font-semibold text-xs">
               In Progress
             </GenieText>
           </View>
         </View>
 
-        <View className="my-3 border-t border-border/40" />
+        <View className="my-3 border-t border-border" />
 
         <View className="gap-2.5">
           <View className="flex-row items-center gap-2.5">
@@ -308,18 +308,18 @@ export const LawyerClientsScreen: React.FC<
             testID={`client-view-case-${item.caseId}`}
             accessibilityRole="button"
             onPress={() => openClient(item)}
-            className="flex-1 items-center justify-center rounded-xl border border-gold py-2.5 active:bg-gold-muted/20"
+            className="flex-1 items-center justify-center rounded-control border border-border py-2.5 active:bg-gold-muted"
           >
-            <GenieText className="font-semibold text-sm text-gold">
+            <GenieText tone="gold" className="font-semibold text-sm">
               View Case
             </GenieText>
           </Pressable>
 
           <Pressable
             onPress={() => void openChat(item)}
-            className="flex-1 items-center justify-center rounded-xl border border-gold py-2.5 active:bg-gold-muted/20"
+            className="flex-1 items-center justify-center rounded-control border border-border py-2.5 active:bg-gold-muted"
           >
-            <GenieText className="font-semibold text-sm text-gold">
+            <GenieText tone="gold" className="font-semibold text-sm">
               Chat
             </GenieText>
           </Pressable>
@@ -332,7 +332,7 @@ export const LawyerClientsScreen: React.FC<
             setBusyCaseId(item.caseId);
             completeCaseMutation.mutate(item.caseId);
           }}
-          className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 active:bg-emerald-700"
+          className="mt-3 flex-row items-center justify-center gap-2 rounded-control bg-success py-3 active:bg-success"
         >
           <GenieText className="font-bold text-sm text-white">
             {isBusy ? 'Completing...' : 'Mark Case Completed'}
@@ -346,7 +346,7 @@ export const LawyerClientsScreen: React.FC<
     return (
       <View
         key={item.caseId}
-        className="mb-4 rounded-2xl border border-border/40 bg-surface-alt p-4"
+        className="mb-4 rounded-card border border-border bg-surface p-4"
       >
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-3 flex-1 pr-2">
@@ -361,14 +361,14 @@ export const LawyerClientsScreen: React.FC<
             </View>
           </View>
 
-          <View className="rounded-lg border border-blue-500/40 bg-blue-500/15 px-3 py-1">
-            <GenieText className="font-semibold text-xs text-blue-400">
+          <View className="rounded-lg border border-info bg-info-surface px-3 py-1">
+            <GenieText tone="info" className="font-semibold text-xs">
               Completed
             </GenieText>
           </View>
         </View>
 
-        <View className="my-3 border-t border-border/40" />
+        <View className="my-3 border-t border-border" />
 
         <GenieText className="text-xs text-text-muted">
           Completed on: {formatDate(item.lastActivity)}
@@ -379,7 +379,7 @@ export const LawyerClientsScreen: React.FC<
             testID={`client-view-case-${item.caseId}`}
             accessibilityRole="button"
             onPress={() => openClient(item)}
-            className="flex-1 items-center justify-center rounded-xl border border-border py-2"
+            className="flex-1 items-center justify-center rounded-control border border-border py-2"
           >
             <GenieText className="font-semibold text-xs text-text-secondary">
               View Case
@@ -388,7 +388,7 @@ export const LawyerClientsScreen: React.FC<
 
           <Pressable
             onPress={() => void openChat(item)}
-            className="flex-1 items-center justify-center rounded-xl border border-border py-2"
+            className="flex-1 items-center justify-center rounded-control border border-border py-2"
           >
             <GenieText className="font-semibold text-xs text-text-secondary">
               Chat
@@ -485,43 +485,17 @@ export const LawyerClientsScreen: React.FC<
         notificationCount={unreadNotificationsCount}
       />
 
-      <View className="flex-row border-b border-border/30 px-4 pt-1">
-        {(
-          [
-            ['active', 'Active', countFor('active')],
-            ['inProgress', 'In Progress', countFor('inProgress')],
-            ['completed', 'Completed', countFor('completed')],
-          ] as const
-        ).map(([key, label, count]) => {
-          const isActive = tab === key;
-          return (
-            <Pressable
-              key={key}
-              onPress={() => setTab(key)}
-              className={`mr-5 flex-row items-center gap-1.5 pb-3 ${
-                isActive ? 'border-b-2 border-gold' : ''
-              }`}
-            >
-              <GenieText
-                className={`font-semibold text-base ${
-                  isActive ? 'text-gold' : 'text-text-secondary'
-                }`}
-              >
-                {label}
-              </GenieText>
-              <View
-                className={`h-5 w-5 items-center justify-center rounded-full ${
-                  isActive ? 'bg-amber-600/80' : 'bg-surface-alt'
-                }`}
-              >
-                <GenieText className="font-bold text-[11px] text-white">
-                  {count}
-                </GenieText>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+      <GenieFilterTabs
+        className="px-4 pt-2"
+        testIDPrefix="clients-tab"
+        tabs={[
+          { key: 'active', label: 'Active', count: countFor('active') },
+          { key: 'inProgress', label: 'In Progress', count: countFor('inProgress') },
+          { key: 'completed', label: 'Completed', count: countFor('completed') },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       <View className="px-4 pb-2 pt-3">
         <GenieSearchInput

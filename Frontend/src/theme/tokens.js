@@ -1,56 +1,81 @@
+// GenieLaw design system. Every colour in the app comes from here.
+// Solid colours only: no transparent tints, gradients or glass effects.
+// The one exception is `overlay`, the dimmed backdrop behind modals.
+const accent = '#F5B900';
+
 const colors = {
-  background: '#080808',
+  background: '#000000',
   black: '#000000',
   surface: '#111111',
-  surfaceAlt: '#171717',
-  surfaceSecondary: '#171717',
-  card: '#1A1A1A',
-  inputBackground: '#0B0B0B',
+  surfaceSecondary: '#161616',
+  surfaceAlt: '#161616',
+  card: '#111111',
+  inputBackground: '#111111',
 
-  gold: '#DFA928',
-  goldBright: '#E7B735',
-  goldPressed: '#C6931F',
-  goldMuted: 'rgba(223, 169, 40, 0.14)',
-  goldWash: 'rgba(223, 169, 40, 0.22)',
+  accent,
+  gold: accent,
+  goldBright: '#FFC61A',
+  goldPressed: '#D9A400',
+  // Formerly translucent gold washes; now solid neutral surfaces so gold is
+  // used only for buttons, icons, active states and key numbers.
+  goldMuted: '#161616',
+  goldWash: '#242424',
 
   white: '#FFFFFF',
-  textSecondary: '#BDBDBD',
-  textMuted: '#777777',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#A1A1A1',
+  textMuted: '#707070',
 
-  border: '#2A2A2A',
-  borderFocused: '#DFA928',
+  border: '#242424',
+  // Focus is shown with a lighter neutral border, never gold.
+  borderFocused: '#4A4A4A',
 
   success: '#22C55E',
   warning: '#F59E0B',
   error: '#EF4444',
   info: '#3B82F6',
 
-  successSurface: 'rgba(34, 197, 94, 0.12)',
-  warningSurface: 'rgba(245, 158, 11, 0.12)',
-  errorSurface: 'rgba(239, 68, 68, 0.12)',
-  infoSurface: 'rgba(59, 130, 246, 0.12)',
+  // The one lawyer verification badge colour, used everywhere a verified
+  // name appears (Instagram-style blue check, never gold/yellow).
+  verifiedBadge: '#0095F6',
+
+  // Solid dark tints for status pills and notices.
+  successSurface: '#0E2A18',
+  warningSurface: '#2B2008',
+  errorSurface: '#2B0F0F',
+  infoSurface: '#0F1B33',
 
   onGold: '#000000',
+  onAccent: '#000000',
 
-  overlay: 'rgba(0, 0, 0, 0.62)',
-  disabled: '#3A3A3A',
-  disabledText: '#8A8A8A',
+  overlay: 'rgba(0, 0, 0, 0.72)',
+  disabled: '#2E2E2E',
+  disabledText: '#707070',
 
-  skeleton: '#1E1E1E',
-  skeletonHighlight: '#262626',
+  skeleton: '#161616',
+  skeletonHighlight: '#1F1F1F',
 };
 
 const radius = {
-  control: '14px',
-  card: '20px',
-  sheet: '28px',
+  control: '10px',
+  buttonSmall: '8px',
+  card: '12px',
+  badge: '14px',
+  sheet: '20px',
   pill: '9999px',
 };
 
 const sizing = {
-  control: '56px',
+  control: '48px',
   touch: '44px',
-  screenGutter: '20px',
+  buttonSmall: '36px',
+  iconButton: '40px',
+  badgeHeight: '28px',
+  tabHeight: '44px',
+  bottomNavHeight: '64px',
+  headerHeight: '56px',
+  screenGutter: '16px',
 };
 
 module.exports = { colors, radius, sizing };
+

@@ -62,7 +62,7 @@ const ModeCard: React.FC<{
     accessibilityRole="button"
     accessibilityLabel={`${title}. ${description}`}
     className={`mb-3 flex-row items-center rounded-card border p-4 active:opacity-80 ${
-      highlighted ? 'border-gold bg-card' : 'border-border bg-card'
+      highlighted ? 'border-border bg-card' : 'border-border bg-card'
     }`}
   >
     <View
@@ -399,7 +399,7 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
           {state.aiDocuments.map((document, index) => (
             <View
               key={`${document.originalName}-${index}`}
-              className="mb-3 flex-row items-center rounded-card border border-gold bg-card p-4"
+              className="mb-3 flex-row items-center rounded-card border border-border bg-card p-4"
             >
               <View className="mr-3 h-11 w-11 items-center justify-center rounded-full bg-gold-muted">
                 <FileIcon size={20} color={colors.gold} />
@@ -442,7 +442,7 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
             onPress={startAnalysis}
             accessibilityRole="button"
             accessibilityLabel="Choose documents for the assistant to read"
-            className="items-center justify-center rounded-card border border-dashed border-gold bg-card px-5 py-10 active:opacity-80"
+            className="items-center justify-center rounded-card border border-dashed border-border bg-card px-5 py-10 active:opacity-80"
           >
             <View className="h-14 w-14 items-center justify-center rounded-full bg-gold-muted">
               <SparkleIcon size={26} color={colors.gold} />
@@ -483,7 +483,7 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
           </GenieText>
 
           {state.document ? (
-            <View className="rounded-card border border-gold bg-card p-4">
+            <View className="rounded-card border border-border bg-card p-4">
               <View className="flex-row items-center">
                 <View className="mr-3 h-14 w-14 items-center justify-center rounded-full bg-error-surface">
                   <FileIcon size={24} color={colors.error} />
@@ -577,7 +577,7 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
           <Pressable
             onPress={startAnalysis}
             accessibilityRole="button"
-            className="mt-4 flex-row items-center justify-center gap-2 rounded-card border border-gold-wash bg-card p-3 active:opacity-80"
+            className="mt-4 flex-row items-center justify-center gap-2 rounded-card border border-border bg-card p-3 active:opacity-80"
           >
             <SparkleIcon size={18} color={colors.gold} />
             <GenieText variant="body-sm" tone="gold" className="font-semibold">

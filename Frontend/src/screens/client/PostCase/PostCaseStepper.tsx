@@ -52,9 +52,8 @@ export const PostCaseStepper: React.FC<PostCaseStepperProps> = ({
                 ) : (
                   <GenieText
                     variant="body-md"
-                    className={`font-bold ${
-                      isFilled ? 'text-background' : 'text-muted'
-                    }`}
+                    tone={isFilled ? 'on-gold' : 'muted'}
+                    className="font-bold"
                   >
                     {String(index + 1)}
                   </GenieText>

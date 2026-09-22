@@ -7,7 +7,7 @@ const TONES: Record<GenieCardTone, string> = {
   card: 'bg-card border border-border',
   surface: 'bg-surface border border-border',
   alt: 'bg-surface-alt border border-border',
-  gold: 'bg-gold-muted border border-gold',
+  gold: 'bg-surface-secondary border border-border',
 };
 
 export interface GenieCardProps extends ViewProps {
@@ -28,7 +28,7 @@ export const GenieCard: React.FC<GenieCardProps> = ({
   accessibilityLabel,
   ...rest
 }) => {
-  const classes = `rounded-card ${TONES[tone]} ${padded ? 'p-4' : ''} ${className}`;
+  const classes = `rounded-[12px] ${TONES[tone]} ${padded ? 'p-4' : ''} ${className}`;
 
   if (onPress) {
     return (

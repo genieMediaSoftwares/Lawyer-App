@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
-import { GenieButton, GenieDivider, GenieText } from '../ui';
+import { Modal, Pressable, View } from 'react-native';
+import { GenieButton, GenieText } from '../ui';
 import {
   CloseIcon,
   FolderIcon,
@@ -84,7 +84,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
       <View className="flex-1 justify-end bg-overlay">
         <Pressable className="flex-1" onPress={handleClose} />
 
-        <View className="rounded-t-2xl border-t border-border bg-[#141414] px-5 pb-8 pt-4">
+        <View className="rounded-t-2xl border-t border-border bg-surface px-5 pb-8 pt-4">
           <View className="mb-4 flex-row items-center justify-between">
             <GenieText variant="heading-md" className="font-bold">
               Upload Document
@@ -101,7 +101,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
           </View>
 
           {errorText ? (
-            <View className="mb-3 rounded-control border border-error/50 bg-error-surface p-3">
+            <View className="mb-3 rounded-control border border-error bg-error-surface p-3">
               <GenieText variant="caption" tone="error">
                 {errorText}
               </GenieText>
@@ -113,7 +113,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
             disabled={isUploading}
             accessibilityRole="button"
             accessibilityLabel="Tap to upload document"
-            className="mb-4 items-center justify-center rounded-card border-2 border-dashed border-gold/60 bg-[#1A1A1A] p-6 active:bg-[#222]"
+            className="mb-4 items-center justify-center rounded-card border-2 border-dashed border-border bg-surface-alt p-6 active:bg-surface-alt"
           >
             <View className="mb-2 h-12 w-12 items-center justify-center rounded-full bg-gold-muted">
               <UploadArrowIcon size={24} color={colors.gold} />
@@ -129,7 +129,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
           </Pressable>
 
           {selectedFile ? (
-            <View className="mb-4 rounded-card border border-gold bg-[#1E1C15] p-3.5">
+            <View className="mb-4 rounded-card border border-border bg-surface-alt p-3.5">
               <View className="flex-row items-center justify-between">
                 <View className="flex-1">
                   <GenieText variant="body-md" className="font-bold" numberOfLines={1}>
@@ -169,7 +169,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
             <Pressable
               onPress={handlePickFile}
               disabled={isUploading}
-              className="h-13 flex-row items-center gap-3 rounded-card border border-border bg-[#1A1A1A] px-4 active:bg-surface-alt"
+              className="h-13 flex-row items-center gap-3 rounded-card border border-border bg-surface-alt px-4 active:bg-surface-alt"
             >
               <ImageIcon size={20} color={colors.white} />
               <GenieText variant="body-md" className="font-medium">
@@ -180,7 +180,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
             <Pressable
               onPress={handlePickFile}
               disabled={isUploading}
-              className="h-13 flex-row items-center gap-3 rounded-card border border-border bg-[#1A1A1A] px-4 active:bg-surface-alt"
+              className="h-13 flex-row items-center gap-3 rounded-card border border-border bg-surface-alt px-4 active:bg-surface-alt"
             >
               <FolderIcon size={20} color={colors.white} />
               <GenieText variant="body-md" className="font-medium">
@@ -191,7 +191,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
             <Pressable
               onPress={handlePickFile}
               disabled={isUploading}
-              className="h-13 flex-row items-center gap-3 rounded-card border border-border bg-[#1A1A1A] px-4 active:bg-surface-alt"
+              className="h-13 flex-row items-center gap-3 rounded-card border border-border bg-surface-alt px-4 active:bg-surface-alt"
             >
               <ScanIcon size={20} color={colors.white} />
               <GenieText variant="body-md" className="font-medium">

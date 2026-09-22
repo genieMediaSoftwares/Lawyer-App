@@ -8,7 +8,7 @@ export const DocumentSkeleton: React.FC<{ count?: number }> = ({ count = 6 }) =>
       {Array.from({ length: count }).map((_, index) => (
         <View
           key={index}
-          className="flex-row items-center rounded-card border border-border bg-[#151515] p-3.5"
+          className="flex-row items-center rounded-card border border-border bg-surface p-3.5"
         >
           <GenieSkeleton className="h-11 w-11 rounded-lg" />
           <View className="ml-3 flex-1 gap-2">

@@ -459,7 +459,7 @@ export const NotesScreen: React.FC<LawyerStackScreenProps<'Notes'>> = ({
                   accessibilityState={{ selected: draft.caseId === null }}
                   className={`mb-2 min-h-touch justify-center rounded-control border px-4 py-3 active:opacity-80 ${
                     draft.caseId === null
-                      ? 'border-gold bg-gold-muted'
+                      ? 'border-border bg-gold-muted'
                       : 'border-border bg-card'
                   }`}
                 >
@@ -485,7 +485,7 @@ export const NotesScreen: React.FC<LawyerStackScreenProps<'Notes'>> = ({
                       accessibilityState={{ selected: active }}
                       className={`mb-2 min-h-touch justify-center rounded-control border px-4 py-3 active:opacity-80 ${
                         active
-                          ? 'border-gold bg-gold-muted'
+                          ? 'border-border bg-gold-muted'
                           : 'border-border bg-card'
                       }`}
                     >

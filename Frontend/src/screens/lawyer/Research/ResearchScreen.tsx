@@ -98,7 +98,7 @@ export const ResearchScreen: React.FC<LawyerStackScreenProps<'Research'>> = ({
           />
         }
       >
-        <View className="rounded-card border border-gold-wash bg-card p-5">
+        <View className="rounded-card border border-border bg-card p-5">
           <View className="flex-row items-center gap-3">
             <View className="h-11 w-11 items-center justify-center rounded-full bg-gold-muted">
               <SparkleIcon size={22} color={colors.gold} />

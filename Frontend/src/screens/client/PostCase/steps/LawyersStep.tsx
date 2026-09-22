@@ -9,13 +9,13 @@ import {
   GenieNotice,
   GenieSkeletonList,
   GenieText,
+  VerifiedBadge,
 } from '../../../../components';
 import {
   LocationIcon,
   ClockIcon,
   ScalesIcon,
   StarIcon,
-  VerifiedIcon,
 } from '../../../../components/icons/ClientIcons';
 import { CheckIcon } from '../../../../components/icons/Icons';
 import { advocatesApi } from '../../../../api/advocatesApi';
@@ -59,7 +59,7 @@ const LawyerCard: React.FC<{
         lawyer.specialization ? `, ${lawyer.specialization}` : ''
       }`}
       className={`mb-3 rounded-card border p-4 active:opacity-90 ${
-        isSelected ? 'border-2 border-gold bg-gold-muted' : 'border-border bg-card'
+        isSelected ? 'border-2 border-border bg-gold-muted' : 'border-border bg-card'
       } ${isLocked ? 'opacity-50' : ''}`}
     >
       <View className="flex-row">
@@ -80,7 +80,7 @@ const LawyerCard: React.FC<{
           {lawyer.onlineStatus ? (
             <View className="mt-1 flex-row items-center gap-1">
               <View className="h-2 w-2 rounded-full bg-success" />
-              <GenieText variant="caption" tone="success" className="text-[10px]">
+              <GenieText variant="caption" tone="success" className="text-small-label">
                 Online
               </GenieText>
             </View>
@@ -94,13 +94,13 @@ const LawyerCard: React.FC<{
                 {lawyer.fullName}
               </GenieText>
               {lawyer.verified ? (
-                <VerifiedIcon size={15} color={colors.gold} />
+                <VerifiedBadge size={15} />
               ) : null}
             </View>
 
             <View
               className={`h-6 w-6 items-center justify-center rounded-full border-2 ${
-                isSelected ? 'border-gold bg-gold' : 'border-border'
+                isSelected ? 'border-border bg-gold' : 'border-border'
               }`}
             >
               {isSelected ? (
@@ -260,7 +260,7 @@ export const LawyersStep: React.FC<LawyersStepProps> = ({
           testID="lawyer-selection-counter"
           accessibilityLiveRegion="polite"
           className={`rounded-pill border px-3 py-1 ${
-            isFull ? 'border-gold bg-gold' : 'border-gold bg-surface'
+            isFull ? 'border-border bg-gold' : 'border-border bg-surface'
           }`}
         >
           <GenieText
@@ -309,7 +309,7 @@ export const LawyersStep: React.FC<LawyersStepProps> = ({
               accessibilityState={{ selected: active }}
               className={`min-h-touch justify-center rounded-pill border px-4 ${
                 active
-                  ? 'border-gold bg-gold'
+                  ? 'border-border bg-gold'
                   : 'border-border bg-surface active:opacity-80'
               }`}
             >

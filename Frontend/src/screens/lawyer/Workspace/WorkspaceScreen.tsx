@@ -9,6 +9,7 @@ import {
   GenieSectionHeader,
   GenieSkeleton,
   GenieText,
+  VerifiedBadge,
 } from '../../../components';
 import {
   ChatIcon,
@@ -17,7 +18,6 @@ import {
   ScalesIcon,
   SearchIcon,
   SparkleIcon,
-  VerifiedIcon,
 } from '../../../components/icons/ClientIcons';
 import { UserPlusIcon, UsersIcon } from '../../../components/icons/LawyerIcons';
 import { lawyerApi } from '../../../api/lawyerApi';
@@ -57,22 +57,22 @@ const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
         unavailable ? `${title}. ${unavailableReason ?? 'Not available'}` : title
       }
       accessibilityState={{ disabled: unavailable }}
-      className={`min-h-[124px] justify-between rounded-card border border-border bg-card p-4 ${
-        unavailable ? 'opacity-50' : 'active:bg-surface-alt'
+      className={`min-h-[124px] justify-between rounded-[12px] border border-border bg-card p-4 ${
+        unavailable ? 'opacity-50' : 'active:bg-surface-secondary'
       }`}
     >
       <View className="flex-row items-center justify-between">
-        <View className="h-10 w-10 items-center justify-center rounded-full bg-gold-muted border border-gold/20">
+        <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-secondary">
           {icon}
         </View>
 
         <View className="flex-row items-center gap-1.5">
           {showBadge && (
-            <View className="h-2.5 w-2.5 rounded-full bg-gold shadow-sm" />
+            <View className="h-2.5 w-2.5 rounded-full bg-gold" />
           )}
 
           {typeof count === 'number' ? (
-            <GenieText variant="heading-sm" tone="gold" className="font-bold">
+            <GenieText variant="stat" tone="gold">
               {String(count)}
             </GenieText>
           ) : null}
@@ -80,7 +80,7 @@ const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
       </View>
 
       <View className="mt-3">
-        <GenieText variant="body-md" className="font-semibold text-white" numberOfLines={1}>
+        <GenieText variant="cardTitle" className="text-white" numberOfLines={1}>
           {title}
         </GenieText>
 
@@ -202,7 +202,7 @@ export const WorkspaceScreen: React.FC<LawyerTabScreenProps<'Workspace'>> = ({
           onNotifications={() => navigation.navigate('Notifications')}
         />
       }
-      contentContainerClassName="pb-20 px-5"
+      contentContainerClassName="pb-20"
       scrollViewProps={{
         refreshControl: (
           <RefreshControl
@@ -214,21 +214,21 @@ export const WorkspaceScreen: React.FC<LawyerTabScreenProps<'Workspace'>> = ({
         ),
       }}
     >
-      <View className="mt-2 mb-6 rounded-card border border-border bg-surface p-5">
-        <GenieText variant="body-md" tone="secondary" className="font-medium">
+      <View className="mt-2 mb-6 rounded-[12px] border border-border bg-card p-4">
+        <GenieText variant="secondary" tone="secondary" className="font-medium">
           Welcome, Advocate
         </GenieText>
 
         <View className="mt-1 flex-row items-center gap-1.5">
-          <GenieText variant="heading-lg" tone="gold" className="font-bold flex-1" numberOfLines={1}>
+          <GenieText variant="screenTitle" tone="gold" className="flex-1" numberOfLines={1}>
             {realName}
           </GenieText>
           {profile?.verificationStatus === 'verified' ? (
-            <VerifiedIcon size={20} color={colors.gold} />
+            <VerifiedBadge size={20} />
           ) : null}
         </View>
 
-        <GenieText variant="body-sm" tone="secondary" className="mt-3 leading-5">
+        <GenieText variant="secondary" tone="secondary" className="mt-3">
           Manage client cases, review legal inquiries, respond to consultation requests, and organize your schedule—all from one secure workspace.
         </GenieText>
       </View>
@@ -320,9 +320,9 @@ export const WorkspaceScreen: React.FC<LawyerTabScreenProps<'Workspace'>> = ({
         />
       </View>
 
-      <View className="mt-6 mb-4 rounded-card border border-gold/30 bg-card p-4">
+      <View className="mt-6 mb-4 rounded-card border border-border bg-card p-4">
         <View className="flex-row items-center gap-2">
-          <View className="h-7 w-7 items-center justify-center rounded-full bg-gold-muted border border-gold/20">
+          <View className="h-7 w-7 items-center justify-center rounded-full bg-gold-muted border border-border">
             <SparkleIcon size={16} color={colors.gold} />
           </View>
           <GenieText variant="body-md" tone="gold" className="font-bold">

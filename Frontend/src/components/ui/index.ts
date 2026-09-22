@@ -26,6 +26,8 @@ export type { GenieIconButtonProps } from './GenieIconButton';
 
 export { GenieAvatar } from './GenieAvatar';
 export type { GenieAvatarProps, GenieAvatarSize } from './GenieAvatar';
+export { VerifiedBadge } from './VerifiedBadge';
+export type { VerifiedBadgeProps } from './VerifiedBadge';
 export { GenieChip } from './GenieChip';
 export type { GenieChipProps } from './GenieChip';
 export { GenieStatusBadge } from './GenieStatusBadge';
@@ -55,6 +57,12 @@ export { GenieModal } from './GenieModal';
 export type { GenieModalProps } from './GenieModal';
 export { GenieBottomSheet } from './GenieBottomSheet';
 export type { GenieBottomSheetProps } from './GenieBottomSheet';
-export { ProfileImageModal } from './ProfileImageModal';
-export type { ProfileImageModalProps } from './ProfileImageModal';
+export { ProfileImageViewer } from './ProfileImageViewer';
+export type { ProfileImageViewerProps } from './ProfileImageViewer';
 
+export { GenieFilterTabs } from './GenieFilterTabs';
+export type { GenieFilterTab, GenieFilterTabsProps } from './GenieFilterTabs';
+export { GenieGrid } from './GenieGrid';
+export type { GenieGridProps } from './GenieGrid';
+export { GenieMicButton } from './GenieMicButton';
+export type { GenieMicButtonProps } from './GenieMicButton';

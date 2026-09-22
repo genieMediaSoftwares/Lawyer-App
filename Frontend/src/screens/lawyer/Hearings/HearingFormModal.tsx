@@ -159,7 +159,7 @@ export const HearingFormModal: React.FC<HearingFormModalProps> = ({
                       accessibilityState={{ selected: active }}
                       className={`mb-2 min-h-touch justify-center rounded-control border px-4 py-3 active:opacity-80 ${
                         active
-                          ? 'border-gold bg-gold-muted'
+                          ? 'border-border bg-gold-muted'
                           : 'border-border bg-card'
                       }`}
                     >
@@ -252,15 +252,15 @@ export const HearingFormModal: React.FC<HearingFormModalProps> = ({
                   disabled={isSaving}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
-                  className={`min-h-touch justify-center rounded-pill border px-4 ${
+                  className={`min-h-touch justify-center rounded-pill px-4 ${
                     active
-                      ? 'border-gold bg-gold-muted'
-                      : 'border-border active:opacity-80'
+                      ? 'bg-gold'
+                      : 'border border-border bg-surface active:bg-surface-secondary'
                   }`}
                 >
                   <GenieText
                     variant="body-sm"
-                    tone={active ? 'gold' : 'secondary'}
+                    tone={active ? 'on-gold' : 'secondary'}
                     className={active ? 'font-semibold' : ''}
                   >
                     {option.label}

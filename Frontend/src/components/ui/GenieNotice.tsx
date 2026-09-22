@@ -38,7 +38,7 @@ const TONES: Record<
   },
   gold: {
     surface: 'bg-gold-muted',
-    border: 'border-gold-wash',
+    border: 'border-border',
     text: 'gold',
     color: colors.gold,
   },

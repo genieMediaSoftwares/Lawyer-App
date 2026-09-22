@@ -35,7 +35,7 @@ export const GenieScreen: React.FC<GenieScreenProps> = ({
   contentContainerClassName = '',
   scrollViewProps,
 }) => {
-  const gutter = padded ? 'px-5' : '';
+  const gutter = padded ? 'px-4' : '';
 
   const content = scrollable ? (
     <ScrollView

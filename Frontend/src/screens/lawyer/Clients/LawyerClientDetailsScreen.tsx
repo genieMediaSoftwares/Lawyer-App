@@ -8,6 +8,7 @@ import {
   GenieNotice,
   GenieStatusBadge,
   GenieText,
+  ProfileImageViewer,
 } from '../../../components';
 import {
   ChevronRightIcon,
@@ -159,6 +160,7 @@ const ClientBody: React.FC<ClientBodyProps> = ({
 }) => {
   const client = detail.client;
   const name = client?.fullName || 'Client';
+  const [isPhotoOpen, setIsPhotoOpen] = useState(false);
   const category = [caseItem.category, caseItem.subcategory].filter(Boolean).join(' · ');
   const milestones = caseItem.milestones ?? [];
   const hearings = caseItem.hearings ?? [];
@@ -170,7 +172,13 @@ const ClientBody: React.FC<ClientBodyProps> = ({
     <View testID="client-details">
       <DetailSection title="Client Information">
         <View className="mb-4 flex-row items-center gap-3">
-          <GenieAvatar uri={client?.profileImage} name={name} size="lg" />
+          <Pressable
+            onPress={() => setIsPhotoOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`View ${name}'s profile photo`}
+          >
+            <GenieAvatar uri={client?.profileImage} name={name} size="lg" />
+          </Pressable>
           <View className="flex-1">
             <GenieText variant="heading-sm" numberOfLines={2} testID="client-details-name">
               {name}
@@ -358,6 +366,13 @@ const ClientBody: React.FC<ClientBodyProps> = ({
           fullWidth
         />
       </View>
+
+      <ProfileImageViewer
+        visible={isPhotoOpen}
+        onClose={() => setIsPhotoOpen(false)}
+        imageUri={client?.profileImage}
+        name={name}
+      />
     </View>
   );
 };

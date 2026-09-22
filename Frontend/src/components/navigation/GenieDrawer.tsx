@@ -9,13 +9,13 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GenieAvatar, GenieDivider, GenieText } from '../ui';
+import { GenieAvatar, GenieDivider, GenieText, VerifiedBadge } from '../ui';
 import {
   ChevronRightIcon,
+  CloseIcon,
   LogoutIcon,
   SettingsIcon,
   StarIcon,
-  VerifiedIcon,
 } from '../icons/ClientIcons';
 import { colors } from '../../theme';
 import { USE_NATIVE_DRIVER } from '../../utils/platform';
@@ -71,7 +71,7 @@ const DrawerRow: React.FC<{
     accessibilityState={{ disabled }}
     className={[
       'h-14 flex-row items-center gap-3 rounded-control px-3',
-      destructive ? 'active:bg-error-surface' : 'active:bg-surface-alt',
+      destructive ? 'active:bg-error-surface' : 'active:bg-surface-secondary',
       disabled ? 'opacity-50' : '',
     ].join(' ')}
   >
@@ -117,6 +117,8 @@ export const GenieDrawer: React.FC<GenieDrawerProps> = ({
   const isVisible = isOpen ?? visible ?? false;
   const handleLogout = onSignOut ?? onLogout;
   const userName = user?.fullName || user?.name;
+  const roleLabel =
+    user?.role === 'lawyer' ? 'Advocate' : user?.role === 'client' ? 'Client' : '';
 
   const { width } = useWindowDimensions();
   const drawerWidth = width * DRAWER_WIDTH_FRACTION;
@@ -172,70 +174,73 @@ export const GenieDrawer: React.FC<GenieDrawerProps> = ({
 
         <Animated.View
           style={{ transform: [{ translateX }] }}
-          className="absolute bottom-0 left-0 top-0 z-20 w-[82%] border-r border-border bg-surface"
+          className="absolute bottom-0 left-0 top-0 z-20 w-[82%] border-r border-border bg-background"
         >
           <SafeAreaView edges={['top', 'bottom']} className="flex-1">
-            <View className="relative items-center border-b border-border px-4 pb-4 pt-3">
-              {onSubscriptionPress ? (
+            <View className="border-b border-border px-4 pb-4 pt-3">
+              <View className="flex-row items-center justify-end gap-1">
+                {onSubscriptionPress ? (
+                  <Pressable
+                    onPress={() => {
+                      onClose();
+                      onSubscriptionPress();
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Subscription plans"
+                    className="h-touch w-touch items-center justify-center rounded-full active:bg-surface-secondary"
+                  >
+                    <StarIcon size={18} color={colors.gold} />
+                  </Pressable>
+                ) : null}
+                <Pressable
+                  onPress={onClose}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close menu"
+                  className="h-touch w-touch items-center justify-center rounded-full active:bg-surface-secondary"
+                >
+                  <CloseIcon size={20} color={colors.white} />
+                </Pressable>
+              </View>
+
+              <View className="flex-row items-center gap-3">
                 <Pressable
                   onPress={() => {
-                    onClose();
-                    onSubscriptionPress();
+                    if (onAvatarPress) {
+                      onClose();
+                      onAvatarPress();
+                    }
                   }}
+                  disabled={!onAvatarPress}
                   accessibilityRole="button"
-                  accessibilityLabel="Subscription plans"
-                  className="absolute right-3 top-3 h-8 w-8 items-center justify-center rounded-full border border-gold/40 bg-gold/15 active:opacity-70"
+                  accessibilityLabel="View profile photo"
+                  className="active:opacity-80"
                 >
-                  <StarIcon size={16} color={colors.gold} />
+                  <GenieAvatar uri={user?.profileImage || user?.avatar} name={userName} size="lg" />
                 </Pressable>
-              ) : null}
 
-              <Pressable
-                onPress={() => {
-                  if (onAvatarPress) {
-                    onClose();
-                    onAvatarPress();
-                  }
-                }}
-                disabled={!onAvatarPress}
-                accessibilityRole="button"
-                accessibilityLabel="View profile photo"
-                className="mb-2 active:opacity-80"
-              >
-                <GenieAvatar
-                  uri={user?.profileImage || user?.avatar}
-                  name={userName}
-                  size="lg"
-                  ring
-                />
-              </Pressable>
-
-              {userName ? (
-                <View className="mt-1 flex-row items-center justify-center gap-1.5">
-                  <GenieText
-                    variant="body-lg"
-                    tone="gold"
-                    className="font-semibold"
-                    numberOfLines={1}
-                  >
-                    {userName}
-                  </GenieText>
-                  {user?.isVerified ? (
-                    <VerifiedIcon size={16} color={colors.gold} />
+                <View className="flex-1">
+                  {userName ? (
+                    <View className="flex-row items-center gap-1.5">
+                      <GenieText variant="body-lg" className="flex-shrink font-semibold" numberOfLines={1}>
+                        {userName}
+                      </GenieText>
+                      {user?.isVerified ? <VerifiedBadge size={15} /> : null}
+                    </View>
+                  ) : null}
+                  {user?.email ? (
+                    <GenieText variant="body-sm" tone="secondary" className="mt-0.5" numberOfLines={1}>
+                      {user.email}
+                    </GenieText>
+                  ) : null}
+                  {roleLabel ? (
+                    <View className="mt-1.5 self-start rounded-pill bg-surface-secondary px-2.5 py-0.5">
+                      <GenieText variant="caption" tone="secondary" className="font-medium">
+                        {roleLabel}
+                      </GenieText>
+                    </View>
                   ) : null}
                 </View>
-              ) : null}
-
-              {user?.email ? (
-                <GenieText
-                  variant="body-sm"
-                  tone="secondary"
-                  className="mt-0.5"
-                  numberOfLines={1}
-                >
-                  {user.email}
-                </GenieText>
-              ) : null}
+              </View>
             </View>
 
             <ScrollView

@@ -26,15 +26,15 @@ export const GenieChip: React.FC<GenieChipProps> = ({
     className={[
       'min-h-touch flex-row items-center justify-center rounded-pill border px-4 py-2',
       selected
-        ? 'border-gold bg-gold-muted'
-        : 'border-border bg-surface-alt active:bg-surface',
+        ? 'border-gold bg-gold'
+        : 'border-border bg-surface active:bg-surface-secondary',
       className,
     ].join(' ')}
   >
     {icon ? <>{icon}</> : null}
     <GenieText
       variant="body-sm"
-      tone={selected ? 'gold' : 'secondary'}
+      tone={selected ? 'on-gold' : 'secondary'}
       className={`font-semibold ${icon ? 'ml-1.5' : ''}`}
     >
       {label}

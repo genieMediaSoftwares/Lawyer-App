@@ -65,7 +65,7 @@ export const AdvocateSortModal: React.FC<AdvocateSortModalProps> = ({
               <View
                 className={[
                   'h-5 w-5 items-center justify-center rounded-full border-2',
-                  isSelected ? 'border-gold' : 'border-border',
+                  isSelected ? 'border-border' : 'border-border',
                 ].join(' ')}
               >
                 {isSelected ? (

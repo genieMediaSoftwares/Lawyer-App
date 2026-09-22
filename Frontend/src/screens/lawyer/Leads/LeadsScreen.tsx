@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   GenieAvatar,
+  GenieFilterTabs,
   GenieEmptyState,
   GenieErrorState,
   GenieHeader,
@@ -159,14 +160,14 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
         <View
           key={item.caseId}
           testID={`lead-unavailable-${item.caseId}`}
-          className="mb-4 rounded-2xl border border-border/40 bg-surface-alt p-4 opacity-80"
+          className="mb-4 rounded-card border border-border bg-surface p-4"
         >
           <View className="flex-row items-start justify-between">
             <GenieText className="flex-1 pr-2 font-bold text-base text-text-primary" numberOfLines={1}>
               {item.issueTitle}
             </GenieText>
             <View className="rounded-md border border-border bg-surface px-2 py-0.5">
-              <GenieText className="font-bold text-[10px] text-text-muted">
+              <GenieText className="font-bold text-small-label text-text-muted">
                 Unavailable
               </GenieText>
             </View>
@@ -184,7 +185,7 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
     return (
       <View
         key={item.caseId}
-        className="mb-4 rounded-2xl border border-border/40 bg-surface-alt p-4"
+        className="mb-4 rounded-card border border-border bg-surface p-4"
       >
         <View className="flex-row items-start justify-between">
           <View className="flex-row items-center gap-3 flex-1 pr-2">
@@ -194,8 +195,8 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
                 name={item.clientName}
                 size="lg"
               />
-              <View className="mt-1 rounded-md border border-amber-600/40 bg-amber-900/40 px-2 py-0.5">
-                <GenieText className="font-bold text-[10px] text-amber-400">
+              <View className="mt-1 rounded-md border border-border bg-surface-alt px-2 py-0.5">
+                <GenieText tone="gold" className="font-bold text-small-label">
                   New
                 </GenieText>
               </View>
@@ -213,7 +214,7 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
 
           <View className="flex-row items-center gap-2">
             {matchPct !== null ? (
-              <GenieText className="font-semibold text-xs text-emerald-400">
+              <GenieText tone="success" className="font-semibold text-xs">
                 {matchPct}% Match
               </GenieText>
             ) : null}
@@ -267,9 +268,9 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
           onPress={() =>
             navigation.navigate('LeadDetails', { caseId: String(item.caseId) })
           }
-          className="mt-4 items-center justify-center rounded-xl border border-gold py-2.5 active:bg-gold-muted/20"
+          className="mt-4 items-center justify-center rounded-control border border-border py-2.5 active:bg-gold-muted"
         >
-          <GenieText className="font-semibold text-sm text-gold">
+          <GenieText tone="gold" className="font-semibold text-sm">
             View Details
           </GenieText>
         </Pressable>
@@ -281,7 +282,7 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
             accessibilityRole="button"
             accessibilityState={{ disabled: Boolean(busyCaseId) }}
             onPress={() => respond(item.caseId, 'decline')}
-            className={`flex-1 items-center justify-center rounded-xl border border-border py-2.5 active:bg-surface ${
+            className={`flex-1 items-center justify-center rounded-control border border-border py-2.5 active:bg-surface ${
               busyCaseId ? 'opacity-50' : ''
             }`}
           >
@@ -296,11 +297,11 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
             accessibilityRole="button"
             accessibilityState={{ disabled: Boolean(busyCaseId), busy: isBusy }}
             onPress={() => respond(item.caseId, 'accept')}
-            className={`flex-1 items-center justify-center rounded-xl bg-gold py-2.5 active:bg-gold-hover ${
+            className={`flex-1 items-center justify-center rounded-control bg-gold py-2.5 active:bg-gold-hover ${
               busyCaseId ? 'opacity-50' : ''
             }`}
           >
-            <GenieText className="font-bold text-sm text-on-gold">
+            <GenieText tone="on-gold" className="font-bold text-sm">
               {isBusy ? 'Processing...' : 'Accept Case'}
             </GenieText>
           </Pressable>
@@ -402,7 +403,7 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
           />
         }
         renderItem={({ item }) => (
-          <View className="mb-3 rounded-2xl border border-border/40 bg-surface-alt p-4">
+          <View className="mb-3 rounded-card border border-border bg-surface p-4">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-3 flex-1 pr-2">
                 <GenieAvatar uri={item.profileImage} name={item.name} size="md" />
@@ -415,8 +416,8 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
                   </GenieText>
                 </View>
               </View>
-              <View className="rounded-md border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1">
-                <GenieText className="font-semibold text-xs text-emerald-400">
+              <View className="rounded-md border border-success bg-success-surface px-2.5 py-1">
+                <GenieText tone="success" className="font-semibold text-xs">
                   Accepted
                 </GenieText>
               </View>
@@ -446,55 +447,16 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
         notificationCount={unreadNotificationsCount}
       />
 
-      <View className="flex-row border-b border-border/30 px-4 pt-1">
-        <Pressable
-          onPress={() => setTab('new')}
-          className={`mr-6 flex-row items-center gap-2 pb-3 ${
-            tab === 'new' ? 'border-b-2 border-gold' : ''
-          }`}
-        >
-          <GenieText
-            className={`font-semibold text-base ${
-              tab === 'new' ? 'text-gold' : 'text-text-secondary'
-            }`}
-          >
-            New Leads
-          </GenieText>
-          <View
-            className={`h-5 w-5 items-center justify-center rounded-full ${
-              tab === 'new' ? 'bg-amber-600/80' : 'bg-surface-alt'
-            }`}
-          >
-            <GenieText testID="new-leads-count" className="font-bold text-[11px] text-white">
-              {pendingLeadCount}
-            </GenieText>
-          </View>
-        </Pressable>
-
-        <Pressable
-          onPress={() => setTab('accepted')}
-          className={`flex-row items-center gap-2 pb-3 ${
-            tab === 'accepted' ? 'border-b-2 border-gold' : ''
-          }`}
-        >
-          <GenieText
-            className={`font-semibold text-base ${
-              tab === 'accepted' ? 'text-gold' : 'text-text-secondary'
-            }`}
-          >
-            Accepted
-          </GenieText>
-          <View
-            className={`h-5 w-5 items-center justify-center rounded-full ${
-              tab === 'accepted' ? 'bg-amber-600/80' : 'bg-surface-alt'
-            }`}
-          >
-            <GenieText className="font-bold text-[11px] text-white">
-              {acceptedRows.length}
-            </GenieText>
-          </View>
-        </Pressable>
-      </View>
+      <GenieFilterTabs
+        className="px-4 pt-2"
+        testIDPrefix="leads-tab"
+        tabs={[
+          { key: 'new', label: 'New Leads', count: pendingLeadCount },
+          { key: 'accepted', label: 'Accepted', count: acceptedRows.length },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       <View className="px-4 pb-2 pt-3">
         <GenieSearchInput

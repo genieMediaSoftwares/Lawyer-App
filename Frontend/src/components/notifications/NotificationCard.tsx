@@ -93,8 +93,8 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
             <View
               className={`h-6 w-6 items-center justify-center rounded-full border ${
                 isSelected
-                  ? 'border-gold bg-gold'
-                  : 'border-border/60 bg-surface-alt'
+                  ? 'border-border bg-gold'
+                  : 'border-border bg-surface-alt'
               }`}
             >
               {isSelected ? (
@@ -117,12 +117,12 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
               setShowActions(!showActions);
             }
           }}
-          className={`flex-1 rounded-2xl p-4 transition-all ${
+          className={`flex-1 rounded-card p-4 transition-all ${
             isSelected
-              ? 'border-2 border-gold bg-amber-950/20'
+              ? 'border-2 border-border bg-surface-alt'
               : item.isRead
-              ? 'border border-border/30 bg-surface-alt'
-              : 'border border-gold/40 bg-surface-alt shadow-sm'
+              ? 'border border-border bg-surface-alt'
+              : 'border border-border bg-surface-alt '
           }`}
         >
           <View className="flex-row items-start gap-3">
@@ -138,7 +138,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
                 </View>
               </View>
             ) : (
-              <View className="h-11 w-11 items-center justify-center rounded-full border border-amber-600/40 bg-amber-950/40">
+              <View className="h-11 w-11 items-center justify-center rounded-full border border-border bg-surface-alt">
                 <IconComp size={20} color={colors.gold} />
               </View>
             )}
@@ -172,7 +172,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
                 <Pressable
                   onPress={handlePushAway}
                   hitSlop={8}
-                  className="rounded-full bg-surface-alt p-1.5 active:bg-border/40"
+                  className="rounded-full bg-surface-alt p-1.5 active:bg-border"
                   accessibilityLabel="Push alert away"
                 >
                   <CloseIcon size={14} color={colors.textMuted} />
@@ -193,7 +193,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
                 setShowActions(false);
                 onMarkRead();
               }}
-              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-border/50 bg-surface-alt py-2.5"
+              className="flex-1 flex-row items-center justify-center gap-2 rounded-control border border-border bg-surface-alt py-2.5"
             >
               <MailIcon size={16} color={colors.gold} />
               <GenieText className="font-semibold text-xs text-text-primary">
@@ -207,7 +207,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
               setShowActions(false);
               onDelete();
             }}
-            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-red-600/90 py-2.5 active:bg-red-700"
+            className="flex-1 flex-row items-center justify-center gap-2 rounded-control bg-error py-2.5 active:opacity-80"
           >
             <TrashIcon size={16} color={colors.white} />
             <GenieText className="font-bold text-xs text-white">

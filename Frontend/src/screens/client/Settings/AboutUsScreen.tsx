@@ -51,7 +51,7 @@ export const AboutUsScreen: React.FC<ClientStackScreenProps<'AboutUs'>> = ({
         <GenieText variant="caption" tone="gold" className="mt-1">
           AI-Powered Legal Marketplace &amp; Case Assistant
         </GenieText>
-        <GenieText variant="caption" tone="muted" className="mt-1 text-[10px]">
+        <GenieText variant="caption" tone="muted" className="mt-1 text-small-label">
           Version {env.appVersion}
         </GenieText>
       </View>

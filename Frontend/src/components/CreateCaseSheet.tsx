@@ -29,7 +29,7 @@ export const CreateCaseSheet: React.FC<CreateCaseSheetProps> = ({
         onPress={onStartAi}
         accessibilityRole="button"
         accessibilityLabel="Create Case with AI"
-        className="mb-3 flex-row items-center rounded-card border border-gold-wash bg-card p-3 active:opacity-80"
+        className="mb-3 flex-row items-center rounded-card border border-border bg-card p-3 active:opacity-80"
       >
         <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-gold-muted">
           <SparkleIcon size={20} color={colors.gold} />

@@ -21,7 +21,7 @@ const VerificationBadge: React.FC<{ status: RelevantCase['verificationStatus'] }
   return (
     <View
       className={`self-start rounded-pill border px-2.5 py-0.5 ${
-        official ? 'border-gold bg-gold-muted' : 'border-warning/40 bg-warning-surface'
+        official ? 'border-border bg-gold-muted' : 'border-warning bg-warning-surface'
       }`}
     >
       <GenieText variant="caption" tone={official ? 'gold' : 'warning'} className="font-bold">
@@ -124,7 +124,7 @@ export const RelevantCasesSection: React.FC<{
 
       {isOpen ? (
         <View className="px-4 pb-4">
-          <View className="mb-3 rounded-control border border-warning/40 bg-warning-surface px-3 py-2">
+          <View className="mb-3 rounded-control border border-warning bg-warning-surface px-3 py-2">
             <GenieText variant="caption" tone="warning" className="leading-4">
               Decisions found by web search. Only results traced to a retrieved
               source are shown. Confirm every citation and holding in an

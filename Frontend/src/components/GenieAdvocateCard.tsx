@@ -1,13 +1,12 @@
 import React, { memo } from 'react';
 import { Pressable, View } from 'react-native';
-import { GenieAvatar, GenieText } from './ui';
+import { GenieAvatar, GenieText, VerifiedBadge } from './ui';
 import {
   BookmarkIcon,
   BriefcaseIcon,
   ChevronRightIcon,
   LocationIcon,
   StarIcon,
-  VerifiedIcon,
 } from './icons/ClientIcons';
 import type { LawyerProfile } from '../types/domain';
 import { colors } from '../theme';
@@ -90,18 +89,18 @@ const GenieAdvocateCardBase: React.FC<GenieAdvocateCardProps> = ({
       ]
         .filter(Boolean)
         .join(', ')}
-      className="mb-3 flex-row rounded-2xl border border-border bg-surface p-4 active:bg-surface-alt"
+      className="mb-3 flex-row rounded-[12px] border border-border bg-card p-4 active:bg-surface-secondary"
     >
-      <GenieAvatar uri={advocate.profileImage} name={name} size="lg" />
+      <GenieAvatar uri={advocate.profileImage} name={name} size="card" />
 
-      <View className="ml-3 flex-1">
+      <View className="ml-3 flex-1 justify-center">
         <View className="flex-row items-center gap-1 pr-1">
-          <GenieText variant="body-lg" className="flex-shrink font-bold" numberOfLines={1}>
+          <GenieText variant="cardTitle" className="flex-shrink" numberOfLines={1}>
             {name}
           </GenieText>
           {advocate.isVerified ? (
             <View accessibilityLabel="Verified advocate">
-              <VerifiedIcon size={15} color={colors.gold} />
+              <VerifiedBadge size={15} />
             </View>
           ) : null}
         </View>
@@ -109,7 +108,7 @@ const GenieAdvocateCardBase: React.FC<GenieAdvocateCardProps> = ({
         <View className="mt-1 flex-row items-center gap-1.5">
           <BriefcaseIcon size={13} color={colors.textMuted} />
           <GenieText
-            variant="caption"
+            variant="secondary"
             tone={advocate.specialization ? 'secondary' : 'muted'}
             className="flex-1"
             numberOfLines={1}
@@ -121,7 +120,7 @@ const GenieAdvocateCardBase: React.FC<GenieAdvocateCardProps> = ({
         <View className="mt-1 flex-row items-center gap-1.5">
           <LocationIcon size={13} color={colors.textMuted} />
           <GenieText
-            variant="caption"
+            variant="secondary"
             tone={advocate.location ? 'secondary' : 'muted'}
             className="flex-1"
             numberOfLines={1}
@@ -164,12 +163,12 @@ const GenieAdvocateCardBase: React.FC<GenieAdvocateCardProps> = ({
           onPress={open}
           accessibilityRole="button"
           accessibilityLabel={`View ${name}'s profile`}
-          className="min-h-touch flex-row items-center gap-1 rounded-control border border-gold px-3 active:bg-gold-muted"
+          className="h-[44px] flex-row items-center gap-1 rounded-[10px] bg-surface-secondary px-3.5 active:bg-border"
         >
-          <GenieText variant="label" tone="gold">
+          <GenieText variant="button" tone="primary">
             View Profile
           </GenieText>
-          <ChevronRightIcon size={14} color={colors.gold} />
+          <ChevronRightIcon size={14} color={colors.white} />
         </Pressable>
       </View>
     </Pressable>

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   GenieCard,
+  GenieGrid,
   GenieHeroCarousel,
   GenieIconButton,
   GenieScreen,
@@ -11,6 +12,7 @@ import {
   GenieText,
   GenieWordmark,
 } from '../../../components';
+import { HowItWorksCarousel } from '../../../components/HowItWorksCarousel';
 import { getCategoryIcon } from '../../../components/icons/CategoryIcons';
 import {
   BellIcon,
@@ -24,28 +26,6 @@ import { useAuthStore } from '../../../store/authStore';
 import { useUiStore } from '../../../store/uiStore';
 import type { ClientTabScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
-
-const Step: React.FC<{ n: number; title: string; description: string }> = ({
-  n,
-  title,
-  description,
-}) => (
-  <View className="flex-row items-start">
-    <View className="h-8 w-8 items-center justify-center rounded-full bg-gold">
-      <GenieText variant="body-sm" tone="on-gold" className="font-bold">
-        {String(n)}
-      </GenieText>
-    </View>
-    <View className="ml-3 flex-1">
-      <GenieText variant="body-lg" className="font-semibold">
-        {title}
-      </GenieText>
-      <GenieText variant="body-sm" tone="secondary" className="mt-0.5">
-        {description}
-      </GenieText>
-    </View>
-  </View>
-);
 
 export const HomeScreen: React.FC<ClientTabScreenProps<'Home'>> = ({
   navigation,
@@ -89,7 +69,7 @@ export const HomeScreen: React.FC<ClientTabScreenProps<'Home'>> = ({
       scrollable
       header={header}
       dismissKeyboardOnTap={false}
-      contentContainerClassName="pb-8"
+      contentContainerClassName="pb-20"
       scrollViewProps={{
         refreshControl: (
           <RefreshControl
@@ -102,10 +82,10 @@ export const HomeScreen: React.FC<ClientTabScreenProps<'Home'>> = ({
       }}
     >
       <View className="mb-4 mt-1">
-        <GenieText variant="heading-lg">
+        <GenieText variant="screenTitle">
           {user ? `Hello, ${user.fullName.split(' ')[0]}` : 'Hello'}
         </GenieText>
-        <GenieText variant="body-md" tone="secondary" className="mt-1">
+        <GenieText variant="secondary" tone="secondary" className="mt-1">
           How can we help with your legal matter today?
         </GenieText>
       </View>
@@ -121,15 +101,15 @@ export const HomeScreen: React.FC<ClientTabScreenProps<'Home'>> = ({
       />
 
       <GenieCard
-        tone="gold"
-        className="mt-5 p-5"
+        tone="card"
+        className="mt-5 p-4"
         onPress={() => navigation.navigate('AiAssistant')}
         accessibilityLabel="AI Smart Case Assistant"
       >
-        <View className="flex-row items-center self-start rounded-pill bg-gold-muted px-2 py-1">
+        <View className="flex-row items-center self-start rounded-pill bg-surface-secondary px-2.5 py-1">
           <SparkleIcon size={12} color={colors.gold} />
           <GenieText
-            variant="caption"
+            variant="smallLabel"
             tone="gold"
             className="ml-1 font-bold tracking-widest"
           >
@@ -137,18 +117,18 @@ export const HomeScreen: React.FC<ClientTabScreenProps<'Home'>> = ({
           </GenieText>
         </View>
 
-        <GenieText variant="heading-md" className="mt-3">
+        <GenieText variant="cardTitle" className="mt-3">
           AI Smart Case Assistant
         </GenieText>
-        <GenieText variant="body-md" tone="gold" className="mt-1">
+        <GenieText variant="body" tone="gold" className="mt-1">
           {'Don’t know how to post your legal case?'}
         </GenieText>
-        <GenieText variant="body-sm" tone="secondary" className="mt-2">
+        <GenieText variant="secondary" tone="secondary" className="mt-2">
           Upload your documents — add a voice note for extra detail if you like
           — and AI fills in your case for you, ready to find a lawyer.
         </GenieText>
 
-        <View className="mt-4 h-control flex-row items-center justify-center rounded-control bg-gold px-4">
+        <View className="mt-4 h-[44px] flex-row items-center justify-center rounded-[10px] bg-gold px-4">
           <GenieText variant="button" tone="on-gold">
             Upload Documents & Create Case
           </GenieText>
@@ -165,49 +145,51 @@ export const HomeScreen: React.FC<ClientTabScreenProps<'Home'>> = ({
         className="mt-6"
       />
 
-      <View className="mt-3 flex-row flex-wrap">
-        {popularCategories().map(category => {
+      <GenieGrid
+        className="mt-3"
+        data={popularCategories()}
+        keyExtractor={category => category.id}
+        numColumns={4}
+        gap={10}
+        renderItem={category => {
           const IconComponent = getCategoryIcon(category.id);
 
           return (
-            <View key={category.id} className="w-1/3 p-1">
-              <Pressable
-                onPress={() =>
-                  navigation.navigate('PostCase', {
-                    start: 'manual',
-                    categoryId: category.id,
-                  })
-                }
-                accessibilityRole="button"
-                accessibilityLabel={category.title}
-                className="min-h-touch items-center rounded-card border border-border bg-surface p-3 active:bg-surface-alt"
-              >
-                <View className="h-11 w-11 items-center justify-center rounded-full bg-gold-muted">
-                  <IconComponent size={22} color={colors.gold} />
-                </View>
-                <GenieText
-                  variant="caption"
-                  className="mt-2 text-center font-medium"
-                  numberOfLines={2}
-                >
-                  {category.title}
-                </GenieText>
-              </Pressable>
-            </View>
+            <Pressable
+              onPress={() =>
+                navigation.navigate('PostCase', {
+                  start: 'manual',
+                  categoryId: category.id,
+                })
+              }
+              accessibilityRole="button"
+              accessibilityLabel={category.title}
+              className="items-center"
+            >
+              {/* Icon card: the icon lives inside this square card only. */}
+              <View className="aspect-square w-full items-center justify-center rounded-card border border-border bg-card active:bg-surface-secondary">
+                <IconComponent size={18} color={colors.gold} />
+              </View>
+
+              {/* Category text sits outside/below the card, not inside it. */}
+              <GenieText variant="caption" className="mt-2 w-full text-center font-medium">
+                {category.title}
+              </GenieText>
+            </Pressable>
           );
-        })}
-      </View>
+        }}
+      />
 
       <GenieCard
-        tone="surface"
-        className="mt-6 border-info p-5"
+        tone="card"
+        className="mt-6 p-4"
         onPress={() => navigation.navigate('AiChat')}
         accessibilityLabel="AI Legal Assistant"
       >
-        <View className="flex-row items-center self-start rounded-pill bg-info-surface px-2 py-1">
+        <View className="flex-row items-center self-start rounded-pill bg-info-surface px-2.5 py-1">
           <SparkleIcon size={12} color={colors.info} />
           <GenieText
-            variant="caption"
+            variant="smallLabel"
             tone="info"
             className="ml-1 font-bold tracking-widest"
           >
@@ -215,15 +197,15 @@ export const HomeScreen: React.FC<ClientTabScreenProps<'Home'>> = ({
           </GenieText>
         </View>
 
-        <GenieText variant="heading-md" className="mt-3">
+        <GenieText variant="cardTitle" className="mt-3">
           AI Legal Assistant
         </GenieText>
-        <GenieText variant="body-sm" tone="secondary" className="mt-1">
+        <GenieText variant="secondary" tone="secondary" className="mt-1">
           Get instant answers to your legal questions.
         </GenieText>
 
         <View className="mt-4 flex-row items-center">
-          <GenieText variant="label" tone="gold">
+          <GenieText variant="button" tone="gold">
             Ask Now
           </GenieText>
           <View className="ml-1">
@@ -233,29 +215,14 @@ export const HomeScreen: React.FC<ClientTabScreenProps<'Home'>> = ({
       </GenieCard>
 
       <View className="mt-6">
-        <GenieText variant="heading-md" className="mb-4">
-          How It Works?
-        </GenieText>
+        <View className="mb-3 flex-row items-baseline justify-between">
+          <GenieText variant="sectionTitle">How It Works?</GenieText>
+          <GenieText variant="caption" tone="muted" className="ml-3">
+            Simple. Secure. Effective.
+          </GenieText>
+        </View>
 
-        <Step
-          n={1}
-          title="Select Issue"
-          description="Choose your legal issue category."
-        />
-        <View className="my-2 ml-4 h-5 w-px bg-border" />
-
-        <Step
-          n={2}
-          title="Case Details"
-          description="Add your issue description, location, court preference and urgency."
-        />
-        <View className="my-2 ml-4 h-5 w-px bg-border" />
-
-        <Step
-          n={3}
-          title="Connect Advocate"
-          description="Connect with verified lawyers for expert guidance."
-        />
+        <HowItWorksCarousel />
       </View>
     </GenieScreen>
   );

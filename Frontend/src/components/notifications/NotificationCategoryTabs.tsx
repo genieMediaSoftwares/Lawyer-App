@@ -49,21 +49,20 @@ export const NotificationCategoryTabs: React.FC<NotificationCategoryTabsProps> =
           <Pressable
             key={key}
             onPress={() => onSelectTab(key)}
-            className={`flex-row items-center gap-2 rounded-xl border px-3 py-2 ${
-              isSelected
-                ? 'border-gold/60 bg-amber-950/40'
-                : 'border-border/40 bg-surface-alt/80'
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isSelected }}
+            className={`min-h-touch flex-row items-center gap-2 rounded-pill px-3.5 ${
+              isSelected ? 'bg-gold' : 'border border-border bg-surface active:bg-surface-secondary'
             }`}
           >
             <IconComponent
               size={16}
-              color={isSelected ? colors.gold : colors.textMuted}
+              color={isSelected ? colors.onGold : colors.textMuted}
             />
 
             <GenieText
-              className={`font-semibold text-xs ${
-                isSelected ? 'text-gold' : 'text-text-secondary'
-              }`}
+              tone={isSelected ? 'on-gold' : 'secondary'}
+              className="text-xs font-semibold"
             >
               {label}
             </GenieText>
@@ -71,10 +70,13 @@ export const NotificationCategoryTabs: React.FC<NotificationCategoryTabsProps> =
             {count > 0 ? (
               <View
                 className={`h-4 min-w-[16px] items-center justify-center rounded-full px-1 ${
-                  isSelected ? 'bg-amber-600/80' : 'bg-amber-600/60'
+                  isSelected ? 'bg-gold-pressed' : 'bg-surface-secondary'
                 }`}
               >
-                <GenieText className="font-bold text-[10px] text-white">
+                <GenieText
+                  tone={isSelected ? 'on-gold' : 'secondary'}
+                  className="text-small-label font-bold"
+                >
                   {count}
                 </GenieText>
               </View>

@@ -1,6 +1,8 @@
 import React from 'react';
 import { View } from 'react-native';
 import { GenieText } from './GenieText';
+import { CheckIcon } from '../icons/Icons';
+import { colors } from '../../theme';
 
 export interface GenieProgressStepperProps {
   steps: readonly string[];
@@ -8,66 +10,64 @@ export interface GenieProgressStepperProps {
   className?: string;
 }
 
+// Inline tracker, drawn straight into its parent: no box of its own.
 export const GenieProgressStepper: React.FC<GenieProgressStepperProps> = ({
   steps,
   currentIndex,
   className = '',
 }) => (
   <View
-    className={`rounded-card border border-border bg-surface p-4 ${className}`}
+    className={`flex-row ${className}`}
     accessibilityLabel={`Step ${currentIndex + 1} of ${steps.length}: ${
       steps[currentIndex] ?? ''
     }`}
   >
-    <View className="flex-row">
-      {steps.map((stage, index) => {
-        const done = index <= currentIndex;
-        const isFirst = index === 0;
-        const isLast = index === steps.length - 1;
+    {steps.map((stage, index) => {
+      const complete = index < currentIndex;
+      const current = index === currentIndex;
+      const isFirst = index === 0;
+      const isLast = index === steps.length - 1;
 
-        return (
-          <View key={stage} className="flex-1 items-center">
-            <View className="w-full flex-row items-center">
-              <View
-                className={`h-0.5 flex-1 ${
-                  isFirst
-                    ? 'bg-transparent'
-                    : index <= currentIndex
-                    ? 'bg-gold'
-                    : 'bg-border'
-                }`}
-              />
+      return (
+        <View key={stage} className="flex-1 items-center">
+          <View className="w-full flex-row items-center">
+            <View
+              className={`h-0.5 flex-1 ${
+                isFirst ? 'bg-transparent' : index <= currentIndex ? 'bg-gold' : 'bg-border'
+              }`}
+            />
 
-              <View
-                className={`h-4 w-4 items-center justify-center rounded-full border-2 ${
-                  done ? 'border-gold bg-gold-muted' : 'border-border bg-surface'
-                }`}
-              >
-                {done ? <View className="h-1.5 w-1.5 rounded-full bg-gold" /> : null}
+            {complete ? (
+              <View className="h-5 w-5 items-center justify-center rounded-full bg-gold">
+                <CheckIcon size={12} color={colors.onGold} />
               </View>
+            ) : current ? (
+              <View className="h-5 w-5 items-center justify-center rounded-full bg-gold">
+                <View className="h-2 w-2 rounded-full bg-on-gold" />
+              </View>
+            ) : (
+              <View className="h-5 w-5 items-center justify-center rounded-full bg-surface-secondary">
+                <View className="h-1.5 w-1.5 rounded-full bg-muted" />
+              </View>
+            )}
 
-              <View
-                className={`h-0.5 flex-1 ${
-                  isLast
-                    ? 'bg-transparent'
-                    : index < currentIndex
-                    ? 'bg-gold'
-                    : 'bg-border'
-                }`}
-              />
-            </View>
-
-            <GenieText
-              variant="caption"
-              tone={done ? 'gold' : 'muted'}
-              className="mt-1.5 text-center text-[10px]"
-              numberOfLines={1}
-            >
-              {stage}
-            </GenieText>
+            <View
+              className={`h-0.5 flex-1 ${
+                isLast ? 'bg-transparent' : index < currentIndex ? 'bg-gold' : 'bg-border'
+              }`}
+            />
           </View>
-        );
-      })}
-    </View>
+
+          <GenieText
+            variant="caption"
+            tone={current ? 'gold' : complete ? 'primary' : 'muted'}
+            className="mt-1.5 text-center text-small-label"
+            numberOfLines={1}
+          >
+            {stage}
+          </GenieText>
+        </View>
+      );
+    })}
   </View>
 );

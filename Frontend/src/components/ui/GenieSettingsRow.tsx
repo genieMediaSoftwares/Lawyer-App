@@ -51,31 +51,31 @@ export const GenieSettingsRow: React.FC<GenieSettingsRowProps> = ({
       }
       accessibilityState={onPress ? { disabled } : undefined}
       className={[
-        'min-h-touch flex-row items-center px-4 py-3',
+        'min-h-[56px] flex-row items-center px-4 py-3',
         onPress ? 'active:bg-surface-alt' : '',
         disabled ? 'opacity-50' : '',
         className,
       ].join(' ')}
     >
       {icon ? (
-        <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-gold-muted">
+        <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-surface-secondary">
           {icon}
         </View>
       ) : null}
 
-      <View className="flex-1">
-        <GenieText variant="body-lg" tone={labelTone}>
+      <View className="flex-1 justify-center">
+        <GenieText variant="body" tone={labelTone} className="text-body font-semibold">
           {label}
         </GenieText>
         {subtitle ? (
-          <GenieText variant="caption" tone="muted" className="mt-0.5">
+          <GenieText variant="secondary" tone="muted" className="mt-0.5">
             {subtitle}
           </GenieText>
         ) : null}
       </View>
 
       {value ? (
-        <GenieText variant="body-sm" tone="secondary" className="ml-2">
+        <GenieText variant="secondary" tone="secondary" className="ml-2">
           {value}
         </GenieText>
       ) : null}

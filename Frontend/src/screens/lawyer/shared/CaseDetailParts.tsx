@@ -236,7 +236,7 @@ export const CaseDocumentsSection: React.FC<{ documents?: CaseDocument[] | null 
                   setNotice(null);
                   setOpenIndex(index);
                 }}
-                className="min-h-touch flex-row items-center gap-1.5 rounded-control border border-gold px-3 active:bg-gold-muted"
+                className="min-h-touch flex-row items-center gap-1.5 rounded-control border border-border px-3 active:bg-gold-muted"
               >
                 <EyeIcon size={16} color={colors.gold} />
                 <GenieText variant="label" tone="gold">

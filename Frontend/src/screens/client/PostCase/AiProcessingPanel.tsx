@@ -123,7 +123,7 @@ export const AiProcessingPanel: React.FC<AiProcessingPanelProps> = ({
                   isDone
                     ? 'border-success bg-success'
                     : isActive
-                    ? 'border-gold bg-gold-muted'
+                    ? 'border-border bg-gold-muted'
                     : 'border-border'
                 }`}
               >

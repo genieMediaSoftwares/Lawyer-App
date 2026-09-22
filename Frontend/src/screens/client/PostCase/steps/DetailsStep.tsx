@@ -1,11 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
-import { GenieNotice, GenieText } from '../../../../components';
+import { GenieMicButton, GenieNotice, GenieText } from '../../../../components';
 import {
   CourtIcon,
   LocationIcon,
-  MicIcon,
   SparkleIcon,
 } from '../../../../components/icons/ClientIcons';
 import { aiApi } from '../../../../api/aiApi';
@@ -149,24 +148,16 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
             className="min-h-[160px] px-4 py-3 pb-14 text-body-lg text-white"
           />
 
-          <Pressable
+          <GenieMicButton
             onPress={toggleDictation}
-            accessibilityRole="button"
             accessibilityLabel={
               isRecording ? 'Stop dictation' : 'Dictate your description'
             }
-            accessibilityState={{ busy: isTranscribing }}
+            isRecording={isRecording}
+            isBusy={isTranscribing}
             disabled={isTranscribing || !voiceRecorder.isSupported}
-            className={`absolute bottom-3 right-3 h-12 w-12 items-center justify-center rounded-full ${
-              isRecording ? 'bg-error' : 'bg-gold'
-            } ${!voiceRecorder.isSupported ? 'opacity-40' : 'active:opacity-80'}`}
-          >
-            {isTranscribing ? (
-              <ActivityIndicator size="small" color={colors.background} />
-            ) : (
-              <MicIcon size={22} color={colors.background} />
-            )}
-          </Pressable>
+            className="absolute bottom-3 right-3"
+          />
         </View>
 
         <View className="mt-1.5 flex-row items-center justify-between">

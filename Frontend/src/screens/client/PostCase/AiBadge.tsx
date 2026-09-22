@@ -13,7 +13,7 @@ export const AiBadge: React.FC<{ label?: string }> = ({
     accessibilityLabel={label}
   >
     <SparkleIcon size={11} color={colors.gold} />
-    <GenieText variant="caption" tone="gold" className="text-[10px] font-bold">
+    <GenieText variant="caption" tone="gold" className="text-small-label font-bold">
       {label}
     </GenieText>
   </View>
@@ -27,7 +27,7 @@ export const CheckBadge: React.FC = () => (
     <GenieText
       variant="caption"
       tone="warning"
-      className="text-[10px] font-bold"
+      className="text-small-label font-bold"
     >
       Check
     </GenieText>

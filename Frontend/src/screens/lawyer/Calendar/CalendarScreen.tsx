@@ -19,7 +19,7 @@ import {
   GenieStatusBadge,
   GenieText,
 } from '../../../components';
-import { BackIcon, ChevronDownIcon } from '../../../components/icons/Icons';
+import { ChevronDownIcon } from '../../../components/icons/Icons';
 import { ChevronRightIcon, ClockIcon, PlusIcon } from '../../../components/icons/ClientIcons';
 import { CalendarIcon, ChevronLeftIcon } from '../../../components/icons/LawyerIcons';
 import { lawyerApi } from '../../../api/lawyerApi';
@@ -68,9 +68,7 @@ const formatDateDisplay = (d: Date): string => {
   return `${day} ${monthStr} ${yr}`;
 };
 
-export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
-  navigation,
-}) => {
+export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = () => {
   const openDrawer = useUiStore(state => state.openDrawer);
   const queryClient = useQueryClient();
 
@@ -221,7 +219,7 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
       onPress={handleOpenAddModal}
       accessibilityRole="button"
       accessibilityLabel="Add Appointment"
-      className="h-10 w-10 items-center justify-center rounded-full bg-gold active:bg-gold-pressed shadow-sm"
+      className="h-10 w-10 items-center justify-center rounded-full bg-gold active:bg-gold-pressed"
     >
       <PlusIcon size={20} color={colors.onGold} />
     </Pressable>
@@ -278,7 +276,7 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
           </Pressable>
         </View>
 
-        <View className="mt-4 flex-row justify-between border-b border-border/40 pb-2">
+        <View className="mt-4 flex-row justify-between border-b border-border pb-2">
           {WEEKDAYS.map((d, i) => (
             <View key={`${d}-${i}`} className="w-[14.28%] items-center">
               <GenieText variant="caption" tone="secondary" className="font-medium text-xs">
@@ -321,7 +319,7 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
                   <GenieText
                     variant="body-sm"
                     tone={isSelected ? 'on-gold' : 'primary'}
-                    className={isSelected ? 'font-bold text-black' : 'font-normal text-white'}
+                    className={isSelected ? 'font-bold' : 'font-normal'}
                   >
                     {String(day)}
                   </GenieText>
@@ -452,8 +450,8 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
         animationType="fade"
         onRequestClose={() => setIsAddModalOpen(false)}
       >
-        <View className="flex-1 bg-black/80 items-center justify-center px-5">
-          <View className="w-full max-w-[400px] rounded-2xl border border-border/80 bg-card p-6 shadow-xl">
+        <View className="flex-1 bg-overlay items-center justify-center px-5">
+          <View className="w-full max-w-[400px] rounded-card border border-border bg-card p-6">
             <GenieText variant="heading-lg" className="font-bold text-white mb-4">
               Add Appointment
             </GenieText>
@@ -473,7 +471,7 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
                   setIsTimePickerOpen(false);
                   setIsModePickerOpen(false);
                 }}
-                className="h-14 w-full flex-row items-center justify-between rounded-xl border border-gold bg-input px-4"
+                className="h-14 w-full flex-row items-center justify-between rounded-control border border-border bg-input px-4"
               >
                 <GenieText variant="body-md" className="font-semibold text-white">
                   {selectedClient ? selectedClient.name : 'Select Client'}
@@ -482,7 +480,7 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
               </Pressable>
 
               {isClientPickerOpen ? (
-                <View className="mt-1.5 max-h-40 rounded-xl border border-border bg-surface p-2 shadow-lg">
+                <View className="mt-1.5 max-h-40 rounded-control border border-border bg-surface p-2">
                   <ScrollView nestedScrollEnabled className="max-h-36">
                     {clientList.length === 0 ? (
                       <View className="p-3">
@@ -521,7 +519,7 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
                 Appointment Date
               </GenieText>
 
-              <View className="h-14 w-full flex-row items-center justify-between rounded-xl border border-border bg-input px-4">
+              <View className="h-14 w-full flex-row items-center justify-between rounded-control border border-border bg-input px-4">
                 <GenieText variant="body-md" className="font-medium text-white">
                   {formatDateDisplay(selectedDateObj)}
                 </GenieText>
@@ -540,7 +538,7 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
                   setIsClientPickerOpen(false);
                   setIsModePickerOpen(false);
                 }}
-                className="h-14 w-full flex-row items-center justify-between rounded-xl border border-border bg-input px-4"
+                className="h-14 w-full flex-row items-center justify-between rounded-control border border-border bg-input px-4"
               >
                 <GenieText variant="body-md" className="font-medium text-white">
                   {selectedTimeSlot}
@@ -549,7 +547,7 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
               </Pressable>
 
               {isTimePickerOpen ? (
-                <View className="mt-1.5 max-h-40 rounded-xl border border-border bg-surface p-2 shadow-lg">
+                <View className="mt-1.5 max-h-40 rounded-control border border-border bg-surface p-2">
                   <ScrollView nestedScrollEnabled className="max-h-36">
                     {TIME_SLOTS.map(slot => (
                       <Pressable
@@ -581,7 +579,7 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
                   setIsClientPickerOpen(false);
                   setIsTimePickerOpen(false);
                 }}
-                className="h-14 w-full flex-row items-center justify-between rounded-xl border border-border bg-input px-4"
+                className="h-14 w-full flex-row items-center justify-between rounded-control border border-border bg-input px-4"
               >
                 <GenieText variant="body-md" className="font-medium text-white">
                   {consultationMode}
@@ -590,7 +588,7 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
               </Pressable>
 
               {isModePickerOpen ? (
-                <View className="mt-1.5 rounded-xl border border-border bg-surface p-2 shadow-lg">
+                <View className="mt-1.5 rounded-control border border-border bg-surface p-2">
                   <Pressable
                     onPress={() => {
                       setConsultationMode('Chat');
@@ -633,7 +631,7 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = ({
               disabled={createAppointmentMutation.isPending}
               accessibilityRole="button"
               accessibilityLabel="Add"
-              className="h-14 w-full items-center justify-center rounded-xl bg-gold active:bg-gold-pressed shadow-md"
+              className="h-14 w-full items-center justify-center rounded-control bg-gold active:bg-gold-pressed"
             >
               {createAppointmentMutation.isPending ? (
                 <ActivityIndicator color={colors.onGold} />

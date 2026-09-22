@@ -15,7 +15,7 @@ export const DocumentEmptyState: React.FC<DocumentEmptyStateProps> = ({
 }) => {
   return (
     <View className="flex-1 items-center justify-center px-6 py-12">
-      <View className="mb-5 h-28 w-28 items-center justify-center rounded-full border border-border bg-[#141414]">
+      <View className="mb-5 h-28 w-28 items-center justify-center rounded-full border border-border bg-surface">
         <FileIcon size={44} color={colors.gold} />
       </View>
 

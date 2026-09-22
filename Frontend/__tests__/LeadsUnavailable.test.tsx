@@ -132,7 +132,7 @@ describe('Lawyer leads — shared case requests', () => {
 
     const { renderer, client } = await renderLeads();
 
-    expect(textOf(find(renderer.root, 'new-leads-count'))).toBe('1');
+    expect(find(renderer.root, 'leads-tab-new').props.accessibilityLabel).toBe('New Leads, 1');
 
     renderer.unmount();
     client.clear();

@@ -22,13 +22,13 @@ export const GenieIconButton: React.FC<GenieIconButtonProps> = ({
     onPress={onPress}
     accessibilityRole="button"
     accessibilityLabel={accessibilityLabel}
-    className={`min-h-touch min-w-touch items-center justify-center rounded-full active:bg-surface-alt ${className}`}
+    className={`h-[40px] w-[40px] items-center justify-center rounded-full active:bg-surface-alt ${className}`}
     {...rest}
   >
     {icon}
     {badgeCount > 0 ? (
       <View className="absolute right-1.5 top-1.5 h-4 min-w-4 items-center justify-center rounded-full bg-error px-1">
-        <GenieText variant="caption" className="text-[9px] font-bold">
+        <GenieText variant="caption" className="text-small-label font-bold">
           {badgeCount > 99 ? '99+' : String(badgeCount)}
         </GenieText>
       </View>

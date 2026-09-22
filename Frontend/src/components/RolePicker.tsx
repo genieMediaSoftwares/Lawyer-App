@@ -40,7 +40,7 @@ export const RolePicker: React.FC<RolePickerProps> = ({
         accessibilityRole="button"
         accessibilityLabel={`Select role. Currently ${roleLabel(value)}`}
         className={[
-          'h-control flex-row items-center rounded-control border bg-input px-4 active:border-gold',
+          'h-control flex-row items-center rounded-control border bg-input px-4 active:border-border',
           error ? 'border-error' : 'border-border',
         ].join(' ')}
       >
@@ -76,7 +76,7 @@ export const RolePicker: React.FC<RolePickerProps> = ({
                 className={[
                   'mb-3 flex-row items-center rounded-control border px-4 py-4 active:opacity-75',
                   isSelected
-                    ? 'border-gold bg-gold-muted'
+                    ? 'border-border bg-gold-muted'
                     : 'border-border bg-input',
                 ].join(' ')}
               >

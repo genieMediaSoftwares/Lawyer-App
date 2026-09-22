@@ -8,7 +8,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useQuery } from '@tanstack/react-query';
 
 import { GenieDrawer, LawyerBottomNavigation } from '../components/navigation';
-import { ProfileImageModal } from '../components/ui/ProfileImageModal';
+import { ProfileImageViewer } from '../components/ui/ProfileImageViewer';
 import {
   BellIcon,
   ChatIcon,
@@ -40,6 +40,7 @@ import { ResearchSessionScreen } from '../screens/lawyer/Research/ResearchSessio
 import { ResearchCasesScreen } from '../screens/lawyer/Research/ResearchCasesScreen';
 import { ResearchDocumentsScreen } from '../screens/lawyer/Research/ResearchDocumentsScreen';
 import { NotesScreen } from '../screens/lawyer/Notes/NotesScreen';
+import { LawyerMyProfileScreen } from '../screens/lawyer/Profile/LawyerMyProfileScreen';
 import { ProfessionalDetailsScreen } from '../screens/lawyer/Profile/ProfessionalDetailsScreen';
 import { SubscriptionScreen } from '../screens/lawyer/Subscription/SubscriptionScreen';
 
@@ -265,7 +266,7 @@ const LawyerOverlays: React.FC = () => {
         onSubscriptionPress={() => go('Subscription')}
       />
 
-      <ProfileImageModal
+      <ProfileImageViewer
         visible={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         imageUri={user?.profileImage}
@@ -292,6 +293,7 @@ export const LawyerNavigator: React.FC = () => (
       <Stack.Screen name="ResearchDocuments" component={ResearchDocumentsScreen} />
       <Stack.Screen name="ResearchSession" component={ResearchSessionScreen} />
       <Stack.Screen name="Notes" component={NotesScreen} />
+      <Stack.Screen name="LawyerMyProfile" component={LawyerMyProfileScreen} />
       <Stack.Screen
         name="ProfessionalDetails"
         component={ProfessionalDetailsScreen}

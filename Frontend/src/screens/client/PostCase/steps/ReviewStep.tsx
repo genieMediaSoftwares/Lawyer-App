@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, Pressable, ScrollView, View } from 'react-native';
 
-import { GenieButton, GenieNotice, GenieText } from '../../../../components';
+import { GenieButton, GenieNotice, GenieText, VerifiedBadge } from '../../../../components';
 import {
   ClockIcon,
   EditIcon,
@@ -10,7 +10,6 @@ import {
   ScalesIcon,
   SparkleIcon,
   StarIcon,
-  VerifiedIcon,
 } from '../../../../components/icons/ClientIcons';
 import { CheckIcon } from '../../../../components/icons/Icons';
 import { formatDate, formatFileSize } from '../../../../utils/format';
@@ -120,7 +119,7 @@ const SelectedLawyerCard: React.FC<{
               <GenieText
                 variant="caption"
                 tone="success"
-                className="text-[10px]"
+                className="text-small-label"
               >
                 Online
               </GenieText>
@@ -134,7 +133,7 @@ const SelectedLawyerCard: React.FC<{
               {lawyer.fullName}
             </GenieText>
             {lawyer.verified ? (
-              <VerifiedIcon size={15} color={colors.gold} />
+              <VerifiedBadge size={15} />
             ) : null}
           </View>
 
@@ -266,7 +265,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
       </GenieText>
 
       {state.aiSessionId ? (
-        <View className="mt-4 flex-row items-center gap-2 rounded-card border border-gold-wash bg-gold-muted px-3 py-2.5">
+        <View className="mt-4 flex-row items-center gap-2 rounded-card border border-border bg-gold-muted px-3 py-2.5">
           <SparkleIcon size={16} color={colors.gold} />
           <View className="flex-1">
             <GenieText variant="body-sm" tone="gold" className="font-bold">
@@ -480,7 +479,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
       >
         <View
           className={`mt-0.5 h-6 w-6 items-center justify-center rounded-control border-2 ${
-            hasAgreed ? 'border-gold bg-gold' : 'border-border'
+            hasAgreed ? 'border-border bg-gold' : 'border-border'
           }`}
         >
           {hasAgreed ? <CheckIcon size={15} color={colors.background} /> : null}

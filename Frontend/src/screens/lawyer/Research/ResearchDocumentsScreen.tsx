@@ -43,12 +43,12 @@ const DocumentRow: React.FC<{
     accessibilityState={{ checked: selected, disabled: !document.selectable }}
     accessibilityLabel={`${document.name}${document.selectable ? '' : `, ${document.note}`}`}
     className={`mb-2 flex-row items-center gap-3 rounded-card border p-4 ${
-      selected ? 'border-gold bg-gold-muted' : 'border-border bg-card'
+      selected ? 'border-border bg-gold-muted' : 'border-border bg-card'
     } ${document.selectable ? 'active:opacity-80' : 'opacity-60'}`}
   >
     <View
       className={`h-6 w-6 items-center justify-center rounded-control border-2 ${
-        selected ? 'border-gold bg-gold' : 'border-border'
+        selected ? 'border-border bg-gold' : 'border-border'
       }`}
     >
       {selected ? <CheckIcon size={13} color={colors.background} /> : null}
@@ -152,7 +152,7 @@ export const ResearchDocumentsScreen: React.FC<
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View className="rounded-card border border-gold-wash bg-card p-4">
+          <View className="rounded-card border border-border bg-card p-4">
             <GenieText variant="heading-sm" numberOfLines={2}>
               {info?.title ?? caseTitle}
             </GenieText>

@@ -30,15 +30,15 @@ export const DocumentFilterChips: React.FC<DocumentFilterChipsProps> = ({
               onPress={() => onSelectFilter(filter)}
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected }}
-              className={`h-9 items-center justify-center rounded-pill border px-4 active:opacity-80 ${
+              className={`h-9 items-center justify-center rounded-pill px-4 ${
                 isSelected
-                  ? 'border-gold bg-gold-muted/40'
-                  : 'border-border bg-[#151515]'
+                  ? 'bg-gold'
+                  : 'border border-border bg-surface active:bg-surface-secondary'
               }`}
             >
               <GenieText
                 variant="body-sm"
-                tone={isSelected ? 'gold' : 'secondary'}
+                tone={isSelected ? 'on-gold' : 'secondary'}
                 className={isSelected ? 'font-bold' : 'font-medium'}
               >
                 {filter}
