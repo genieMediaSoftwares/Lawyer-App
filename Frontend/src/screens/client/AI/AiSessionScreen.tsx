@@ -20,7 +20,10 @@ import type { ClientStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
 import { USE_NATIVE_DRIVER } from '../../../utils/platform';
 
-const POLL_INTERVAL_MS = 2000;
+// Only while the session is still processing. The backend pushes no socket
+// event for AI sessions, so this sets how soon a finished result shows up
+// (on average half the interval).
+const POLL_INTERVAL_MS = 1000;
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
   title,

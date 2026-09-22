@@ -45,6 +45,7 @@ import { formatFileSize } from '../../../utils/format';
 import type { PickedFile } from '../../../types/ai';
 import type { ClientStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
+import { startTrace } from '../../../utils/perfTrace';
 
 const MAX_NOTES = 5000;
 
@@ -182,10 +183,13 @@ export const AiAssistantScreen: React.FC<
   const stopRecording = useCallback(async () => {
     setIsRecording(false);
 
+    const trace = startTrace('voice-note');
     let file: PickedFile;
     try {
       file = await voiceRecorder.stop();
+      trace.mark('recorder-stopped');
     } catch (stopError) {
+      trace.end('error');
       setError(toAppError(stopError).message);
       return;
     }
@@ -195,6 +199,8 @@ export const AiAssistantScreen: React.FC<
 
     try {
       const result = await aiApi.transcribe(file, language || undefined);
+      trace.mark('transcribed');
+      trace.end();
       const text = (result.transcript || '').trim();
 
       if (!text) {
@@ -206,6 +212,7 @@ export const AiAssistantScreen: React.FC<
         setDetectedLanguage(result.language || '');
       }
     } catch (transcribeError) {
+      trace.end('error');
       setError(
         `${
           toAppError(transcribeError).message
@@ -247,6 +254,7 @@ export const AiAssistantScreen: React.FC<
     setIsSubmitting(true);
     setUploadFraction(0);
 
+    const trace = startTrace('ai-analyze-upload');
     try {
       const accepted = await aiApi.analyze({
         documents,
@@ -258,8 +266,11 @@ export const AiAssistantScreen: React.FC<
         onUploadProgress: setUploadFraction,
       });
 
+      trace.mark('uploaded+accepted');
+      trace.end();
       navigation.replace('PostCase', { sessionId: accepted.sessionId });
     } catch (submitError) {
+      trace.end('error');
       setError(toAppError(submitError).message);
     } finally {
       setIsSubmitting(false);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, RefreshControl, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 
@@ -12,6 +12,7 @@ import {
   GenieSkeleton,
   GenieStatusBadge,
   GenieText,
+  GenieRefreshControl,
 } from '../../../components';
 import {
   ClockIcon,
@@ -223,14 +224,7 @@ export const CaseDetailsScreen: React.FC<
       contentContainerClassName="pb-10"
       scrollViewProps={{
         refreshControl: (
-          <RefreshControl
-            refreshing={caseQuery.isRefetching}
-            onRefresh={() => {
-              void caseQuery.refetch();
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => caseQuery.refetch()} />
         ),
       }}
     >

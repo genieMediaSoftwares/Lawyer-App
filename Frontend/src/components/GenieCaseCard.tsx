@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Pressable, View } from 'react-native';
 import { GenieAvatar, GenieText } from './ui';
 import { getCategoryIcon } from './icons/CategoryIcons';
@@ -93,7 +93,9 @@ const Tracker: React.FC<{ currentStep: number; isRejected: boolean }> = ({
   </View>
 );
 
-export const GenieCaseCard: React.FC<GenieCaseCardProps> = ({
+// Memoized: list rows re-render only when their own props change, not on
+// every parent update (e.g. a background refetch of the list).
+export const GenieCaseCard = memo<GenieCaseCardProps>(({
   item,
   onPress,
   onMessageLawyer,
@@ -236,4 +238,6 @@ export const GenieCaseCard: React.FC<GenieCaseCardProps> = ({
       </View>
     </Pressable>
   );
-};
+});
+
+(GenieCaseCard as React.NamedExoticComponent).displayName = 'GenieCaseCard';

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 
@@ -10,6 +10,7 @@ import {
   GenieFilterTabs,
   GenieHeader,
   GenieSkeletonCard,
+  GenieRefreshControl,
 } from '../../../components';
 import { BriefcaseIcon } from '../../../components/icons/ClientIcons';
 import { casesApi } from '../../../api/casesApi';
@@ -21,6 +22,7 @@ import type { CaseTab } from '../../../constants/cases';
 import type { LegalCase } from '../../../types/domain';
 import type { ClientTabScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
+import { usePollWhileFocused } from '../../../hooks/useScreenFocused';
 
 export const MyCasesScreen: React.FC<ClientTabScreenProps<'Cases'>> = ({
   navigation,
@@ -29,17 +31,20 @@ export const MyCasesScreen: React.FC<ClientTabScreenProps<'Cases'>> = ({
   const openDrawer = useUiStore(state => state.openDrawer);
   const openCreateSheet = useUiStore(state => state.openCreateSheet);
 
+  // Poll only while this screen is visible (see usePollWhileFocused).
+  const pollWhileFocused = usePollWhileFocused();
+
   const casesQuery = useQuery({
     queryKey: ['cases', 'list'],
     queryFn: casesApi.list,
-    refetchInterval: 5000,
+    refetchInterval: pollWhileFocused(5000),
     refetchOnWindowFocus: true,
   });
 
   const notificationsQuery = useQuery({
     queryKey: ['notifications', 1],
     queryFn: () => notificationsApi.list(1, 15),
-    refetchInterval: 10000,
+    refetchInterval: pollWhileFocused(10000),
   });
 
   const unreadNotificationsCount = notificationsQuery.data?.unreadCount ?? 0;
@@ -139,15 +144,7 @@ export const MyCasesScreen: React.FC<ClientTabScreenProps<'Cases'>> = ({
         windowSize={11}
         removeClippedSubviews
         refreshControl={
-          <RefreshControl
-            refreshing={casesQuery.isRefetching}
-            onRefresh={() => {
-              void casesQuery.refetch();
-              void notificationsQuery.refetch();
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => Promise.all([casesQuery.refetch(), notificationsQuery.refetch()])} />
         }
         ListEmptyComponent={
           <GenieEmptyState

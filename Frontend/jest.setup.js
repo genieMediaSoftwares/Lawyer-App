@@ -20,6 +20,7 @@ jest.mock('react-native-audio-recorder-player', () => ({
     stopRecorder: jest.fn(),
     addRecordBackListener: jest.fn(),
     removeRecordBackListener: jest.fn(),
+    setSubscriptionDuration: jest.fn(),
   },
   AudioEncoderAndroidType: { AAC: 3 },
   AudioSourceAndroidType: { MIC: 1 },

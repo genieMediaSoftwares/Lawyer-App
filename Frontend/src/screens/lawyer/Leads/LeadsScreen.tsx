@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, View } from 'react-native';
+import { FlatList, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -13,6 +13,7 @@ import {
   GenieSearchInput,
   GenieSkeletonList,
   GenieText,
+  GenieRefreshControl,
 } from '../../../components';
 import {
   ClockIcon,
@@ -31,6 +32,7 @@ import { isActionableLead } from '../../../types/lawyer';
 import type { LawyerLead } from '../../../types/lawyer';
 import type { LawyerTabScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
+import { usePollWhileFocused } from '../../../hooks/useScreenFocused';
 
 type LeadTab = 'new' | 'accepted';
 
@@ -45,10 +47,13 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyCaseId, setBusyCaseId] = useState<string | null>(null);
 
+  // Poll only while this screen is visible (see usePollWhileFocused).
+  const pollWhileFocused = usePollWhileFocused();
+
   const leadsQuery = useQuery({
     queryKey: ['lawyer', 'leads'],
     queryFn: lawyerApi.getLeads,
-    refetchInterval: 3000,
+    refetchInterval: pollWhileFocused(3000),
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     refetchOnReconnect: true,
@@ -58,7 +63,7 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
   const clientsQuery = useQuery({
     queryKey: ['lawyer', 'clients'],
     queryFn: lawyerApi.getClients,
-    refetchInterval: 3000,
+    refetchInterval: pollWhileFocused(3000),
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     refetchOnReconnect: true,
@@ -68,7 +73,7 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
   const notificationsQuery = useQuery({
     queryKey: ['notifications', 1],
     queryFn: () => notificationsApi.list(1, 15),
-    refetchInterval: 10000,
+    refetchInterval: pollWhileFocused(10000),
   });
 
   const unreadNotificationsCount = notificationsQuery.data?.unreadCount ?? 0;
@@ -344,15 +349,7 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           refreshControl={
-            <RefreshControl
-              refreshing={leadsQuery.isRefetching}
-              onRefresh={() => {
-                void leadsQuery.refetch();
-                void notificationsQuery.refetch();
-              }}
-              tintColor={colors.gold}
-              colors={[colors.gold]}
-            />
+            <GenieRefreshControl onRefresh={() => Promise.all([leadsQuery.refetch(), notificationsQuery.refetch()])} />
           }
           renderItem={({ item }) => renderLeadCard(item)}
           ListHeaderComponent={
@@ -392,15 +389,7 @@ export const LeadsScreen: React.FC<LawyerTabScreenProps<'Leads'>> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl
-            refreshing={clientsQuery.isRefetching}
-            onRefresh={() => {
-              void clientsQuery.refetch();
-              void notificationsQuery.refetch();
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => Promise.all([clientsQuery.refetch(), notificationsQuery.refetch()])} />
         }
         renderItem={({ item }) => (
           <View className="mb-3 rounded-card border border-border bg-surface p-4">

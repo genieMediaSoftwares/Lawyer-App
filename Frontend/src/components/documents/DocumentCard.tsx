@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Pressable, View } from 'react-native';
 import { GenieText } from '../ui';
 import { FileIcon, ImageIcon, MoreVerticalIcon } from '../icons/ClientIcons';
@@ -12,7 +12,9 @@ export interface DocumentCardProps {
   onPressMenu: (document: AppDocument) => void;
 }
 
-export const DocumentCard: React.FC<DocumentCardProps> = ({
+// Memoized: list rows re-render only when their own props change, not on
+// every parent update (e.g. a background refetch of the list).
+export const DocumentCard = memo<DocumentCardProps>(({
   document,
   onPress,
   onPressMenu,
@@ -73,4 +75,6 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
       </Pressable>
     </Pressable>
   );
-};
+});
+
+(DocumentCard as React.NamedExoticComponent).displayName = 'DocumentCard';

@@ -1,18 +1,19 @@
 import React from 'react';
-import { RefreshControl, View } from 'react-native';
+import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { GenieHeader, GenieScreen, GenieSkeleton } from '../../../components';
+import { GenieHeader, GenieScreen, GenieSkeleton,
+  GenieRefreshControl,
+} from '../../../components';
 import { DetailError } from './CaseDetailParts';
-import { colors } from '../../../theme';
 
 interface DetailScaffoldProps {
   title: string;
   onBack: () => void;
   isPending: boolean;
   error: unknown;
-  isRefetching: boolean;
-  onRefresh: () => void;
+  // Return the refetch promise(s) so pull-to-refresh spins until they settle.
+  onRefresh: () => unknown;
   children: React.ReactNode;
 }
 
@@ -22,7 +23,6 @@ export const DetailScaffold: React.FC<DetailScaffoldProps> = ({
   onBack,
   isPending,
   error,
-  isRefetching,
   onRefresh,
   children,
 }) => {
@@ -60,12 +60,7 @@ export const DetailScaffold: React.FC<DetailScaffoldProps> = ({
       contentContainerClassName="pb-10"
       scrollViewProps={{
         refreshControl: (
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={onRefresh}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={onRefresh} />
         ),
       }}
     >

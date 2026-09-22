@@ -141,8 +141,7 @@ export const LeadDetailsScreen: React.FC<LawyerStackScreenProps<'LeadDetails'>> 
       onBack={() => navigation.goBack()}
       isPending={caseQuery.isPending}
       error={caseQuery.isError ? caseQuery.error : null}
-      isRefetching={caseQuery.isRefetching}
-      onRefresh={() => void caseQuery.refetch()}
+      onRefresh={() => caseQuery.refetch()}
     >
       {item ? (
         <LeadBody

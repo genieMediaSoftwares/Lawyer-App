@@ -69,6 +69,9 @@ const ClientTabs: React.FC = () => {
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: colors.background },
+        // Keep visited tabs mounted (state/scroll preserved) but skip
+        // re-rendering them while hidden.
+        freezeOnBlur: true,
       }}
       tabBar={renderTabBar}
     >
@@ -257,6 +260,9 @@ export const ClientNavigator: React.FC = () => (
         contentStyle: { backgroundColor: colors.background },
         animation: 'slide_from_right',
         gestureEnabled: true,
+        // Screens under the top one keep their state but stop re-rendering
+        // until they are shown again.
+        freezeOnBlur: true,
       }}
     >
       <Stack.Screen name="Tabs" component={ClientTabs} />

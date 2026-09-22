@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 
@@ -9,10 +9,10 @@ import {
   GenieScreen,
   GenieSkeleton,
   GenieText,
+  GenieRefreshControl,
 } from '../../../components';
 import { lawyerApi } from '../../../api/lawyerApi';
 import type { LawyerStackScreenProps } from '../../../types/navigation';
-import { colors } from '../../../theme';
 import { PlanCard } from './PlanCard';
 import type { PlanItem } from './types';
 
@@ -104,14 +104,7 @@ export const SubscriptionScreen: React.FC<
             contentContainerClassName="pt-2 pb-32"
             showsVerticalScrollIndicator={false}
             refreshControl={
-              <RefreshControl
-                refreshing={subscriptionQuery.isRefetching}
-                onRefresh={() => {
-                  void subscriptionQuery.refetch();
-                }}
-                tintColor={colors.gold}
-                colors={[colors.gold]}
-              />
+              <GenieRefreshControl onRefresh={() => subscriptionQuery.refetch()} />
             }
           >
             <GenieText variant="body-md" tone="secondary" className="mb-5 leading-5 font-normal">

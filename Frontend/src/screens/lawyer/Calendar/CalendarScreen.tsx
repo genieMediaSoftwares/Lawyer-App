@@ -1,12 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -18,6 +11,7 @@ import {
   GenieSkeleton,
   GenieStatusBadge,
   GenieText,
+  GenieRefreshControl,
 } from '../../../components';
 import { ChevronDownIcon } from '../../../components/icons/Icons';
 import { ChevronRightIcon, ClockIcon, PlusIcon } from '../../../components/icons/ClientIcons';
@@ -239,15 +233,7 @@ export const CalendarScreen: React.FC<LawyerTabScreenProps<'Calendar'>> = () => 
       contentContainerClassName="pb-20 px-5"
       scrollViewProps={{
         refreshControl: (
-          <RefreshControl
-            refreshing={appointmentsQuery.isRefetching}
-            onRefresh={() => {
-              void appointmentsQuery.refetch();
-              void clientsQuery.refetch();
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => Promise.all([appointmentsQuery.refetch(), clientsQuery.refetch()])} />
         ),
       }}
     >

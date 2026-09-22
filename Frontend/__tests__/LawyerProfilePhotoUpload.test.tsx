@@ -1,5 +1,4 @@
 import React from 'react';
-import { Platform } from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -15,8 +14,17 @@ jest.mock('../src/api/authApi', () => ({
   authApi: { uploadProfileImage: jest.fn() },
 }));
 
+// The native (Android) picker: returns a content:// URI, not a browser File.
+jest.mock('@react-native-documents/picker', () => ({
+  pick: jest.fn(),
+  types: { images: 'image/*', pdf: 'application/pdf', docx: 'docx', plainText: 'text/plain', csv: 'text/csv' },
+  errorCodes: { OPERATION_CANCELED: 'OPERATION_CANCELED' },
+  isErrorWithCode: (e: any) => Boolean(e && e.code),
+}));
+
 const { lawyerApi } = jest.requireMock('../src/api/lawyerApi');
 const { authApi } = jest.requireMock('../src/api/authApi');
+const { pick } = jest.requireMock('@react-native-documents/picker');
 
 const act = ReactTestRenderer.act;
 
@@ -85,32 +93,40 @@ describe('LawyerProfileScreen — profile photo upload', () => {
     done();
   });
 
-  it('uploads the picked file and refreshes the lawyer profile', async () => {
+  it('uploads a photo picked with the native Android picker and refreshes the profile', async () => {
     lawyerApi.getProfile.mockResolvedValue(profile());
     authApi.uploadProfileImage.mockResolvedValue({});
-
-    // Stub the same web file-picker flow the client screen already uses,
-    // regardless of what DOM (if any) this test environment provides.
-    const originalPlatformOS = Platform.OS;
-    (Platform as any).OS = 'web';
-    const file = { name: 'photo.jpg', type: 'image/jpeg' };
-    const fakeInput: any = { click: jest.fn(() => fakeInput.onchange?.({ target: { files: [file] } })) };
-    const fakeDocument = { createElement: jest.fn(() => fakeInput) };
-    const originalDocument = (globalThis as any).document;
-    (globalThis as any).document = fakeDocument;
+    pick.mockResolvedValue([
+      { uri: 'content://media/picker/0/42', name: 'IMG_0042.jpg', type: 'image/jpeg', size: 812345 },
+    ]);
 
     const { root, done } = await mount();
-    const button = find(root, 'Change profile photo');
-
     await act(async () => {
-      button.props.onPress();
+      find(root, 'Change profile photo').props.onPress();
     });
     await settle();
 
-    expect(authApi.uploadProfileImage).toHaveBeenCalledWith(file);
+    expect(pick).toHaveBeenCalledWith(expect.objectContaining({ allowMultiSelection: false }));
+    expect(authApi.uploadProfileImage).toHaveBeenCalledWith({
+      uri: 'content://media/picker/0/42',
+      name: 'IMG_0042.jpg',
+      type: 'image/jpeg',
+    });
     expect(lawyerApi.getProfile).toHaveBeenCalledTimes(2); // initial + refetch after upload
-    (globalThis as any).document = originalDocument;
-    (Platform as any).OS = originalPlatformOS;
+    done();
+  });
+
+  it('does nothing when the user cancels the picker', async () => {
+    lawyerApi.getProfile.mockResolvedValue(profile());
+    pick.mockRejectedValue({ code: 'OPERATION_CANCELED' });
+
+    const { root, done } = await mount();
+    await act(async () => {
+      find(root, 'Change profile photo').props.onPress();
+    });
+    await settle();
+
+    expect(authApi.uploadProfileImage).not.toHaveBeenCalled();
     done();
   });
 });

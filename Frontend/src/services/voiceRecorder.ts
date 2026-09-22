@@ -18,6 +18,14 @@ export interface RecordingState {
 
 const FILE_NAME = 'genie-voice-note.m4a';
 
+// The Android recorder resolves a bare absolute path (/data/user/0/…/sound_*.mp4).
+// React Native's multipart upload opens each file with
+// ContentResolver.openInputStream(Uri.parse(uri)); a path with no scheme is
+// treated as a content-provider lookup and fails ("Could not retrieve file for
+// contentUri …" in Logcat), which surfaced as a network error on upload.
+const toFileUri = (path: string): string =>
+  path.startsWith('/') ? `file://${path}` : path;
+
 const AUDIO_SET: AudioSet = {
   AudioSourceAndroid: AudioSourceAndroidType.MIC,
   OutputFormatAndroid: OutputFormatAndroidType.MPEG_4,
@@ -50,8 +58,18 @@ export const voiceRecorder = {
   },
 
   async start(onTick: (state: RecordingState) => void): Promise<void> {
+    // The native recorder defaults to an event every 60ms, and each one became
+    // a setState that re-rendered the whole screen ~17x/second for the entire
+    // recording. The UI shows whole seconds, so ask for 4 events/second and
+    // forward only when the displayed second changes.
+    AudioRecorderPlayer.setSubscriptionDuration(0.25);
+    let lastSecond = -1;
     AudioRecorderPlayer.addRecordBackListener((meta: RecordBackType) => {
-      onTick({ durationMs: meta.currentPosition });
+      const second = Math.floor(meta.currentPosition / 1000);
+      if (second !== lastSecond) {
+        lastSecond = second;
+        onTick({ durationMs: second * 1000 });
+      }
     });
 
     await AudioRecorderPlayer.startRecorder(undefined, AUDIO_SET);
@@ -59,11 +77,11 @@ export const voiceRecorder = {
 
   async stop(): Promise<PickedFile> {
     const result = await AudioRecorderPlayer.stopRecorder();
-    const uri = typeof result === 'string' ? result : result.filePath;
+    const path = typeof result === 'string' ? result : result.filePath;
     AudioRecorderPlayer.removeRecordBackListener();
 
     return {
-      uri,
+      uri: toFileUri(path),
       name: FILE_NAME,
       type: 'audio/m4a',
       size: null,

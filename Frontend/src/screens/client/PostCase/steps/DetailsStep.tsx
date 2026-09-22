@@ -13,6 +13,7 @@ import { toAppError } from '../../../../utils/errors';
 import { AiBadge } from '../AiBadge';
 import { shortenDescription, type PostCaseState } from '../types';
 import { colors } from '../../../../theme';
+import { startTrace } from '../../../../utils/perfTrace';
 
 const MAX_DESCRIPTION = 5000;
 
@@ -69,9 +70,13 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
     if (isRecording) {
       setIsRecording(false);
       setIsTranscribing(true);
+      const trace = startTrace('voice-dictation');
       try {
         const audio = await voiceRecorder.stop();
+        trace.mark('recorder-stopped');
         const result = await aiApi.transcribe(audio);
+        trace.mark('transcribed');
+        trace.end();
         const text = (result.transcript || '').trim();
 
         if (!text) {
@@ -83,6 +88,7 @@ export const DetailsStep: React.FC<DetailsStepProps> = ({
         const combined = existing ? `${existing} ${text}` : text;
         edit('description', combined.slice(0, MAX_DESCRIPTION));
       } catch (error) {
+        trace.end('error');
         setVoiceError(toAppError(error).message);
       } finally {
         setIsTranscribing(false);

@@ -40,52 +40,65 @@ const toPickedFiles = (files: FileList | null, limit: number): PickedFile[] =>
       file,
     }));
 
+const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp';
+
+// Opens the shared hidden input with the given filter and resolves the chosen
+// files (empty when cancelled).
+const choose = (accept: string, limit: number): Promise<PickedFile[]> => {
+  const element = ensureInput();
+  element.accept = accept;
+  element.multiple = limit > 1;
+  element.value = '';
+
+  return new Promise<PickedFile[]>(resolve => {
+    let settled = false;
+
+    const finish = (files: PickedFile[]) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+
+      element.removeEventListener('change', onChange);
+      element.removeEventListener('cancel', onCancel);
+      window.removeEventListener('focus', onFocus);
+
+      element.blur();
+
+      resolve(files);
+    };
+
+    const onChange = () => finish(toPickedFiles(element.files, limit));
+
+    const onCancel = () => finish([]);
+
+    const onFocus = () => {
+      setTimeout(() => {
+        if ((element.files?.length ?? 0) === 0) {
+          finish([]);
+        }
+      }, CANCEL_GRACE_MS);
+    };
+
+    element.addEventListener('change', onChange);
+    element.addEventListener('cancel', onCancel);
+    window.addEventListener('focus', onFocus);
+
+    element.click();
+  });
+};
+
 export const filePicker = {
   async pickDocuments(remainingSlots: number): Promise<PickedFile[]> {
     if (remainingSlots <= 0) {
       return [];
     }
+    return choose(ACCEPT, remainingSlots);
+  },
 
-    const element = ensureInput();
-    element.multiple = remainingSlots > 1;
-    element.value = '';
-
-    return new Promise<PickedFile[]>(resolve => {
-      let settled = false;
-
-      const finish = (files: PickedFile[]) => {
-        if (settled) {
-          return;
-        }
-        settled = true;
-
-        element.removeEventListener('change', onChange);
-        element.removeEventListener('cancel', onCancel);
-        window.removeEventListener('focus', onFocus);
-
-        element.blur();
-
-        resolve(files);
-      };
-
-      const onChange = () => finish(toPickedFiles(element.files, remainingSlots));
-
-      const onCancel = () => finish([]);
-
-      const onFocus = () => {
-        setTimeout(() => {
-          if ((element.files?.length ?? 0) === 0) {
-            finish([]);
-          }
-        }, CANCEL_GRACE_MS);
-      };
-
-      element.addEventListener('change', onChange);
-      element.addEventListener('cancel', onCancel);
-      window.addEventListener('focus', onFocus);
-
-      element.click();
-    });
+  async pickImage(): Promise<PickedFile | null> {
+    const [file] = await choose(IMAGE_ACCEPT, 1);
+    return file ?? null;
   },
 
   maxFileBytes: UPLOAD_LIMITS.maxFileBytes,

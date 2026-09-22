@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, View } from 'react-native';
+import { FlatList, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -13,6 +13,7 @@ import {
   GenieSearchInput,
   GenieSkeleton,
   GenieText,
+  GenieRefreshControl,
 } from '../../../components';
 import { AdvocateSortModal } from '../../../components/advocates/AdvocateSortModal';
 import { AdvocateFilterModal } from '../../../components/advocates/AdvocateFilterModal';
@@ -235,15 +236,7 @@ export const AdvocatesScreen: React.FC<ClientTabScreenProps<'Advocates'>> = ({
         windowSize={7}
         removeClippedSubviews
         refreshControl={
-          <RefreshControl
-            refreshing={advocatesQuery.isRefetching && !advocatesQuery.isPlaceholderData}
-            onRefresh={() => {
-              void advocatesQuery.refetch();
-              void favoritesQuery.refetch();
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => Promise.all([advocatesQuery.refetch(), favoritesQuery.refetch()])} />
         }
         ListEmptyComponent={
           <GenieEmptyState

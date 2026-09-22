@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, RefreshControl, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 
 import {
@@ -10,6 +10,7 @@ import {
   GenieSkeleton,
   GenieText,
   VerifiedBadge,
+  GenieRefreshControl,
 } from '../../../components';
 import {
   ChatIcon,
@@ -26,6 +27,7 @@ import { useAuthStore } from '../../../store/authStore';
 import { useUiStore } from '../../../store/uiStore';
 import type { LawyerTabScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
+import { isLawyerVerified } from '../../../utils/verification';
 
 interface WorkspaceCardProps {
   title: string;
@@ -162,20 +164,14 @@ export const WorkspaceScreen: React.FC<LawyerTabScreenProps<'Workspace'>> = ({
     (profileQuery.error as Error)?.message ||
     'Unable to load workspace data';
 
-  const isRefreshing =
-    leadsQuery.isRefetching ||
-    clientsQuery.isRefetching ||
-    scheduleQuery.isRefetching ||
-    messagesQuery.isRefetching ||
-    profileQuery.isRefetching;
-
-  const refreshAll = () => {
-    void leadsQuery.refetch();
-    void clientsQuery.refetch();
-    void scheduleQuery.refetch();
-    void messagesQuery.refetch();
-    void profileQuery.refetch();
-  };
+  const refreshAll = () =>
+    Promise.all([
+      leadsQuery.refetch(),
+      clientsQuery.refetch(),
+      scheduleQuery.refetch(),
+      messagesQuery.refetch(),
+      profileQuery.refetch(),
+    ]);
 
   const profile = profileQuery.data;
   const realName = profile?.user?.fullName || user?.fullName || 'Advocate';
@@ -205,12 +201,7 @@ export const WorkspaceScreen: React.FC<LawyerTabScreenProps<'Workspace'>> = ({
       contentContainerClassName="pb-20"
       scrollViewProps={{
         refreshControl: (
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={refreshAll}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={refreshAll} />
         ),
       }}
     >
@@ -220,10 +211,10 @@ export const WorkspaceScreen: React.FC<LawyerTabScreenProps<'Workspace'>> = ({
         </GenieText>
 
         <View className="mt-1 flex-row items-center gap-1.5">
-          <GenieText variant="screenTitle" tone="gold" className="flex-1" numberOfLines={1}>
+          <GenieText variant="screenTitle" tone="gold" className="flex-shrink" numberOfLines={1}>
             {realName}
           </GenieText>
-          {profile?.verificationStatus === 'verified' ? (
+          {isLawyerVerified(profile) ? (
             <VerifiedBadge size={20} />
           ) : null}
         </View>

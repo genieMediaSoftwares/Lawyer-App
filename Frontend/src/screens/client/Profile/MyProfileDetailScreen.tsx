@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Platform, Pressable, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -18,6 +18,10 @@ import { clientApi } from '../../../api/clientApi';
 import { authApi } from '../../../api/authApi';
 import type { ClientStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
+import { pickProfilePhoto } from '../../../services/profilePhoto';
+import type { ProfilePhotoUpload } from '../../../services/profilePhoto';
+import { startTrace } from '../../../utils/perfTrace';
+import type { PerfTrace } from '../../../utils/perfTrace';
 
 const InfoRow: React.FC<{ label: string; value: string; isLast?: boolean }> = ({
   label,
@@ -47,13 +51,16 @@ export const MyProfileDetailScreen: React.FC<
 
   const user = profileQuery.data?.user;
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: ProfilePhotoUpload, trace?: PerfTrace) => {
     setIsUploading(true);
     try {
       await authApi.uploadProfileImage(file);
+      trace?.mark('uploaded');
+      trace?.end();
       await queryClient.invalidateQueries({ queryKey: ['client', 'profile'] });
       await queryClient.invalidateQueries({ queryKey: ['auth', 'profile'] });
     } catch (err: any) {
+      trace?.end('error');
       Alert.alert(
         'Upload Error',
         err.message || 'Failed to upload profile photo',
@@ -63,25 +70,15 @@ export const MyProfileDetailScreen: React.FC<
     }
   };
 
-  const handleSelectImage = () => {
-    if (
-      Platform.OS === 'web' &&
-      typeof globalThis !== 'undefined' &&
-      (globalThis as any).document
-    ) {
-      const doc = (globalThis as any).document;
-      const input = doc.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = async (e: any) => {
-        const file = e.target?.files?.[0];
-        if (file) {
-          await uploadFile(file);
-        }
-      };
-      input.click();
-    } else {
-      Alert.alert('Upload Photo', 'Photo upload is available on web browser.');
+  const handleSelectImage = async () => {
+    try {
+      const trace = startTrace('profile-photo');
+      const photo = await pickProfilePhoto(trace);
+      if (photo) {
+        await uploadFile(photo, trace);
+      }
+    } catch (err: any) {
+      Alert.alert('Upload Error', err?.message || 'Could not open the photo picker');
     }
   };
 

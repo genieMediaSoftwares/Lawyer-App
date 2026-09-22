@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, RefreshControl, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 
 import {
@@ -10,6 +10,7 @@ import {
   GenieSkeleton,
   GenieText,
   VerifiedBadge,
+  GenieRefreshControl,
 } from '../../../components';
 import {
   BellIcon,
@@ -25,6 +26,7 @@ import { useAuthStore } from '../../../store/authStore';
 import { useUiStore } from '../../../store/uiStore';
 import type { LawyerTabScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
+import { isLawyerVerified } from '../../../utils/verification';
 
 const formatTwoDigits = (num?: number): string => {
   if (typeof num !== 'number') return '00';
@@ -97,20 +99,14 @@ export const LawyerDashboardScreen: React.FC<
     (messagesQuery.error as Error)?.message ||
     'Unable to load dashboard details';
 
-  const isRefreshing =
-    profileQuery.isRefetching ||
-    leadsQuery.isRefetching ||
-    clientsQuery.isRefetching ||
-    messagesQuery.isRefetching ||
-    subscriptionQuery.isRefetching;
-
-  const refreshAll = () => {
-    void profileQuery.refetch();
-    void leadsQuery.refetch();
-    void clientsQuery.refetch();
-    void messagesQuery.refetch();
-    void subscriptionQuery.refetch();
-  };
+  const refreshAll = () =>
+    Promise.all([
+      profileQuery.refetch(),
+      leadsQuery.refetch(),
+      clientsQuery.refetch(),
+      messagesQuery.refetch(),
+      subscriptionQuery.refetch(),
+    ]);
 
   if (isLoading) {
     return (
@@ -163,12 +159,7 @@ export const LawyerDashboardScreen: React.FC<
       contentContainerClassName="pb-20"
       scrollViewProps={{
         refreshControl: (
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={refreshAll}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={refreshAll} />
         ),
       }}
     >
@@ -184,7 +175,7 @@ export const LawyerDashboardScreen: React.FC<
             <GenieText variant="sectionTitle" className="flex-shrink" numberOfLines={1}>
               {displayName}
             </GenieText>
-            {profile?.verificationStatus === 'verified' ? (
+            {isLawyerVerified(profile) ? (
               <VerifiedBadge size={18} />
             ) : null}
           </View>

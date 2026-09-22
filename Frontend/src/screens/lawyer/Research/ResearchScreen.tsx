@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -13,6 +13,7 @@ import {
   GenieSearchInput,
   GenieSkeletonList,
   GenieText,
+  GenieRefreshControl,
 } from '../../../components';
 import {
   ChevronRightIcon,
@@ -88,14 +89,7 @@ export const ResearchScreen: React.FC<LawyerStackScreenProps<'Research'>> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl
-            refreshing={sessionsQuery.isRefetching}
-            onRefresh={() => {
-              void sessionsQuery.refetch();
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => sessionsQuery.refetch()} />
         }
       >
         <View className="rounded-card border border-border bg-card p-5">

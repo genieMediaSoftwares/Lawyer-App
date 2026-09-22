@@ -37,5 +37,33 @@ export const filePicker = {
     }
   },
 
+  // Single image (profile photo). Uses the system document picker filtered to
+  // images: no storage/media permission needed on any Android version, and the
+  // returned content:// URI is readable by React Native's multipart upload.
+  async pickImage(): Promise<PickedFile | null> {
+    try {
+      const [result] = await pick({
+        allowMultiSelection: false,
+        type: [types.images],
+      });
+
+      if (!result) {
+        return null;
+      }
+
+      return {
+        uri: result.uri,
+        name: result.name ?? 'photo.jpg',
+        type: result.type ?? 'image/jpeg',
+        size: result.size ?? null,
+      };
+    } catch (error) {
+      if (isErrorWithCode(error) && error.code === errorCodes.OPERATION_CANCELED) {
+        return null;
+      }
+      throw error;
+    }
+  },
+
   maxFileBytes: UPLOAD_LIMITS.maxFileBytes,
 };

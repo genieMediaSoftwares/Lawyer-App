@@ -59,6 +59,7 @@ import { chatApi } from '../api/chatApi';
 import { lawyerApi } from '../api/lawyerApi';
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
+import { isLawyerVerified } from '../utils/verification';
 import { colors } from '../theme';
 import type { GenieDrawerItem } from '../components/navigation';
 import type {
@@ -81,6 +82,9 @@ const LawyerTabs: React.FC = () => (
     screenOptions={{
       headerShown: false,
       sceneStyle: { backgroundColor: colors.background },
+      // Keep visited tabs mounted (state/scroll preserved) but skip
+      // re-rendering them while hidden.
+      freezeOnBlur: true,
     }}
     tabBar={renderTabBar}
   >
@@ -120,6 +124,20 @@ const LawyerOverlays: React.FC = () => {
     queryKey: ['lawyer', 'leads'],
     queryFn: lawyerApi.getLeads,
   });
+
+  // Same key as Workspace/Dashboard/Profile, so this shares their cache.
+  // The auth-store user has no verification field, so the drawer's badge
+  // must come from the lawyer profile.
+  const profileQuery = useQuery({
+    queryKey: ['lawyer', 'profile', user?.id],
+    queryFn: () => lawyerApi.getProfile(user!.id),
+    enabled: Boolean(user?.id),
+  });
+
+  const drawerUser = useMemo(
+    () => (user ? { ...user, isVerified: isLawyerVerified(profileQuery.data) } : null),
+    [user, profileQuery.data],
+  );
 
   const unreadChatsCount = (chatsQuery.data ?? []).reduce(
     (acc, c) => acc + (c.unreadCount || 0),
@@ -258,7 +276,7 @@ const LawyerOverlays: React.FC = () => {
       <GenieDrawer
         isOpen={isDrawerOpen}
         onClose={closeDrawer}
-        user={user}
+        user={drawerUser}
         items={items}
         onSignOut={handleSignOut}
         isSigningOut={isSigningOut}
@@ -284,6 +302,9 @@ export const LawyerNavigator: React.FC = () => (
         contentStyle: { backgroundColor: colors.background },
         animation: 'slide_from_right',
         gestureEnabled: true,
+        // Screens under the top one keep their state but stop re-rendering
+        // until they are shown again.
+        freezeOnBlur: true,
       }}
     >
       <Stack.Screen name="Tabs" component={LawyerTabs} />

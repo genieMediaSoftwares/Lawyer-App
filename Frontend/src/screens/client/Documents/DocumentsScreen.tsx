@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, Linking, RefreshControl, Share, View } from 'react-native';
+import { FlatList, Linking, Share, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -19,6 +19,7 @@ import {
   RenameDocumentModal,
   UploadDocumentModal,
   getDocumentBadgeInfo,
+  GenieRefreshControl,
 } from '../../../components';
 import { PlusIcon } from '../../../components/icons/ClientIcons';
 import { filePicker } from '../../../services/filePicker';
@@ -194,8 +195,8 @@ export const DocumentsScreen: React.FC<ClientStackScreenProps<'Documents'>> = ({
     ({ item }: { item: AppDocument }) => (
       <DocumentCard
         document={item}
-        onPress={doc => setViewerDocument(doc)}
-        onPressMenu={doc => setActionDocument(doc)}
+        onPress={setViewerDocument}
+        onPressMenu={setActionDocument}
       />
     ),
     [],
@@ -240,14 +241,7 @@ export const DocumentsScreen: React.FC<ClientStackScreenProps<'Documents'>> = ({
         contentContainerClassName="px-5 pb-10"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={documentsQuery.isRefetching}
-            onRefresh={() => {
-              void documentsQuery.refetch();
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => documentsQuery.refetch()} />
         }
       />
     );

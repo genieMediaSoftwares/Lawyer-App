@@ -27,6 +27,8 @@ export type { GenieIconButtonProps } from './GenieIconButton';
 export { GenieAvatar } from './GenieAvatar';
 export type { GenieAvatarProps, GenieAvatarSize } from './GenieAvatar';
 export { VerifiedBadge } from './VerifiedBadge';
+export { GenieRefreshControl } from './GenieRefreshControl';
+export type { GenieRefreshControlProps } from './GenieRefreshControl';
 export type { VerifiedBadgeProps } from './VerifiedBadge';
 export { GenieChip } from './GenieChip';
 export type { GenieChipProps } from './GenieChip';

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FlatList, RefreshControl, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 
@@ -13,6 +13,7 @@ import {
   GenieSearchInput,
   GenieSkeletonList,
   GenieText,
+  GenieRefreshControl,
 } from '../../../components';
 import { ChatIcon } from '../../../components/icons/ClientIcons';
 import { useAuthStore } from '../../../store/authStore';
@@ -173,14 +174,7 @@ export const MessagesScreen: React.FC<ClientStackScreenProps<'Messages'>> = ({
         contentContainerClassName="px-5 pb-6"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={chatsQuery.isFetching}
-            onRefresh={() => {
-              chatsQuery.refetch();
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => chatsQuery.refetch()} />
         }
       />
     );

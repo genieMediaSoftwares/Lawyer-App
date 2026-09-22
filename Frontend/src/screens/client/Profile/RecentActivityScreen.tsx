@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatList, RefreshControl, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 
@@ -10,6 +10,7 @@ import {
   GenieHeader,
   GenieSkeleton,
   GenieText,
+  GenieRefreshControl,
 } from '../../../components';
 import { ClockIcon } from '../../../components/icons/ClientIcons';
 import { clientApi } from '../../../api/clientApi';
@@ -88,14 +89,7 @@ export const RecentActivityScreen: React.FC<
         contentContainerClassName="px-5 pb-10 pt-1"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={activityQuery.isRefetching}
-            onRefresh={() => {
-              void activityQuery.refetch();
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => activityQuery.refetch()} />
         }
         renderItem={({ item }) => (
           <GenieCard tone="surface" className="mb-3 flex-row items-start">

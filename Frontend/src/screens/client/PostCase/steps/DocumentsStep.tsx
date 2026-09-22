@@ -33,8 +33,13 @@ import type { PickedFile } from '../../../../types/ai';
 import type { AppDocument } from '../../../../types/domain';
 import type { PostCaseState } from '../types';
 import { colors } from '../../../../theme';
+import { startTrace } from '../../../../utils/perfTrace';
+import type { PerfTrace } from '../../../../utils/perfTrace';
 
-const POLL_INTERVAL_MS = 2000;
+// Only while the session is still processing. The backend pushes no socket
+// event for AI sessions, so this sets how soon a finished result shows up
+// (on average half the interval).
+const POLL_INTERVAL_MS = 1000;
 
 const makeRequestId = (): string => {
   let random = '';
@@ -147,6 +152,19 @@ export const DocumentsStep: React.FC<DocumentsStepProps> = ({
   });
 
   const session = sessionQuery.data;
+
+  // Times the AI-processing wait as the user experiences it: from the first
+  // time this screen sees the session processing until it finishes.
+  const processingTraceRef = useRef<PerfTrace | null>(null);
+  useEffect(() => {
+    if (session?.status === 'processing' && !processingTraceRef.current) {
+      processingTraceRef.current = startTrace('ai-processing-wait');
+    } else if (session && session.status !== 'processing' && processingTraceRef.current) {
+      processingTraceRef.current.mark(session.status);
+      processingTraceRef.current.end();
+      processingTraceRef.current = null;
+    }
+  }, [session]);
 
   const deliveredRef = useRef<string | null>(null);
   useEffect(() => {

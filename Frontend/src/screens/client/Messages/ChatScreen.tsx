@@ -20,6 +20,7 @@ import type { ChatMessage } from '../../../types/domain';
 import type { ClientStackScreenProps } from '../../../types/navigation';
 import { formatDateTime } from '../../../utils/format';
 import { colors } from '../../../theme';
+import { usePollWhileFocused } from '../../../hooks/useScreenFocused';
 
 export const ChatScreen: React.FC<ClientStackScreenProps<'Chat'>> = ({
   navigation,
@@ -33,10 +34,13 @@ export const ChatScreen: React.FC<ClientStackScreenProps<'Chat'>> = ({
   const [isPhotoOpen, setIsPhotoOpen] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
+  // Poll only while this screen is visible (see usePollWhileFocused).
+  const pollWhileFocused = usePollWhileFocused();
+
   const messagesQuery = useQuery({
     queryKey: ['messages', chatId],
     queryFn: () => chatApi.getMessages(chatId),
-    refetchInterval: 5000,
+    refetchInterval: pollWhileFocused(5000),
   });
 
   const markReadMutation = useMutation({

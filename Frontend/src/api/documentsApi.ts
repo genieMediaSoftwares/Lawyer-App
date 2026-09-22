@@ -1,4 +1,4 @@
-import { apiClient, unwrap } from './apiClient';
+import { apiClient, unwrap, UPLOAD_TIMEOUT_MS } from './apiClient';
 import { env } from '../config/env';
 import type { ApiSuccess } from '../types/api';
 import type { AppDocument } from '../types/domain';
@@ -66,6 +66,7 @@ export const documentsApi = {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: UPLOAD_TIMEOUT_MS,
       },
     );
     return unwrap(response);
@@ -79,6 +80,7 @@ export const documentsApi = {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: UPLOAD_TIMEOUT_MS,
       },
     );
     return unwrap(response);

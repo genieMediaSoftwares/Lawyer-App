@@ -91,10 +91,7 @@ export const LawyerClientDetailsScreen: React.FC<
   const caseClientId = clientOf(caseItem?.client)?._id ?? null;
   const mismatch = Boolean(caseItem && caseClientId && String(caseClientId) !== clientId);
 
-  const refresh = () => {
-    void clientQuery.refetch();
-    void caseQuery.refetch();
-  };
+  const refresh = () => Promise.all([clientQuery.refetch(), caseQuery.refetch()]);
 
   return (
     <DetailScaffold
@@ -110,7 +107,6 @@ export const LawyerClientDetailsScreen: React.FC<
           ? new Error('This case does not belong to this client.')
           : null
       }
-      isRefetching={clientQuery.isRefetching || caseQuery.isRefetching}
       onRefresh={refresh}
     >
       {detail && caseItem ? (

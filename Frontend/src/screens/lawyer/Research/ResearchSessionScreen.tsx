@@ -32,7 +32,8 @@ import type { PickedFile } from '../../../types/ai';
 import type { LawyerStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
 
-const POLL_INTERVAL_MS = 2000;
+// Only while research or a case search is running; see the in-flight guard below.
+const POLL_INTERVAL_MS = 1000;
 
 const SUGGESTIONS = [
   'What statutory provisions may apply here?',
@@ -76,7 +77,16 @@ export const ResearchSessionScreen: React.FC<
     `rs-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
   );
 
+  const lastAppliedRef = useRef<string | null>(null);
+
   const applyConversation = useCallback((conversation: ResearchConversation) => {
+    // Polling returns the same conversation most ticks; rebuilding `turns`
+    // from it re-rendered the whole transcript every second for no change.
+    const snapshot = JSON.stringify(conversation);
+    if (snapshot === lastAppliedRef.current) {
+      return;
+    }
+    lastAppliedRef.current = snapshot;
     setResearch(conversation);
     setTurns(
       conversation.messages.map((message, index) => ({
@@ -124,10 +134,19 @@ export const ResearchSessionScreen: React.FC<
     if (!conversationId || (!isResearchRunning && !isSearchRunning)) {
       return;
     }
+    // Skip a tick while the previous poll is still in flight, so slow
+    // responses on mobile data never stack up overlapping requests.
+    let inFlight = false;
     const timer = setInterval(async () => {
+      if (inFlight) {
+        return;
+      }
+      inFlight = true;
       try {
         applyConversation(await aiApi.getResearchConversation(conversationId));
       } catch {
+      } finally {
+        inFlight = false;
       }
     }, POLL_INTERVAL_MS);
     return () => clearInterval(timer);

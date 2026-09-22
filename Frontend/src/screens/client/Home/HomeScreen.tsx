@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Pressable, RefreshControl, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -11,6 +11,7 @@ import {
   GenieSectionHeader,
   GenieText,
   GenieWordmark,
+  GenieRefreshControl,
 } from '../../../components';
 import { HowItWorksCarousel } from '../../../components/HowItWorksCarousel';
 import { getCategoryIcon } from '../../../components/icons/CategoryIcons';
@@ -39,9 +40,10 @@ export const HomeScreen: React.FC<ClientTabScreenProps<'Home'>> = ({
     queryFn: () => notificationsApi.list(1, 15),
   });
 
-  const onRefresh = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['notifications'] });
-  }, [queryClient]);
+  const onRefresh = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    [queryClient],
+  );
 
   const unreadCount = notificationsQuery.data?.unreadCount ?? 0;
 
@@ -72,12 +74,7 @@ export const HomeScreen: React.FC<ClientTabScreenProps<'Home'>> = ({
       contentContainerClassName="pb-20"
       scrollViewProps={{
         refreshControl: (
-          <RefreshControl
-            refreshing={notificationsQuery.isRefetching}
-            onRefresh={onRefresh}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={onRefresh} />
         ),
       }}
     >

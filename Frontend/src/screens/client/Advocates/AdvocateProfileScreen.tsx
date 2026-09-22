@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -14,6 +14,7 @@ import {
   GenieText,
   ProfileImageViewer,
   VerifiedBadge,
+  GenieRefreshControl,
 } from '../../../components';
 import {
   BriefcaseIcon,
@@ -209,14 +210,7 @@ export const AdvocateProfileScreen: React.FC<
           contentContainerClassName="px-5 pb-6"
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl
-              refreshing={profileQuery.isRefetching}
-              onRefresh={() => {
-                void profileQuery.refetch();
-              }}
-              tintColor={colors.gold}
-              colors={[colors.gold]}
-            />
+            <GenieRefreshControl onRefresh={() => profileQuery.refetch()} />
           }
         >
           <View className="items-center pt-2">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshControl, View } from 'react-native';
+import { View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 
 import {
@@ -12,6 +12,7 @@ import {
   GenieSkeleton,
   GenieText,
   VerifiedBadge,
+  GenieRefreshControl,
 } from '../../../components';
 import {
   ClockIcon,
@@ -121,14 +122,7 @@ export const ProfileScreen: React.FC<ClientTabScreenProps<'Profile'>> = ({
       contentContainerClassName="pb-20"
       scrollViewProps={{
         refreshControl: (
-          <RefreshControl
-            refreshing={profileQuery.isRefetching}
-            onRefresh={() => {
-              void profileQuery.refetch();
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => profileQuery.refetch()} />
         ),
       }}
     >

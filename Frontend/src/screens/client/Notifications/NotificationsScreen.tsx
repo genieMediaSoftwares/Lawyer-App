@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, View } from 'react-native';
+import { FlatList, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   useInfiniteQuery,
@@ -11,6 +11,7 @@ import {
   GenieErrorState,
   GenieSkeleton,
   GenieText,
+  GenieRefreshControl,
 } from '../../../components';
 import { BellIcon, TrashIcon } from '../../../components/icons/ClientIcons';
 import { BackIcon, MailIcon } from '../../../components/icons/Icons';
@@ -23,6 +24,7 @@ import type { NotificationCategory } from '../../../components/notifications/Not
 import type { AppNotification } from '../../../types/domain';
 import type { ClientStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
+import { usePollWhileFocused } from '../../../hooks/useScreenFocused';
 
 const PAGE_SIZE = 15;
 
@@ -59,6 +61,9 @@ export const NotificationsScreen: React.FC<
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
+  // Poll only while this screen is visible (see usePollWhileFocused).
+  const pollWhileFocused = usePollWhileFocused();
+
   const query = useInfiniteQuery({
     queryKey: ['notifications', 'infinite'],
     queryFn: ({ pageParam }) => notificationsApi.list(pageParam, PAGE_SIZE),
@@ -67,7 +72,7 @@ export const NotificationsScreen: React.FC<
       const { page, pages } = lastPage.pagination;
       return page < pages ? page + 1 : undefined;
     },
-    refetchInterval: 3000,
+    refetchInterval: pollWhileFocused(3000),
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     refetchOnReconnect: true,
@@ -253,14 +258,7 @@ export const NotificationsScreen: React.FC<
           ) : undefined
         }
         refreshControl={
-          <RefreshControl
-            refreshing={query.isRefetching && !query.isFetchingNextPage}
-            onRefresh={() => {
-              void query.refetch();
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => query.refetch()} />
         }
         ListEmptyComponent={
           <View className="items-center rounded-card border-2 border-dashed border-border bg-surface-alt p-8 my-6">

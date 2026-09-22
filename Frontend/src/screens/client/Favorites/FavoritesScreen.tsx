@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { FlatList, RefreshControl, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -9,6 +9,7 @@ import {
   GenieErrorState,
   GenieHeader,
   GenieSkeleton,
+  GenieRefreshControl,
 } from '../../../components';
 import { HeartIcon } from '../../../components/icons/ClientIcons';
 import { favoritesApi } from '../../../api/advocatesApi';
@@ -113,14 +114,7 @@ export const FavoritesScreen: React.FC<ClientStackScreenProps<'Favorites'>> = ({
         windowSize={11}
         removeClippedSubviews
         refreshControl={
-          <RefreshControl
-            refreshing={favoritesQuery.isRefetching}
-            onRefresh={() => {
-              void favoritesQuery.refetch();
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => favoritesQuery.refetch()} />
         }
         ListEmptyComponent={
           <GenieEmptyState

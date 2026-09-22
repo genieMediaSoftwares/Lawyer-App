@@ -9,6 +9,7 @@ import {
   ScrollView,
   View,
 } from 'react-native';
+import { useScreenFocus } from '../hooks/useScreenFocused';
 
 import banner1 from '../assets/images/banner1.png';
 import banner2 from '../assets/images/banner2.png';
@@ -83,6 +84,7 @@ export const GenieHeroCarousel: React.FC<{
   onSlidePress?: (slide: CarouselSlide) => void;
 }> = ({ slides = DEFAULT_SLIDES, onSlidePress }) => {
   const [activeIndex, setActiveIndex] = useState(0);
+  const { focusedRef } = useScreenFocus();
   const scrollViewRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const [containerWidth, setContainerWidth] = useState(
     Dimensions.get('window').width - 32,
@@ -94,6 +96,11 @@ export const GenieHeroCarousel: React.FC<{
     }
 
     const timer = setInterval(() => {
+      // Home stays mounted as the first tab; don't auto-advance (setState +
+      // native scroll) while another screen is showing.
+      if (!focusedRef.current) {
+        return;
+      }
       setActiveIndex(prev => {
         const nextIndex = (prev + 1) % slides.length;
         scrollViewRef.current?.scrollTo({
@@ -105,7 +112,7 @@ export const GenieHeroCarousel: React.FC<{
     }, 5000);
 
     return () => clearInterval(timer);
-  }, [slides.length, containerWidth]);
+  }, [slides.length, containerWidth, focusedRef]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;

@@ -22,6 +22,11 @@ interface RetryableConfig extends InternalAxiosRequestConfig {
   _genieRetry?: boolean;
 }
 
+// File uploads can take far longer than the JSON default (API_TIMEOUT_MS): a
+// multi-MB file on a slow mobile uplink needs well over 20s, so uploads that
+// finish instantly on laptop Wi-Fi were timing out on phones.
+export const UPLOAD_TIMEOUT_MS = 120_000;
+
 export const apiClient: AxiosInstance = axios.create({
   baseURL: env.apiBaseUrl,
   timeout: env.apiTimeoutMs,

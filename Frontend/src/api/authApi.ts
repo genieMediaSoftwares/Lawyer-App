@@ -1,4 +1,4 @@
-import { apiClient, unwrap } from './apiClient';
+import { apiClient, unwrap, UPLOAD_TIMEOUT_MS } from './apiClient';
 import { getDeviceContext } from '../services/device';
 import type { ApiSuccess } from '../types/api';
 import type {
@@ -68,11 +68,14 @@ export const authApi = {
   },
 
   async uploadProfileImage(file: File | { uri: string; name: string; type: string }): Promise<ProfileUser> {
+    // Field name must match the backend's `upload.single("image")` on
+    // POST /auth/profile/image; any other name is rejected by multer with
+    // LIMIT_UNEXPECTED_FILE (400) on every platform.
     const formData = new FormData();
     if (typeof File !== 'undefined' && file instanceof File) {
-      formData.append('profileImage', file);
+      formData.append('image', file);
     } else {
-      formData.append('profileImage', file as any);
+      formData.append('image', file as any);
     }
 
     const response = await apiClient.post<ApiSuccess<ProfileUser>>(
@@ -82,6 +85,7 @@ export const authApi = {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: UPLOAD_TIMEOUT_MS,
       },
     );
     return unwrap(response);

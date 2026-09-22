@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -15,6 +15,7 @@ import {
   GenieSkeletonList,
   GenieStatusBadge,
   GenieText,
+  GenieRefreshControl,
 } from '../../../components';
 import {
   ClockIcon,
@@ -344,14 +345,7 @@ export const HearingsScreen: React.FC<LawyerStackScreenProps<'Hearings'>> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl
-            refreshing={hearingsQuery.isRefetching}
-            onRefresh={() => {
-              void hearingsQuery.refetch();
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => hearingsQuery.refetch()} />
         }
       >
         {renderBody()}

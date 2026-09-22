@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Platform, Pressable, RefreshControl, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -12,6 +12,7 @@ import {
   GenieSkeleton,
   GenieText,
   VerifiedBadge,
+  GenieRefreshControl,
 } from '../../../components';
 import {
   CameraIcon,
@@ -30,6 +31,11 @@ import { useUiStore } from '../../../store/uiStore';
 import type { LawyerVerificationStatus } from '../../../types/lawyer';
 import type { LawyerTabScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
+import { isLawyerVerified } from '../../../utils/verification';
+import { pickProfilePhoto } from '../../../services/profilePhoto';
+import type { ProfilePhotoUpload } from '../../../services/profilePhoto';
+import { startTrace } from '../../../utils/perfTrace';
+import type { PerfTrace } from '../../../utils/perfTrace';
 
 const VERIFICATION: Record<
   LawyerVerificationStatus,
@@ -69,13 +75,16 @@ export const LawyerProfileScreen: React.FC<
     enabled: Boolean(user?.id),
   });
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: ProfilePhotoUpload, trace?: PerfTrace) => {
     setIsUploading(true);
     try {
       await authApi.uploadProfileImage(file);
+      trace?.mark('uploaded');
+      trace?.end();
       await queryClient.invalidateQueries({ queryKey: ['lawyer', 'profile', user?.id] });
       await queryClient.invalidateQueries({ queryKey: ['auth', 'profile'] });
     } catch (err: any) {
+      trace?.end('error');
       Alert.alert(
         'Upload Error',
         err.message || 'Failed to upload profile photo',
@@ -85,25 +94,15 @@ export const LawyerProfileScreen: React.FC<
     }
   };
 
-  const handleSelectImage = () => {
-    if (
-      Platform.OS === 'web' &&
-      typeof globalThis !== 'undefined' &&
-      (globalThis as any).document
-    ) {
-      const doc = (globalThis as any).document;
-      const input = doc.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = async (e: any) => {
-        const file = e.target?.files?.[0];
-        if (file) {
-          await uploadFile(file);
-        }
-      };
-      input.click();
-    } else {
-      Alert.alert('Upload Photo', 'Photo upload is available on web browser.');
+  const handleSelectImage = async () => {
+    try {
+      const trace = startTrace('profile-photo');
+      const photo = await pickProfilePhoto(trace);
+      if (photo) {
+        await uploadFile(photo, trace);
+      }
+    } catch (err: any) {
+      Alert.alert('Upload Error', err?.message || 'Could not open the photo picker');
     }
   };
 
@@ -154,14 +153,7 @@ export const LawyerProfileScreen: React.FC<
       contentContainerClassName="pb-8"
       scrollViewProps={{
         refreshControl: (
-          <RefreshControl
-            refreshing={profileQuery.isRefetching}
-            onRefresh={() => {
-              void profileQuery.refetch();
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => profileQuery.refetch()} />
         ),
       }}
     >
@@ -192,7 +184,7 @@ export const LawyerProfileScreen: React.FC<
           <GenieText variant="heading-md">
             {profile.user?.fullName ?? user?.fullName ?? 'Advocate'}
           </GenieText>
-          {profile.verificationStatus === 'verified' ? (
+          {isLawyerVerified(profile) ? (
             <VerifiedBadge size={18} />
           ) : null}
         </View>

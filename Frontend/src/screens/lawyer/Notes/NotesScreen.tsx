@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -14,6 +14,7 @@ import {
   GenieSearchInput,
   GenieSkeletonList,
   GenieText,
+  GenieRefreshControl,
 } from '../../../components';
 import {
   ClockIcon,
@@ -348,15 +349,7 @@ export const NotesScreen: React.FC<LawyerStackScreenProps<'Notes'>> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl
-            refreshing={noteQueries.some(q => q.isRefetching)}
-            onRefresh={() => {
-              void clientsQuery.refetch();
-              noteQueries.forEach(q => void q.refetch());
-            }}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
-          />
+          <GenieRefreshControl onRefresh={() => Promise.all([clientsQuery.refetch(), ...noteQueries.map(q => q.refetch())])} />
         }
       >
         {renderBody()}

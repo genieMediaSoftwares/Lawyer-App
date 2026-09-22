@@ -33,6 +33,29 @@ const appendFile = (form: FormData, field: string, file: PickedFile): void => {
   } as unknown as Blob);
 };
 
+// Upload progress for React state: forwards only when the whole percentage
+// changes. React Native emits a progress event every 100ms during an upload;
+// passing each one to setState re-rendered the whole screen ~10x/second for
+// the length of the upload, competing with the UI on the JS thread.
+const wholePercentProgress = (
+  onProgress?: (fraction: number) => void,
+): ((event: { loaded: number; total?: number }) => void) | undefined => {
+  if (!onProgress) {
+    return undefined;
+  }
+  let lastPercent = -1;
+  return event => {
+    if (!event.total) {
+      return;
+    }
+    const percent = Math.min(100, Math.floor((event.loaded / event.total) * 100));
+    if (percent !== lastPercent) {
+      lastPercent = percent;
+      onProgress(percent / 100);
+    }
+  };
+};
+
 export interface AnalyzeInput {
   documents: PickedFile[];
   voice?: PickedFile | null;
@@ -214,13 +237,7 @@ export const aiApi = {
       {
         headers: { 'Content-Type': undefined },
         timeout: 180000,
-        onUploadProgress: event => {
-          if (input.onUploadProgress && event.total) {
-            input.onUploadProgress(
-              Math.min(1, event.loaded / event.total),
-            );
-          }
-        },
+        onUploadProgress: wholePercentProgress(input.onUploadProgress),
       },
     );
 
@@ -242,11 +259,7 @@ export const aiApi = {
       {
         headers: { 'Content-Type': undefined },
         timeout: 240000,
-        onUploadProgress: event => {
-          if (onUploadProgress && event.total) {
-            onUploadProgress(Math.min(1, event.loaded / event.total));
-          }
-        },
+        onUploadProgress: wholePercentProgress(onUploadProgress),
       },
     );
     return unwrap(response);

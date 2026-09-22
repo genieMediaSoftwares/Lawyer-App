@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Platform, Pressable, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -19,6 +19,11 @@ import { lawyerApi } from '../../../api/lawyerApi';
 import { useAuthStore } from '../../../store/authStore';
 import type { LawyerStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
+import { isLawyerVerified } from '../../../utils/verification';
+import { pickProfilePhoto } from '../../../services/profilePhoto';
+import type { ProfilePhotoUpload } from '../../../services/profilePhoto';
+import { startTrace } from '../../../utils/perfTrace';
+import type { PerfTrace } from '../../../utils/perfTrace';
 
 const InfoRow: React.FC<{ label: string; value: string; isLast?: boolean }> = ({
   label,
@@ -53,13 +58,16 @@ export const LawyerMyProfileScreen: React.FC<
 
   const user = profileQuery.data?.user;
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: ProfilePhotoUpload, trace?: PerfTrace) => {
     setIsUploading(true);
     try {
       await authApi.uploadProfileImage(file);
+      trace?.mark('uploaded');
+      trace?.end();
       await queryClient.invalidateQueries({ queryKey: ['lawyer', 'profile', authUser?.id] });
       await queryClient.invalidateQueries({ queryKey: ['auth', 'profile'] });
     } catch (err: any) {
+      trace?.end('error');
       Alert.alert(
         'Upload Error',
         err.message || 'Failed to upload profile photo',
@@ -69,25 +77,15 @@ export const LawyerMyProfileScreen: React.FC<
     }
   };
 
-  const handleSelectImage = () => {
-    if (
-      Platform.OS === 'web' &&
-      typeof globalThis !== 'undefined' &&
-      (globalThis as any).document
-    ) {
-      const doc = (globalThis as any).document;
-      const input = doc.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = async (e: any) => {
-        const file = e.target?.files?.[0];
-        if (file) {
-          await uploadFile(file);
-        }
-      };
-      input.click();
-    } else {
-      Alert.alert('Upload Photo', 'Photo upload is available on web browser.');
+  const handleSelectImage = async () => {
+    try {
+      const trace = startTrace('profile-photo');
+      const photo = await pickProfilePhoto(trace);
+      if (photo) {
+        await uploadFile(photo, trace);
+      }
+    } catch (err: any) {
+      Alert.alert('Upload Error', err?.message || 'Could not open the photo picker');
     }
   };
 
@@ -146,7 +144,7 @@ export const LawyerMyProfileScreen: React.FC<
 
         <View className="mt-3 flex-row items-center gap-1">
           <GenieText variant="heading-md">{user.fullName}</GenieText>
-          {user.isVerified ? <VerifiedBadge size={18} /> : null}
+          {isLawyerVerified(profileQuery.data) ? <VerifiedBadge size={18} /> : null}
         </View>
 
         <GenieText
