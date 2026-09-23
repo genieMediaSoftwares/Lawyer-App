@@ -7,6 +7,28 @@ const Issue = require("../../models/Issue");
 const AiConversation = require("../../models/AiConversation");
 const Notification = require("../../models/Notification");
 const Chat = require("../../models/Chat");
+const Payment = require("../../models/Payment");
+const Subscription = require("../../models/Subscription");
+const Review = require("../../models/Review");
+const AuditLog = require("../../models/AuditLog");
+const Setting = require("../../models/Setting");
+const LegalDocument = require("../../models/LegalDocument");
+
+const logAuditAction = async (req, action, targetModel = "", targetId = "", details = {}) => {
+  try {
+    await AuditLog.create({
+      performedBy: req.user?._id || req.user?.id,
+      action,
+      targetModel,
+      targetId: targetId ? targetId.toString() : "",
+      details,
+      ipAddress: req.ip || req.headers["x-forwarded-for"] || "",
+      userAgent: req.get("User-Agent") || "",
+    });
+  } catch (err) {
+    console.error("Failed to record audit log:", err.message);
+  }
+};
 
 exports.getAdminDashboardStats = async (req, res, next) => {
   try {
@@ -525,3 +547,540 @@ exports.getReportData = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.getClientById = async (req, res, next) => {
+  try {
+    const { clientId } = req.params;
+    const client = await User.findOne({ _id: clientId, role: "client" }).select("-password");
+    if (!client) {
+      return res.status(404).json({ success: false, message: "Client not found" });
+    }
+    const cases = await Case.find({ client: clientId }).populate("assignedLawyer", "fullName email");
+    const appointments = await Appointment.find({ client: clientId }).populate("lawyer", "fullName email");
+    const documents = await Document.find({ user: clientId });
+    const issues = await Issue.find({ clientId });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...client.toObject(),
+        cases,
+        appointments,
+        documents,
+        issues,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateClientStatus = async (req, res, next) => {
+  try {
+    const { clientId } = req.params;
+    const { isActive } = req.body;
+    const client = await User.findOneAndUpdate({ _id: clientId, role: "client" }, { isActive }, { new: true }).select("-password");
+    if (!client) {
+      return res.status(404).json({ success: false, message: "Client not found" });
+    }
+    await logAuditAction(req, "update_client_status", "User", clientId, { isActive });
+    res.status(200).json({ success: true, message: "Client status updated successfully", data: client });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getLawyerById = async (req, res, next) => {
+  try {
+    const { lawyerId } = req.params;
+    const lawyer = await Lawyer.findById(lawyerId).populate("user", "-password");
+    if (!lawyer) {
+      return res.status(404).json({ success: false, message: "Lawyer profile not found" });
+    }
+    const userId = lawyer.user?._id;
+    const cases = userId ? await Case.find({ assignedLawyer: userId }).populate("client", "fullName email") : [];
+    const appointments = userId ? await Appointment.find({ lawyer: userId }).populate("client", "fullName email") : [];
+    const reviews = userId ? await Review.find({ lawyer: userId }).populate("client", "fullName email") : [];
+    const subscription = userId ? await Subscription.findOne({ user: userId }).sort({ createdAt: -1 }) : null;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...lawyer.toObject(),
+        cases,
+        appointments,
+        reviews,
+        subscription,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateLawyerStatus = async (req, res, next) => {
+  try {
+    const { lawyerId } = req.params;
+    const { isActive, verificationStatus } = req.body;
+
+    const lawyer = await Lawyer.findById(lawyerId).populate("user");
+    if (!lawyer) {
+      return res.status(404).json({ success: false, message: "Lawyer not found" });
+    }
+    if (verificationStatus) {
+      lawyer.verificationStatus = verificationStatus;
+      await lawyer.save();
+    }
+    if (isActive !== undefined && lawyer.user) {
+      await User.findByIdAndUpdate(lawyer.user._id, { isActive });
+    }
+    await logAuditAction(req, "update_lawyer_status", "Lawyer", lawyerId, { isActive, verificationStatus });
+    res.status(200).json({ success: true, message: "Lawyer status updated successfully", data: lawyer });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getCaseById = async (req, res, next) => {
+  try {
+    const { caseId } = req.params;
+    const caseItem = await Case.findById(caseId)
+      .populate("client", "-password")
+      .populate({ path: "assignedLawyer", populate: { path: "user", select: "-password" } })
+      .populate("proposals.lawyer", "fullName email profileImage");
+    if (!caseItem) {
+      return res.status(404).json({ success: false, message: "Case not found" });
+    }
+    const appointments = await Appointment.find({ case: caseId });
+    const documents = await Document.find({ case: caseId });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...caseItem.toObject(),
+        appointments,
+        caseDocuments: documents,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getAppointments = async (req, res, next) => {
+  try {
+    const { status, search, page = 1, limit = 20 } = req.query;
+    const query = {};
+    if (status && status !== "all") query.status = status;
+
+    let appointments = await Appointment.find(query)
+      .populate("client", "fullName email mobile")
+      .populate("lawyer", "fullName email mobile")
+      .populate("case", "title caseNumber")
+      .sort({ createdAt: -1 });
+
+    if (search) {
+      const regex = new RegExp(search, "i");
+      appointments = appointments.filter(
+        (a) =>
+          (a.client && regex.test(a.client.fullName)) ||
+          (a.lawyer && regex.test(a.lawyer.fullName)) ||
+          regex.test(a.timeSlot) ||
+          regex.test(a.status)
+      );
+    }
+
+    const total = appointments.length;
+    const skip = (page - 1) * limit;
+    const paginated = appointments.slice(skip, skip + Number(limit));
+
+    res.status(200).json({
+      success: true,
+      count: paginated.length,
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / limit),
+      data: paginated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getPayments = async (req, res, next) => {
+  try {
+    const { status, search, page = 1, limit = 20 } = req.query;
+    const query = {};
+    if (status && status !== "all") query.status = status;
+
+    let payments = await Payment.find(query)
+      .populate("client", "fullName email mobile")
+      .populate("lawyer", "fullName email mobile")
+      .populate("appointment")
+      .populate("case", "title")
+      .sort({ createdAt: -1 });
+
+    if (search) {
+      const regex = new RegExp(search, "i");
+      payments = payments.filter(
+        (p) =>
+          (p.client && regex.test(p.client.fullName)) ||
+          (p.lawyer && regex.test(p.lawyer.fullName)) ||
+          regex.test(p.razorpayPaymentId || "") ||
+          regex.test(p.purpose || "")
+      );
+    }
+
+    const total = payments.length;
+    const skip = (page - 1) * limit;
+    const paginated = payments.slice(skip, skip + Number(limit));
+
+    res.status(200).json({
+      success: true,
+      count: paginated.length,
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / limit),
+      data: paginated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.processRefund = async (req, res, next) => {
+  try {
+    const { paymentId } = req.params;
+    const { reason } = req.body;
+
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      return res.status(404).json({ success: false, message: "Payment transaction not found" });
+    }
+    payment.status = "refunded";
+    await payment.save();
+
+    await logAuditAction(req, "process_refund", "Payment", paymentId, { amount: payment.amount, reason });
+
+    res.status(200).json({
+      success: true,
+      message: "Refund processed successfully",
+      data: payment,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getSubscriptions = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (page - 1) * limit;
+    const total = await Subscription.countDocuments();
+    const subscriptions = await Subscription.find()
+      .populate("user", "fullName email mobile role")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    res.status(200).json({
+      success: true,
+      count: subscriptions.length,
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / limit),
+      data: subscriptions,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateSubscription = async (req, res, next) => {
+  try {
+    const { subscriptionId } = req.params;
+    const { plan, status, endDate } = req.body;
+
+    const sub = await Subscription.findById(subscriptionId);
+    if (!sub) {
+      return res.status(404).json({ success: false, message: "Subscription record not found" });
+    }
+    if (plan) sub.plan = plan;
+    if (status) sub.status = status;
+    if (endDate) sub.endDate = endDate;
+    await sub.save();
+
+    await logAuditAction(req, "update_subscription", "Subscription", subscriptionId, { plan, status });
+
+    res.status(200).json({ success: true, message: "Subscription updated successfully", data: sub });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getReviews = async (req, res, next) => {
+  try {
+    const { isReported, search, page = 1, limit = 20 } = req.query;
+    const query = {};
+    if (isReported === "true") query.isReported = true;
+
+    let reviews = await Review.find(query)
+      .populate("client", "fullName email profileImage")
+      .populate("lawyer", "fullName email profileImage")
+      .sort({ createdAt: -1 });
+
+    if (search) {
+      const regex = new RegExp(search, "i");
+      reviews = reviews.filter(
+        (r) =>
+          (r.client && regex.test(r.client.fullName)) ||
+          (r.lawyer && regex.test(r.lawyer.fullName)) ||
+          regex.test(r.review)
+      );
+    }
+
+    const total = reviews.length;
+    const skip = (page - 1) * limit;
+    const paginated = reviews.slice(skip, skip + Number(limit));
+
+    res.status(200).json({
+      success: true,
+      count: paginated.length,
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / limit),
+      data: paginated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateReviewVisibility = async (req, res, next) => {
+  try {
+    const { reviewId } = req.params;
+    const { isHidden, isReported } = req.body;
+
+    const review = await Review.findById(reviewId);
+    if (!review) {
+      return res.status(404).json({ success: false, message: "Review not found" });
+    }
+    if (isHidden !== undefined) review.isHidden = isHidden;
+    if (isReported !== undefined) review.isReported = isReported;
+    await review.save();
+
+    await logAuditAction(req, "update_review", "Review", reviewId, { isHidden, isReported });
+
+    res.status(200).json({ success: true, message: "Review status updated", data: review });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getDisputes = async (req, res, next) => {
+  try {
+    const disputes = await Issue.find({
+      $or: [{ category: /dispute/i }, { status: "Assigned" }],
+    })
+      .populate("clientId", "fullName email mobile")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: disputes.length,
+      data: disputes,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getUrgentCases = async (req, res, next) => {
+  try {
+    const urgentCases = await Case.find({
+      $or: [
+        { urgency: { $regex: /urgent|immediate|high/i } },
+        { priority: { $regex: /urgent|high/i } },
+      ],
+    })
+      .populate("client", "fullName email mobile")
+      .populate("assignedLawyer", "fullName email mobile")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: urgentCases.length,
+      data: urgentCases,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getCategories = async (req, res, next) => {
+  try {
+    const categories = [
+      { id: "1", name: "Family Law", description: "Divorce, custody, adoption", status: "active" },
+      { id: "2", name: "Criminal Law", description: "Defense, criminal proceedings, bail", status: "active" },
+      { id: "3", name: "Corporate Law", description: "Business registration, contracts, compliance", status: "active" },
+      { id: "4", name: "Property & Real Estate", description: "Land disputes, property registration", status: "active" },
+      { id: "5", name: "Intellectual Property", description: "Trademarks, patents, copyrights", status: "active" },
+      { id: "6", name: "Labor & Employment", description: "Workplace disputes, employment contracts", status: "active" },
+      { id: "7", name: "Taxation Law", description: "GST, income tax, tax audits", status: "active" },
+    ];
+    res.status(200).json({ success: true, data: categories });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.createCategory = async (req, res, next) => {
+  try {
+    const { name, description } = req.body;
+    await logAuditAction(req, "create_category", "Category", "", { name, description });
+    res.status(201).json({
+      success: true,
+      message: "Category created successfully",
+      data: { id: Date.now().toString(), name, description, status: "active" },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getPromotions = async (req, res, next) => {
+  try {
+    const promotions = [
+      { id: "p1", name: "Launch Special Offer", discount: "20%", code: "GENIE20", active: true },
+      { id: "p2", name: "First Consultation Discount", discount: "15%", code: "FIRSTLEGAL", active: true },
+    ];
+    res.status(200).json({ success: true, data: promotions });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getLegalDocuments = async (req, res, next) => {
+  try {
+    const docs = await LegalDocument.find().sort({ type: 1, createdAt: -1 });
+    res.status(200).json({ success: true, count: docs.length, data: docs });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.createLegalDocument = async (req, res, next) => {
+  try {
+    const { type, version, title, content, effectiveDate, audience, isActive, requiresAcceptance } = req.body;
+    if (isActive) {
+      await LegalDocument.updateMany({ type }, { isActive: false });
+    }
+    const doc = await LegalDocument.create({
+      type,
+      version,
+      title,
+      content,
+      effectiveDate: effectiveDate || new Date(),
+      audience: audience || "all",
+      isActive: isActive || false,
+      requiresAcceptance: requiresAcceptance || false,
+      legallyReviewed: true,
+    });
+    await logAuditAction(req, "create_legal_document", "LegalDocument", doc._id, { type, version, title });
+    res.status(201).json({ success: true, message: "Legal document published successfully", data: doc });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateLegalDocument = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { title, content, isActive, audience } = req.body;
+    const doc = await LegalDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ success: false, message: "Legal document not found" });
+    }
+    if (isActive) {
+      await LegalDocument.updateMany({ type: doc.type }, { isActive: false });
+    }
+    if (title) doc.title = title;
+    if (content) doc.content = content;
+    if (isActive !== undefined) doc.isActive = isActive;
+    if (audience) doc.audience = audience;
+    await doc.save();
+
+    await logAuditAction(req, "update_legal_document", "LegalDocument", id, { title, isActive });
+    res.status(200).json({ success: true, message: "Legal document updated successfully", data: doc });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getAuditLogs = async (req, res, next) => {
+  try {
+    const { action, search, page = 1, limit = 30 } = req.query;
+    const query = {};
+    if (action && action !== "all") query.action = action;
+
+    const skip = (page - 1) * limit;
+    const total = await AuditLog.countDocuments(query);
+    const logs = await AuditLog.find(query)
+      .populate("performedBy", "fullName email role")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    res.status(200).json({
+      success: true,
+      count: logs.length,
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / limit),
+      data: logs,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getSettings = async (req, res, next) => {
+  try {
+    let settings = await Setting.findOne({ user: req.user._id });
+    if (!settings) {
+      settings = await Setting.create({
+        user: req.user._id,
+        pushNotifications: true,
+        emailNotifications: true,
+        darkMode: false,
+        language: "English",
+        twoFactorAuthentication: false,
+      });
+    }
+    res.status(200).json({ success: true, data: settings });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateSettings = async (req, res, next) => {
+  try {
+    const { pushNotifications, emailNotifications, darkMode, language, twoFactorAuthentication } = req.body;
+    let settings = await Setting.findOne({ user: req.user._id });
+    if (!settings) {
+      settings = new Setting({ user: req.user._id });
+    }
+    if (pushNotifications !== undefined) settings.pushNotifications = pushNotifications;
+    if (emailNotifications !== undefined) settings.emailNotifications = emailNotifications;
+    if (darkMode !== undefined) settings.darkMode = darkMode;
+    if (language !== undefined) settings.language = language;
+    if (twoFactorAuthentication !== undefined) settings.twoFactorAuthentication = twoFactorAuthentication;
+
+    await settings.save();
+    await logAuditAction(req, "update_admin_settings", "Setting", settings._id, req.body);
+    res.status(200).json({ success: true, message: "Settings updated successfully", data: settings });
+  } catch (error) {
+    next(error);
+  }
+};
+
