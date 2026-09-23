@@ -1,6 +1,7 @@
 "use client";
 
-import React, { use } from "react";
+import React from "react";
+import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/lib/api/adminApi";
 import { ArrowLeft, ShieldCheck, CheckCircle, XCircle, Award, FileText, Phone, Mail, MapPin, Calendar, Star, Briefcase } from "lucide-react";
@@ -8,9 +9,9 @@ import { formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "sonner";
 
-export default function LawyerDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const lawyerId = resolvedParams.id;
+export default function LawyerDetailPage() {
+  const routeParams = useParams<{ id: string }>();
+  const lawyerId = Array.isArray(routeParams?.id) ? routeParams.id[0] : routeParams?.id || "";
   const queryClient = useQueryClient();
 
   const { data: lawyer, isLoading, isError } = useQuery({

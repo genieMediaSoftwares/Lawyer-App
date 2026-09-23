@@ -1,15 +1,16 @@
 "use client";
 
-import React, { use } from "react";
+import React from "react";
+import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "@/lib/api/adminApi";
 import { ArrowLeft, Mail, Phone, MapPin, Briefcase, Calendar, FileText, AlertTriangle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import Link from "next/link";
 
-export default function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const clientId = resolvedParams.id;
+export default function ClientDetailPage() {
+  const routeParams = useParams<{ id: string }>();
+  const clientId = Array.isArray(routeParams?.id) ? routeParams.id[0] : routeParams?.id || "";
 
   const { data: client, isLoading, isError } = useQuery({
     queryKey: ["admin", "client", clientId],
