@@ -16,6 +16,7 @@ import {
   GenieNotice,
   GenieSkeletonList,
   GenieText,
+  GenieAiDisclaimer,
 } from '../../../components';
 import {
   FileIcon,
@@ -380,6 +381,8 @@ export const ResearchSessionScreen: React.FC<
         subtitle={caseTitle}
         onBack={() => navigation.goBack()}
       />
+
+      <GenieAiDisclaimer className="px-5 pb-1 pt-1" />
 
       <KeyboardAvoidingView
         className="flex-1"

@@ -1,6 +1,8 @@
 const Review = require("../../models/Review");
 const notificationService = require("../../services/notification/notificationService");
 const Lawyer = require("../../models/Lawyer");
+const Case = require("../../models/Case");
+const Appointment = require("../../models/Appointment");
 const ApiResponse = require("../../config/ApiResponse");
 
 class ReviewController {
@@ -13,10 +15,41 @@ class ReviewController {
         return ApiResponse.error(res, "Lawyer ID, rating, and review text are required.", 400);
       }
 
+      const ratingValue = Number(rating);
+      if (!Number.isFinite(ratingValue) || ratingValue < 1 || ratingValue > 5) {
+        return ApiResponse.error(res, "Rating must be between 1 and 5.", 400);
+      }
+
+      // Only a client who actually worked with this lawyer may review them:
+      // a case assigned to them, or a booked appointment. Without this any
+      // signed-in user could review any lawyer and move their rating.
+      const [workedTogether, hadAppointment] = await Promise.all([
+        Case.exists({ client, assignedLawyer: lawyerId }),
+        Appointment.exists({ client, lawyer: lawyerId }),
+      ]);
+
+      if (!workedTogether && !hadAppointment) {
+        return ApiResponse.error(
+          res,
+          "You can review an advocate only after a consultation or case with them.",
+          403
+        );
+      }
+
+      // One review per advocate per client, so a rating cannot be stacked.
+      const existing = await Review.findOne({ lawyer: lawyerId, client });
+      if (existing) {
+        return ApiResponse.error(
+          res,
+          "You have already reviewed this advocate.",
+          409
+        );
+      }
+
       const newReview = await Review.create({
         lawyer: lawyerId,
         client,
-        rating,
+        rating: ratingValue,
         review,
       });
 
@@ -54,6 +87,10 @@ class ReviewController {
         query.lawyer = lawyerId;
       } else if (req.user.role === "lawyer") {
         query.lawyer = req.user._id;
+      } else {
+        // A client asking without a lawyerId gets their own reviews, not every
+        // review on the platform (which exposed other clients' names and text).
+        query.client = req.user._id;
       }
 
       const reviews = await Review.find(query)

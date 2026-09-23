@@ -268,6 +268,17 @@ export const LawyerProfileScreen: React.FC<
         />
         <View className="ml-4 h-px bg-border" />
         <GenieSettingsRow
+          label="Reviews"
+          subtitle={
+            profile.totalReviews === 1
+              ? '1 client review'
+              : `${profile.totalReviews} client reviews`
+          }
+          icon={<StarIcon size={18} color={colors.white} />}
+          onPress={() => navigation.navigate('LawyerReviews')}
+        />
+        <View className="ml-4 h-px bg-border" />
+        <GenieSettingsRow
           label="Subscription"
           subtitle={`${profile.subscriptionPlan} plan`}
           icon={<CrownIcon size={18} color={colors.white} />}

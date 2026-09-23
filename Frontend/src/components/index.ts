@@ -12,3 +12,6 @@ export { GoogleButton } from './GoogleButton';
 export { Logo } from './Logo';
 export { RolePicker } from './RolePicker';
 export * from './documents';
+export * from './reviews';
+export * from './appointments';
+export * from './legal';

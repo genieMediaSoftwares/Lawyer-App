@@ -16,6 +16,7 @@ import {
   GenieMicButton,
   GenieNotice,
   GenieText,
+  GenieAiDisclaimer,
 } from '../../../components';
 import {
   ChevronRightIcon,
@@ -295,6 +296,8 @@ export const AiAssistantScreen: React.FC<
         title="AI Smart Case Assistant"
         onBack={() => navigation.goBack()}
       />
+
+      <GenieAiDisclaimer className="px-5 pb-1 pt-1" />
 
       <KeyboardAvoidingView
         className="flex-1"

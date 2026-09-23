@@ -914,7 +914,18 @@ class CaseController {
         return ApiResponse.error(res, "Case not found.", 404);
       }
 
-      caseItem.rating = Number(rating);
+      // Only the client who owns the case may rate it. Without this check any
+      // signed-in user could overwrite the rating on any case by id.
+      if (caseItem.client.toString() !== req.user._id.toString()) {
+        return ApiResponse.error(res, "You can only review your own case.", 403);
+      }
+
+      const ratingValue = Number(rating);
+      if (!Number.isFinite(ratingValue) || ratingValue < 1 || ratingValue > 5) {
+        return ApiResponse.error(res, "Rating must be between 1 and 5.", 400);
+      }
+
+      caseItem.rating = ratingValue;
       caseItem.review = review;
       await caseItem.save();
 

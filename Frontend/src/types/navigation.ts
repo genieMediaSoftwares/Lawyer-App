@@ -26,6 +26,7 @@ export type ClientStackParamList = {
   Documents: undefined;
   Settings: undefined;
   MyProfileDetail: undefined;
+  Appointments: undefined;
   PersonalInformation: undefined;
   RecentActivity: undefined;
   ChangePassword: undefined;
@@ -65,6 +66,7 @@ export type LawyerStackParamList = {
   } | undefined;
   Notes: undefined;
   LawyerMyProfile: undefined;
+  LawyerReviews: undefined;
   ProfessionalDetails: undefined;
   Subscription: undefined;
   LeadDetails: { caseId: string };

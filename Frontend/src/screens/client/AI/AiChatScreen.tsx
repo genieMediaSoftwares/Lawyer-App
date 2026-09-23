@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GenieHeader, GenieText } from '../../../components/ui';
+import { GenieAiDisclaimer, GenieHeader, GenieText } from '../../../components/ui';
 import {
   ChevronRightIcon,
   RefreshIcon,
@@ -192,6 +192,8 @@ How can I assist you with using GenieLaw today?`,
         subtitle="App Help & Feature Guide"
         onBack={() => navigation.goBack()}
       />
+
+      <GenieAiDisclaimer className="px-5 pb-1 pt-1" />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

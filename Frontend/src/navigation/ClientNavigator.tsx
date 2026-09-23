@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { GenieBottomNavigation, GenieDrawer } from '../components/navigation';
 import { CreateCaseSheet } from '../components/CreateCaseSheet';
 import { ProfileImageViewer } from '../components/ui/ProfileImageViewer';
+import { LegalAcceptanceGate } from '../components/legal';
 import {
   BellIcon,
   BriefcaseIcon,
@@ -36,6 +37,7 @@ import { ChatScreen } from '../screens/client/Messages/ChatScreen';
 import { DocumentsScreen } from '../screens/client/Documents/DocumentsScreen';
 import { SettingsScreen } from '../screens/client/Settings/SettingsScreen';
 import { MyProfileDetailScreen } from '../screens/client/Profile/MyProfileDetailScreen';
+import { AppointmentsScreen } from '../screens/client/Appointments/AppointmentsScreen';
 import { PersonalInformationScreen } from '../screens/client/Profile/PersonalInformationScreen';
 import { RecentActivityScreen } from '../screens/client/Profile/RecentActivityScreen';
 import { ChangePasswordScreen } from '../screens/client/Settings/ChangePasswordScreen';
@@ -225,6 +227,8 @@ const ClientOverlays: React.FC = () => {
         onAvatarPress={() => setIsProfileModalOpen(true)}
       />
 
+      <LegalAcceptanceGate />
+
       <ProfileImageViewer
         visible={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
@@ -275,6 +279,7 @@ export const ClientNavigator: React.FC = () => (
       <Stack.Screen name="Documents" component={DocumentsScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="MyProfileDetail" component={MyProfileDetailScreen} />
+      <Stack.Screen name="Appointments" component={AppointmentsScreen} />
       <Stack.Screen name="PersonalInformation" component={PersonalInformationScreen} />
       <Stack.Screen name="RecentActivity" component={RecentActivityScreen} />
       <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />

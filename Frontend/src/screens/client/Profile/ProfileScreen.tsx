@@ -59,6 +59,13 @@ export const ProfileScreen: React.FC<ClientTabScreenProps<'Profile'>> = ({
       onPress: () => navigation.navigate('PersonalInformation'),
     },
     {
+      id: 'appointments',
+      title: 'Appointments',
+      subtitle: 'Your consultations with advocates',
+      icon: <ClockIcon size={20} color={colors.white} />,
+      onPress: () => navigation.navigate('Appointments'),
+    },
+    {
       id: 'my-documents',
       title: 'My Documents',
       subtitle: 'Manage uploaded legal files',

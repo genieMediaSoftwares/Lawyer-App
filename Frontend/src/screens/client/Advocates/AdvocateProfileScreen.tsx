@@ -15,6 +15,10 @@ import {
   ProfileImageViewer,
   VerifiedBadge,
   GenieRefreshControl,
+  GenieSkeletonList,
+  ReviewCard,
+  WriteReviewSheet,
+  BookConsultationSheet,
 } from '../../../components';
 import {
   BriefcaseIcon,
@@ -23,8 +27,13 @@ import {
   StarIcon,
 } from '../../../components/icons/ClientIcons';
 import { advocatesApi, favoritesApi } from '../../../api/advocatesApi';
+import { reviewsApi } from '../../../api/reviewsApi';
+import { appointmentsApi } from '../../../api/appointmentsApi';
+import { casesApi } from '../../../api/casesApi';
 import { chatApi } from '../../../api/chatApi';
 import { formatExperience, formatRating } from '../../../utils/format';
+import { toAppError } from '../../../utils/errors';
+import { useAuthStore } from '../../../store/authStore';
 import type { FavoriteEntry } from '../../../types/domain';
 import type { ClientStackScreenProps } from '../../../types/navigation';
 import { colors } from '../../../theme';
@@ -57,6 +66,80 @@ export const AdvocateProfileScreen: React.FC<
   const favoritesQuery = useQuery({
     queryKey: ['favorites'],
     queryFn: favoritesApi.list,
+  });
+
+  const currentUserId = useAuthStore(state => state.user?.id);
+  const [isWritingReview, setIsWritingReview] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+
+  const reviewsQuery = useQuery({
+    queryKey: ['reviews', userId],
+    queryFn: () => reviewsApi.listForLawyer(userId),
+  });
+
+  // The backend accepts a review only from a client who actually worked with
+  // this advocate, so the button appears only when that is already true.
+  const myCasesQuery = useQuery({
+    queryKey: ['cases', 'list'],
+    queryFn: casesApi.list,
+  });
+
+  const idOf = (value: unknown): string => {
+    if (value && typeof value === 'object' && '_id' in value) {
+      return String((value as { _id?: unknown })._id ?? '');
+    }
+    return value == null ? '' : String(value);
+  };
+
+  const workedWithAdvocate = useMemo(
+    () => (myCasesQuery.data ?? []).some(item => idOf(item.assignedLawyer) === userId),
+    [myCasesQuery.data, userId],
+  );
+
+  const alreadyReviewed = useMemo(
+    () =>
+      (reviewsQuery.data ?? []).some(
+        item => currentUserId && idOf(item.client) === String(currentUserId),
+      ),
+    [reviewsQuery.data, currentUserId],
+  );
+
+  const submitReview = useMutation({
+    mutationFn: (input: { rating: number; review: string }) =>
+      reviewsApi.create({ lawyerId: userId, ...input }),
+    onSuccess: async () => {
+      setIsWritingReview(false);
+      setReviewError(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['reviews', userId] }),
+        queryClient.invalidateQueries({ queryKey: ['advocate', userId] }),
+      ]);
+    },
+    onError: error => setReviewError(toAppError(error).message),
+  });
+
+  const reportReview = useMutation({
+    mutationFn: (reviewId: string) => reviewsApi.report(reviewId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['reviews', userId] }),
+  });
+
+  const [isBooking, setIsBooking] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+
+  const bookConsultation = useMutation({
+    mutationFn: (input: {
+      date: string;
+      timeSlot: string;
+      mode: 'Chat' | 'In-Person';
+      notes?: string;
+    }) => appointmentsApi.book({ lawyer: userId, ...input }),
+    onSuccess: async () => {
+      setIsBooking(false);
+      setBookingError(null);
+      await queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      navigation.navigate('Appointments');
+    },
+    onError: error => setBookingError(toAppError(error).message),
   });
 
   const isFavorite = useMemo(
@@ -291,9 +374,54 @@ export const AdvocateProfileScreen: React.FC<
               </GenieText>
             )}
           </Section>
+
+          <Section title={`Reviews${reviewCount > 0 ? ` (${reviewCount})` : ''}`}>
+            {workedWithAdvocate && !alreadyReviewed ? (
+              <GenieButton
+                label="Write a review"
+                variant="outline"
+                fullWidth={false}
+                className="mb-3"
+                onPress={() => {
+                  setReviewError(null);
+                  setIsWritingReview(true);
+                }}
+              />
+            ) : null}
+
+            {reviewsQuery.isPending ? (
+              <GenieSkeletonList count={2} />
+            ) : reviewsQuery.isError ? (
+              <GenieErrorState
+                message={reviewsQuery.error.message}
+                onRetry={() => reviewsQuery.refetch()}
+              />
+            ) : (reviewsQuery.data ?? []).length === 0 ? (
+              <GenieText variant="body-sm" tone="muted">
+                No reviews yet.
+              </GenieText>
+            ) : (
+              (reviewsQuery.data ?? []).map(item => (
+                <ReviewCard
+                  key={item._id}
+                  review={item}
+                  onReport={review => reportReview.mutate(review._id)}
+                />
+              ))
+            )}
+          </Section>
         </ScrollView>
 
         <View className="border-t border-border bg-surface px-5 py-3">
+          <GenieButton
+            label="Book consultation"
+            variant="outline"
+            className="mb-2"
+            onPress={() => {
+              setBookingError(null);
+              setIsBooking(true);
+            }}
+          />
           <GenieButton
             label="Chat Now"
             loadingLabel="Opening chat..."
@@ -309,6 +437,25 @@ export const AdvocateProfileScreen: React.FC<
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       {header}
       {renderBody()}
+
+      <BookConsultationSheet
+        visible={isBooking}
+        lawyerName={profile?.user?.fullName ?? 'This advocate'}
+        consultationFee={profile?.consultationFee ?? null}
+        isSubmitting={bookConsultation.isPending}
+        error={bookingError}
+        onClose={() => setIsBooking(false)}
+        onSubmit={input => bookConsultation.mutate(input)}
+      />
+
+      <WriteReviewSheet
+        visible={isWritingReview}
+        lawyerName={profile?.user?.fullName ?? 'this advocate'}
+        isSubmitting={submitReview.isPending}
+        error={reviewError}
+        onClose={() => setIsWritingReview(false)}
+        onSubmit={input => submitReview.mutate(input)}
+      />
 
       <ProfileImageViewer
         visible={isPhotoOpen}

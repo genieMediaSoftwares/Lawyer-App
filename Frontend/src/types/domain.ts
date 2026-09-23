@@ -347,3 +347,18 @@ export interface AppDocument {
   createdAt: string;
   updatedAt: string;
 }
+
+// A review written by a client about a lawyer (backend Review model).
+export interface LawyerReview {
+  _id: string;
+  lawyer: string | PopulatedUser;
+  client: PopulatedUser | string | null;
+  rating: number;
+  review: string;
+  reply?: string;
+  replyDate?: string | null;
+  isHidden?: boolean;
+  isReported?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

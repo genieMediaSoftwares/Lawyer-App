@@ -68,3 +68,7 @@ export { GenieGrid } from './GenieGrid';
 export type { GenieGridProps } from './GenieGrid';
 export { GenieMicButton } from './GenieMicButton';
 export type { GenieMicButtonProps } from './GenieMicButton';
+export { GenieStarRating } from './GenieStarRating';
+export type { GenieStarRatingProps } from './GenieStarRating';
+export { GenieAiDisclaimer } from './GenieAiDisclaimer';
+export type { GenieAiDisclaimerProps } from './GenieAiDisclaimer';
