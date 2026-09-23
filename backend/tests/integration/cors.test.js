@@ -20,6 +20,10 @@ describe("CORS in production", () => {
     ALLOWED_ORIGINS: "http://127.0.0.1:5174, http://localhost:5174/",
   });
 
+  test("always allows Admin Panel origin https://lawappadmin.vercel.app in production", async () => {
+    expect(await originHeader(app, "https://lawappadmin.vercel.app")).toBe("https://lawappadmin.vercel.app");
+  });
+
   test("allows each listed origin, and echoes it rather than '*'", async () => {
     expect(await originHeader(app, "http://127.0.0.1:5174")).toBe("http://127.0.0.1:5174");
     expect(await originHeader(app, "http://localhost:5174")).toBe("http://localhost:5174");
@@ -39,6 +43,18 @@ describe("CORS in production", () => {
 
     expect(res.status).toBe(204);
     expect(res.headers["access-control-allow-origin"]).toBe("http://127.0.0.1:5174");
+    expect(res.headers["access-control-allow-credentials"]).toBe("true");
+  });
+
+  test("answers preflight for Admin Panel origin https://lawappadmin.vercel.app", async () => {
+    const res = await request(app)
+      .options("/api/auth/login")
+      .set("Origin", "https://lawappadmin.vercel.app")
+      .set("Access-Control-Request-Method", "POST")
+      .set("Access-Control-Request-Headers", "content-type,authorization");
+
+    expect(res.status).toBe(204);
+    expect(res.headers["access-control-allow-origin"]).toBe("https://lawappadmin.vercel.app");
     expect(res.headers["access-control-allow-credentials"]).toBe("true");
   });
 

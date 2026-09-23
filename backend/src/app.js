@@ -71,7 +71,11 @@ if (configuredOrigins.includes("*")) {
       "browser origin explicitly, e.g. http://127.0.0.1:5174,http://localhost:5174"
   );
 }
-const allowedOrigins = new Set(configuredOrigins.filter((origin) => origin !== "*"));
+const DEFAULT_ALLOWED_ORIGINS = ["https://lawappadmin.vercel.app"];
+const allowedOrigins = new Set([
+  ...DEFAULT_ALLOWED_ORIGINS,
+  ...configuredOrigins.filter((origin) => origin !== "*"),
+]);
 
 // Outside production, a browser preview on this machine is always allowed.
 const LOCAL_DEV_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/;

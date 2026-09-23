@@ -31,10 +31,14 @@ connectDB().then(() => {
 
 const server = http.createServer(app);
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+const DEFAULT_ALLOWED_ORIGINS = ["https://lawappadmin.vercel.app"];
+const configuredOrigins = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const allowedOrigins = [
+  ...new Set([...DEFAULT_ALLOWED_ORIGINS, ...configuredOrigins.filter((o) => o !== "*")]),
+];
 
 const io = new Server(server, {
   cors: {
