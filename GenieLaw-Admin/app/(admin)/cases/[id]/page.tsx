@@ -1,114 +1,148 @@
 "use client";
 
-import React from "react";
-import { useParams } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "@/lib/api/adminApi";
-import { ArrowLeft, Briefcase, Calendar, MapPin, User, FileText, CheckCircle2 } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import {
+  ArrowLeft,
+  FileText,
+  Clock,
+  Briefcase,
+  ShieldCheck,
+  Calendar,
+  Flame,
+  MapPin,
+  AlertTriangle,
+} from "lucide-react";
 import Link from "next/link";
-import { toast } from "sonner";
+import { useParams } from "next/navigation";
+import { formatDate, formatDateTime } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export default function CaseDetailPage() {
-  const routeParams = useParams<{ id: string }>();
-  const caseId = Array.isArray(routeParams?.id) ? routeParams.id[0] : routeParams?.id || "";
-  const queryClient = useQueryClient();
+  const params = useParams();
+  const caseId = params.id as string;
+  const [activeTab, setActiveTab] = useState("details");
 
   const { data: caseItem, isLoading, isError } = useQuery({
     queryKey: ["admin", "case", caseId],
     queryFn: () => adminApi.getCaseById(caseId),
+    enabled: !!caseId,
   });
 
-  const updateStatusMutation = useMutation({
-    mutationFn: (status: string) => adminApi.updateCaseStatus(caseId, { status }),
-    onSuccess: () => {
-      toast.success("Case status updated");
-      queryClient.invalidateQueries({ queryKey: ["admin", "case", caseId] });
-    },
-  });
+  if (isLoading) {
+    return (
+      <div className="page-container flex items-center justify-center min-h-[60vh]">
+        <div className="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-sm text-slate-500 ml-3">Loading case details...</p>
+      </div>
+    );
+  }
 
-  if (isLoading) return <div className="p-12 text-center text-gray-500">Loading case details...</div>;
-  if (isError || !caseItem) return <div className="p-12 text-center text-red-500">Case record not found</div>;
+  if (isError || !caseItem) {
+    return (
+      <div className="page-container flex flex-col items-center justify-center min-h-[60vh]">
+        <AlertTriangle className="w-12 h-12 text-red-400 mb-3" />
+        <p className="text-sm font-semibold text-red-600">Case not found</p>
+        <Link href="/cases" className="btn btn-primary mt-4 text-xs">Return to Cases</Link>
+      </div>
+    );
+  }
 
   const client = caseItem.client || {};
   const lawyer = caseItem.assignedLawyer?.user || caseItem.assignedLawyer || {};
-  const proposals = caseItem.proposals || [];
+  const isUrgent = caseItem.urgency?.toLowerCase().includes("urgent");
 
   return (
-    <div className="space-y-6">
+    <div className="page-container">
+      <Link href="/cases" className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 font-medium mb-4">
+        <ArrowLeft className="w-3.5 h-3.5" /> Back to Cases
+      </Link>
+
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/cases" className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-          <ArrowLeft className="w-4 h-4 text-gray-700" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{caseItem.title}</h1>
-          <p className="text-sm text-gray-500">Case Category: {caseItem.category} • Created: {formatDate(caseItem.createdAt)}</p>
+      <div className="card">
+        <div className="card-body">
+          <div className="flex items-start gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                {isUrgent && <Flame className="w-5 h-5 text-red-600 fill-red-600" />}
+                <h1 className="text-xl font-extrabold text-slate-900">{caseItem.title}</h1>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap mt-2">
+                <span className="badge bg-slate-100 text-slate-700 border-slate-200">{caseItem.category}</span>
+                <span className={cn("badge", caseItem.status === "Closed" ? "badge-success" : caseItem.status === "In Progress" ? "bg-blue-50 text-blue-700 border-blue-100" : "badge-warning")}>
+                  {caseItem.status}
+                </span>
+                {isUrgent && <span className="badge badge-danger">Urgent</span>}
+              </div>
+            </div>
+            <span className="text-xs font-mono text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">ID: {caseItem._id?.slice(-8)}</span>
+          </div>
         </div>
       </div>
 
-      {/* Main Info Card */}
-      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
-          <div>
-            <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider block">Current Status</span>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="px-3 py-1 bg-gold/15 text-gold-hover border border-gold/30 rounded-full font-bold text-xs">
-                {caseItem.status}
-              </span>
-              <span className="text-xs font-semibold text-gray-500">Urgency: {caseItem.urgency || "Flexible"}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => updateStatusMutation.mutate("In Progress")}
-              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg font-semibold text-xs hover:bg-blue-700"
-            >
-              Mark In Progress
-            </button>
-            <button
-              onClick={() => updateStatusMutation.mutate("Closed")}
-              className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-semibold text-xs hover:bg-emerald-700"
-            >
-              Mark Closed
-            </button>
+      {/* Case info grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="card">
+          <div className="card-header"><h2 className="text-base font-bold text-slate-900">Case Information</h2></div>
+          <div className="card-body space-y-4">
+            <Info label="Location" value={caseItem.location || "N/A"} icon={MapPin} />
+            <Info label="Court" value={caseItem.court || "N/A"} icon={Briefcase} />
+            <Info label="Priority" value={caseItem.urgency || caseItem.priority || "Flexible"} icon={Flame} />
+            <Info label="Category" value={caseItem.category} icon={FileText} />
+            {caseItem.description && (
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Description</p>
+                <p className="text-sm text-slate-700 leading-relaxed">{caseItem.description}</p>
+              </div>
+            )}
           </div>
         </div>
 
-        <div>
-          <h3 className="text-sm font-bold text-gray-900 mb-1">Description</h3>
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{caseItem.description}</p>
+        <div className="card">
+          <div className="card-header"><h2 className="text-base font-bold text-slate-900">Parties Involved</h2></div>
+          <div className="card-body space-y-4">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Client</p>
+              <p className="text-sm font-semibold text-slate-900">{client.fullName || "N/A"}</p>
+              <p className="text-xs text-slate-500">{client.email || "N/A"}</p>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Assigned Advocate</p>
+              <p className="text-sm font-semibold text-slate-900">{lawyer.fullName || "Unassigned"}</p>
+              {lawyer.email && <p className="text-xs text-slate-500">{lawyer.email}</p>}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Client and Lawyer Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-3">
-          <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-            <User className="w-4 h-4 text-gold" /> Client Information
-          </h3>
-          <div className="text-sm space-y-1.5 text-gray-700">
-            <p><span className="font-semibold">Name:</span> {client.fullName || "N/A"}</p>
-            <p><span className="font-semibold">Email:</span> {client.email || "N/A"}</p>
-            <p><span className="font-semibold">Mobile:</span> {client.mobile || "N/A"}</p>
+      {/* Timeline */}
+      <div className="card">
+        <div className="card-header"><h2 className="text-base font-bold text-slate-900">Timeline</h2></div>
+        <div className="card-body space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-gold shrink-0" />
+            <p className="text-xs text-slate-500">Case created on {formatDateTime(caseItem.createdAt)}</p>
           </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-3">
-          <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-            <Briefcase className="w-4 h-4 text-gold" /> Assigned Lawyer
-          </h3>
-          {lawyer.fullName ? (
-            <div className="text-sm space-y-1.5 text-gray-700">
-              <p><span className="font-semibold">Name:</span> {lawyer.fullName}</p>
-              <p><span className="font-semibold">Email:</span> {lawyer.email}</p>
-              <p><span className="font-semibold">Mobile:</span> {lawyer.mobile || "N/A"}</p>
+          {caseItem.updatedAt && (
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-slate-300 shrink-0" />
+              <p className="text-xs text-slate-500">Last updated {formatDateTime(caseItem.updatedAt)}</p>
             </div>
-          ) : (
-            <p className="text-xs text-gray-400 py-2">No advocate assigned yet</p>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function Info({ label, value, icon: Icon }: { label: string; value: string; icon: any }) {
+  return (
+    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+      {Icon && <Icon className="w-4 h-4 text-slate-400 shrink-0" />}
+      <div>
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{label}</p>
+        <p className="text-sm font-semibold text-slate-900">{value}</p>
       </div>
     </div>
   );

@@ -22,6 +22,8 @@ export const adminApi = {
     api.put(`/admin/lawyers/${id}/verify`, data).then((res) => res.data),
   updateLawyerStatus: (id: string, data: { isActive?: boolean; verificationStatus?: string }) =>
     api.put(`/admin/lawyers/${id}/status`, data).then((res) => res.data),
+  updateLawyerVerification: (id: string, data: { verificationStatus: string; notes?: string }) =>
+    api.put(`/admin/lawyers/${id}/verify`, { status: data.verificationStatus, rejectionReason: data.notes }).then((res) => res.data),
 
   // Cases
   getCases: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
@@ -36,8 +38,8 @@ export const adminApi = {
     api.get("/admin/appointments", { params }).then((res) => res.data),
 
   // Documents
-  getDocuments: (params?: { search?: string; category?: string }) =>
-    api.get("/admin/documents", { params }).then((res) => res.data),
+  getDocuments: (params?: { page?: number; limit?: number; search?: string; category?: string }) =>
+    api.get("/admin/documents", { params }).then((res) => res.data.data || res.data),
 
   // Payments & Refunds
   getPayments: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
@@ -46,36 +48,49 @@ export const adminApi = {
     api.post(`/admin/payments/${paymentId}/refund`, { reason }).then((res) => res.data),
 
   // Subscriptions
-  getSubscriptions: (params?: { page?: number; limit?: number }) =>
+  getSubscriptions: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
     api.get("/admin/subscriptions", { params }).then((res) => res.data),
   updateSubscription: (id: string, data: { plan?: string; status?: string; endDate?: string }) =>
     api.put(`/admin/subscriptions/${id}`, data).then((res) => res.data),
 
   // Reviews & Moderation
-  getReviews: (params?: { page?: number; limit?: number; search?: string; isReported?: string }) =>
+  getReviews: (params?: { page?: number; limit?: number; search?: string; status?: string; isReported?: string }) =>
     api.get("/admin/reviews", { params }).then((res) => res.data),
   updateReviewVisibility: (id: string, data: { isHidden?: boolean; isReported?: boolean }) =>
     api.put(`/admin/reviews/${id}/visibility`, data).then((res) => res.data),
+  moderateReview: (id: string, action: string) =>
+    api.put(`/admin/reviews/${id}/moderate`, { action }).then((res) => res.data),
 
   // Support Tickets & Disputes
   getSupportTickets: (params?: { search?: string; status?: string }) =>
     api.get("/admin/support-tickets", { params }).then((res) => res.data),
   updateSupportTicket: (id: string, status: string) =>
     api.put(`/admin/support-tickets/${id}`, { status }).then((res) => res.data),
-  getDisputes: () => api.get("/admin/disputes").then((res) => res.data),
+  getDisputes: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
+    api.get("/admin/disputes", { params }).then((res) => res.data.data || res.data),
 
   // Categories & Promotions
   getCategories: () => api.get("/admin/categories").then((res) => res.data.data),
   createCategory: (data: { name: string; description?: string }) =>
     api.post("/admin/categories", data).then((res) => res.data),
-  getPromotions: () => api.get("/admin/promotions").then((res) => res.data.data),
+  updateCategory: (id: string, data: { name?: string; description?: string; isActive?: boolean }) =>
+    api.put(`/admin/categories/${id}`, data).then((res) => res.data),
+  deleteCategory: (id: string) => api.delete(`/admin/categories/${id}`).then((res) => res.data),
+  getPromotions: () => api.get("/admin/promotions").then((res) => res.data.data || res.data),
+  createPromotion: (data: { code: string; discount: number; validUntil: string; usageLimit: number }) =>
+    api.post("/admin/promotions", data).then((res) => res.data),
+  togglePromotion: (id: string, active: boolean) =>
+    api.put(`/admin/promotions/${id}`, { active }).then((res) => res.data),
 
   // Notifications & Broadcast
+  getNotifications: (params?: { page?: number; limit?: number }) =>
+    api.get("/admin/notifications", { params }).then((res) => res.data?.data || res.data || []),
   broadcastNotification: (data: { title: string; message: string; targetRole?: string }) =>
     api.post("/admin/notifications/broadcast", data).then((res) => res.data),
 
   // Legal Documents
-  getLegalDocuments: () => api.get("/admin/legal").then((res) => res.data.data),
+  getLegalDocuments: () => api.get("/admin/legal").then((res) => res.data.data || res.data),
+  getLegalDocument: (id: string) => api.get(`/admin/legal/${id}`).then((res) => res.data.data),
   createLegalDocument: (data: any) => api.post("/admin/legal", data).then((res) => res.data),
   updateLegalDocument: (id: string, data: any) => api.put(`/admin/legal/${id}`, data).then((res) => res.data),
 

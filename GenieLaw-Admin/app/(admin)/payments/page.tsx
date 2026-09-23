@@ -3,9 +3,19 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/lib/api/adminApi";
-import { Search, Filter, CreditCard, RefreshCw, DollarSign } from "lucide-react";
+import {
+  Search,
+  CreditCard,
+  RefreshCw,
+  DollarSign,
+  AlertTriangle,
+  ChevronRight,
+  Receipt,
+  Filter,
+} from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function PaymentsPage() {
   const queryClient = useQueryClient();
@@ -13,9 +23,9 @@ export default function PaymentsPage() {
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["admin", "payments", search, status, page],
-    queryFn: () => adminApi.getPayments({ page, limit: 15, search, status }),
+    queryFn: () => adminApi.getPayments({ page, limit: 20, search, status }),
   });
 
   const refundMutation = useMutation({
@@ -33,103 +43,128 @@ export default function PaymentsPage() {
   const payments = data?.data || [];
   const totalPages = data?.pages || 1;
 
+  const statusVariant = (s: string) => {
+    if (s === "completed") return "bg-emerald-50 text-emerald-700 border-emerald-100";
+    if (s === "refunded") return "bg-purple-50 text-purple-700 border-purple-100";
+    if (s === "failed") return "bg-red-50 text-red-700 border-red-100";
+    return "bg-amber-50 text-amber-700 border-amber-100";
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="page-container">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Payments & Financial Transactions</h1>
-        <p className="text-sm text-gray-500">Monitor consultation fees, razorpay transactions, and process refunds</p>
+        <h1 className="section-title">Payments & Transactions</h1>
+        <p className="section-subtitle">Monitor consultation fees, payment transactions, and process refunds</p>
       </div>
 
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search payment ID, client, lawyer..."
-            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold/50"
-          />
-        </div>
-
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Filter className="w-4 h-4 text-gray-400" />
-          <select
-            value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 font-medium focus:outline-none"
-          >
-            <option value="all">All Statuses</option>
-            <option value="completed">Completed</option>
-            <option value="pending">Pending</option>
-            <option value="refunded">Refunded</option>
-            <option value="failed">Failed</option>
-          </select>
+      <div className="card">
+        <div className="card-body flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search payment ID, client, lawyer..."
+              className="search-input"
+            />
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+            <select
+              value={status}
+              onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+              className="form-select w-full sm:w-auto"
+            >
+              <option value="all">All Statuses</option>
+              <option value="completed">Completed</option>
+              <option value="pending">Pending</option>
+              <option value="refunded">Refunded</option>
+              <option value="failed">Failed</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="card">
         {isLoading ? (
-          <div className="p-12 text-center text-sm text-gray-500">Loading payment records...</div>
+          <div className="loading-state">
+            <div className="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin mb-3" />
+            <p className="text-sm text-slate-500 font-medium">Loading payment records...</p>
+          </div>
+        ) : isError ? (
+          <div className="empty-state">
+            <AlertTriangle className="w-10 h-10 text-red-400 mb-2" />
+            <p className="text-sm font-semibold text-red-600">Failed to load payments</p>
+            <button onClick={() => queryClient.invalidateQueries({ queryKey: ["admin", "payments"] })} className="btn btn-secondary mt-3 text-xs">Retry</button>
+          </div>
         ) : payments.length === 0 ? (
-          <div className="p-12 text-center text-sm text-gray-400">No payment transactions recorded</div>
+          <div className="empty-state">
+            <Receipt className="w-10 h-10 text-slate-300 mb-2" />
+            <p className="text-sm font-semibold text-slate-700">No payment transactions recorded</p>
+            <p className="text-xs text-slate-400 mt-1">Completed payments will appear here</p>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <th className="px-6 py-3.5">Transaction ID</th>
-                  <th className="px-6 py-3.5">Client</th>
-                  <th className="px-6 py-3.5">Lawyer</th>
-                  <th className="px-6 py-3.5">Amount</th>
-                  <th className="px-6 py-3.5">Status</th>
-                  <th className="px-6 py-3.5">Date</th>
-                  <th className="px-6 py-3.5 text-right">Refund</th>
+                  <th>Transaction ID</th>
+                  <th>Client</th>
+                  <th>Lawyer</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {payments.map((p: any) => (
-                  <tr key={p._id} className="hover:bg-gray-50/80 transition-colors">
-                    <td className="px-6 py-4 font-mono text-xs text-gray-800">
-                      {p.razorpayPaymentId || p._id}
-                      <p className="text-[10px] text-gray-400 font-sans">{p.purpose || "Consultation"}</p>
+                  <tr key={p._id}>
+                    <td>
+                      <div>
+                        <p className="font-mono text-xs font-bold text-slate-800">{p.razorpayPaymentId || p._id}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{p.purpose || "Consultation"}</p>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-xs font-medium text-gray-900">{p.client?.fullName || "N/A"}</td>
-                    <td className="px-6 py-4 text-xs font-medium text-gray-800">{p.lawyer?.fullName || "N/A"}</td>
-                    <td className="px-6 py-4 font-bold text-gray-900">{formatCurrency(p.amount, p.currency)}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          p.status === "completed"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : p.status === "refunded"
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-amber-100 text-amber-800"
-                        }`}
-                      >
-                        {p.status}
-                      </span>
+                    <td className="text-xs font-medium text-slate-800">{p.client?.fullName || "N/A"}</td>
+                    <td className="text-xs font-medium text-slate-800">{p.lawyer?.fullName || "N/A"}</td>
+                    <td>
+                      <span className="font-bold text-slate-900 text-sm">{formatCurrency(p.amount, p.currency)}</span>
                     </td>
-                    <td className="px-6 py-4 text-xs text-gray-500">{formatDate(p.createdAt)}</td>
-                    <td className="px-6 py-4 text-right">
+                    <td>
+                      <span className={cn("badge", statusVariant(p.status))}>{p.status}</span>
+                    </td>
+                    <td className="text-xs text-slate-500">{formatDate(p.createdAt)}</td>
+                    <td className="text-right">
                       {p.status === "completed" ? (
                         <button
                           onClick={() => {
                             const reason = prompt("Enter reason for refund:");
                             if (reason) refundMutation.mutate({ paymentId: p._id, reason });
                           }}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition-colors"
+                          className="action-btn bg-purple-50 text-purple-700 hover:bg-purple-100"
                         >
                           <RefreshCw className="w-3.5 h-3.5" /> Refund
                         </button>
                       ) : (
-                        <span className="text-xs text-gray-400">—</span>
+                        <span className="text-[10px] text-slate-400 italic">No action</span>
                       )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+            <span>Page {page} of {totalPages}</span>
+            <div className="flex gap-2">
+              <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="pagination-btn">Previous</button>
+              <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="pagination-btn">Next</button>
+            </div>
           </div>
         )}
       </div>

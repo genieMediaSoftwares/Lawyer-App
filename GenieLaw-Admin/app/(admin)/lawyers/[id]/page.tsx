@@ -1,211 +1,175 @@
 "use client";
 
-import React from "react";
-import { useParams } from "next/navigation";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/lib/api/adminApi";
-import { ArrowLeft, ShieldCheck, CheckCircle, XCircle, Award, FileText, Phone, Mail, MapPin, Calendar, Star, Briefcase } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
+  MapPin,
+  GraduationCap,
+  Star,
+  Briefcase,
+  DollarSign,
+  Calendar,
+  ShieldCheck,
+  ShieldX,
+  Clock,
+  FileText,
+  AlertTriangle,
+} from "lucide-react";
+import { formatDate, formatCurrency } from "@/lib/utils";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function LawyerDetailPage() {
-  const routeParams = useParams<{ id: string }>();
-  const lawyerId = Array.isArray(routeParams?.id) ? routeParams.id[0] : routeParams?.id || "";
+  const params = useParams();
+  const lawyerId = params.id as string;
   const queryClient = useQueryClient();
+
+  const [activeTab, setActiveTab] = useState("overview");
 
   const { data: lawyer, isLoading, isError } = useQuery({
     queryKey: ["admin", "lawyer", lawyerId],
     queryFn: () => adminApi.getLawyerById(lawyerId),
+    enabled: !!lawyerId,
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: (data: any) => adminApi.updateLawyerStatus(lawyerId, data),
+    onSuccess: () => {
+      toast.success("Status updated");
+      queryClient.invalidateQueries({ queryKey: ["admin", "lawyer", lawyerId] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "lawyers"] });
+    },
+    onError: (err: any) => toast.error(err.message || "Update failed"),
   });
 
   const verifyMutation = useMutation({
-    mutationFn: (data: { status: string; rejectionReason?: string }) =>
-      adminApi.verifyLawyer(lawyerId, data),
-    onSuccess: (res) => {
-      toast.success(res.message || "Lawyer status updated");
+    mutationFn: ({ status, notes }: { status: string; notes?: string }) =>
+      adminApi.updateLawyerVerification(lawyerId, { verificationStatus: status, notes }),
+    onSuccess: () => {
+      toast.success("Verification updated");
       queryClient.invalidateQueries({ queryKey: ["admin", "lawyer", lawyerId] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "lawyer-verification"] });
     },
-    onError: (err: any) => {
-      toast.error(err.message || "Action failed");
-    },
+    onError: (err: any) => toast.error(err.message || "Verification update failed"),
   });
 
-  if (isLoading) return <div className="p-12 text-center text-gray-500">Loading lawyer profile...</div>;
-  if (isError || !lawyer) return <div className="p-12 text-center text-red-500">Lawyer record not found</div>;
+  if (isLoading) {
+    return (
+      <div className="page-container flex items-center justify-center min-h-[60vh]">
+        <div className="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-sm text-slate-500 ml-3">Loading advocate profile...</p>
+      </div>
+    );
+  }
 
-  const user = lawyer.user || {};
-  const cases = lawyer.cases || [];
-  const appointments = lawyer.appointments || [];
-  const reviews = lawyer.reviews || [];
+  if (isError || !lawyer) {
+    return (
+      <div className="page-container flex flex-col items-center justify-center min-h-[60vh]">
+        <AlertTriangle className="w-12 h-12 text-red-400 mb-3" />
+        <p className="text-sm font-semibold text-red-600">Advocate not found</p>
+        <Link href="/lawyers" className="btn btn-primary mt-4 text-xs">Return to Directory</Link>
+      </div>
+    );
+  }
+
+  const u = lawyer.user || {};
+  const isVerified = lawyer.verificationStatus === "verified";
+  const isActive = u.isActive !== false;
+
+  const tabs = [
+    { id: "overview", label: "Overview", icon: Briefcase },
+    { id: "cases", label: "Cases", icon: Briefcase },
+    { id: "payments", label: "Payments", icon: DollarSign },
+    { id: "activity", label: "Activity", icon: Calendar },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/lawyers" className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-          <ArrowLeft className="w-4 h-4 text-gray-700" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{user.fullName || "Advocate Profile"}</h1>
-          <p className="text-sm text-gray-500">Bar Registration: {lawyer.barCouncilNumber || "N/A"}</p>
-        </div>
-      </div>
+    <div className="page-container">
+      {/* Back */}
+      <Link href="/lawyers" className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 font-medium mb-4">
+        <ArrowLeft className="w-3.5 h-3.5" /> Back to Advocate Directory
+      </Link>
 
-      {/* Main Profile Header Card */}
-      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gold/20 border-2 border-gold flex items-center justify-center font-bold text-2xl text-gray-800">
-            {user.fullName ? user.fullName[0].toUpperCase() : "L"}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-gray-900">{user.fullName}</h2>
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                  lawyer.verificationStatus === "verified"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : lawyer.verificationStatus === "rejected"
-                    ? "bg-red-100 text-red-800"
-                    : "bg-amber-100 text-amber-800"
-                }`}
-              >
-                {lawyer.verificationStatus}
-              </span>
+      {/* Profile Header */}
+      <div className="card">
+        <div className="card-body">
+          <div className="flex items-start gap-5">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gold/30 to-amber-500/30 flex items-center justify-center font-extrabold text-2xl text-slate-800 border-2 border-gold/30 shrink-0">
+              {u.fullName?.[0]?.toUpperCase() || "L"}
             </div>
-            <p className="text-sm font-semibold text-gold-hover mt-0.5">{lawyer.specialization} Advocate</p>
-            <div className="flex flex-wrap gap-4 text-xs text-gray-500 mt-2">
-              <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" /> {user.email}</span>
-              <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" /> {user.mobile}</span>
-              <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {user.location || lawyer.officeAddress || "N/A"}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Verification Action buttons */}
-        <div className="flex items-center gap-3">
-          {lawyer.verificationStatus !== "verified" && (
-            <button
-              onClick={() => verifyMutation.mutate({ status: "verified" })}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-sm text-sm transition-all flex items-center gap-1.5"
-            >
-              <CheckCircle className="w-4 h-4" /> Approve & Verify
-            </button>
-          )}
-
-          {lawyer.verificationStatus !== "rejected" && (
-            <button
-              onClick={() => {
-                const reason = prompt("Enter rejection reason:");
-                if (reason) verifyMutation.mutate({ status: "rejected", rejectionReason: reason });
-              }}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-sm text-sm transition-all flex items-center gap-1.5"
-            >
-              <XCircle className="w-4 h-4" /> Reject Profile
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Details Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Professional Details */}
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
-            <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2">Professional Info</h3>
-            <div className="text-sm space-y-3">
-              <div>
-                <span className="text-xs text-gray-400 font-medium block">Experience</span>
-                <span className="font-semibold text-gray-800">{lawyer.experience} Years</span>
-              </div>
-              <div>
-                <span className="text-xs text-gray-400 font-medium block">Consultation Fee</span>
-                <span className="font-semibold text-gray-800">₹{lawyer.consultationFee || 0}</span>
-              </div>
-              <div>
-                <span className="text-xs text-gray-400 font-medium block">Bar Council Registration</span>
-                <span className="font-mono text-gray-800 font-semibold">{lawyer.barCouncilNumber || "N/A"}</span>
-              </div>
-              <div>
-                <span className="text-xs text-gray-400 font-medium block">Rating</span>
-                <div className="flex items-center gap-1 text-amber-500 font-bold">
-                  <Star className="w-4 h-4 fill-amber-400" /> {lawyer.rating || 0} ({lawyer.totalReviews || 0} reviews)
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bar Certificate Preview */}
-          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3">Bar Certificate Document</h3>
-            {lawyer.barCertificate ? (
-              <a
-                href={lawyer.barCertificate}
-                target="_blank"
-                rel="noreferrer"
-                className="p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between text-sm hover:bg-gray-100 transition-colors"
-              >
-                <span className="flex items-center gap-2 font-medium text-gray-800">
-                  <FileText className="w-4 h-4 text-gold" /> Bar Certificate.pdf
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-extrabold text-slate-900">{u.fullName}</h1>
+              <p className="text-sm text-slate-500 mt-0.5">{u.email}</p>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <span className={cn("badge", isVerified ? "badge-success" : "badge-warning")}>
+                  {isVerified ? <ShieldCheck className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                  {lawyer.verificationStatus || "pending"}
                 </span>
-                <span className="text-xs font-bold text-gold-hover">View File</span>
-              </a>
-            ) : (
-              <p className="text-xs text-gray-400">No bar certificate uploaded by lawyer</p>
-            )}
+                <span className={cn("badge", isActive ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-red-50 text-red-700 border-red-100")}>
+                  {isActive ? "Active" : "Suspended"}
+                </span>
+                <span className="badge bg-blue-50 text-blue-700 border-blue-100">{lawyer.specialization}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {!isVerified && (
+                <button onClick={() => verifyMutation.mutate({ status: "verified" })} className="btn btn-success text-xs">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Approve
+                </button>
+              )}
+              {isActive ? (
+                <button onClick={() => updateStatusMutation.mutate({ isActive: false })} className="btn btn-danger text-xs">
+                  Suspend
+                </button>
+              ) : (
+                <button onClick={() => updateStatusMutation.mutate({ isActive: true })} className="btn btn-success text-xs">
+                  Reactivate
+                </button>
+              )}
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Right Assigned Cases & Appointments */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Associated Cases */}
-          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-gold" /> Associated Cases ({cases.length})
-            </h3>
-            {cases.length > 0 ? (
-              <div className="divide-y divide-gray-100 text-sm">
-                {cases.map((c: any) => (
-                  <div key={c._id} className="py-3 flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-gray-900">{c.title}</p>
-                      <p className="text-xs text-gray-500">Client: {c.client?.fullName}</p>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-                      {c.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-gray-400 py-2">No active cases assigned to this lawyer</p>
-            )}
-          </div>
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="card p-4"><p className="text-xs text-slate-500 font-medium mb-1">Experience</p><p className="text-lg font-extrabold text-slate-900">{lawyer.experienceYears || 0} years</p></div>
+        <div className="card p-4"><p className="text-xs text-slate-500 font-medium mb-1">Consultations</p><p className="text-lg font-extrabold text-slate-900">{lawyer.consultationsCount || 0}</p></div>
+        <div className="card p-4"><p className="text-xs text-slate-500 font-medium mb-1">Cases Handled</p><p className="text-lg font-extrabold text-slate-900">{lawyer.casesCount || 0}</p></div>
+        <div className="card p-4"><p className="text-xs text-slate-500 font-medium mb-1">Revenue</p><p className="text-lg font-extrabold text-slate-900">{formatCurrency(lawyer.totalEarnings || 0)}</p></div>
+      </div>
 
-          {/* Appointments */}
-          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-gold" /> Recent Appointments ({appointments.length})
-            </h3>
-            {appointments.length > 0 ? (
-              <div className="divide-y divide-gray-100 text-sm">
-                {appointments.map((a: any) => (
-                  <div key={a._id} className="py-3 flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-gray-900">Client: {a.client?.fullName}</p>
-                      <p className="text-xs text-gray-500">Slot: {a.timeSlot} • Mode: {a.mode}</p>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
-                      {a.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-gray-400 py-2">No appointments scheduled</p>
-            )}
-          </div>
+      {/* Details Card */}
+      <div className="card">
+        <div className="card-header">
+          <h2 className="text-base font-bold text-slate-900">Professional Details</h2>
         </div>
+        <div className="card-body grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Info label="Bar Council Number" value={lawyer.barCouncilNumber || "N/A"} icon={GraduationCap} />
+          <Info label="Phone" value={u.mobile || "N/A"} icon={Phone} />
+          <Info label="Location" value={lawyer.location || u.location || "N/A"} icon={MapPin} />
+          <Info label="Languages" value={lawyer.languages?.join(", ") || u.languages?.join(", ") || "N/A"} icon={FileText} />
+          <Info label="Practice Areas" value={lawyer.practiceAreas?.join(", ") || "N/A"} icon={Briefcase} />
+          <Info label="Rating" value={`${(lawyer.rating || 0).toFixed(1)} / 5.0`} icon={Star} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Info({ label, value, icon: Icon }: { label: string; value: string; icon: any }) {
+  return (
+    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+      {Icon && <Icon className="w-4 h-4 text-slate-400 shrink-0" />}
+      <div>
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{label}</p>
+        <p className="text-sm font-semibold text-slate-900">{value}</p>
       </div>
     </div>
   );

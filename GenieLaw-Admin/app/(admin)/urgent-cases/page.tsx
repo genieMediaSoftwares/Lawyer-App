@@ -1,64 +1,85 @@
 "use client";
 
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/lib/api/adminApi";
-import { Flame, Eye } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import {
+  Flame,
+  Briefcase,
+  Eye,
+  AlertTriangle,
+  Phone,
+  Mail,
+  User,
+} from "lucide-react";
+import { formatDate, formatDateTime } from "@/lib/utils";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export default function UrgentCasesPage() {
+  const queryClient = useQueryClient();
+
   const { data, isLoading } = useQuery({
-    queryKey: ["admin", "cases", "urgent"],
-    queryFn: adminApi.getUrgentCases,
+    queryKey: ["admin", "urgent-cases"],
+    queryFn: async () => {
+      const res = await adminApi.getCases({ page: 1, limit: 50, status: "all" });
+      return { ...res, data: (res.data || []).filter((c: any) => c.urgency?.toLowerCase().includes("urgent") || c.priority?.toLowerCase().includes("urgent") || c.urgent) };
+    },
   });
 
-  const urgentCases = data?.data || [];
+  const cases = data?.data || [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-600">
-          <Flame className="w-6 h-6 fill-red-600" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Real-Time Urgent Cases</h1>
-          <p className="text-sm text-gray-500">High urgency legal requests requiring immediate advocate dispatch</p>
-        </div>
+    <div className="page-container">
+      <div>
+        <h1 className="section-title flex items-center gap-2">
+          <Flame className="w-6 h-6 text-red-600 fill-red-600" /> Urgent Cases
+        </h1>
+        <p className="section-subtitle">High-priority cases requiring immediate attention and triage</p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="card">
         {isLoading ? (
-          <div className="p-12 text-center text-sm text-gray-500">Scanning urgent cases...</div>
-        ) : urgentCases.length === 0 ? (
-          <div className="p-12 text-center text-sm text-gray-400">No urgent cases currently active</div>
+          <div className="loading-state"><div className="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin mb-3" /><p className="text-sm text-slate-500">Loading urgent cases...</p></div>
+        ) : cases.length === 0 ? (
+          <div className="empty-state">
+            <Flame className="w-10 h-10 text-amber-300 mb-2" />
+            <p className="text-sm font-semibold text-slate-700">No urgent cases right now</p>
+            <p className="text-xs text-slate-400 mt-1">High-priority cases will surface here automatically</p>
+          </div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {urgentCases.map((c: any) => (
-              <div key={c._id} className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-gray-50/80 transition-colors">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800 uppercase tracking-wider">
-                      {c.urgency || "Urgent"}
-                    </span>
-                    <h3 className="font-bold text-gray-900 text-base">{c.title}</h3>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Category: {c.category} • Client: {c.client?.fullName || "N/A"} • Location: {c.location || "N/A"}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                  <span className="text-xs text-gray-400">{formatDate(c.createdAt)}</span>
-                  <Link
-                    href={`/cases/${c._id}`}
-                    className="px-4 py-2 bg-black hover:bg-gray-800 text-white font-semibold text-xs rounded-lg transition-colors flex items-center gap-1.5"
-                  >
-                    <Eye className="w-3.5 h-3.5" /> View Case
-                  </Link>
-                </div>
-              </div>
-            ))}
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Case</th>
+                  <th>Client</th>
+                  <th>Category</th>
+                  <th>Filed</th>
+                  <th>Status</th>
+                  <th className="text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cases.map((c: any) => (
+                  <tr key={c._id} className="bg-red-50/30">
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <Flame className="w-4 h-4 text-red-500 fill-red-500 shrink-0" />
+                        <Link href={`/cases/${c._id}`} className="font-semibold text-slate-900 hover:text-red-600 transition-colors text-sm">{c.title}</Link>
+                      </div>
+                    </td>
+                    <td className="text-xs font-medium text-slate-800">{c.client?.fullName || "N/A"}</td>
+                    <td className="text-xs text-slate-600">{c.category}</td>
+                    <td className="text-xs text-slate-500">{formatDate(c.createdAt)}</td>
+                    <td><span className="badge badge-danger">{c.status}</span></td>
+                    <td className="text-right">
+                      <Link href={`/cases/${c._id}`} className="action-link"><Eye className="w-3.5 h-3.5" /> Triage</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

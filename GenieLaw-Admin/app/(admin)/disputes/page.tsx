@@ -1,76 +1,122 @@
 "use client";
 
-import React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "@/lib/api/adminApi";
-import { AlertTriangle, CheckCircle, MessageSquare } from "lucide-react";
+import {
+  Search,
+  Filter,
+  AlertTriangle,
+  AlertTriangle as AlertTriangleIcon,
+  ChevronRight,
+  Clock,
+  User,
+} from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function DisputesPage() {
-  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin", "disputes"],
-    queryFn: adminApi.getDisputes,
-  });
-
-  const updateTicketMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      adminApi.updateSupportTicket(id, status),
-    onSuccess: () => {
-      toast.success("Dispute status updated");
-      queryClient.invalidateQueries({ queryKey: ["admin", "disputes"] });
-    },
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["admin", "disputes", search, status, page],
+    queryFn: () => adminApi.getDisputes({ page, limit: 15, search, status }),
   });
 
   const disputes = data?.data || [];
+  const totalPages = data?.pages || 1;
+
+  const statusVariant = (s: string) => {
+    if (s === "resolved") return "bg-emerald-50 text-emerald-700 border-emerald-100";
+    if (s === "open") return "bg-red-50 text-red-700 border-red-100";
+    if (s === "under_review") return "bg-amber-50 text-amber-700 border-amber-100";
+    return "bg-slate-100 text-slate-700 border-slate-200";
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="page-container">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Disputes & Support Tickets</h1>
-        <p className="text-sm text-gray-500">Manage client complaints, payment issues, and platform support cases</p>
+        <h1 className="section-title">Dispute Management</h1>
+        <p className="section-subtitle">Review and resolve payment disputes and support issues</p>
       </div>
 
-      <div className="space-y-4">
-        {isLoading ? (
-          <div className="p-12 text-center text-sm text-gray-500">Loading disputes...</div>
-        ) : disputes.length === 0 ? (
-          <div className="bg-white p-12 rounded-xl border border-gray-200 text-center text-gray-400">
-            <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-            <p className="font-bold text-gray-900">No Pending Disputes</p>
+      <div className="card">
+        <div className="card-body flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search dispute ID, client, lawyer..."
+              className="search-input"
+            />
           </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+            <select
+              value={status}
+              onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+              className="form-select w-full sm:w-auto"
+            >
+              <option value="all">All Disputes</option>
+              <option value="open">Open</option>
+              <option value="under_review">Under Review</option>
+              <option value="resolved">Resolved</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        {isLoading ? (
+          <div className="loading-state"><div className="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin mb-3" /><p className="text-sm text-slate-500">Loading disputes...</p></div>
+        ) : isError ? (
+          <div className="empty-state"><AlertTriangleIcon className="w-10 h-10 text-red-400 mb-2" /><p className="text-sm font-semibold text-red-600">Failed to load disputes</p></div>
+        ) : disputes.length === 0 ? (
+          <div className="empty-state"><AlertTriangleIcon className="w-10 h-10 text-slate-300 mb-2" /><p className="text-sm font-semibold text-slate-700">No disputes recorded</p></div>
         ) : (
-          disputes.map((d: any) => (
-            <div key={d._id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-gray-900 text-sm">{d.title}</h3>
-                  <p className="text-xs text-gray-500">Category: {d.category} • Client: {d.clientId?.fullName || "N/A"}</p>
-                </div>
-                <select
-                  value={d.status}
-                  onChange={(e) => updateTicketMutation.mutate({ id: d._id, status: e.target.value })}
-                  className="px-3 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-800"
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="Assigned">Assigned</option>
-                  <option value="Resolved">Resolved</option>
-                  <option value="Closed">Closed</option>
-                </select>
-              </div>
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Dispute ID</th>
+                  <th>Issue</th>
+                  <th>Client</th>
+                  <th>Lawyer</th>
+                  <th>Status</th>
+                  <th>Filed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {disputes.map((d: any) => (
+                  <tr key={d._id}>
+                    <td className="font-mono text-xs font-bold text-slate-800">{d._id?.slice(-8) || "—"}</td>
+                    <td>
+                      <p className="text-xs font-medium text-slate-900">{d.issue || d.reason || "Dispute"}</p>
+                      {d.description && <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{d.description}</p>}
+                    </td>
+                    <td className="text-xs font-medium text-slate-800">{d.client?.fullName || "N/A"}</td>
+                    <td className="text-xs font-medium text-slate-800">{d.lawyer?.fullName || "N/A"}</td>
+                    <td><span className={cn("badge", statusVariant(d.status))}>{d.status || "open"}</span></td>
+                    <td className="text-xs text-slate-500">{formatDate(d.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                {d.description}
-              </p>
-
-              <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-100">
-                <span>Filed on {formatDate(d.createdAt)}</span>
-                <span className="font-semibold text-gray-700">Urgency: {d.urgency || "Flexible"}</span>
-              </div>
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+            <span>Page {page} of {totalPages}</span>
+            <div className="flex gap-2">
+              <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="pagination-btn">Previous</button>
+              <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="pagination-btn">Next</button>
             </div>
-          ))
+          </div>
         )}
       </div>
     </div>

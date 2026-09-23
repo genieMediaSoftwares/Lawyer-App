@@ -3,89 +3,125 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "@/lib/api/adminApi";
-import { Search, FileText, Download, Shield } from "lucide-react";
+import {
+  Search,
+  FileText,
+  Filter,
+  Download,
+  Trash2,
+  AlertTriangle,
+  ChevronRight,
+  Briefcase,
+  File as FileIcon,
+} from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export default function DocumentsPage() {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin", "documents", search],
-    queryFn: () => adminApi.getDocuments({ search }),
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["admin", "documents", search, page],
+    queryFn: () => adminApi.getDocuments({ page, limit: 20, search }),
   });
 
   const documents = data?.data || [];
+  const totalPages = data?.pages || 1;
+
+  const fileExt = (url?: string) => {
+    if (!url) return "FILE";
+    const m = url.match(/\.([a-z0-9]+)(?:\?|$)/i);
+    return m ? m[1].toUpperCase() : "FILE";
+  };
+
+  const extColor = (ext: string) => {
+    if (ext === "PDF") return "bg-red-100 text-red-700 border-red-200";
+    if (["DOC", "DOCX"].includes(ext)) return "bg-blue-100 text-blue-700 border-blue-200";
+    if (["JPG", "JPEG", "PNG"].includes(ext)) return "bg-violet-100 text-violet-700 border-violet-200";
+    return "bg-slate-100 text-slate-700 border-slate-200";
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="page-container">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Document Management</h1>
-        <p className="text-sm text-gray-500">Secure overview of case and user uploaded documents with RBAC controls</p>
+        <h1 className="section-title">Document Repository</h1>
+        <p className="section-subtitle">Browse and manage all case-related documents uploaded on the platform</p>
       </div>
 
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search document title, filename..."
-            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold/50"
-          />
+      <div className="card">
+        <div className="card-body">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search filename, case ID..."
+              className="search-input"
+            />
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="card">
         {isLoading ? (
-          <div className="p-12 text-center text-sm text-gray-500">Loading documents index...</div>
+          <div className="loading-state"><div className="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin mb-3" /><p className="text-sm text-slate-500">Loading documents...</p></div>
+        ) : isError ? (
+          <div className="empty-state"><AlertTriangle className="w-10 h-10 text-red-400 mb-2" /><p className="text-sm font-semibold text-red-600">Failed to load documents</p></div>
         ) : documents.length === 0 ? (
-          <div className="p-12 text-center text-sm text-gray-400">No documents found</div>
+          <div className="empty-state"><FileText className="w-10 h-10 text-slate-300 mb-2" /><p className="text-sm font-semibold text-slate-700">No documents found</p></div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <th className="px-6 py-3.5">Document Title</th>
-                  <th className="px-6 py-3.5">Uploaded By</th>
-                  <th className="px-6 py-3.5">Category</th>
-                  <th className="px-6 py-3.5">Date</th>
-                  <th className="px-6 py-3.5 text-right">Access</th>
+                  <th>Document</th>
+                  <th>Type</th>
+                  <th>Case Reference</th>
+                  <th>Uploaded</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {documents.map((d: any) => (
-                  <tr key={d._id} className="hover:bg-gray-50/80 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-gold shrink-0" />
-                        <div>
-                          <p className="font-semibold text-gray-900">{d.title || d.fileName || "Document"}</p>
-                          <p className="text-xs text-gray-500 font-mono">{d.fileName}</p>
+              <tbody>
+                {documents.map((d: any) => {
+                  const ext = fileExt(d.fileUrl || d.url || d.name);
+                  return (
+                    <tr key={d._id}>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <span className={cn("px-2 py-1 rounded text-[10px] font-bold border", extColor(ext))}>{ext}</span>
+                          <div>
+                            <p className="font-semibold text-slate-900 text-sm">{d.fileName || d.name || "Untitled"}</p>
+                            <p className="text-xs text-slate-500">{d.description || "Case document"}</p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-xs font-medium text-gray-800">{d.user?.fullName || "N/A"}</td>
-                    <td className="px-6 py-4 text-xs text-gray-700">{d.category || "General"}</td>
-                    <td className="px-6 py-4 text-xs text-gray-500">{formatDate(d.createdAt)}</td>
-                    <td className="px-6 py-4 text-right">
-                      {d.fileUrl || d.url ? (
-                        <a
-                          href={d.fileUrl || d.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-gold-hover bg-gold/10 hover:bg-gold/20 px-3 py-1.5 rounded-lg transition-colors"
-                        >
-                          <Download className="w-3.5 h-3.5" /> Download
-                        </a>
-                      ) : (
-                        <span className="text-xs text-gray-400">Restricted</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="text-xs text-slate-600 font-medium">{d.documentType || d.category || "General"}</td>
+                      <td className="text-xs font-medium text-slate-700">{d.case?.caseNumber || d.case?.title || "—"}</td>
+                      <td className="text-xs text-slate-500">{formatDate(d.createdAt)}</td>
+                      <td className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <a href={d.fileUrl || d.url} target="_blank" rel="noopener noreferrer" className="action-link">
+                            <Download className="w-3.5 h-3.5" /> Download
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+            <span>Page {page} of {totalPages}</span>
+            <div className="flex gap-2">
+              <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="pagination-btn">Previous</button>
+              <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="pagination-btn">Next</button>
+            </div>
           </div>
         )}
       </div>

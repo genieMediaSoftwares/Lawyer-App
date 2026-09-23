@@ -1,41 +1,149 @@
 "use client";
 
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/lib/api/adminApi";
-import { Tag } from "lucide-react";
+import {
+  Tag,
+  Plus,
+  Search,
+  Calendar,
+  IndianRupee,
+  Edit3,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+} from "lucide-react";
+import { formatDate, formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function PromotionsPage() {
-  const { data: promotions = [], isLoading } = useQuery({
+  const queryClient = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({ code: "", discount: "", validUntil: "", usageLimit: "" });
+
+  const { data: promos = [], isLoading } = useQuery({
     queryKey: ["admin", "promotions"],
     queryFn: adminApi.getPromotions,
   });
 
+  const createMutation = useMutation({
+    mutationFn: adminApi.createPromotion,
+    onSuccess: () => {
+      toast.success("Promotion code created");
+      setShowForm(false);
+      setFormData({ code: "", discount: "", validUntil: "", usageLimit: "" });
+      queryClient.invalidateQueries({ queryKey: ["admin", "promotions"] });
+    },
+    onError: () => toast.error("Failed to create promotion"),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      adminApi.togglePromotion(id, active),
+    onSuccess: () => {
+      toast.success("Promotion status updated");
+      queryClient.invalidateQueries({ queryKey: ["admin", "promotions"] });
+    },
+    onError: () => toast.error("Failed to update promotion"),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createMutation.mutate({
+      ...formData,
+      discount: Number(formData.discount),
+      usageLimit: Number(formData.usageLimit),
+    });
+  };
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Platform Promotions & Discounts</h1>
-        <p className="text-sm text-gray-500">View promotional discount codes and platform offers</p>
+    <div className="page-container">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="section-title">Promotions & Offers</h1>
+          <p className="section-subtitle">Create discount codes and promotional offers for clients</p>
+        </div>
+        <button onClick={() => setShowForm(!showForm)} className="btn btn-primary text-xs px-4 py-2.5">
+          <Plus className="w-4 h-4" /> New Promotion
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {isLoading ? (
-          <div className="p-12 text-center text-sm text-gray-500 col-span-full">Loading promotional offers...</div>
-        ) : promotions.length === 0 ? (
-          <div className="p-12 text-center text-sm text-gray-400 col-span-full">No active promotions</div>
-        ) : (
-          promotions.map((p: any) => (
-            <div key={p.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="px-2.5 py-1 bg-gold/15 text-gold-hover border border-gold/30 rounded-lg text-xs font-mono font-bold">
-                  {p.code}
-                </span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700">Active</span>
+      {showForm && (
+        <div className="card">
+          <div className="card-header">
+            <h2 className="text-base font-bold text-slate-900">Create New Promotion</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Configure code, discount, and validity period</p>
+          </div>
+          <div className="card-body">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="label-field">Code</label>
+                <input type="text" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="e.g., SUMMER50" required className="form-input uppercase" />
               </div>
-              <h3 className="font-bold text-gray-900 text-base">{p.name}</h3>
-              <p className="text-xs text-gray-500">Discount Amount: <span className="font-bold text-gray-900">{p.discount}</span></p>
-            </div>
-          ))
+              <div>
+                <label className="label-field">Discount (%)</label>
+                <input type="number" min="1" max="100" value={formData.discount} onChange={(e) => setFormData({ ...formData, discount: e.target.value })} placeholder="e.g., 20" required className="form-input" />
+              </div>
+              <div>
+                <label className="label-field">Valid Until</label>
+                <input type="date" value={formData.validUntil} onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })} required className="form-input" />
+              </div>
+              <div>
+                <label className="label-field">Usage Limit</label>
+                <input type="number" min="1" value={formData.usageLimit} onChange={(e) => setFormData({ ...formData, usageLimit: e.target.value })} placeholder="e.g., 100" required className="form-input" />
+              </div>
+              <div className="sm:col-span-2 lg:col-span-4 flex justify-end gap-2">
+                <button type="button" onClick={() => setShowForm(false)} className="btn btn-secondary text-xs">Cancel</button>
+                <button type="submit" disabled={createMutation.isPending} className="btn btn-primary text-xs">{createMutation.isPending ? "Creating..." : "Create Promotion"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="card">
+        {isLoading ? (
+          <div className="loading-state"><div className="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin mb-3" /><p className="text-sm text-slate-500">Loading promotions...</p></div>
+        ) : promos.length === 0 ? (
+          <div className="empty-state"><Tag className="w-10 h-10 text-slate-300 mb-2" /><p className="text-sm font-semibold text-slate-700">No active promotions</p><p className="text-xs text-slate-400">Create your first discount code</p></div>
+        ) : (
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Discount</th>
+                  <th>Valid Until</th>
+                  <th>Usage</th>
+                  <th>Status</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {promos.map((p: any) => (
+                  <tr key={p._id}>
+                    <td className="font-mono font-bold text-slate-900 text-sm">{p.code}</td>
+                    <td className="font-bold text-emerald-700 text-sm">{p.discount}%</td>
+                    <td className="text-xs text-slate-600">{formatDate(p.validUntil)}</td>
+                    <td className="text-xs text-slate-700">{p.usageCount || 0} / {p.usageLimit}</td>
+                    <td>
+                      <span className={cn("badge", p.active ? "badge-success" : "badge-warning")}>
+                        {p.active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="text-right">
+                      <button onClick={() => toggleMutation.mutate({ id: p._id, active: !p.active })} className="action-link">
+                        {p.active ? "Deactivate" : "Activate"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

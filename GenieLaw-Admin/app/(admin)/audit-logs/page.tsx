@@ -3,102 +3,145 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "@/lib/api/adminApi";
-import { ShieldAlert, Search, Filter } from "lucide-react";
+import {
+  Shield,
+  Search,
+  AlertTriangle,
+  UserCheck,
+  Ban,
+  FileText,
+  Settings,
+  DollarSign,
+  Clock,
+  ShieldX,
+  User,
+  Eye,
+  Filter,
+} from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+
+const ACTION_ICONS: any = {
+  login: User,
+  logout: User,
+  lawyer_verify: UserCheck,
+  lawyer_suspend: Ban,
+  lawyer_reactivate: UserCheck,
+  document_access: Eye,
+  payment: DollarSign,
+  refund: DollarSign,
+  role_change: Shield,
+  settings_change: Settings,
+  case_change: FileText,
+  document_delete: ShieldX,
+};
 
 export default function AuditLogsPage() {
+  const [search, setSearch] = useState("");
   const [action, setAction] = useState("all");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin", "audit-logs", action, page],
-    queryFn: () => adminApi.getAuditLogs({ page, limit: 30, action }),
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["admin", "audit-logs", search, action, page],
+    queryFn: () => adminApi.getAuditLogs({ page, limit: 20, search, action }),
   });
 
   const logs = data?.data || [];
   const totalPages = data?.pages || 1;
 
   return (
-    <div className="space-y-6">
+    <div className="page-container">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">System Audit Logs</h1>
-        <p className="text-sm text-gray-500">Immutable chronological record of administrative actions and security events</p>
+        <h1 className="section-title">Audit Logs</h1>
+        <p className="section-subtitle">Immutable record of sensitive administrative actions</p>
       </div>
 
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Filter className="w-4 h-4 text-gray-400" />
-          <select
-            value={action}
-            onChange={(e) => { setAction(e.target.value); setPage(1); }}
-            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 font-medium focus:outline-none"
-          >
-            <option value="all">All Audit Events</option>
-            <option value="verify_lawyer">Lawyer Verification</option>
-            <option value="update_lawyer_status">Lawyer Status Change</option>
-            <option value="update_client_status">Client Status Change</option>
-            <option value="process_refund">Refund Processed</option>
-            <option value="update_legal_document">Legal Document Change</option>
-          </select>
+      <div className="card">
+        <div className="card-body flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search admin, action, target..."
+              className="search-input"
+            />
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+            <select value={action} onChange={(e) => { setAction(e.target.value); setPage(1); }} className="form-select w-full sm:w-auto">
+              <option value="all">All Actions</option>
+              <option value="login">Login / Logout</option>
+              <option value="lawyer_verify">Lawyer Verification</option>
+              <option value="lawyer_suspend">Lawyer Suspension</option>
+              <option value="payment">Payment</option>
+              <option value="refund">Refund</option>
+              <option value="settings_change">Settings Change</option>
+              <option value="case_change">Case Change</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="card">
         {isLoading ? (
-          <div className="p-12 text-center text-sm text-gray-500">Loading audit log entries...</div>
+          <div className="loading-state"><div className="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin mb-3" /><p className="text-sm text-slate-500">Loading audit logs...</p></div>
+        ) : isError ? (
+          <div className="empty-state"><AlertTriangle className="w-10 h-10 text-red-400 mb-2" /><p className="text-sm font-semibold text-red-600">Failed to load audit logs</p></div>
         ) : logs.length === 0 ? (
-          <div className="p-12 text-center text-sm text-gray-400">No recorded audit logs</div>
+          <div className="empty-state"><Shield className="w-10 h-10 text-slate-300 mb-2" /><p className="text-sm font-semibold text-slate-700">No audit log entries</p></div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <th className="px-6 py-3.5">Timestamp</th>
-                  <th className="px-6 py-3.5">Admin User</th>
-                  <th className="px-6 py-3.5">Action Code</th>
-                  <th className="px-6 py-3.5">Target</th>
-                  <th className="px-6 py-3.5">IP Address</th>
+                  <th>Timestamp</th>
+                  <th>Admin</th>
+                  <th>Action</th>
+                  <th>Target</th>
+                  <th>Result</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {logs.map((log: any) => (
-                  <tr key={log._id} className="hover:bg-gray-50/80 transition-colors">
-                    <td className="px-6 py-4 text-xs font-mono text-gray-600">{formatDateTime(log.createdAt)}</td>
-                    <td className="px-6 py-4 font-semibold text-gray-900">{log.performedBy?.fullName || "Admin"}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 rounded bg-gray-100 font-mono text-xs font-bold text-gray-800">
-                        {log.action}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-gray-600">
-                      {log.targetModel} <span className="font-mono text-gray-400">{log.targetId ? `(#${log.targetId})` : ""}</span>
-                    </td>
-                    <td className="px-6 py-4 font-mono text-xs text-gray-500">{log.ipAddress || "::1"}</td>
-                  </tr>
-                ))}
+              <tbody>
+                {logs.map((log: any) => {
+                  const Icon = ACTION_ICONS[log.actionType] || Shield;
+                  return (
+                    <tr key={log._id}>
+                      <td className="text-xs text-slate-500 whitespace-nowrap">{formatDateTime(log.timestamp || log.createdAt)}</td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-gold/20 flex items-center justify-center font-bold text-slate-800 text-[10px]">
+                            {log.admin?.fullName?.[0]?.toUpperCase() || "A"}
+                          </div>
+                          <span className="text-xs font-semibold text-slate-900">{log.admin?.fullName || log.adminEmail || "System"}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">
+                          <Icon className="w-3 h-3 text-slate-500" /> {log.actionType || log.action || "Action"}
+                        </span>
+                      </td>
+                      <td className="text-xs text-slate-600 font-mono">{log.targetId || log.target || "N/A"}</td>
+                      <td>
+                        <span className={cn("text-xs font-semibold", log.result === "success" ? "text-emerald-700" : "text-red-700")}>
+                          {log.result === "success" ? "✓ Success" : log.result || "Completed"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
 
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 font-medium">
+          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
             <span>Page {page} of {totalPages}</span>
             <div className="flex gap-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage(page - 1)}
-                className="px-3 py-1.5 bg-gray-100 rounded-md disabled:opacity-50 font-semibold"
-              >
-                Previous
-              </button>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage(page + 1)}
-                className="px-3 py-1.5 bg-gray-100 rounded-md disabled:opacity-50 font-semibold"
-              >
-                Next
-              </button>
+              <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="pagination-btn">Previous</button>
+              <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="pagination-btn">Next</button>
             </div>
           </div>
         )}

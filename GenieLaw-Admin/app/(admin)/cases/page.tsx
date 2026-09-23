@@ -3,10 +3,23 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/lib/api/adminApi";
-import { Search, Filter, Eye, Briefcase, Flame } from "lucide-react";
+import {
+  Search,
+  Filter,
+  Eye,
+  Briefcase,
+  Flame,
+  AlertTriangle,
+  ChevronRight,
+  ExternalLink,
+  User,
+  Clock,
+  MapPin,
+} from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function CasesPage() {
   const queryClient = useQueryClient();
@@ -34,106 +47,117 @@ export default function CasesPage() {
   const cases = data?.data || [];
   const totalPages = data?.pages || 1;
 
+  const statusVariant = (s: string) => {
+    if (["Completed", "completed", "Closed", "closed"].includes(s)) return "bg-emerald-50 text-emerald-700 border-emerald-100";
+    if (["In Progress", "in_progress", "Pending", "pending"].includes(s)) return "bg-blue-50 text-blue-700 border-blue-100";
+    return "bg-amber-50 text-amber-700 border-amber-100";
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Title */}
+    <div className="page-container">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Case Administration</h1>
-          <p className="text-sm text-gray-500">Monitor all legal cases submitted on the platform</p>
+          <h1 className="section-title">Case Administration</h1>
+          <p className="section-subtitle">Monitor all legal cases submitted on the platform</p>
         </div>
         <Link
           href="/urgent-cases"
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-sm text-sm transition-all flex items-center gap-1.5"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-sm text-sm transition-all"
         >
           <Flame className="w-4 h-4 fill-white" /> Urgent Cases
         </Link>
       </div>
 
-      {/* Search and Filters */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Search title, category, client name..."
-            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold/50"
-          />
-        </div>
-
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Filter className="w-4 h-4 text-gray-400" />
-          <select
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-gold/50"
-          >
-            <option value="all">All Case Statuses</option>
-            <option value="Submitted">Submitted</option>
-            <option value="Pending">Pending Acceptance</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Closed">Closed / Completed</option>
-          </select>
+      <div className="card">
+        <div className="card-body flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search title, category, client name..."
+              className="search-input"
+            />
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+            <select
+              value={status}
+              onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+              className="form-select w-full sm:w-auto"
+            >
+              <option value="all">All Case Statuses</option>
+              <option value="Submitted">Submitted</option>
+              <option value="Pending">Pending Acceptance</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Closed">Closed / Completed</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Cases Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="card">
         {isLoading ? (
-          <div className="p-12 text-center text-sm text-gray-500">Loading cases directory...</div>
+          <div className="loading-state">
+            <div className="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin mb-3" />
+            <p className="text-sm text-slate-500 font-medium">Loading cases directory...</p>
+          </div>
         ) : isError ? (
-          <div className="p-12 text-center text-sm text-red-500">Error loading cases</div>
+          <div className="empty-state">
+            <AlertTriangle className="w-10 h-10 text-red-400 mb-2" />
+            <p className="text-sm font-semibold text-red-600">Failed to load cases</p>
+            <button onClick={() => queryClient.invalidateQueries({ queryKey: ["admin", "cases"] })} className="btn btn-secondary mt-3 text-xs">Retry</button>
+          </div>
         ) : cases.length === 0 ? (
-          <div className="p-12 text-center text-sm text-gray-400">No cases found matching criteria</div>
+          <div className="empty-state">
+            <Briefcase className="w-10 h-10 text-slate-300 mb-2" />
+            <p className="text-sm font-semibold text-slate-700">No cases found</p>
+            <p className="text-xs text-slate-400 mt-1">Try adjusting search criteria</p>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <th className="px-6 py-3.5">Case Title & Category</th>
-                  <th className="px-6 py-3.5">Client</th>
-                  <th className="px-6 py-3.5">Assigned Lawyer</th>
-                  <th className="px-6 py-3.5">Urgency</th>
-                  <th className="px-6 py-3.5">Status</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
+                  <th>Case Title & Category</th>
+                  <th>Client</th>
+                  <th>Assigned Lawyer</th>
+                  <th>Urgency</th>
+                  <th>Status</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {cases.map((c: any) => {
                   const client = c.client || {};
                   const lawyer = c.assignedLawyer?.user || c.assignedLawyer || {};
+                  const isUrgent = c.urgency?.toLowerCase().includes("urgent") || c.urgency?.toLowerCase().includes("high") || c.priority?.toLowerCase().includes("urgent");
                   return (
-                    <tr key={c._id} className="hover:bg-gray-50/80 transition-colors">
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-gray-900 truncate max-w-xs">{c.title}</p>
-                        <p className="text-xs text-gray-500">{c.category} • {c.location || "N/A"}</p>
+                    <tr key={c._id} className={isUrgent ? "bg-red-50/30" : ""}>
+                      <td>
+                        <div>
+                          <Link href={`/cases/${c._id}`} className="font-semibold text-slate-900 hover:text-gold-hover transition-colors text-sm flex items-center gap-1.5">
+                            {c.title}
+                            {isUrgent && <Flame className="w-3.5 h-3.5 text-red-500 fill-red-500 shrink-0" />}
+                          </Link>
+                          <p className="text-xs text-slate-500 mt-0.5">{c.category} • {c.location || "N/A"}</p>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-xs font-medium text-gray-800">{client.fullName || "N/A"}</td>
-                      <td className="px-6 py-4 text-xs font-medium text-gray-800">{lawyer.fullName || "Unassigned"}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-2 py-0.5 rounded text-xs font-bold ${
-                            c.urgency?.toLowerCase().includes("urgent") || c.urgency?.toLowerCase().includes("high")
-                              ? "bg-red-100 text-red-800"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {c.urgency || "Flexible"}
-                        </span>
+                      <td className="text-xs font-medium text-slate-800">{client.fullName || "N/A"}</td>
+                      <td className="text-xs font-medium text-slate-800">{lawyer.fullName || "Unassigned"}</td>
+                      <td>
+                        {isUrgent ? (
+                          <span className="badge badge-danger">Urgent</span>
+                        ) : (
+                          <span className="badge bg-slate-100 text-slate-600 border-slate-200">{c.urgency || "Flexible"}</span>
+                        )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td>
                         <select
                           value={c.status}
                           onChange={(e) => updateStatusMutation.mutate({ caseId: c._id, status: e.target.value })}
-                          className="px-2.5 py-1 bg-gray-50 border border-gray-200 rounded text-xs font-semibold text-gray-800 focus:outline-none"
+                          className={cn("px-3 py-1.5 rounded-lg text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-gold/40", statusVariant(c.status))}
                         >
                           <option value="Submitted">Submitted</option>
                           <option value="In Progress">In Progress</option>
@@ -141,11 +165,8 @@ export default function CasesPage() {
                           <option value="Rejected">Rejected</option>
                         </select>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <Link
-                          href={`/cases/${c._id}`}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-gray-700 hover:text-black bg-gray-100 px-3 py-1.5 rounded-lg transition-colors"
-                        >
+                      <td className="text-right">
+                        <Link href={`/cases/${c._id}`} className="action-link">
                           <Eye className="w-3.5 h-3.5" /> Details
                         </Link>
                       </td>
@@ -157,25 +178,12 @@ export default function CasesPage() {
           </div>
         )}
 
-        {/* Pagination */}
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 font-medium">
+          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
             <span>Page {page} of {totalPages}</span>
             <div className="flex gap-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage(page - 1)}
-                className="px-3 py-1.5 bg-gray-100 rounded-md disabled:opacity-50 font-semibold"
-              >
-                Previous
-              </button>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage(page + 1)}
-                className="px-3 py-1.5 bg-gray-100 rounded-md disabled:opacity-50 font-semibold"
-              >
-                Next
-              </button>
+              <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="pagination-btn">Previous</button>
+              <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="pagination-btn">Next</button>
             </div>
           </div>
         )}

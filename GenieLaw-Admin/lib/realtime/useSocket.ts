@@ -9,48 +9,98 @@ export function useSocket() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://lawyerappvizag.duckdns.org";
+    const adminToken =
+      typeof window !== "undefined"
+        ? document.cookie
+            .split("; ")
+            .find((c) => c.startsWith("admin_token="))
+            ?.split("=")[1] ||
+          localStorage.getItem("admin_token")
+        : null;
 
     if (!socket) {
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://lawyerappvizag.duckdns.org";
+
       socket = io(socketUrl, {
         transports: ["websocket", "polling"],
         reconnection: true,
         reconnectionAttempts: 5,
+        auth: adminToken ? { token: adminToken } : undefined,
       });
     }
 
-    socket.on("connect", () => {
+    const onConnect = () => {
       console.log("⚡ Admin Socket connected:", socket?.id);
-    });
+    };
 
-    socket.on("lawyer_verification_updated", (data) => {
-      toast.info(`Lawyer verification updated (${data.status})`);
-      queryClient.invalidateQueries({ queryKey: ["admin", "lawyers"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });
-    });
+    const onError = (err: any) => {
+      console.warn("Socket error:", err?.message || err);
+    };
 
-    socket.on("admin_broadcast", (data) => {
-      toast.success(`Broadcast Sent: ${data.title}`);
-      queryClient.invalidateQueries({ queryKey: ["admin", "notifications"] });
-    });
+    const invalidate = (keys: string[][]) =>
+      keys.forEach((k) => queryClient.invalidateQueries({ queryKey: k }));
 
-    socket.on("new_case_submitted", () => {
-      toast.info("New case submitted");
-      queryClient.invalidateQueries({ queryKey: ["admin", "cases"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });
-    });
+    const handlers: Record<string, () => void> = {
+      lawyer_verification_updated: () => {
+        toast.info("A lawyer verification status was updated");
+        invalidate([["admin", "lawyers"], ["admin", "stats"]]);
+      },
+      admin_broadcast: () => {
+        toast.success("A new broadcast notification was sent");
+        invalidate([["admin", "notifications"]]);
+      },
+      new_case_submitted: () => {
+        toast.info("A new case was submitted");
+        invalidate([["admin", "cases"], ["admin", "stats"]]);
+      },
+      case_status_changed: () => {
+        invalidate([["admin", "cases"], ["admin", "stats"]]);
+      },
+      new_lawyer_registered: () => {
+        toast.info("A new advocate registered on the platform");
+        invalidate([["admin", "lawyers"], ["admin", "stats"]]);
+      },
+      new_client_registered: () => {
+        toast.info("A new client registered on the platform");
+        invalidate([["admin", "clients"], ["admin", "stats"]]);
+      },
+      new_appointment: () => {
+        invalidate([["admin", "appointments"], ["admin", "stats"]]);
+      },
+      payment_completed: () => {
+        toast.success("A new payment was completed");
+        invalidate([["admin", "payments"], ["admin", "stats"]]);
+      },
+      refund_processed: () => {
+        toast.info("A refund was processed");
+        invalidate([["admin", "payments"], ["admin", "stats"]]);
+      },
+      new_review: () => {
+        invalidate([["admin", "reviews"]]);
+      },
+      new_dispute: () => {
+        toast.warning("A new dispute was filed");
+        invalidate([["admin", "disputes"], ["admin", "stats"]]);
+      },
+      urgent_case_created: () => {
+        toast.warning("An urgent case was flagged on the platform");
+        invalidate([["admin", "urgent-cases"], ["admin", "cases"], ["admin", "stats"]]);
+      },
+    };
 
-    socket.on("case_status_changed", () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "cases"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });
+    socket.on("connect", onConnect);
+    socket.on("connect_error", onError);
+
+    Object.entries(handlers).forEach(([event, handler]) => {
+      socket?.on(event, handler);
     });
 
     return () => {
-      // Keep socket active or clean listeners
-      socket?.off("lawyer_verification_updated");
-      socket?.off("admin_broadcast");
-      socket?.off("new_case_submitted");
-      socket?.off("case_status_changed");
+      socket?.off("connect", onConnect);
+      socket?.off("connect_error", onError);
+      Object.entries(handlers).forEach(([event, handler]) => {
+        socket?.off(event, handler);
+      });
     };
   }, [queryClient]);
 }

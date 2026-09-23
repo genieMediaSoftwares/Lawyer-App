@@ -9,6 +9,7 @@ export const api = axios.create({
     "Content-Type": "application/json",
   },
   withCredentials: true,
+  timeout: Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS) || 30000,
 });
 
 api.interceptors.request.use((config) => {
