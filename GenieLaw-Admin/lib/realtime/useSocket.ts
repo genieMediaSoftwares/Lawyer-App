@@ -9,7 +9,7 @@ export function useSocket() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://lawyerappvizag.duckdns.org";
 
     if (!socket) {
       socket = io(socketUrl, {

@@ -1,4 +1,20 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/login/page": "app/login/page.js"
+  "/(admin)/lawyer-verification/page": "app/(admin)/lawyer-verification/page.js",
+  "/(admin)/settings/page": "app/(admin)/settings/page.js",
+  "/(admin)/disputes/page": "app/(admin)/disputes/page.js",
+  "/(admin)/urgent-cases/page": "app/(admin)/urgent-cases/page.js",
+  "/(admin)/cases/[id]/page": "app/(admin)/cases/[id]/page.js",
+  "/(admin)/dashboard/page": "app/(admin)/dashboard/page.js",
+  "/(admin)/lawyers/page": "app/(admin)/lawyers/page.js",
+  "/(admin)/clients/page": "app/(admin)/clients/page.js",
+  "/(admin)/cases/page": "app/(admin)/cases/page.js",
+  "/(admin)/consultations/page": "app/(admin)/consultations/page.js",
+  "/(admin)/documents/page": "app/(admin)/documents/page.js",
+  "/(admin)/appointments/page": "app/(admin)/appointments/page.js",
+  "/(admin)/payments/page": "app/(admin)/payments/page.js",
+  "/(admin)/subscriptions/page": "app/(admin)/subscriptions/page.js",
+  "/(admin)/reviews/page": "app/(admin)/reviews/page.js",
+  "/(admin)/notifications/page": "app/(admin)/notifications/page.js",
+  "/(admin)/categories/page": "app/(admin)/categories/page.js"
 }

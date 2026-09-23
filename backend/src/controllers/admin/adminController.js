@@ -193,7 +193,10 @@ exports.verifyLawyer = async (req, res, next) => {
     const { lawyerId } = req.params;
     const { status, rejectionReason, isActive } = req.body;
 
-    const lawyer = await Lawyer.findById(lawyerId).populate("user");
+    let lawyer = await Lawyer.findById(lawyerId).populate("user");
+    if (!lawyer) {
+      lawyer = await Lawyer.findOne({ user: lawyerId }).populate("user");
+    }
     if (!lawyer) {
       return res.status(404).json({ success: false, message: "Lawyer profile not found" });
     }
@@ -215,9 +218,11 @@ exports.verifyLawyer = async (req, res, next) => {
       await User.findByIdAndUpdate(lawyer.user._id, { isActive });
     }
 
+    await logAuditAction(req, "verify_lawyer", "Lawyer", lawyer._id, { status, rejectionReason, isActive });
+
     const io = req.app.get("io");
     if (io) {
-      io.emit("lawyer_verification_updated", { lawyerId, status: lawyer.verificationStatus });
+      io.emit("lawyer_verification_updated", { lawyerId: lawyer._id, status: lawyer.verificationStatus });
     }
 
     res.status(200).json({
@@ -241,10 +246,7 @@ exports.getCases = async (req, res, next) => {
 
     let cases = await Case.find(query)
       .populate("client", "-password")
-      .populate({
-        path: "assignedLawyer",
-        populate: { path: "user", select: "-password" },
-      })
+      .populate("assignedLawyer", "-password")
       .sort({ createdAt: -1 });
 
     if (search) {
@@ -593,7 +595,10 @@ exports.updateClientStatus = async (req, res, next) => {
 exports.getLawyerById = async (req, res, next) => {
   try {
     const { lawyerId } = req.params;
-    const lawyer = await Lawyer.findById(lawyerId).populate("user", "-password");
+    let lawyer = await Lawyer.findById(lawyerId).populate("user", "-password");
+    if (!lawyer) {
+      lawyer = await Lawyer.findOne({ user: lawyerId }).populate("user", "-password");
+    }
     if (!lawyer) {
       return res.status(404).json({ success: false, message: "Lawyer profile not found" });
     }
@@ -623,7 +628,10 @@ exports.updateLawyerStatus = async (req, res, next) => {
     const { lawyerId } = req.params;
     const { isActive, verificationStatus } = req.body;
 
-    const lawyer = await Lawyer.findById(lawyerId).populate("user");
+    let lawyer = await Lawyer.findById(lawyerId).populate("user");
+    if (!lawyer) {
+      lawyer = await Lawyer.findOne({ user: lawyerId }).populate("user");
+    }
     if (!lawyer) {
       return res.status(404).json({ success: false, message: "Lawyer not found" });
     }
@@ -634,7 +642,7 @@ exports.updateLawyerStatus = async (req, res, next) => {
     if (isActive !== undefined && lawyer.user) {
       await User.findByIdAndUpdate(lawyer.user._id, { isActive });
     }
-    await logAuditAction(req, "update_lawyer_status", "Lawyer", lawyerId, { isActive, verificationStatus });
+    await logAuditAction(req, "update_lawyer_status", "Lawyer", lawyer._id, { isActive, verificationStatus });
     res.status(200).json({ success: true, message: "Lawyer status updated successfully", data: lawyer });
   } catch (error) {
     next(error);
@@ -646,7 +654,7 @@ exports.getCaseById = async (req, res, next) => {
     const { caseId } = req.params;
     const caseItem = await Case.findById(caseId)
       .populate("client", "-password")
-      .populate({ path: "assignedLawyer", populate: { path: "user", select: "-password" } })
+      .populate("assignedLawyer", "-password")
       .populate("proposals.lawyer", "fullName email profileImage");
     if (!caseItem) {
       return res.status(404).json({ success: false, message: "Case not found" });
