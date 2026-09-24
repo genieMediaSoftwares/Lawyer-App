@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const promotionController = require("../../controllers/promotion/promotionController");
-const authMiddleware = require("../../middleware/authMiddleware");
+const promotionController = require("../controllers/promotion/promotionController");
+const authMiddleware = require("../middleware/authMiddleware");
 
 router.use(authMiddleware);
 
