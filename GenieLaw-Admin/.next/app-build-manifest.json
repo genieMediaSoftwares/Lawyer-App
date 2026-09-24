@@ -26,10 +26,55 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(admin)/lawyers/page.js"
     ],
-    "/_not-found/page": [
+    "/(admin)/lawyers/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/(admin)/lawyers/[id]/page.js"
+    ],
+    "/(admin)/lawyer-verification/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/lawyer-verification/page.js"
+    ],
+    "/(admin)/clients/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/clients/page.js"
+    ],
+    "/(admin)/cases/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/cases/page.js"
+    ],
+    "/(admin)/urgent-cases/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/urgent-cases/page.js"
+    ],
+    "/(admin)/subscriptions/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/subscriptions/page.js"
+    ],
+    "/(admin)/payments/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/payments/page.js"
+    ],
+    "/(admin)/documents/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/documents/page.js"
+    ],
+    "/(admin)/appointments/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/appointments/page.js"
+    ],
+    "/login/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/login/page.js"
     ]
   }
 }

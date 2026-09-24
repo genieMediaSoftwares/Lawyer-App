@@ -54,10 +54,21 @@ router.get("/support-tickets", adminController.getSupportTickets);
 router.put("/support-tickets/:ticketId", adminController.updateSupportTicket);
 router.get("/disputes", adminController.getDisputes);
 
-// Categories & Promotions
+// Categories
 router.get("/categories", adminController.getCategories);
 router.post("/categories", adminController.createCategory);
+
+// Promotions
 router.get("/promotions", adminController.getPromotions);
+router.post("/promotions", adminController.createPromotion);
+router.put("/promotions/:id/toggle", adminController.togglePromotion);
+
+// Referrals
+router.get("/referrals", adminController.getAllReferrals);
+router.get("/referrals/stats", adminController.getReferralStats);
+
+// Milestones
+router.get("/milestones/case/:caseId", adminController.getMilestonesByCase);
 
 // Notifications & Broadcast
 router.post("/notifications/broadcast", adminController.broadcastNotification);
@@ -75,4 +86,3 @@ router.get("/settings", adminController.getSettings);
 router.put("/settings", adminController.updateSettings);
 
 module.exports = router;
-

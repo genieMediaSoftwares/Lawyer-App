@@ -362,3 +362,38 @@ export interface LawyerReview {
   createdAt: string;
   updatedAt: string;
 }
+
+// Backend Issue model used for client-lawyer disputes.
+export interface Issue {
+  _id: string;
+  title: string;
+  description: string;
+  category: string;
+  status: 'Pending' | 'Assigned' | 'Resolved' | 'Closed';
+  urgency?: string;
+  preferredMode?: string;
+  location?: string;
+  preferredLanguage?: string;
+  documents?: Array<{ name: string; url: string; size?: string; path?: string }>;
+  images?: Array<{ name: string; url: string; size?: string }>;
+  clientId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentRecord {
+  _id: string;
+  amount: number;
+  currency: string;
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  purpose: 'consultation' | 'subscription';
+  paymentMethod: string;
+  appointment?: string | null;
+  case?: string | null;
+  lawyer?: { fullName: string; email: string };
+  client?: { fullName: string; email: string };
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  createdAt: string;
+  updatedAt: string;
+}

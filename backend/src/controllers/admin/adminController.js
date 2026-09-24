@@ -13,6 +13,10 @@ const Review = require("../../models/Review");
 const AuditLog = require("../../models/AuditLog");
 const Setting = require("../../models/Setting");
 const LegalDocument = require("../../models/LegalDocument");
+const Category = require("../../models/Category");
+const Promotion = require("../../models/Promotion");
+const Referral = require("../../models/Referral");
+const Milestone = require("../../models/Milestone");
 
 const logAuditAction = async (req, action, targetModel = "", targetId = "", details = {}) => {
   try {
@@ -734,7 +738,7 @@ exports.getPayments = async (req, res, next) => {
         (p) =>
           (p.client && regex.test(p.client.fullName)) ||
           (p.lawyer && regex.test(p.lawyer.fullName)) ||
-          regex.test(p.razorpayPaymentId || "") ||
+          regex.test(p.paymentMethod || "") ||
           regex.test(p.purpose || "")
       );
     }
@@ -927,16 +931,11 @@ exports.getUrgentCases = async (req, res, next) => {
 
 exports.getCategories = async (req, res, next) => {
   try {
-    const categories = [
-      { id: "1", name: "Family Law", description: "Divorce, custody, adoption", status: "active" },
-      { id: "2", name: "Criminal Law", description: "Defense, criminal proceedings, bail", status: "active" },
-      { id: "3", name: "Corporate Law", description: "Business registration, contracts, compliance", status: "active" },
-      { id: "4", name: "Property & Real Estate", description: "Land disputes, property registration", status: "active" },
-      { id: "5", name: "Intellectual Property", description: "Trademarks, patents, copyrights", status: "active" },
-      { id: "6", name: "Labor & Employment", description: "Workplace disputes, employment contracts", status: "active" },
-      { id: "7", name: "Taxation Law", description: "GST, income tax, tax audits", status: "active" },
-    ];
-    res.status(200).json({ success: true, data: categories });
+    const { status } = req.query;
+    const query = {};
+    if (status && status !== "all") query.status = status;
+    const categories = await Category.find(query).sort({ order: 1, name: 1 });
+    res.status(200).json({ success: true, count: categories.length, data: categories });
   } catch (error) {
     next(error);
   }
@@ -944,13 +943,17 @@ exports.getCategories = async (req, res, next) => {
 
 exports.createCategory = async (req, res, next) => {
   try {
-    const { name, description } = req.body;
-    await logAuditAction(req, "create_category", "Category", "", { name, description });
-    res.status(201).json({
-      success: true,
-      message: "Category created successfully",
-      data: { id: Date.now().toString(), name, description, status: "active" },
-    });
+    const { name, description, status, order } = req.body;
+    if (!name) {
+      return ApiResponse.error(res, "Category name is required.", 400);
+    }
+    const existing = await Category.findOne({ name: { $regex: new RegExp(`^${name}$`, "i") } });
+    if (existing) {
+      return ApiResponse.error(res, "A category with this name already exists.", 409);
+    }
+    const category = await Category.create({ name, description: description || "", status: status || "active", order: order || 0 });
+    await logAuditAction(req, "create_category", "Category", category._id, { name });
+    res.status(201).json({ success: true, message: "Category created successfully.", data: category });
   } catch (error) {
     next(error);
   }
@@ -958,11 +961,55 @@ exports.createCategory = async (req, res, next) => {
 
 exports.getPromotions = async (req, res, next) => {
   try {
-    const promotions = [
-      { id: "p1", name: "Launch Special Offer", discount: "20%", code: "GENIE20", active: true },
-      { id: "p2", name: "First Consultation Discount", discount: "15%", code: "FIRSTLEGAL", active: true },
-    ];
-    res.status(200).json({ success: true, data: promotions });
+    const { isActive } = req.query;
+    const query = {};
+    if (isActive !== undefined) {
+      query.isActive = isActive === "true" || isActive === true;
+    }
+    const promotions = await Promotion.find(query).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, count: promotions.length, data: promotions });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.createPromotion = async (req, res, next) => {
+  try {
+    const {
+      name, description, code, discountType, discountValue, applicableTo,
+      eligibleCategory, eligiblePlan, startDate, endDate, maxUses, maxUsesPerUser, minAmount,
+    } = req.body;
+    if (!name || !code || !discountType || !discountValue || !startDate || !endDate) {
+      return ApiResponse.error(res, "Required fields: name, code, discountType, discountValue, startDate, endDate.", 400);
+    }
+    const existing = await Promotion.findOne({ code: code.toUpperCase() });
+    if (existing) {
+      return ApiResponse.error(res, "A promotion with this code already exists.", 409);
+    }
+    const promotion = await Promotion.create({
+      name, description, code: code.toUpperCase(), discountType, discountValue,
+      applicableTo: applicableTo || "consultation", eligibleCategory, eligiblePlan,
+      startDate, endDate, maxUses: maxUses || 0, maxUsesPerUser: maxUsesPerUser || 1,
+      minAmount: minAmount || 0, createdBy: req.user._id,
+    });
+    await logAuditAction(req, "create_promotion", "Promotion", promotion._id, { name, code });
+    res.status(201).json({ success: true, message: "Promotion created successfully.", data: promotion });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.togglePromotion = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const promotion = await Promotion.findById(id);
+    if (!promotion) {
+      return ApiResponse.error(res, "Promotion not found.", 404);
+    }
+    promotion.isActive = !promotion.isActive;
+    await promotion.save();
+    await logAuditAction(req, "toggle_promotion", "Promotion", id, { isActive: promotion.isActive });
+    res.status(200).json({ success: true, message: "Promotion toggled successfully.", data: promotion });
   } catch (error) {
     next(error);
   }
@@ -1087,6 +1134,47 @@ exports.updateSettings = async (req, res, next) => {
     await settings.save();
     await logAuditAction(req, "update_admin_settings", "Setting", settings._id, req.body);
     res.status(200).json({ success: true, message: "Settings updated successfully", data: settings });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getAllReferrals = async (req, res, next) => {
+  try {
+    const referrals = await Referral.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, count: referrals.length, data: referrals });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getReferralStats = async (req, res, next) => {
+  try {
+    const totalReferrals = await Referral.countDocuments();
+    const byStatus = await Referral.aggregate([
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]);
+    const byRole = await Referral.aggregate([
+      { $group: { _id: "$referrerRole", count: { $sum: 1 } } },
+    ]);
+    res.status(200).json({
+      success: true,
+      data: {
+        total: totalReferrals,
+        byStatus: Object.fromEntries(byStatus.map((r) => [r._id, r.count])),
+        byRole: Object.fromEntries(byRole.map((r) => [r._id, r.count])),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getMilestonesByCase = async (req, res, next) => {
+  try {
+    const { caseId } = req.params;
+    const milestones = await Milestone.find({ caseId }).sort({ order: 1, createdAt: 1 });
+    res.status(200).json({ success: true, count: milestones.length, data: milestones });
   } catch (error) {
     next(error);
   }

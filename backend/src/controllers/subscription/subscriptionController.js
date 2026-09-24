@@ -2,29 +2,28 @@ const Subscription = require("../../models/Subscription");
 const Lawyer = require("../../models/Lawyer");
 const Payment = require("../../models/Payment");
 const ApiResponse = require("../../config/ApiResponse");
-const razorpayService = require("../../services/payment/razorpayService");
+const notificationService = require("../../services/notification/notificationService");
 
-const SUBSCRIPTION_CATALOG = {
-  Free: 0,
-  Starter: 999,
-  Professional: 2999,
-  Premium: 5999,
-  Elite: 12999,
+const PLAN_DURATIONS_DAYS = {
+  Free: 30,
+  Starter: 30,
+  Professional: 30,
+  Premium: 30,
+  Elite: 30,
 };
 
 class SubscriptionController {
   async getSubscription(req, res, next) {
     try {
       const userId = req.user._id;
-      let subscription = await Subscription.findOne({ user: userId, status: "active" })
-        .sort({ endDate: -1 });
+      let subscription = await Subscription.findOne({ user: userId, status: "active" }).sort({ endDate: -1 });
 
       if (!subscription) {
         return ApiResponse.success(res, "Active subscription retrieved.", {
           plan: "Free",
           status: "active",
           startDate: new Date(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         });
       }
 
@@ -44,75 +43,52 @@ class SubscriptionController {
         return ApiResponse.error(res, "Only registered lawyers can purchase subscription plans.", 403);
       }
 
-      if (!plan || SUBSCRIPTION_CATALOG[plan] === undefined) {
+      if (!plan || PLAN_DURATIONS_DAYS[plan] === undefined) {
         return ApiResponse.error(
           res,
-          "Invalid subscription plan. Allowed catalog plans: Free, Starter, Professional, Premium, Elite.",
+          "Invalid subscription plan. Allowed plans: Free, Starter, Professional, Premium, Elite.",
           400
         );
       }
 
-      const authoritativeAmount = SUBSCRIPTION_CATALOG[plan];
+      await Subscription.updateMany({ user: userId, status: "active" }, { status: "expired" });
 
-      if (authoritativeAmount === 0) {
-        await Subscription.updateMany({ user: userId, status: "active" }, { status: "expired" });
+      const startDate = new Date();
+      const durationDays = PLAN_DURATIONS_DAYS[plan];
+      const endDate = new Date(startDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
-        const startDate = new Date();
-        const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-        const subscription = await Subscription.create({
-          user: userId,
-          plan: "Free",
-          status: "active",
-          startDate,
-          endDate,
-        });
-
-        await Lawyer.findOneAndUpdate(
-          { user: userId },
-          { subscriptionPlan: "Free" }
-        );
-
-        return ApiResponse.success(res, "Free plan activated successfully.", {
-          isFree: true,
-          subscription,
-        });
-      }
-
-      const receipt = `sub_${userId}_${Date.now()}`;
-      const order = await razorpayService.createOrder({
-        amount: authoritativeAmount,
-        currency: "INR",
-        receipt,
-        notes: {
-          lawyerId: userId.toString(),
-          purpose: "subscription",
-          subscriptionPlan: plan,
-        },
+      const subscription = await Subscription.create({
+        user: userId,
+        plan,
+        status: "active",
+        startDate,
+        endDate,
       });
 
-      const payment = await Payment.create({
-        client: userId,
-        lawyer: userId,
-        amount: authoritativeAmount,
-        currency: "INR",
-        purpose: "subscription",
-        subscriptionPlan: plan,
-        status: "pending",
-        razorpayOrderId: order.id,
-        paymentMethod: "Razorpay",
-      });
+      await Lawyer.findOneAndUpdate({ user: userId }, { subscriptionPlan: plan });
+
+      notificationService
+        .createAndSendNotification({
+          receiverId: userId,
+          type: "subscription_success",
+          title: "Subscription Activated",
+          message: `Your ${plan} subscription is now active (Free Plan tier).`,
+          referenceId: subscription._id.toString(),
+        })
+        .catch(() => {});
 
       return ApiResponse.success(
         res,
-        "Subscription order created successfully.",
+        "Subscription activated successfully.",
         {
-          orderId: order.id,
-          amount: authoritativeAmount,
-          currency: "INR",
-          keyId: razorpayService.keyId || "",
-          paymentId: payment._id,
+          isFree: true,
+          orderId: subscription._id.toString(),
+          paymentId: subscription._id,
+          subscription,
           plan,
+          amount: 0,
+          currency: "INR",
+          status: "completed",
         },
         201
       );
@@ -126,22 +102,14 @@ class SubscriptionController {
       const { plan } = req.body;
       const userId = req.user._id;
 
-      if (!plan || SUBSCRIPTION_CATALOG[plan] === undefined) {
+      if (!plan || PLAN_DURATIONS_DAYS[plan] === undefined) {
         return ApiResponse.error(res, "Invalid or missing plan name.", 400);
-      }
-
-      if (process.env.PAYMENT_MODE === "live" && SUBSCRIPTION_CATALOG[plan] > 0) {
-        return ApiResponse.error(
-          res,
-          "LIVE MODE PROTECTION: Paid subscription requires server order creation and payment verification via /api/subscriptions/create-order.",
-          400
-        );
       }
 
       await Subscription.updateMany({ user: userId, status: "active" }, { status: "expired" });
 
       const startDate = new Date();
-      const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const endDate = new Date(startDate.getTime() + PLAN_DURATIONS_DAYS[plan] * 24 * 60 * 60 * 1000);
 
       const subscription = await Subscription.create({
         user: userId,
@@ -151,11 +119,7 @@ class SubscriptionController {
         endDate,
       });
 
-      await Lawyer.findOneAndUpdate(
-        { user: userId },
-        { subscriptionPlan: plan },
-        { new: true }
-      );
+      await Lawyer.findOneAndUpdate({ user: userId }, { subscriptionPlan: plan }, { new: true });
 
       return ApiResponse.success(res, "Subscribed successfully.", subscription, 201);
     } catch (error) {
@@ -176,10 +140,7 @@ class SubscriptionController {
         return ApiResponse.error(res, "No active subscription found to cancel.", 404);
       }
 
-      await Lawyer.findOneAndUpdate(
-        { user: userId },
-        { subscriptionPlan: "Free" }
-      );
+      await Lawyer.findOneAndUpdate({ user: userId }, { subscriptionPlan: "Free" });
 
       return ApiResponse.success(res, "Subscription cancelled successfully.", subscription);
     } catch (error) {

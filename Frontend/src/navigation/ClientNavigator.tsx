@@ -15,11 +15,14 @@ import {
   BellIcon,
   BriefcaseIcon,
   ChatIcon,
+  ClockIcon,
   FileIcon,
   HeartIcon,
   HomeIcon,
+  InfoCircleIcon,
   ScalesIcon,
   SettingsIcon,
+  StarIcon,
 } from '../components/icons/ClientIcons';
 import { UserIcon } from '../components/icons/Icons';
 import { notificationsApi } from '../api/clientApi';
@@ -49,6 +52,10 @@ import { PostCaseScreen } from '../screens/client/PostCase/PostCaseScreen';
 import { AiAssistantScreen } from '../screens/client/AI/AiAssistantScreen';
 import { AiSessionScreen } from '../screens/client/AI/AiSessionScreen';
 import { AiChatScreen } from '../screens/client/AI/AiChatScreen';
+import { PaymentsScreen } from '../screens/client/Payments/PaymentsScreen';
+import { ReviewsScreen } from '../screens/client/Reviews/ReviewsScreen';
+import { DisputesScreen } from '../screens/client/Disputes/DisputesScreen';
+import { UrgentHelpScreen } from '../screens/client/Urgent/UrgentHelpScreen';
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import { colors } from '../theme';
@@ -193,6 +200,30 @@ const ClientOverlays: React.FC = () => {
         onPress: () => go('Favorites'),
       },
       {
+        key: 'payments',
+        label: 'Payments',
+        Icon: () => null,
+        onPress: () => go('Payments'),
+      },
+      {
+        key: 'reviews',
+        label: 'My Reviews',
+        Icon: StarIcon,
+        onPress: () => go('Reviews'),
+      },
+      {
+        key: 'disputes',
+        label: 'Disputes',
+        Icon: InfoCircleIcon,
+        onPress: () => go('Disputes'),
+      },
+      {
+        key: 'urgent',
+        label: 'Urgent Legal Help',
+        Icon: ClockIcon,
+        onPress: () => go('UrgentHelp'),
+      },
+      {
         key: 'profile',
         label: 'My Profile',
         Icon: UserIcon,
@@ -291,6 +322,10 @@ export const ClientNavigator: React.FC = () => (
       <Stack.Screen name="AiAssistant" component={AiAssistantScreen} />
       <Stack.Screen name="AiSession" component={AiSessionScreen} />
       <Stack.Screen name="AiChat" component={AiChatScreen} />
+      <Stack.Screen name="Payments" component={PaymentsScreen} />
+      <Stack.Screen name="Reviews" component={ReviewsScreen} />
+      <Stack.Screen name="Disputes" component={DisputesScreen} />
+      <Stack.Screen name="UrgentHelp" component={UrgentHelpScreen} />
     </Stack.Navigator>
 
     <ClientOverlays />

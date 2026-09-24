@@ -40,6 +40,10 @@ export type ClientStackParamList = {
   AiAssistant: undefined;
   AiSession: { sessionId: string };
   AiChat: { initialQuestion?: string } | undefined;
+  Payments: undefined;
+  Reviews: undefined;
+  Disputes: undefined;
+  UrgentHelp: undefined;
 };
 
 export type LawyerTabParamList = {

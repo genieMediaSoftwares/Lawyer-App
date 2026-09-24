@@ -1,6 +1,14 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/page": "app/page.js",
+  "/login/page": "app/login/page.js",
   "/(admin)/dashboard/page": "app/(admin)/dashboard/page.js",
-  "/(admin)/lawyers/page": "app/(admin)/lawyers/page.js"
+  "/(admin)/lawyers/[id]/page": "app/(admin)/lawyers/[id]/page.js",
+  "/(admin)/lawyer-verification/page": "app/(admin)/lawyer-verification/page.js",
+  "/(admin)/lawyers/page": "app/(admin)/lawyers/page.js",
+  "/(admin)/clients/page": "app/(admin)/clients/page.js",
+  "/(admin)/urgent-cases/page": "app/(admin)/urgent-cases/page.js",
+  "/(admin)/cases/page": "app/(admin)/cases/page.js",
+  "/(admin)/subscriptions/page": "app/(admin)/subscriptions/page.js",
+  "/(admin)/payments/page": "app/(admin)/payments/page.js",
+  "/(admin)/appointments/page": "app/(admin)/appointments/page.js",
+  "/(admin)/documents/page": "app/(admin)/documents/page.js"
 }

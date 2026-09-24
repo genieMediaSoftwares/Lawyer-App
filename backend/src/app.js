@@ -28,6 +28,10 @@ const courtRoutes = require("./routes/court.routes");
 const placeRoutes = require("./routes/place.routes");
 const aiRoutes = require("./routes/ai.routes");
 const adminRoutes = require("./routes/admin.routes");
+const categoryRoutes = require("./routes/category.routes");
+const promotionRoutes = require("./routes/promotion.routes");
+const referralRoutes = require("./routes/referral.routes");
+const milestoneRoutes = require("./routes/milestone.routes");
 
 
 const app = express();
@@ -215,6 +219,10 @@ app.use("/api/courts", courtRoutes);
 app.use("/api/places", placeRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/promotions", promotionRoutes);
+app.use("/api/referrals", referralRoutes);
+app.use("/api/milestones", milestoneRoutes);
 
 app.use(notFoundMiddleware);
 
